@@ -63,3 +63,4 @@ function createStylesheetBundleOptions(options, cache, inlineComponentData) {
         plugins,
     };
 }
+//# sourceMappingURL=bundle-options.js.map

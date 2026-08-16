@@ -6,14 +6,21 @@
  */
 export type Schema = {
     /**
-     * Include the styles for the root component directly within the `app.component.ts` file.
-     * Only CSS styles can be included inline. By default, a separate stylesheet file (e.g.,
-     * `app.component.css`) is created.
+     * The file naming convention to use for generated files. The '2025' style guide (default)
+     * uses a concise format (e.g., `app.ts` for the root component), while the '2016' style
+     * guide includes the type in the file name (e.g., `app.component.ts`). For more
+     * information, see the Angular Style Guide (https://angular.dev/style-guide).
+     */
+    fileNameStyleGuide?: FileNameStyleGuide;
+    /**
+     * Include the styles for the root component directly within the `app.ts` file. Only CSS
+     * styles can be included inline. By default, a separate stylesheet file (e.g., `app.css`)
+     * is created.
      */
     inlineStyle?: boolean;
     /**
-     * Include the HTML template for the root component directly within the `app.component.ts`
-     * file. By default, a separate template file (e.g., `app.component.html`) is created.
+     * Include the HTML template for the root component directly within the `app.ts` file. By
+     * default, a separate template file (e.g., `app.html`) is created.
      */
     inlineTemplate?: boolean;
     /**
@@ -77,6 +84,10 @@ export type Schema = {
      */
     style?: Style;
     /**
+     * The unit testing runner to use.
+     */
+    testRunner?: TestRunner;
+    /**
      * Sets the view encapsulation mode for the application's components. This determines how
      * component styles are scoped and applied.
      */
@@ -87,13 +98,31 @@ export type Schema = {
     zoneless?: boolean;
 };
 /**
+ * The file naming convention to use for generated files. The '2025' style guide (default)
+ * uses a concise format (e.g., `app.ts` for the root component), while the '2016' style
+ * guide includes the type in the file name (e.g., `app.component.ts`). For more
+ * information, see the Angular Style Guide (https://angular.dev/style-guide).
+ */
+export declare enum FileNameStyleGuide {
+    The2016 = "2016",
+    The2025 = "2025"
+}
+/**
  * The type of stylesheet files to be created for components in the application.
  */
 export declare enum Style {
     Css = "css",
     Less = "less",
     Sass = "sass",
-    Scss = "scss"
+    Scss = "scss",
+    Tailwind = "tailwind"
+}
+/**
+ * The unit testing runner to use.
+ */
+export declare enum TestRunner {
+    Karma = "karma",
+    Vitest = "vitest"
 }
 /**
  * Sets the view encapsulation mode for the application's components. This determines how

@@ -27,7 +27,7 @@ exports.default = (0, util_1.createRule)({
             if (!isThisMemberExpression(node)) {
                 return null;
             }
-            if (node.property.type === utils_1.AST_NODE_TYPES.Identifier) {
+            if (!node.computed && node.property.type === utils_1.AST_NODE_TYPES.Identifier) {
                 return node.property.name;
             }
             if (node.computed) {
@@ -64,7 +64,6 @@ exports.default = (0, util_1.createRule)({
                 ((node.parameter.type === utils_1.AST_NODE_TYPES.Identifier && // constructor (public foo) {}
                     node.parameter.name === name) ||
                     (node.parameter.type === utils_1.AST_NODE_TYPES.AssignmentPattern && // constructor (public foo = 1) {}
-                        node.parameter.left.type === utils_1.AST_NODE_TYPES.Identifier &&
                         node.parameter.left.name === name)));
         }
         function getIdentifier(node) {

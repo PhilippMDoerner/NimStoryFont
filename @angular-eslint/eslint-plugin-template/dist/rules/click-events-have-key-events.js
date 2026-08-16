@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RULE_NAME = void 0;
+exports.RULE_DOCS_EXTENSION = exports.RULE_NAME = void 0;
 const utils_1 = require("@angular-eslint/utils");
 const create_eslint_rule_1 = require("../utils/create-eslint-rule");
 const get_dom_elements_1 = require("../utils/get-dom-elements");
@@ -41,7 +41,7 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
     create(context, [{ ignoreWithDirectives }]) {
         return {
             Element(node) {
-                if (!(0, get_dom_elements_1.getDomElements)().has(node.name)) {
+                if (!(0, get_dom_elements_1.getDomElements)().has(node.name.toLowerCase())) {
                     return;
                 }
                 if (isIgnored(ignoreWithDirectives, node) ||
@@ -93,3 +93,6 @@ function isIgnored(ignoreWithDirectives, { inputs, attributes }) {
     }
     return false;
 }
+exports.RULE_DOCS_EXTENSION = {
+    rationale: 'Elements with click handlers must also be operable via keyboard for users who cannot use a mouse. This includes users with motor disabilities, users of assistive technologies, and keyboard-only users. While native interactive elements like buttons and links are keyboard-accessible by default (activated by Enter or Space keys), non-interactive elements with click handlers (like divs or spans) are not. For such elements, you must add keyboard event handlers (keyup, keydown, or keypress) that perform the same action as the click handler. Alternatively, use a semantic button element which handles this automatically. This is a WCAG Level A requirement for keyboard accessibility.',
+};

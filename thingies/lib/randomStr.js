@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.randomStr = void 0;
+exports.randomStr = randomStr;
 // Default alphabet allows "-" hyphens, because UUIDs have them.
 const defaultAlphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-';
 function randomStr(length, alphabet = defaultAlphabet) {
@@ -11,4 +11,3 @@ function randomStr(length, alphabet = defaultAlphabet) {
     }
     return str;
 }
-exports.randomStr = randomStr;

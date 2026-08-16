@@ -3,7 +3,7 @@ import { computed, Directive, inject, input, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter, map, startWith } from 'rxjs';
-import { filterNil } from 'src/utils/rxjs-operators';
+import { filterNil } from '../../utils/rxjs-operators';
 
 @Directive({
   selector: 'a[bypass]',
@@ -16,9 +16,9 @@ import { filterNil } from 'src/utils/rxjs-operators';
   },
 })
 export class BypassBlockDirective {
-  skipToId = input.required<string>();
+  readonly skipToId = input.required<string>();
 
-  isInFocus = signal(false);
+  readonly isInFocus = signal(false);
   private readonly router = inject(Router);
   private readonly baseHref = inject(APP_BASE_HREF);
 
@@ -32,5 +32,5 @@ export class BypassBlockDirective {
   );
   private readonly currentUrl = toSignal(this.currentUrl$);
 
-  link = computed(() => `${this.currentUrl()}#${this.skipToId()}`);
+  readonly link = computed(() => `${this.currentUrl()}#${this.skipToId()}`);
 }

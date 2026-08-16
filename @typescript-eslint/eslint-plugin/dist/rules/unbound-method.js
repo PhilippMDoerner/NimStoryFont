@@ -99,7 +99,10 @@ const isNotImported = (symbol, currentSourceFile) => {
     return (!!currentSourceFile &&
         currentSourceFile !== valueDeclaration.getSourceFile());
 };
-const BASE_MESSAGE = 'Avoid referencing unbound methods which may cause unintentional scoping of `this`.';
+const BASE_MESSAGE = [
+    `A method that is not declared with \`this: void\` may cause unintentional scoping of \`this\` when separated from its object.`,
+    `Consider using an arrow function or explicitly \`.bind()\`ing the method to avoid calling the method with an unintended \`this\` value. `,
+].join('\n');
 exports.default = (0, util_1.createRule)({
     name: 'unbound-method',
     meta: {
@@ -111,7 +114,7 @@ exports.default = (0, util_1.createRule)({
         },
         messages: {
             unbound: BASE_MESSAGE,
-            unboundWithoutThisAnnotation: `${BASE_MESSAGE}\nIf your function does not access \`this\`, you can annotate it with \`this: void\`, or consider using an arrow function instead.`,
+            unboundWithoutThisAnnotation: `${BASE_MESSAGE}\nIf a function does not access \`this\`, it can be annotated with \`this: void\`.`,
         },
         schema: [
             {
@@ -150,6 +153,31 @@ exports.default = (0, util_1.createRule)({
             }
             return false;
         }
+        function checkUnionConstituentsAndReport(reportNode, propertyName, type) {
+            for (const intersectionPart of tsutils
+                .unionConstituents(type)
+                .flatMap(unionPart => tsutils.intersectionConstituents(unionPart))) {
+                const reported = checkIfMethodAndReport(reportNode, intersectionPart.getProperty(propertyName));
+                if (reported) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        function getAccessedPropertyNames(node) {
+            if (!node.computed) {
+                return node.property.type === utils_1.AST_NODE_TYPES.Identifier
+                    ? [node.property.name]
+                    : [];
+            }
+            return tsutils
+                .unionConstituents(services.getTypeAtLocation(node.property))
+                .flatMap(part => {
+                return part.isStringLiteral() || part.isNumberLiteral()
+                    ? [part.value.toString()]
+                    : [];
+            });
+        }
         function isNativelyBound(object, property) {
             // We can't rely entirely on the type-level checks made at the end of this
             // function, because sometimes type declarations don't come from the
@@ -178,7 +206,16 @@ exports.default = (0, util_1.createRule)({
                 if (isSafeUse(node) || isNativelyBound(node.object, node.property)) {
                     return;
                 }
-                checkIfMethodAndReport(node, services.getSymbolAtLocation(node));
+                const propertyNames = getAccessedPropertyNames(node);
+                if (propertyNames.length === 0) {
+                    return;
+                }
+                const objectType = services.getTypeAtLocation(node.object);
+                for (const propertyName of propertyNames) {
+                    if (checkUnionConstituentsAndReport(node, propertyName, objectType)) {
+                        break;
+                    }
+                }
             },
             ObjectPattern(node) {
                 if (isNodeInsideTypeDeclaration(node)) {
@@ -214,14 +251,7 @@ exports.default = (0, util_1.createRule)({
                             continue;
                         }
                     }
-                    for (const intersectionPart of tsutils
-                        .unionTypeParts(services.getTypeAtLocation(node))
-                        .flatMap(unionPart => tsutils.intersectionTypeParts(unionPart))) {
-                        const reported = checkIfMethodAndReport(property.key, intersectionPart.getProperty(property.key.name));
-                        if (reported) {
-                            break;
-                        }
-                    }
+                    checkUnionConstituentsAndReport(property.key, property.key.name, services.getTypeAtLocation(node));
                 }
             },
         };

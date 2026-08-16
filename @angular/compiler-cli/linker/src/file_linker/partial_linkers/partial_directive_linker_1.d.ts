@@ -8,8 +8,8 @@
 import { ConstantPool, ParseSourceSpan, R3DeclareDirectiveMetadata, R3DirectiveMetadata, R3PartialDeclaration } from '@angular/compiler';
 import { Range } from '../../ast/ast_host';
 import { AstObject } from '../../ast/ast_value';
-import { LinkedDefinition, PartialLinker } from './partial_linker';
 import { AbsoluteFsPath } from '../../../../src/ngtsc/file_system/src/types';
+import { LinkedDefinition, PartialLinker } from './partial_linker';
 /**
  * A `PartialLinker` that is designed to process `ɵɵngDeclareDirective()` call expressions.
  */

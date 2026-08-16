@@ -1,6 +1,7 @@
 import { inject } from '@angular/core';
 import { Routes } from '@angular/router';
 import { loginGuard } from './_guards/login.guard';
+import { BaseNamedRoute } from './_models/route';
 import { rootRedirect } from './_redirects/root.redirect';
 import { redirectWithQueryParams } from './_redirects/with-query-params.redirect';
 import {
@@ -14,7 +15,7 @@ import { generalRoutes } from './general/general-routes';
 import { campaignCreationGuard } from './general/pages/create-campaign/campaign-creation.guard';
 import { UserPreferencesStore } from './user-preferences.store';
 
-const redirectRoutes: Routes = [
+const redirectRoutes: BaseNamedRoute[] = [
   //Redirect Routes
   {
     path: '',
@@ -30,7 +31,7 @@ const redirectRoutes: Routes = [
   },
 ];
 
-const errorRoutes: Routes = [
+const errorRoutes: BaseNamedRoute[] = [
   {
     path: `error/:errorStatus`,
     loadComponent: () =>
@@ -69,8 +70,7 @@ export const ROUTES: Routes = [
         resolve: {
           loadGeneralPreferences: () =>
             inject(UserPreferencesStore).loadGeneral(),
-          loadShortcuts: () =>
-            inject(UserPreferencesStore).loadShortcutEntries(),
+          loadHotkeys: () => inject(UserPreferencesStore).loadHotkeyEntries(),
         },
         children: [
           ...generalRoutes,

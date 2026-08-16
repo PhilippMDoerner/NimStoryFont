@@ -1,6 +1,6 @@
 {
   "name": "@babel/generator",
-  "version": "7.27.5",
+  "version": "8.0.0",
   "description": "Turns an AST into code.",
   "author": "The Babel Team (https://babel.dev/team)",
   "license": "MIT",
@@ -19,22 +19,29 @@
     "lib"
   ],
   "dependencies": {
-    "@babel/parser": "^7.27.5",
-    "@babel/types": "^7.27.3",
-    "@jridgewell/gen-mapping": "^0.3.5",
-    "@jridgewell/trace-mapping": "^0.3.25",
+    "@babel/parser": "^8.0.0",
+    "@babel/types": "^8.0.0",
+    "@jridgewell/gen-mapping": "^0.3.12",
+    "@jridgewell/trace-mapping": "^0.3.28",
+    "@types/jsesc": "^2.5.0",
     "jsesc": "^3.0.2"
   },
   "devDependencies": {
-    "@babel/core": "^7.27.4",
-    "@babel/helper-fixtures": "^7.27.1",
-    "@babel/plugin-transform-typescript": "^7.27.1",
-    "@jridgewell/sourcemap-codec": "^1.4.15",
-    "@types/jsesc": "^2.5.0",
+    "@babel/core": "^8.0.0",
+    "@babel/helper-fixtures": "^8.0.0",
+    "@babel/plugin-transform-typescript": "^8.0.0",
+    "@jridgewell/sourcemap-codec": "^1.5.3",
     "charcodes": "^0.2.0"
   },
   "engines": {
-    "node": ">=6.9.0"
+    "node": "^22.18.0 || >=24.11.0"
   },
-  "type": "commonjs"
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "type": "module"
 }

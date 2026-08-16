@@ -23,3 +23,4 @@ function loadEsmModuleFromMemory(path) {
         throw error;
     });
 }
+//# sourceMappingURL=load-esm-from-memory.js.map

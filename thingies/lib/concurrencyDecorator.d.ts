@@ -3,4 +3,4 @@
  * given number of parallel executions. All invocations are queued and executed
  * in the order they were called.
  */
-export declare function concurrency<This, Args extends any[], Return>(limit: number): (fn: (this: This, ...args: Args) => Promise<Return>, context?: ClassMethodDecoratorContext<This, (this: This, ...args: Args) => Promise<Return>> | undefined) => (this: This, ...args: Args) => Promise<Return>;
+export declare function concurrency<This, Args extends any[], Return>(limit: number): (fn: (this: This, ...args: Args) => Promise<Return>, context?: ClassMethodDecoratorContext<This, (this: This, ...args: Args) => Promise<Return>>) => (this: This, ...args: Args) => Promise<Return>;

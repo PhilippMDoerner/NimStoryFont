@@ -2,13 +2,14 @@
 
 Object.defineProperty(exports, '__esModule', { value: true });
 
-var module$1 = require('module');
-var pathModule = require('path');
-var url = require('url');
+var node_module = require('node:module');
+var pathModule = require('node:path');
+var node_url = require('node:url');
 var loadNAPI = require('node-gyp-build-optional-packages');
-var events = require('events');
-var os$1 = require('os');
-var fs$1 = require('fs');
+var extendedIterable = require('@harperfast/extended-iterable');
+var node_events = require('node:events');
+var node_os = require('node:os');
+var fs$1 = require('node:fs');
 var msgpackr = require('msgpackr');
 var weakLruCache = require('weak-lru-cache');
 var orderedBinary$1 = require('ordered-binary');
@@ -51,6 +52,7 @@ let Env,
 	arch$1,
 	fs,
 	os,
+	isLittleEndian,
 	tmpdir,
 	lmdbError,
 	path,
@@ -77,7 +79,7 @@ let Env,
 	unlock;
 	exports.version = void 0;
 path = pathModule__default["default"];
-let dirName = pathModule.dirname(url.fileURLToPath((typeof document === 'undefined' ? new (require('u' + 'rl').URL)('file:' + __filename).href : (document.currentScript && document.currentScript.src || new URL('index.cjs', document.baseURI).href)))).replace(/dist$/, '');
+let dirName = pathModule.dirname(node_url.fileURLToPath((typeof document === 'undefined' ? new (require('u' + 'rl').URL)('file:' + __filename).href : (document.currentScript && document.currentScript.tagName.toUpperCase() === 'SCRIPT' && document.currentScript.src || new URL('index.cjs', document.baseURI).href)))).replace(/dist$/, '');
 let nativeAddon = loadNAPI__default["default"](dirName);
 
 if (process.isBun && false) {
@@ -161,6 +163,7 @@ function setExternals(externals) {
 	tmpdir = externals.tmpdir;
 	os = externals.os;
 	externals.onExit;
+	isLittleEndian = externals.isLittleEndian;
 }
 
 function when(promise, callback, errback) {
@@ -1281,444 +1284,13 @@ function asBinary(buffer) {
 	};
 }
 
-const SKIP = {};
-const DONE = {
-	value: null,
-	done: true,
-};
-const RETURN_DONE = {
-	// we allow this one to be mutated
-	value: null,
-	done: true,
-};
-if (!Symbol.asyncIterator) {
-	Symbol.asyncIterator = Symbol.for('Symbol.asyncIterator');
-}
-const NO_OPTIONS = {};
-
-class RangeIterable {
-	constructor(sourceArray) {
-		if (sourceArray) {
-			this.iterate = sourceArray[Symbol.iterator].bind(sourceArray);
-		}
-	}
-	map(func) {
-		let source = this;
-		let iterable = new RangeIterable();
-		iterable.iterate = (options = NO_OPTIONS) => {
-			const { async } = options;
-			let iterator =
-				source[async ? Symbol.asyncIterator : Symbol.iterator](options);
-			if (!async) source.isSync = true;
-			let i = -1;
-			return {
-				next(resolvedResult) {
-					let result;
-					do {
-						let iteratorResult;
-						try {
-							if (resolvedResult) {
-								iteratorResult = resolvedResult;
-								resolvedResult = null; // don't go in this branch on next iteration
-							} else {
-								i++;
-								iteratorResult = iterator.next();
-								if (iteratorResult.then) {
-									if (!async) {
-										this.throw(
-											new Error(
-												'Can not synchronously iterate with promises as iterator results',
-											),
-										);
-									}
-									return iteratorResult.then(
-										(iteratorResult) => this.next(iteratorResult),
-										(error) => {
-											return this.throw(error);
-										},
-									);
-								}
-							}
-							if (iteratorResult.done === true) {
-								this.done = true;
-								if (iterable.onDone) iterable.onDone();
-								return iteratorResult;
-							}
-							try {
-								result = func.call(source, iteratorResult.value, i);
-								if (result && result.then && async) {
-									// if async, wait for promise to resolve before returning iterator result
-									return result.then(
-										(result) =>
-											result === SKIP
-												? this.next()
-												: {
-														value: result,
-													},
-										(error) => {
-											if (options.continueOnRecoverableError)
-												error.continueIteration = true;
-											return this.throw(error);
-										},
-									);
-								}
-							} catch (error) {
-								// if the error came from the user function, we can potentially mark it for continuing iteration
-								if (options.continueOnRecoverableError)
-									error.continueIteration = true;
-								throw error; // throw to next catch to handle
-							}
-						} catch (error) {
-							if (iterable.handleError) {
-								// if we have handleError, we can use it to further handle errors
-								try {
-									result = iterable.handleError(error, i);
-								} catch (error2) {
-									return this.throw(error2);
-								}
-							} else return this.throw(error);
-						}
-					} while (result === SKIP);
-					if (result === DONE) {
-						return this.return();
-					}
-					return {
-						value: result,
-					};
-				},
-				return(value) {
-					if (!this.done) {
-						RETURN_DONE.value = value;
-						this.done = true;
-						if (iterable.onDone) iterable.onDone();
-						iterator.return?.();
-					}
-					return RETURN_DONE;
-				},
-				throw(error) {
-					if (error.continueIteration) {
-						// if it's a recoverable error, we can return or throw without closing the iterator
-						if (iterable.returnRecoverableErrors)
-							try {
-								return {
-									value: iterable.returnRecoverableErrors(error),
-								};
-							} catch (error) {
-								// if this throws, we need to go back to closing the iterator
-								this.return();
-								throw error;
-							}
-						if (options.continueOnRecoverableError) throw error; // throw without closing iterator
-					}
-					// else we are done with the iterator (and can throw)
-					this.return();
-					throw error;
-				},
-			};
-		};
-		return iterable;
-	}
-	[Symbol.asyncIterator](options) {
-		if (options) options = { ...options, async: true };
-		else options = { async: true };
-		return (this.iterator = this.iterate(options));
-	}
-	[Symbol.iterator](options) {
-		return (this.iterator = this.iterate(options));
-	}
-	filter(func) {
-		let iterable = this.map((element) => {
-			let result = func(element);
-			// handle promise
-			if (result?.then)
-				return result.then((result) => (result ? element : SKIP));
-			else return result ? element : SKIP;
-		});
-		let iterate = iterable.iterate;
-		iterable.iterate = (options = NO_OPTIONS) => {
-			// explicitly prevent continue on recoverable error with filter
-			if (options.continueOnRecoverableError)
-				options = { ...options, continueOnRecoverableError: false };
-			return iterate(options);
-		};
-		return iterable;
-	}
-
-	forEach(callback) {
-		let iterator = (this.iterator = this.iterate());
-		let result;
-		while ((result = iterator.next()).done !== true) {
-			callback(result.value);
-		}
-	}
-	concat(secondIterable) {
-		let concatIterable = new RangeIterable();
-		concatIterable.iterate = (options = NO_OPTIONS) => {
-			let iterator = (this.iterator = this.iterate(options));
-			let isFirst = true;
-			function iteratorDone(result) {
-				if (isFirst) {
-					try {
-						isFirst = false;
-						iterator =
-							secondIterable[
-								options.async ? Symbol.asyncIterator : Symbol.iterator
-							]();
-						result = iterator.next();
-						if (concatIterable.onDone) {
-							if (result.then) {
-								if (!options.async)
-									throw new Error(
-										'Can not synchronously iterate with promises as iterator results',
-									);
-								result.then(
-									(result) => {
-										if (result.done()) concatIterable.onDone();
-									},
-									(error) => {
-										this.return();
-										throw error;
-									},
-								);
-							} else if (result.done) concatIterable.onDone();
-						}
-					} catch (error) {
-						this.throw(error);
-					}
-				} else {
-					if (concatIterable.onDone) concatIterable.onDone();
-				}
-				return result;
-			}
-			return {
-				next() {
-					try {
-						let result = iterator.next();
-						if (result.then) {
-							if (!options.async)
-								throw new Error(
-									'Can not synchronously iterate with promises as iterator results',
-								);
-							return result.then((result) => {
-								if (result.done) return iteratorDone(result);
-								return result;
-							});
-						}
-						if (result.done) return iteratorDone(result);
-						return result;
-					} catch (error) {
-						this.throw(error);
-					}
-				},
-				return(value) {
-					if (!this.done) {
-						RETURN_DONE.value = value;
-						this.done = true;
-						if (concatIterable.onDone) concatIterable.onDone();
-						iterator.return();
-					}
-					return RETURN_DONE;
-				},
-				throw(error) {
-					if (options.continueOnRecoverableError) throw error;
-					this.return();
-					throw error;
-				},
-			};
-		};
-		return concatIterable;
-	}
-
-	flatMap(callback) {
-		let mappedIterable = new RangeIterable();
-		mappedIterable.iterate = (options = NO_OPTIONS) => {
-			let iterator = (this.iterator = this.iterate(options));
-			let currentSubIterator;
-			return {
-				next(resolvedResult) {
-					try {
-						do {
-							if (currentSubIterator) {
-								let result;
-								if (resolvedResult) {
-									result = resolvedResult;
-									resolvedResult = undefined;
-								} else result = currentSubIterator.next();
-								if (result.then) {
-									if (!options.async)
-										throw new Error(
-											'Can not synchronously iterate with promises as iterator results',
-										);
-									return result.then((result) => this.next(result));
-								}
-								if (!result.done) {
-									return result;
-								}
-							}
-							let result;
-							if (resolvedResult != undefined) {
-								result = resolvedResult;
-								resolvedResult = undefined;
-							} else result = iterator.next();
-							if (result.then) {
-								if (!options.async)
-									throw new Error(
-										'Can not synchronously iterate with promises as iterator results',
-									);
-								currentSubIterator = undefined;
-								return result.then((result) => this.next(result));
-							}
-							if (result.done) {
-								if (mappedIterable.onDone) mappedIterable.onDone();
-								return result;
-							}
-							try {
-								let value = callback(result.value);
-								if (value?.then) {
-									if (!options.async)
-										throw new Error(
-											'Can not synchronously iterate with promises as iterator results',
-										);
-									return value.then(
-										(value) => {
-											if (
-												Array.isArray(value) ||
-												value instanceof RangeIterable
-											) {
-												currentSubIterator = value[Symbol.iterator]();
-												return this.next();
-											} else {
-												currentSubIterator = null;
-												return { value };
-											}
-										},
-										(error) => {
-											if (options.continueOnRecoverableError)
-												error.continueIteration = true;
-											this.throw(error);
-										},
-									);
-								}
-								if (Array.isArray(value) || value instanceof RangeIterable)
-									currentSubIterator = value[Symbol.iterator]();
-								else {
-									currentSubIterator = null;
-									return { value };
-								}
-							} catch (error) {
-								if (options.continueOnRecoverableError)
-									error.continueIteration = true;
-								throw error;
-							}
-						} while (true);
-					} catch (error) {
-						this.throw(error);
-					}
-				},
-				return() {
-					if (mappedIterable.onDone) mappedIterable.onDone();
-					if (currentSubIterator) currentSubIterator.return();
-					return iterator.return();
-				},
-				throw(error) {
-					if (options.continueOnRecoverableError) throw error;
-					if (mappedIterable.onDone) mappedIterable.onDone();
-					if (currentSubIterator) currentSubIterator.return();
-					this.return();
-					throw error;
-				},
-			};
-		};
-		return mappedIterable;
-	}
-
-	slice(start, end) {
-		let iterable = this.map((element, i) => {
-			if (i < start) return SKIP;
-			if (i >= end) {
-				DONE.value = element;
-				return DONE;
-			}
-			return element;
-		});
-		iterable.handleError = (error, i) => {
-			if (i < start) return SKIP;
-			if (i >= end) {
-				return DONE;
-			}
-			throw error;
-		};
-		return iterable;
-	}
-	mapError(catch_callback) {
-		let iterable = this.map((element) => {
-			return element;
-		});
-		let iterate = iterable.iterate;
-		iterable.iterate = (options = NO_OPTIONS) => {
-			// we need to ensure the whole stack
-			// of iterables is set up to handle recoverable errors and continue iteration
-			return iterate({ ...options, continueOnRecoverableError: true });
-		};
-		iterable.returnRecoverableErrors = catch_callback;
-		return iterable;
-	}
-	next() {
-		if (!this.iterator) this.iterator = this.iterate();
-		return this.iterator.next();
-	}
-	toJSON() {
-		if (this.asArray && this.asArray.forEach) {
-			return this.asArray;
-		}
-		const error = new Error(
-			'Can not serialize async iterables without first calling resolving asArray',
-		);
-		error.resolution = this.asArray;
-		throw error;
-		//return Array.from(this)
-	}
-	get asArray() {
-		if (this._asArray) return this._asArray;
-		let promise = new Promise((resolve, reject) => {
-			let iterator = this.iterate(true);
-			let array = [];
-			let iterable = this;
-			Object.defineProperty(array, 'iterable', { value: iterable });
-			function next(result) {
-				while (result.done !== true) {
-					if (result.then) {
-						return result.then(next);
-					} else {
-						array.push(result.value);
-					}
-					result = iterator.next();
-				}
-				resolve((iterable._asArray = array));
-			}
-			next(iterator.next());
-		});
-		promise.iterable = this;
-		return this._asArray || (this._asArray = promise);
-	}
-	resolveData() {
-		return this.asArray;
-	}
-	at(index) {
-		for (let entry of this) {
-			if (index-- === 0) return entry;
-		}
-	}
-}
-RangeIterable.prototype.DONE = DONE;
-
 const REUSE_BUFFER_MODE = 512;
 const writeUint32Key = (key, target, start) => {
-	(target.dataView || (target.dataView = new DataView(target.buffer, 0, target.length))).setUint32(start, key, true);
+	(target.dataView || (target.dataView = new DataView(target.buffer, 0, target.length))).setUint32(start, key, isLittleEndian);
 	return start + 4;
 };
 const readUint32Key = (target, start) => {
-	return (target.dataView || (target.dataView = new DataView(target.buffer, 0, target.length))).getUint32(start, true);
+	return (target.dataView || (target.dataView = new DataView(target.buffer, 0, target.length))).getUint32(start, isLittleEndian);
 };
 const writeBufferKey = (key, target, start) => {
 	target.set(key, start);
@@ -1778,7 +1350,7 @@ function allocateSaveBuffer() {
 	saveDataAddress = saveBuffer.buffer.address;
 	// TODO: Conditionally only do this for key sequences?
 	saveDataView.setUint32(savePosition$1, 0xffffffff);
-	saveDataView.setFloat64(savePosition$1 + 4, saveDataAddress, true); // save a pointer from the old buffer to the new address for the sake of the prefetch sequences
+	saveDataView.setFloat64(savePosition$1 + 4, saveDataAddress, isLittleEndian); // save a pointer from the old buffer to the new address for the sake of the prefetch sequences
 	saveDataView = saveBuffer.dataView || (saveBuffer.dataView = new DataView(saveBuffer.buffer, saveBuffer.byteOffset, saveBuffer.byteLength));
 	savePosition$1 = 0;
 }
@@ -1811,7 +1383,7 @@ function saveKey(key, writeKey, saveTo, maxKeySize, flags) {
 		return saveKey(key, writeKey, saveTo, maxKeySize);
 	}
 	if (saveTo) {
-		saveDataView.setUint32(start, flags ? length | flags : length, true); // save the length
+		saveDataView.setUint32(start, flags ? length | flags : length, isLittleEndian); // save the length
 		saveTo.saveBuffer = saveBuffer;
 		savePosition$1 = (savePosition$1 + 12) & 0xfffffc;
 		return start + saveDataAddress;
@@ -1824,7 +1396,6 @@ function saveKey(key, writeKey, saveTo, maxKeySize, flags) {
 }
 
 const IF_EXISTS = 3.542694326329068e-103;
-const DEFAULT_BEGINNING_KEY = Buffer.from([5]); // the default starting key for iteration, which excludes symbols/metadata
 const ITERATOR_DONE = { done: true, value: undefined };
 const Uint8ArraySlice = Uint8Array.prototype.slice;
 let getValueBytes = globalBuffer;
@@ -1906,11 +1477,11 @@ function addReadMethods(
 					);
 				if (rc == -30000)
 					// int32 overflow, read uint32
-					rc = this.lastSize = keyBytesView.getUint32(0, true);
+					rc = this.lastSize = keyBytesView.getUint32(0, isLittleEndian);
 				else if (rc == -30001) {
 					// shared buffer
-					this.lastSize = keyBytesView.getUint32(0, true);
-					let bufferId = keyBytesView.getUint32(4, true);
+					this.lastSize = keyBytesView.getUint32(0, isLittleEndian);
+					let bufferId = keyBytesView.getUint32(4, isLittleEndian);
 					let bytes = getMMapBuffer(bufferId, this.lastSize);
 					return asSafeBuffer ? Buffer.from(bytes) : bytes;
 				} else throw lmdbError(rc);
@@ -2154,6 +1725,9 @@ function addReadMethods(
 			}
 			return result;
 		},
+		getSync(id, options) {
+			return this.get(id, options);
+		},
 		getEntry(id, options) {
 			let value = this.get(id, options);
 			if (value !== undefined) {
@@ -2219,6 +1793,11 @@ function addReadMethods(
 			keyBytes.dataView.setFloat64(4, version);
 			let keySize = this.writeKey(id, keyBytes, 12);
 			return attemptLock(env.address, keySize, callback);
+		},
+
+		// simplified API
+		tryLock(id, callback) {
+			return this.attemptLock(id, undefined, callback);
 		},
 
 		unlock(id, version, onlyCheck) {
@@ -2310,7 +1889,7 @@ function addReadMethods(
 			return this.getRange(options).iterate();
 		},
 		getRange(options) {
-			let iterable = new RangeIterable();
+			let iterable = new extendedIterable.ExtendedIterable();
 			let textDecoder = new TextDecoder();
 			if (!options) options = {};
 			let includeValues = options.values !== false;
@@ -2330,7 +1909,7 @@ function addReadMethods(
 					? options.key
 					: reverse || 'start' in options
 						? options.start
-						: DEFAULT_BEGINNING_KEY;
+						: this.defaultBeginningKey;
 				let count = 0;
 				let cursor, cursorRenewId, cursorAddress;
 				let txn;
@@ -2380,6 +1959,10 @@ function addReadMethods(
 						if (snapshot === false) {
 							cursorRenewId = renewId; // use shared read transaction
 							txn.renewingRefCount = (txn.renewingRefCount || 0) + 1; // need to know how many are renewing cursors
+							// Track renewing cursors so that if this txn is orphaned (notCurrent) and its
+							// non-renewing refs later drain, we can release the snapshot instead of letting
+							// these cursors pin it (they don't need a stable snapshot). See Txn.done.
+							(txn.renewingCursors || (txn.renewingCursors = new Set())).add(cursor);
 						}
 					} catch (error) {
 						if (cursor) {
@@ -2422,7 +2005,7 @@ function addReadMethods(
 								keyBytesView.setFloat64(
 									START_ADDRESS_POSITION,
 									startAddress,
-									true,
+									isLittleEndian,
 								);
 								endAddress = saveKey(
 									options.end,
@@ -2443,7 +2026,7 @@ function addReadMethods(
 								keyBytesView.setFloat64(
 									START_ADDRESS_POSITION,
 									startAddress,
-									true,
+									isLittleEndian,
 								);
 								endAddress = saveKey(
 									options.end,
@@ -2460,7 +2043,7 @@ function addReadMethods(
 					} else
 						endAddress = saveKey(
 							reverse && !('end' in options)
-								? DEFAULT_BEGINNING_KEY
+								? store.defaultBeginningKey
 								: options.end,
 							store.writeKey,
 							iterable,
@@ -2478,7 +2061,10 @@ function addReadMethods(
 				function finishCursor() {
 					if (!cursor || txn.isDone) return;
 					if (iterable.onDone) iterable.onDone();
-					if (cursorRenewId) txn.renewingRefCount--;
+					if (cursorRenewId) {
+						txn.renewingRefCount--;
+						txn.renewingCursors?.delete(cursor);
+					}
 					if (txn.refCount <= 1 && txn.notCurrent) {
 						cursor.close(); // this must be closed before the transaction is aborted or it can cause a
 						// segmentation fault
@@ -2528,8 +2114,8 @@ function addReadMethods(
 						}
 						if (includeValues) {
 							let value;
-							lastSize = keyBytesView.getUint32(0, true);
-							let bufferId = keyBytesView.getUint32(4, true);
+							lastSize = keyBytesView.getUint32(0, isLittleEndian);
+							let bufferId = keyBytesView.getUint32(4, isLittleEndian);
 							let bytes;
 							if (bufferId) {
 								bytes = getMMapBuffer(bufferId, lastSize);
@@ -2549,7 +2135,12 @@ function addReadMethods(
 								} else bytes.length = lastSize;
 							}
 							if (store.decoder) {
-								value = store.decoder.decode(bytes, lastSize);
+								value = store.decoder.decode(
+									!store.decoderCopies && bytes.isGlobal
+										? Uint8ArraySlice.call(bytes, 0, lastSize)
+										: bytes,
+									lastSize,
+								);
 							} else if (store.encoding == 'binary')
 								value = bytes.isGlobal
 									? Uint8ArraySlice.call(bytes, 0, lastSize)
@@ -2766,7 +2357,7 @@ function addReadMethods(
 		if (!buffer) {
 			buffer = mmaps[bufferId] = getSharedBuffer(bufferId, env.address);
 		}
-		let offset = keyBytesView.getUint32(8, true);
+		let offset = keyBytesView.getUint32(8, isLittleEndian);
 		return new Uint8Array(buffer, offset, size);
 	}
 	function renewReadTxn(store) {
@@ -2812,6 +2403,17 @@ function addReadMethods(
 				readTxn.notCurrent = true;
 				lastReadTxnRef = new WeakRef(readTxn);
 				readTxn = null;
+			} else if (readTxn.renewingRefCount > 0 && !readTxn.isDone) {
+				// Only renewing (snapshot:false) cursors remain attached. Because resetReadTxn runs on
+				// a setTimeout(0) macrotask, a renewing cursor present here is one whose iterator is
+				// suspended across the tick (a synchronous scan can't hold a cursor across this reset).
+				// Rather than resetTxn-in-place and leave those cursors renewing against the reset txn,
+				// release the snapshot the same way Txn.done does for orphaned txns, so the suspended
+				// iterators cleanly reposition on a fresh read txn via the txn.isDone path. This is the
+				// sibling of the orphaned-snapshot release for the reset-in-place path.
+				readTxn.notCurrent = true;
+				readTxn.releaseToRenewingCursors();
+				readTxn = null;
 			} else if (readTxn.address && !readTxn.isDone) {
 				resetTxn(readTxn.address);
 			} else {
@@ -2838,8 +2440,31 @@ Txn.prototype.done = function () {
 	if (this.refCount === 0 && this.notCurrent) {
 		this.abort();
 		this.isDone = true;
+	} else if (
+		this.notCurrent &&
+		!this.isDone &&
+		this.refCount > 0 &&
+		this.refCount === (this.renewingRefCount || 0)
+	) {
+		// The only remaining refs on this orphaned snapshot are renewing (snapshot:false)
+		// cursors, which don't need a stable snapshot. Release it now rather than letting
+		// them pin it until they next iterate (they may be suspended across an await).
+		this.releaseToRenewingCursors();
 	} else if (this.refCount < 0)
 		throw new Error('Can not finish a transaction more times than it was used');
+};
+// Release the read snapshot held by an orphaned/reset txn whose only attached refs are renewing
+// (snapshot:false) cursors. Close those cursors first — aborting a txn with attached open cursors
+// is unsafe (segfault) — then abort, freeing the snapshot. Suspended iterators re-acquire on the
+// current read txn via the txn.isDone reposition path in the range iterator. Shared by Txn.done
+// (orphaned-then-drained path) and resetReadTxn (reset-while-renewing-cursors-attached path).
+Txn.prototype.releaseToRenewingCursors = function () {
+	if (this.renewingCursors) {
+		for (const cursor of this.renewingCursors) cursor.close();
+		this.renewingCursors.clear();
+	}
+	this.abort();
+	this.isDone = true;
 };
 Txn.prototype.use = function () {
 	this.refCount = (this.refCount || 0) + 1;
@@ -2917,7 +2542,7 @@ function recordReadInstruction(
 	uint32Instructions[(start >> 2) + 3] = length; // save the length
 	uint32Instructions[(start >> 2) + 2] = dbi;
 	savePosition = (savePosition + 12) & 0xfffffc;
-	instructionsDataView.setFloat64(start, txnAddress, true);
+	instructionsDataView.setFloat64(start, txnAddress, isLittleEndian);
 	let callbackId = addReadCallback(() => {
 		let position = start >> 2;
 		let rc = thisInstructions[position];
@@ -3117,8 +2742,10 @@ const CachingStore = (Store, env) => {
 			return result;
 		}
 		remove(id, ifVersion) {
-			this.cache.delete(id);
-			return super.remove(id, ifVersion);
+			let result = super.remove(id, ifVersion);
+			if (result?.isSync) this.cache.delete(id);
+			else this.cache.set(id, { key: id, cache: this.cache }, -1);
+			return result;
 		}
 		removeSync(id, ifVersion) {
 			this.cache.delete(id);
@@ -3186,11 +2813,10 @@ function setRequire(require) {
 
 setGetLastVersion(getLastVersion, getLastTxnId);
 let keyBytes, keyBytesView;
-const { onExit, getEnvsPointer, setEnvsPointer, getEnvFlags, setJSFlags } = nativeAddon;
-if (globalThis.__lmdb_envs__)
-	setEnvsPointer(globalThis.__lmdb_envs__);
-else
-	globalThis.__lmdb_envs__ = getEnvsPointer();
+const { onExit, getEnvsPointer, setEnvsPointer, getEnvFlags, setJSFlags } =
+	nativeAddon;
+if (globalThis.__lmdb_envs__) setEnvsPointer(globalThis.__lmdb_envs__);
+else globalThis.__lmdb_envs__ = getEnvsPointer();
 
 // this is hard coded as an upper limit because it is important assumption of the fixed buffers in writing instructions
 // this corresponds to the max key size for 8KB pages
@@ -3199,7 +2825,7 @@ const MAX_KEY_SIZE = 4026;
 // 4KB (but is 16KB on M-series MacOS), and this keeps a consistent max key size when no page size specified.
 const DEFAULT_MAX_KEY_SIZE = 1978;
 const DEFAULT_COMMIT_DELAY = 0;
-
+const DEFAULT_BEGINNING_KEY = Buffer.from([5]); // the default starting key for iteration, which excludes symbols/metadata
 const allDbs = new Map();
 let defaultCompression;
 let hasRegisteredOnExit;
@@ -3218,7 +2844,8 @@ function open(path$1, options) {
 		nativeAddon.getLastVersion = getLastVersion;
 		nativeAddon.getLastTxnId = getLastTxnId;
 	}
-	if (!keyBytes) // TODO: Consolidate get buffer and key buffer (don't think we need both)
+	if (!keyBytes)
+		// TODO: Consolidate get buffer and key buffer (don't think we need both)
 		allocateFixedBuffer();
 	if (typeof path$1 == 'object' && !options) {
 		options = path$1;
@@ -3228,39 +2855,63 @@ function open(path$1, options) {
 	let noFSAccess = options.noFSAccess; // this can only be configured on open, can't let users change it
 	let userOptions = options;
 	if (path$1 == null) {
-		options = Object.assign({
-			deleteOnClose: true,
-			noSync: true,
-		}, options);
-		path$1 = tmpdir() + '/' + Math.floor(Math.random() * 2821109907455).toString(36) + '.mdb';
-	} else if (!options)
-		options = {};
+		options = Object.assign(
+			{
+				deleteOnClose: true,
+				noSync: true,
+			},
+			options,
+		);
+		path$1 =
+			tmpdir() +
+			'/' +
+			Math.floor(Math.random() * 2821109907455).toString(36) +
+			'.mdb';
+	} else if (!options) options = {};
 	let extension = path.extname(path$1);
 	let name = path.basename(path$1, extension);
 	let is32Bit = arch$1().endsWith('32');
 	let isLegacyLMDB = exports.version.patch < 90;
-	let remapChunks = (options.remapChunks || options.encryptionKey || (options.mapSize ?
-		(is32Bit && options.mapSize > 0x100000000) : // larger than fits in address space, must use dynamic maps
-		is32Bit)) && !isLegacyLMDB; // without a known map size, we default to being able to handle large data correctly/well*/
+	let remapChunks =
+		(options.remapChunks ||
+			options.encryptionKey ||
+			(options.mapSize
+				? is32Bit && options.mapSize > 0x100000000 // larger than fits in address space, must use dynamic maps
+				: is32Bit)) &&
+		!isLegacyLMDB; // without a known map size, we default to being able to handle large data correctly/well*/
 	let userMapSize = options.mapSize;
-	options = Object.assign({
-		noSubdir: Boolean(extension),
-		isRoot: true,
-		maxDbs: 12,
-		remapChunks,
-		keyBytes,
-		overlappingSync: (options.noSync || options.readOnly) ? false : (os != 'win32'),
-		// default map size limit of 4 exabytes when using remapChunks, since it is not preallocated and we can
-		// make it super huge.
-		mapSize: remapChunks ? 0x10000000000000 :
-			isLegacyLMDB ? is32Bit ? 0x1000000 : 0x100000000 : 0x20000, // Otherwise we start small with 128KB
-		safeRestore: process.env.LMDB_RESTORE == 'safe',
-	}, options);
+	options = Object.assign(
+		{
+			noSubdir: Boolean(extension),
+			isRoot: true,
+			maxDbs: 12,
+			remapChunks,
+			keyBytes,
+			overlappingSync:
+				options.noSync || options.readOnly ? false : os != 'win32',
+			// default map size limit of 4 exabytes when using remapChunks, since it is not preallocated and we can
+			// make it super huge.
+			mapSize: remapChunks
+				? 0x10000000000000
+				: isLegacyLMDB
+					? is32Bit
+						? 0x1000000
+						: 0x100000000
+					: 0x20000, // Otherwise we start small with 128KB
+			safeRestore: process.env.LMDB_RESTORE == 'safe',
+		},
+		options,
+	);
 	options.path = path$1;
 	if (options.asyncTransactionOrder == 'strict') {
 		options.strictAsyncOrder = true;
 	}
-	if (nativeAddon.version.major + nativeAddon.version.minor / 100 + nativeAddon.version.patch / 10000 < 0.0980) {
+	if (
+		nativeAddon.version.major +
+			nativeAddon.version.minor / 100 +
+			nativeAddon.version.patch / 10000 <
+		0.098
+	) {
 		options.overlappingSync = false; // not support on older versions
 		options.trackMetrics = false;
 		options.usePreviousSnapshot = false;
@@ -3270,27 +2921,40 @@ function open(path$1, options) {
 	}
 
 	if (!exists(options.noSubdir ? path.dirname(path$1) : path$1))
-		fs.mkdirSync(options.noSubdir ? path.dirname(path$1) : path$1, { recursive: true }
-		);
+		fs.mkdirSync(options.noSubdir ? path.dirname(path$1) : path$1, {
+			recursive: true,
+		});
 	function makeCompression(compressionOptions) {
-		if (compressionOptions instanceof Compression)
-			return compressionOptions;
+		if (compressionOptions instanceof Compression) return compressionOptions;
 		let useDefault = typeof compressionOptions != 'object';
-		if (useDefault && defaultCompression)
-			return defaultCompression;
-		compressionOptions = Object.assign({
-			threshold: 1000,
-			dictionary: fs.readFileSync(new URL('./dict/dict.txt', (typeof document === 'undefined' ? new (require('u' + 'rl').URL)('file:' + __filename).href : (document.currentScript && document.currentScript.src || new URL('index.cjs', document.baseURI).href)).replace(/dist[\\\/]index.cjs$/, ''))),
-			getValueBytes: makeReusableBuffer(0),
-		}, compressionOptions);
-		let compression = Object.assign(new Compression(compressionOptions), compressionOptions);
-		if (useDefault)
-			defaultCompression = compression;
+		if (useDefault && defaultCompression) return defaultCompression;
+		compressionOptions = Object.assign(
+			{
+				threshold: 1000,
+				dictionary: fs.readFileSync(
+					new URL(
+						'./dict/dict.txt',
+						(typeof document === 'undefined' ? new (require('u' + 'rl').URL)('file:' + __filename).href : (document.currentScript && document.currentScript.tagName.toUpperCase() === 'SCRIPT' && document.currentScript.src || new URL('index.cjs', document.baseURI).href)).replace(/dist[\\\/]index.cjs$/, ''),
+					),
+				),
+				getValueBytes: makeReusableBuffer(0),
+			},
+			compressionOptions,
+		);
+		let compression = Object.assign(
+			new Compression(compressionOptions),
+			compressionOptions,
+		);
+		if (useDefault) defaultCompression = compression;
 		return compression;
 	}
 	if (isLegacyLMDB) {
 		// legacy LMDB, turn off these options
-		Object.assign(options, { overlappingSync: false, remapChunks: false, safeRestore: false });
+		Object.assign(options, {
+			overlappingSync: false,
+			remapChunks: false,
+			safeRestore: false,
+		});
 	}
 	if (options.compression)
 		options.compression = makeCompression(options.compression);
@@ -3310,26 +2974,33 @@ function open(path$1, options) {
 		(options.trackMetrics ? 0x400 : 0);
 
 	let env = new Env();
-	let jsFlags = (options.overlappingSync ? 0x1000 : 0) |
+	let jsFlags =
+		(options.overlappingSync ? 0x1000 : 0) |
 		(options.separateFlushed ? 1 : 0) |
 		(options.deleteOnClose ? 2 : 0);
 	let rc = env.open(options, flags, jsFlags);
 	env.path = path$1;
-   if (rc)
-		lmdbError(rc);
+	if (rc) lmdbError(rc);
 	delete options.keyBytes; // no longer needed, don't copy to stores
 	let maxKeySize = env.getMaxKeySize();
-	maxKeySize = Math.min(maxKeySize, options.pageSize ? MAX_KEY_SIZE : DEFAULT_MAX_KEY_SIZE);
+	maxKeySize = Math.min(
+		maxKeySize,
+		options.pageSize ? MAX_KEY_SIZE : DEFAULT_MAX_KEY_SIZE,
+	);
 	flags = getEnvFlags(env.address); // re-retrieve them, they are not necessarily the same if we are connecting to an existing env
 	if (flags & 0x1000) {
 		if (userOptions.noSync) {
 			env.close();
-			throw new Error('Can not set noSync on a database that was opened with overlappingSync');
+			throw new Error(
+				'Can not set noSync on a database that was opened with overlappingSync',
+			);
 		}
 	} else if (options.overlappingSync) {
 		if (userOptions.overlappingSync) {
 			env.close();
-			throw new Error('Can not enable overlappingSync on a database that was opened without this flag');
+			throw new Error(
+				'Can not enable overlappingSync on a database that was opened without this flag',
+			);
 		}
 		options.overlappingSync = false;
 		jsFlags = jsFlags & 0xff; // clear overlapping sync
@@ -3337,7 +3008,11 @@ function open(path$1, options) {
 	}
 
 	env.readerCheck(); // clear out any stale entries
-	if ((options.overlappingSync || options.deleteOnClose) && !hasRegisteredOnExit && process.on) {
+	if (
+		(options.overlappingSync || options.deleteOnClose) &&
+		!hasRegisteredOnExit &&
+		process.on
+	) {
 		hasRegisteredOnExit = true;
 		process.on('exit', onExit);
 	}
@@ -3346,37 +3021,52 @@ function open(path$1, options) {
 		constructor(dbName, dbOptions) {
 			super();
 			if (dbName === undefined)
-				throw new Error('Database name must be supplied in name property (may be null for root database)');
+				throw new Error(
+					'Database name must be supplied in name property (may be null for root database)',
+				);
 
-			if (options.compression && dbOptions.compression !== false && typeof dbOptions.compression != 'object')
+			if (
+				options.compression &&
+				dbOptions.compression !== false &&
+				typeof dbOptions.compression != 'object'
+			)
 				dbOptions.compression = options.compression; // use the parent compression if available
 			else if (dbOptions.compression)
 				dbOptions.compression = makeCompression(dbOptions.compression);
 
 			if (dbOptions.dupSort && (dbOptions.useVersions || dbOptions.cache)) {
-				throw new Error('The dupSort flag can not be combined with versions or caching');
+				throw new Error(
+					'The dupSort flag can not be combined with versions or caching',
+				);
 			}
 			let keyIsBuffer = dbOptions.keyIsBuffer;
+			this.defaultBeginningKey = DEFAULT_BEGINNING_KEY;
 			if (dbOptions.keyEncoding == 'uint32') {
 				dbOptions.keyIsUint32 = true;
+				this.defaultBeginningKey = Buffer.from([0]);
 			} else if (dbOptions.keyEncoder) {
 				if (dbOptions.keyEncoder.enableNullTermination) {
 					dbOptions.keyEncoder.enableNullTermination();
-				} else
-					keyIsBuffer = true;
+				} else keyIsBuffer = true;
 			} else if (dbOptions.keyEncoding == 'binary') {
 				keyIsBuffer = true;
+				this.defaultBeginningKey = Buffer.from([0]);
 			}
-			let flags = (dbOptions.reverseKey ? 0x02 : 0) |
+			let flags =
+				(dbOptions.reverseKey ? 0x02 : 0) |
 				(dbOptions.dupSort ? 0x04 : 0) |
 				(dbOptions.dupFixed ? 0x10 : 0) |
 				(dbOptions.integerDup ? 0x20 : 0) |
 				(dbOptions.reverseDup ? 0x40 : 0) |
 				(!options.readOnly && dbOptions.create !== false ? 0x40000 : 0) |
 				(dbOptions.useVersions ? 0x100 : 0);
-			let keyType = (dbOptions.keyIsUint32 || dbOptions.keyEncoding == 'uint32') ? 2 : keyIsBuffer ? 3 : 0;
-			if (keyType == 2)
-				flags |= 0x08; // integer key
+			let keyType =
+				dbOptions.keyIsUint32 || dbOptions.keyEncoding == 'uint32'
+					? 2
+					: keyIsBuffer
+						? 3
+						: 0;
+			if (keyType == 2) flags |= 0x08; // integer key
 
 			if (options.readOnly) {
 				// in read-only mode we use a read-only txn to open the database
@@ -3388,13 +3078,23 @@ function open(path$1, options) {
 				this.ensureReadTxn();
 				this.db = new Dbi(env, flags, dbName, keyType, dbOptions.compression);
 			} else {
-				this.transactionSync(() => {
-					this.db = new Dbi(env, flags, dbName, keyType, dbOptions.compression);
-				}, options.overlappingSync ? 0x10002 : 2); // no flush-sync, but synchronously commit
+				this.transactionSync(
+					() => {
+						this.db = new Dbi(
+							env,
+							flags,
+							dbName,
+							keyType,
+							dbOptions.compression,
+						);
+					},
+					options.overlappingSync ? 0x10002 : 2,
+				); // no flush-sync, but synchronously commit
 			}
 			this._commitReadTxn(); // current read transaction becomes invalid after opening another db
-			if (!this.db || this.db.dbi == 0xffffffff) {// not found
-				throw new Error('Database not found')
+			if (!this.db || this.db.dbi == 0xffffffff) {
+				// not found
+				throw new Error('Database not found');
 			}
 			this.dbAddress = this.db.address;
 			this.db.name = dbName || null;
@@ -3410,25 +3110,70 @@ function open(path$1, options) {
 			if (dbOptions.immediateBatchThreshold)
 				console.warn('immediateBatchThreshold is no longer supported');
 			this.commitDelay = DEFAULT_COMMIT_DELAY;
-			Object.assign(this, { // these are the options that are inherited
-				path: options.path,
-				encoding: options.encoding,
-				strictAsyncOrder: options.strictAsyncOrder,
-			}, dbOptions);
+			Object.assign(
+				this,
+				{
+					// these are the options that are inherited
+					path: options.path,
+					encoding: options.encoding,
+					strictAsyncOrder: options.strictAsyncOrder,
+				},
+				dbOptions,
+			);
 			let Encoder;
 			if (this.encoder && this.encoder.Encoder) {
 				Encoder = this.encoder.Encoder;
 				this.encoder = null; // don't copy everything from the module
 			}
-			if (!Encoder && !(this.encoder && this.encoder.encode) && (!this.encoding || this.encoding == 'msgpack' || this.encoding == 'cbor')) {
-				Encoder = (this.encoding == 'cbor' ? moduleRequire('cbor-x').Encoder : MsgpackrEncoder);
+			if (
+				!Encoder &&
+				!(this.encoder && this.encoder.encode) &&
+				(!this.encoding ||
+					this.encoding == 'msgpack' ||
+					this.encoding == 'cbor')
+			) {
+				Encoder =
+					this.encoding == 'cbor'
+						? moduleRequire('cbor-x').Encoder
+						: MsgpackrEncoder;
 			}
 			if (Encoder) {
-				this.encoder = new Encoder(Object.assign(
-					assignConstrainedProperties(['copyBuffers', 'getStructures', 'saveStructures', 'useFloat32', 'useRecords', 'structuredClone', 'variableMapSize', 'useTimestamp32', 'largeBigIntToFloat', 'encodeUndefinedAsNil', 'int64AsNumber', 'onInvalidDate', 'mapsAsObjects', 'useTag259ForMaps', 'pack', 'maxSharedStructures', 'shouldShareStructure', 'randomAccessStructure', 'freezeData'],
-					this.sharedStructuresKey !== undefined ? this.setupSharedStructures() : {
-						copyBuffers: true, // need to copy any embedded buffers that are found since we use unsafe buffers
-					}, options, dbOptions), this.encoder));
+				this.encoder = new Encoder(
+					Object.assign(
+						assignConstrainedProperties(
+							[
+								'copyBuffers',
+								'getStructures',
+								'saveStructures',
+								'useBigIntExtension',
+								'useFloat32',
+								'useRecords',
+								'structuredClone',
+								'variableMapSize',
+								'useTimestamp32',
+								'largeBigIntToFloat',
+								'encodeUndefinedAsNil',
+								'int64AsNumber',
+								'onInvalidDate',
+								'mapsAsObjects',
+								'useTag259ForMaps',
+								'pack',
+								'maxSharedStructures',
+								'shouldShareStructure',
+								'randomAccessStructure',
+								'freezeData',
+							],
+							this.sharedStructuresKey !== undefined
+								? this.setupSharedStructures()
+								: {
+										copyBuffers: true, // need to copy any embedded buffers that are found since we use unsafe buffers
+									},
+							options,
+							dbOptions,
+						),
+						this.encoder,
+					),
+				);
 			}
 			if (this.encoding == 'json') {
 				this.encoder = {
@@ -3444,19 +3189,19 @@ function open(path$1, options) {
 		}
 		openDB(dbName, dbOptions) {
 			if (this.dupSort && this.name == null)
-				throw new Error('Can not open named databases if the main database is dupSort')
+				throw new Error(
+					'Can not open named databases if the main database is dupSort',
+				);
 			if (typeof dbName == 'object' && !dbOptions) {
 				dbOptions = dbName;
 				dbName = dbOptions.name;
-			} else
-				dbOptions = dbOptions || {};
+			} else dbOptions = dbOptions || {};
 			try {
-				return dbOptions.cache ?
-					new (CachingStore(LMDBStore, env))(dbName, dbOptions) :
-					new LMDBStore(dbName, dbOptions);
-			} catch(error) {
-				if (error.message == 'Database not found')
-					return; // return undefined to indicate db not found
+				return dbOptions.cache
+					? new (CachingStore(LMDBStore, env))(dbName, dbOptions)
+					: new LMDBStore(dbName, dbOptions);
+			} catch (error) {
+				if (error.message == 'Database not found') return; // return undefined to indicate db not found
 				if (error.message.indexOf('MDB_DBS_FULL') > -1) {
 					error.message += ' (increase your maxDbs option)';
 				}
@@ -3465,59 +3210,67 @@ function open(path$1, options) {
 		}
 		open(dbOptions, callback) {
 			let db = this.openDB(dbOptions);
-			if (callback)
-				callback(null, db);
+			if (callback) callback(null, db);
 			return db;
 		}
 		backup(path$1, compact) {
-			if (noFSAccess)
-				return;
+			if (noFSAccess) return;
 			fs.mkdirSync(path.dirname(path$1), { recursive: true });
-			return new Promise((resolve, reject) => env.copy(path$1, compact, (error) => {
-				if (error) {
-					reject(error);
-				} else {
-					resolve();
-				}
-			}));
+			return new Promise((resolve, reject) =>
+				env.copy(path$1, compact, (error) => {
+					if (error) {
+						reject(error);
+					} else {
+						resolve();
+					}
+				}),
+			);
 		}
 		isOperational() {
 			return this.status == 'open';
 		}
 		sync(callback) {
-			return env.sync(callback || function(error) {
-				if (error) {
-					console.error(error);
-				}
-			});
+			return env.sync(
+				callback ||
+					function (error) {
+						if (error) {
+							console.error(error);
+						}
+					},
+			);
 		}
 		deleteDB() {
 			console.warn('deleteDB() is deprecated, use drop or dropSync instead');
 			return this.dropSync();
 		}
 		dropSync() {
-			this.transactionSync(() =>
-				this.db.drop({
-					justFreePages: false
-				}), options.overlappingSync ? 0x10002 : 2);
+			this.transactionSync(
+				() =>
+					this.db.drop({
+						justFreePages: false,
+					}),
+				options.overlappingSync ? 0x10002 : 2,
+			);
 		}
 		clear(callback) {
-			if (typeof callback == 'function')
-				return this.clearAsync(callback);
-			console.warn('clear() is deprecated, use clearAsync or clearSync instead');
+			if (typeof callback == 'function') return this.clearAsync(callback);
+			console.warn(
+				'clear() is deprecated, use clearAsync or clearSync instead',
+			);
 			this.clearSync();
 		}
 		clearSync() {
 			if (this.encoder) {
-				if (this.encoder.clearSharedData)
-					this.encoder.clearSharedData();
-				else if (this.encoder.structures)
-					this.encoder.structures = [];
+				if (this.encoder.clearSharedData) this.encoder.clearSharedData();
+				else if (this.encoder.structures) this.encoder.structures = [];
 			}
-			this.transactionSync(() =>
-				this.db.drop({
-					justFreePages: true
-				}), options.overlappingSync ? 0x10002 : 2);
+			this.transactionSync(
+				() =>
+					this.db.drop({
+						justFreePages: true,
+					}),
+				options.overlappingSync ? 0x10002 : 2,
+			);
 		}
 		readerCheck() {
 			return env.readerCheck();
@@ -3528,24 +3281,32 @@ function open(path$1, options) {
 		setupSharedStructures() {
 			const getStructures = () => {
 				let lastVersion; // because we are doing a read here, we may need to save and restore the lastVersion from the last read
-				if (this.useVersions)
-					lastVersion = getLastVersion();
+				if (this.useVersions) lastVersion = getLastVersion();
 				let buffer = this.getBinary(this.sharedStructuresKey);
-				if (this.useVersions)
-					setLastVersion(lastVersion);
+				if (this.useVersions) setLastVersion(lastVersion);
 				return buffer && this.decoder.decode(buffer);
 			};
 			return {
 				saveStructures: (structures, isCompatible) => {
-					return this.transactionSync(() => {
-						let existingStructuresBuffer = this.getBinary(this.sharedStructuresKey);
-						let existingStructures = existingStructuresBuffer && this.decoder.decode(existingStructuresBuffer);
-						if (typeof isCompatible == 'function' ?
-								!isCompatible(existingStructures) :
-								(existingStructures && existingStructures.length != isCompatible))
-							return false; // it changed, we need to indicate that we couldn't update
-						this.put(this.sharedStructuresKey, structures);
-					},  options.overlappingSync ? 0x10000 : 0);
+					return this.transactionSync(
+						() => {
+							let existingStructuresBuffer = this.getBinary(
+								this.sharedStructuresKey,
+							);
+							let existingStructures =
+								existingStructuresBuffer &&
+								this.decoder.decode(existingStructuresBuffer);
+							if (
+								typeof isCompatible == 'function'
+									? !isCompatible(existingStructures)
+									: existingStructures &&
+										existingStructures.length != isCompatible
+							)
+								return false; // it changed, we need to indicate that we couldn't update
+							this.put(this.sharedStructuresKey, structures);
+						},
+						options.overlappingSync ? 0x10000 : 0,
+					);
 				},
 				getStructures,
 				copyBuffers: true, // need to copy any embedded buffers that are found since we use unsafe buffers
@@ -3555,10 +3316,21 @@ function open(path$1, options) {
 	// if caching class overrides putSync, don't want to double call the caching code
 	LMDBStore.prototype.putSync;
 	LMDBStore.prototype.removeSync;
-	addReadMethods(LMDBStore, { env, maxKeySize, keyBytes, keyBytesView, getLastVersion });
+	addReadMethods(LMDBStore, {
+		env,
+		maxKeySize,
+		keyBytes,
+		keyBytesView,
+		getLastVersion,
+	});
 	if (!options.readOnly)
-		addWriteMethods(LMDBStore, { env, maxKeySize, fixedBuffer: keyBytes,
-			resetReadTxn: LMDBStore.prototype.resetReadTxn, ...options });
+		addWriteMethods(LMDBStore, {
+			env,
+			maxKeySize,
+			fixedBuffer: keyBytes,
+			resetReadTxn: LMDBStore.prototype.resetReadTxn,
+			...options,
+		});
 	LMDBStore.prototype.supports = {
 		permanence: true,
 		bufferKeys: true,
@@ -3567,7 +3339,7 @@ function open(path$1, options) {
 		clear: true,
 		status: true,
 		deferredOpen: true,
-		openCallback: true,	
+		openCallback: true,
 	};
 	let Class = options.cache ? CachingStore(LMDBStore, env) : LMDBStore;
 	return options.asClass ? Class : new Class(options.name || null, options);
@@ -3583,33 +3355,40 @@ function openAsClass(path, options) {
 }
 
 function getLastVersion() {
-	return keyBytesView.getFloat64(16, true);
+	return keyBytesView.getFloat64(16, isLittleEndian);
 }
 function setLastVersion(version) {
-	return keyBytesView.setFloat64(16, version, true);
+	return keyBytesView.setFloat64(16, version, isLittleEndian);
 }
 
 function getLastTxnId() {
-	return keyBytesView.getUint32(32, true);
+	return keyBytesView.getUint32(32, isLittleEndian);
 }
 
 const KEY_BUFFER_SIZE = 4096;
 function allocateFixedBuffer() {
-	keyBytes = typeof Buffer != 'undefined' ? Buffer.allocUnsafeSlow(KEY_BUFFER_SIZE) : new Uint8Array(KEY_BUFFER_SIZE);
+	keyBytes =
+		typeof Buffer != 'undefined'
+			? Buffer.allocUnsafeSlow(KEY_BUFFER_SIZE)
+			: new Uint8Array(KEY_BUFFER_SIZE);
 	const keyBuffer = keyBytes.buffer;
-	keyBytesView = keyBytes.dataView || (keyBytes.dataView = new DataView(keyBytes.buffer, 0, KEY_BUFFER_SIZE)); // max key size is actually 4026
+	keyBytesView =
+		keyBytes.dataView ||
+		(keyBytes.dataView = new DataView(keyBytes.buffer, 0, KEY_BUFFER_SIZE)); // max key size is actually 4026
 	keyBytes.uint32 = new Uint32Array(keyBuffer, 0, KEY_BUFFER_SIZE >> 2);
 	keyBytes.float64 = new Float64Array(keyBuffer, 0, KEY_BUFFER_SIZE >> 3);
-	keyBytes.uint32.address = keyBytes.address = keyBuffer.address = getAddress(keyBuffer);
+	keyBytes.uint32.address =
+		keyBytes.address =
+		keyBuffer.address =
+			getAddress(keyBuffer);
 }
 
 function exists(path) {
-	if (fs.existsSync)
-		return fs.existsSync(path);
+	if (fs.existsSync) return fs.existsSync(path);
 	try {
 		return fs.statSync(path);
 	} catch (error) {
-		return false
+		return false;
 	}
 }
 
@@ -3617,8 +3396,7 @@ function assignConstrainedProperties(allowedProperties, target) {
 	for (let i = 2; i < arguments.length; i++) {
 		let source = arguments[i];
 		for (let key in source) {
-			if (allowedProperties.includes(key))
-				target[key] = source[key];
+			if (allowedProperties.includes(key)) target[key] = source[key];
 		}
 	}
 	return target;
@@ -3654,16 +3432,41 @@ class NotFoundError extends Error {
 
 orderedBinary__namespace.enableNullTermination();
 setExternals({
-	arch: os$1.arch, fs: fs__default["default"], tmpdir: os$1.tmpdir, MsgpackrEncoder: msgpackr.Encoder, WeakLRUCache: weakLruCache.WeakLRUCache, orderedBinary: orderedBinary__namespace,
-	EventEmitter: events.EventEmitter, os: os$1.platform(), onExit(callback) {
+	arch: node_os.arch,
+	fs: fs__default["default"],
+	tmpdir: node_os.tmpdir,
+	MsgpackrEncoder: msgpackr.Encoder,
+	WeakLRUCache: weakLruCache.WeakLRUCache,
+	orderedBinary: orderedBinary__namespace,
+	EventEmitter: node_events.EventEmitter,
+	os: node_os.platform(),
+	onExit(callback) {
 		if (process.getMaxListeners() < process.listenerCount('exit') + 8)
 			process.setMaxListeners(process.listenerCount('exit') + 8);
 		process.on('exit', callback);
 	},
+	isLittleEndian: node_os.endianness() == 'LE',
 });
 let { noop } = nativeAddon;
-const TIMESTAMP_PLACEHOLDER = new Uint8Array([1,1,1,1,0,0,0,0]);
-const DIRECT_WRITE_PLACEHOLDER = new Uint8Array([1,1,1,2,0,0,0,0]);
+const TIMESTAMP_PLACEHOLDER = (() => {
+	if (node_os.endianness() == 'BE') {
+		return new Uint8Array([0, 0, 0, 0, 1, 1, 1, 1]);
+	} else {
+		return new Uint8Array([1, 1, 1, 1, 0, 0, 0, 0]);
+	}
+})();
+const DIRECT_WRITE_PLACEHOLDER = (() => {
+	if (node_os.endianness() == 'BE') {
+		return new Uint8Array([0, 0, 0, 0, 2, 1, 1, 1]);
+	} else {
+		return new Uint8Array([1, 1, 1, 2, 0, 0, 0, 0]);
+	}
+})();
+function setSpecialWriteValue(destArray, placeholder, uint32Value) {
+	destArray.set(placeholder);
+	let uint32 = new Uint32Array(destArray.buffer, 0, 2);
+	node_os.endianness() == 'BE' ? (uint32[0] = uint32Value) : (uint32[1] = uint32Value);
+}
 const TransactionFlags = {
 	ABORTABLE: 1,
 	SYNCHRONOUS_COMMIT: 2,
@@ -3671,19 +3474,34 @@ const TransactionFlags = {
 	NO_SYNC_FLUSH: 0x10000,
 };
 var index = {
-	open, openAsClass, getLastVersion, compareKey: orderedBinary$1.compareKeys, keyValueToBuffer: orderedBinary$1.toBufferKey, bufferToKeyValue: orderedBinary$1.fromBufferKey, ABORT, IF_EXISTS: IF_EXISTS$1, asBinary, levelup, TransactionFlags, version: exports.version
+	open,
+	openAsClass,
+	getLastVersion,
+	compareKey: orderedBinary$1.compareKeys,
+	keyValueToBuffer: orderedBinary$1.toBufferKey,
+	bufferToKeyValue: orderedBinary$1.fromBufferKey,
+	ABORT,
+	IF_EXISTS: IF_EXISTS$1,
+	asBinary,
+	levelup,
+	TransactionFlags,
+	version: exports.version,
 };
 
-let require$1 = module$1.createRequire((typeof document === 'undefined' ? new (require('u' + 'rl').URL)('file:' + __filename).href : (document.currentScript && document.currentScript.src || new URL('index.cjs', document.baseURI).href)));
+let require$1 = node_module.createRequire((typeof document === 'undefined' ? new (require('u' + 'rl').URL)('file:' + __filename).href : (document.currentScript && document.currentScript.tagName.toUpperCase() === 'SCRIPT' && document.currentScript.src || new URL('index.cjs', document.baseURI).href)));
 setRequire(require$1);
 exports.v8AccelerationEnabled = false;
 
 let versions = process.versions;
 if (!versions.deno && !process.isBun) {
-	let [ majorVersion, minorVersion ] = versions.node.split('.');
+	let [majorVersion, minorVersion] = versions.node.split('.');
 	if (versions.v8 && +majorVersion == nativeAddon.version.nodeCompiledVersion) {
 		let v8Funcs = {};
-		let fastApiCalls = (majorVersion == 17 || majorVersion == 18 || majorVersion == 16 && minorVersion > 8) && !process.env.DISABLE_TURBO_CALLS;
+		let fastApiCalls =
+			(majorVersion == 17 ||
+				majorVersion == 18 ||
+				(majorVersion == 16 && minorVersion > 8)) &&
+			!process.env.DISABLE_TURBO_CALLS;
 		if (fastApiCalls) {
 			require$1('v8').setFlagsFromString('--turbo-fast-api-calls');
 		}
@@ -3696,10 +3514,14 @@ if (!versions.deno && !process.isBun) {
 		nativeAddon.enableDirectV8(v8Funcs, false);
 		nativeAddon.clearKeptObjects = v8Funcs.clearKeptObjects;
 	}
-	nativeAddon.enableThreadSafeCalls();
 }
+nativeAddon.enableThreadSafeCalls();
 setNativeFunctions(nativeAddon);
 
+Object.defineProperty(exports, 'SKIP', {
+	enumerable: true,
+	get: function () { return extendedIterable.SKIP; }
+});
 Object.defineProperty(exports, 'bufferToKeyValue', {
 	enumerable: true,
 	get: function () { return orderedBinary$1.fromBufferKey; }
@@ -3719,7 +3541,6 @@ Object.defineProperty(exports, 'keyValueToBuffer', {
 exports.ABORT = ABORT;
 exports.DIRECT_WRITE_PLACEHOLDER = DIRECT_WRITE_PLACEHOLDER;
 exports.IF_EXISTS = IF_EXISTS$1;
-exports.SKIP = SKIP;
 exports.TIMESTAMP_PLACEHOLDER = TIMESTAMP_PLACEHOLDER;
 exports.TransactionFlags = TransactionFlags;
 exports.allDbs = allDbs;
@@ -3732,4 +3553,5 @@ exports.nativeAddon = nativeAddon;
 exports.noop = noop;
 exports.open = open;
 exports.openAsClass = openAsClass;
+exports.setSpecialWriteValue = setSpecialWriteValue;
 //# sourceMappingURL=index.cjs.map

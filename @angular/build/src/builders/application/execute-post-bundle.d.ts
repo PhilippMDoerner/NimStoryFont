@@ -6,8 +6,8 @@
  * found in the LICENSE file at https://angular.dev/license
  */
 import type { Metafile } from 'esbuild';
-import { BuildOutputFile, InitialFileRecord } from '../../tools/esbuild/bundler-context';
-import { BuildOutputAsset, PrerenderedRoutesRecord } from '../../tools/esbuild/bundler-execution-result';
+import { type BuildOutputAsset, type PrerenderedRoutesRecord } from '../../tools/esbuild/bundler-execution-result';
+import { type BuildOutputFile, type InitialFileRecord } from '../../tools/esbuild/bundler-files';
 import { NormalizedApplicationBuildOptions } from './options';
 /**
  * Run additional builds steps including SSG, AppShell, Index HTML file and Service worker generation.

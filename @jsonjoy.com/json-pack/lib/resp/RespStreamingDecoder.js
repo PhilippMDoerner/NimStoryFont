@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RespStreamingDecoder = void 0;
-const StreamingReader_1 = require("@jsonjoy.com/util/lib/buffers/StreamingReader");
+const StreamingReader_1 = require("@jsonjoy.com/buffers/lib/StreamingReader");
 const RespDecoder_1 = require("./RespDecoder");
 class RespStreamingDecoder {
     constructor() {
@@ -23,7 +23,7 @@ class RespStreamingDecoder {
             return undefined;
         const x = reader.x;
         try {
-            const val = this.decoder.val();
+            const val = this.decoder.readAny();
             reader.consume();
             return val;
         }

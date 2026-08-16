@@ -85,6 +85,7 @@ import {
     AST_Default,
     AST_DefaultAssign,
     AST_Definitions,
+    AST_DefinitionsLike,
     AST_Defun,
     AST_Destructuring,
     AST_Directive,
@@ -102,6 +103,7 @@ import {
     AST_Function,
     AST_Hole,
     AST_If,
+    AST_DynamicImport,
     AST_Import,
     AST_ImportMeta,
     AST_Jump,
@@ -147,8 +149,9 @@ import {
     AST_Unary,
     AST_UnaryPostfix,
     AST_UnaryPrefix,
+    AST_Using,
     AST_Var,
-    AST_VarDef,
+    AST_VarDefLike,
     AST_While,
     AST_With,
     AST_Yield,
@@ -157,13 +160,18 @@ import {
     walk_abort
 } from "./ast.js";
 import {
-    get_full_char_code,
     get_full_char,
-    is_identifier_char,
+    get_full_char_code,
     is_basic_identifier_string,
+    is_identifier_char,
+    is_identifier_char_broad,
+    is_identifier_start,
+    is_identifier_start_broad,
     is_identifier_string,
-    PRECEDENCE,
+} from "./unicode.js";
+import {
     ALL_RESERVED_WORDS,
+    PRECEDENCE,
 } from "./parse.js";
 
 const CODE_LINE_BREAK = 10;
@@ -361,6 +369,56 @@ function OutputStream(options) {
         });
     };
 
+    /** Matches an identifier with non-ascii characters */
+    var re_high_identifier = (() => {
+        try {
+            return new RegExp("^(?![\\u0000-\\u00ff]+$)([\\p{ID_Start}][\\p{ID_Continue}]*)$", "u");
+        } catch (_) {
+            return undefined; /* \p in regex above is unsupported */
+        }
+    })();
+
+    var ident_to_utf8 = (options.ascii_only || !re_high_identifier) ? to_utf8 : function (str) {
+        if (re_high_identifier.test(str)) {
+            str = str.replace(/[\ud800-\udbff][\udc00-\udfff]|([\ud800-\udbff]|[\udc00-\udfff])/g, function(match, lone) {
+                if (lone) {
+                    return "\\u" + lone.charCodeAt(0).toString(16).padStart(4, "0");
+                }
+                return match;
+            });
+
+            // Escape identifier characters from higher unicode versions
+            var char = get_full_char(str, 0);
+            var escaped = char;
+            if (
+                is_identifier_start_broad(char)
+                && !is_identifier_start(char)
+            ) {
+                const code_point = char.codePointAt(0);
+                escaped = code_point <= 0xffff
+                    ? `\\u${code_point.toString(16).padStart(4, "0")}`
+                    : `\\u{${code_point.toString(16)}}`;
+            }
+            for (var i = char.length; i < str.length; i += char.length) {
+                char = get_full_char(str, i);
+                if (
+                    is_identifier_char_broad(char)
+                    && !is_identifier_char(char)
+                ) {
+                    const code_point = char.codePointAt(0);
+                    escaped += code_point <= 0xffff
+                        ? `\\u${code_point.toString(16).padStart(4, "0")}`
+                        : `\\u{${code_point.toString(16)}}`;
+                } else {
+                    escaped += char;
+                }
+            }
+            return escaped;
+        } else {
+            return str;
+        }
+    };
+
     function make_string(str, quote) {
         var dq = 0, sq = 0;
         str = str.replace(/[\\\b\f\n\r\v\t\x22\x27\u2028\u2029\0\ufeff]/g,
@@ -418,7 +476,7 @@ function OutputStream(options) {
 
     function make_name(name) {
         name = name.toString();
-        name = to_utf8(name, true);
+        name = ident_to_utf8(name, true);
         return name;
     }
 
@@ -535,8 +593,8 @@ function OutputStream(options) {
         }
 
         if (might_need_space) {
-            if ((is_identifier_char(prev)
-                    && (is_identifier_char(ch) || ch == "\\"))
+            if ((is_identifier_char_broad(prev)
+                    && (is_identifier_char_broad(ch) || ch == "\\"))
                 || (ch == "/" && ch == prev)
                 || ((ch == "+" || ch == "-") && ch == last)
             ) {
@@ -1041,21 +1099,21 @@ function OutputStream(options) {
 
     PARENS(AST_Sequence, function(output) {
         var p = output.parent();
-        return p instanceof AST_Call                          // (foo, bar)() or foo(1, (2, 3), 4)
-            || p instanceof AST_Unary                         // !(foo, bar, baz)
-            || p instanceof AST_Binary                        // 1 + (2, 3) + 4 ==> 8
-            || p instanceof AST_VarDef                        // var a = (1, 2), b = a + a; ==> b == 4
-            || p instanceof AST_PropAccess                    // (1, {foo:2}).foo or (1, {foo:2})["foo"] ==> 2
-            || p instanceof AST_Array                         // [ 1, (2, 3), 4 ] ==> [ 1, 3, 4 ]
-            || p instanceof AST_ObjectProperty                // { foo: (1, 2) }.foo ==> 2
-            || p instanceof AST_Conditional                   /* (false, true) ? (a = 10, b = 20) : (c = 30)
-                                                               * ==> 20 (side effect, set a := 10 and b := 20) */
-            || p instanceof AST_Arrow                         // x => (x, x)
-            || p instanceof AST_DefaultAssign                 // x => (x = (0, function(){}))
-            || p instanceof AST_Expansion                     // [...(a, b)]
-            || p instanceof AST_ForOf && this === p.object    // for (e of (foo, bar)) {}
-            || p instanceof AST_Yield                         // yield (foo, bar)
-            || p instanceof AST_Export                        // export default (foo, bar)
+        return p instanceof AST_Call                              // (foo, bar)() or foo(1, (2, 3), 4)
+            || p instanceof AST_Unary                             // !(foo, bar, baz)
+            || p instanceof AST_Binary                            // 1 + (2, 3) + 4 ==> 8
+            || p instanceof AST_VarDefLike                        // var a = (1, 2), b = a + a; ==> b == 4
+            || p instanceof AST_PropAccess && this !== p.property // (1, {foo:2}).foo, (1, {foo:2})["foo"], not foo[1, 2]
+            || p instanceof AST_Array                             // [ 1, (2, 3), 4 ] ==> [ 1, 3, 4 ]
+            || p instanceof AST_ObjectProperty                    // { foo: (1, 2) }.foo ==> 2
+            || p instanceof AST_Conditional                       /* (false, true) ? (a = 10, b = 20) : (c = 30)
+                                                                   * ==> 20 (side effect, set a := 10 and b := 20) */
+            || p instanceof AST_Arrow                             // x => (x, x)
+            || p instanceof AST_DefaultAssign                     // x => (x = (0, function(){}))
+            || p instanceof AST_Expansion                         // [...(a, b)]
+            || p instanceof AST_ForOf && this === p.object        // for (e of (foo, bar)) {}
+            || p instanceof AST_Yield                             // yield (foo, bar)
+            || p instanceof AST_Export                            // export default (foo, bar)
         ;
     });
 
@@ -1376,7 +1434,7 @@ function OutputStream(options) {
         output.space();
         output.with_parens(function() {
             if (self.init) {
-                if (self.init instanceof AST_Definitions) {
+                if (self.init instanceof AST_DefinitionsLike) {
                     self.init.print(output);
                 } else {
                     parenthesize_for_noin(self.init, output, true);
@@ -1736,7 +1794,7 @@ function OutputStream(options) {
     });
 
     /* -----[ var/const ]----- */
-    AST_Definitions.DEFMETHOD("_do_print", function(output, kind) {
+    AST_DefinitionsLike.DEFMETHOD("_do_print", function(output, kind) {
         output.print(kind);
         output.space();
         this.definitions.forEach(function(def, i) {
@@ -1758,9 +1816,16 @@ function OutputStream(options) {
     DEFPRINT(AST_Const, function(self, output) {
         self._do_print(output, "const");
     });
+    DEFPRINT(AST_Using, function(self, output) {
+        self._do_print(output, self.await ? "await using" : "using");
+    });
     DEFPRINT(AST_Import, function(self, output) {
         output.print("import");
         output.space();
+        if (self.phase) {
+            output.print(self.phase);
+            output.space();
+        }
         if (self.imported_name) {
             self.imported_name.print(output);
         }
@@ -1800,6 +1865,15 @@ function OutputStream(options) {
     });
     DEFPRINT(AST_ImportMeta, function(self, output) {
         output.print("import.meta");
+    });
+    DEFPRINT(AST_DynamicImport, function(self, output) {
+        output.print("import." + self.phase);
+        output.with_parens(function() {
+            self.args.forEach(function(arg, i) {
+                if (i) output.comma();
+                arg.print(output);
+            });
+        });
     });
 
     DEFPRINT(AST_NameMapping, function(self, output) {
@@ -1925,7 +1999,7 @@ function OutputStream(options) {
         node.print(output, parens);
     }
 
-    DEFPRINT(AST_VarDef, function(self, output) {
+    DEFPRINT(AST_VarDefLike, function(self, output) {
         self.name.print(output);
         if (self.value) {
             output.space();
@@ -2401,7 +2475,7 @@ function OutputStream(options) {
         } else {
             if (!stat || stat instanceof AST_EmptyStatement)
                 output.force_semicolon();
-            else if (stat instanceof AST_Let || stat instanceof AST_Const || stat instanceof AST_Class)
+            else if ((stat instanceof AST_DefinitionsLike && !(stat instanceof AST_Var)) || stat instanceof AST_Class)
                 make_block(stat, output);
             else
                 stat.print(output);
@@ -2481,7 +2555,7 @@ function OutputStream(options) {
         AST_Class,
         AST_Constant,
         AST_Debugger,
-        AST_Definitions,
+        AST_DefinitionsLike,
         AST_Directive,
         AST_Finally,
         AST_Jump,

@@ -17,3 +17,4 @@ class ServeCommandModule extends architect_command_module_1.ArchitectCommandModu
     longDescriptionPath;
 }
 exports.default = ServeCommandModule;
+//# sourceMappingURL=cli.js.map

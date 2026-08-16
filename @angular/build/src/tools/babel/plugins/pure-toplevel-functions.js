@@ -47,7 +47,11 @@ exports.default = default_1;
 const helper_annotate_as_pure_1 = __importDefault(require("@babel/helper-annotate-as-pure"));
 const tslib = __importStar(require("tslib"));
 /**
- * A cached set of TypeScript helper function names used by the helper name matcher utility function.
+ * A set of constructor names that are considered to be side-effect free.
+ */
+const sideEffectFreeConstructors = new Set(['InjectionToken']);
+/**
+ * A set of TypeScript helper function names used by the helper name matcher utility function.
  */
 const tslibHelpers = new Set(Object.keys(tslib).filter((h) => h.startsWith('__')));
 /**
@@ -76,13 +80,16 @@ function isBabelHelperName(name) {
 }
 /**
  * A babel plugin factory function for adding the PURE annotation to top-level new and call expressions.
- *
  * @returns A babel plugin object instance.
  */
 function default_1() {
     return {
         visitor: {
-            CallExpression(path) {
+            CallExpression(path, state) {
+                const { topLevelSafeMode = false } = state.opts;
+                if (topLevelSafeMode) {
+                    return;
+                }
                 // If the expression has a function parent, it is not top-level
                 if (path.getFunctionParent()) {
                     return;
@@ -100,12 +107,22 @@ function default_1() {
                 }
                 (0, helper_annotate_as_pure_1.default)(path);
             },
-            NewExpression(path) {
+            NewExpression(path, state) {
                 // If the expression has a function parent, it is not top-level
-                if (!path.getFunctionParent()) {
+                if (path.getFunctionParent()) {
+                    return;
+                }
+                const { topLevelSafeMode = false } = state.opts;
+                if (!topLevelSafeMode) {
+                    (0, helper_annotate_as_pure_1.default)(path);
+                    return;
+                }
+                const callee = path.get('callee');
+                if (callee.isIdentifier() && sideEffectFreeConstructors.has(callee.node.name)) {
                     (0, helper_annotate_as_pure_1.default)(path);
                 }
             },
         },
     };
 }
+//# sourceMappingURL=pure-toplevel-functions.js.map

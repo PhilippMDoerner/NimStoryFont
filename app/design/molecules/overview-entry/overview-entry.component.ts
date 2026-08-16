@@ -6,7 +6,7 @@ import {
   input,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { componentId } from 'src/utils/DOM';
+import { componentId } from '../../../../utils/DOM';
 
 @Component({
   selector: 'app-overview-entry',
@@ -24,14 +24,19 @@ import { componentId } from 'src/utils/DOM';
   },
 })
 export class OverviewEntryComponent {
-  img = input.required<{ src: string; alt: string; placeholder?: string }>();
-  header = input.required<string>();
-  body = input<string>();
-  defaultBorder = input(true);
-  link = input<string>();
+  readonly img = input.required<{
+    src: string;
+    alt: string;
+    placeholder?: string;
+  }>();
+  readonly header = input.required<string>();
+  readonly body = input<string>();
+  readonly defaultBorder = input(true);
+  readonly link = input<string>();
 
-  headerId = `header-${componentId()}`;
-  bodyId = computed(() => {
+  readonly headerId = `header-${componentId()}`;
+
+  readonly bodyId = computed(() => {
     const hasBody = !!this.body();
     return hasBody ? `body-${componentId()}` : undefined;
   });

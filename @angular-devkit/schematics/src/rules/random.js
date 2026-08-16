@@ -38,3 +38,4 @@ function default_1(options) {
         return map;
     };
 }
+//# sourceMappingURL=random.js.map

@@ -315,6 +315,8 @@ private:
 	std::vector<TxnWrap*> readTxns;
 	static env_tracking_t* initTracking();
 	napi_env napiEnv;
+	// Track whether this EnvWrap currently owns a registered env cleanup hook.
+	bool cleanupHookRegistered;
 	// compression settings and space
 	Compression *compression;
 	static thread_local std::vector<EnvWrap*>* openEnvWraps;
@@ -325,6 +327,7 @@ private:
 	static void cleanupEnvWraps(void* data);
 
 	friend class TxnWrap;
+	friend void cleanup(void* data);
 	friend class DbiWrap;
 
 public:
@@ -358,7 +361,7 @@ public:
 	static void setupExports(Napi::Env env, Object exports);
 	void closeEnv(bool hasLock = false);
 	int openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, Compression* compression, int maxDbs,
-		int maxReaders, mdb_size_t mapSize, int pageSize, unsigned int max_free_to_load, unsigned int max_free_to_retain, char* encryptionKey);
+		int maxReaders, mdb_size_t mapSize, int pageSize, unsigned int max_free_to_load, unsigned int max_free_to_retain, char* encryptionKey, unsigned int permissionsMode);
 	
 	/*
 		Gets statistics about the database environment.

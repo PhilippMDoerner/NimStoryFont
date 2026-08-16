@@ -5,14 +5,12 @@
 
 "use strict";
 
-const parseJson = require("json-parse-even-better-errors");
-const { getContext, runLoaders } = require("loader-runner");
 const querystring = require("querystring");
 const {
+	AsyncSeriesBailHook,
 	HookMap,
 	SyncHook,
-	SyncWaterfallHook,
-	AsyncSeriesBailHook
+	SyncWaterfallHook
 } = require("tapable");
 const {
 	CachedSource,
@@ -20,81 +18,95 @@ const {
 	RawSource,
 	SourceMapSource
 } = require("webpack-sources");
-const Compilation = require("./Compilation");
-const HookWebpackError = require("./HookWebpackError");
+const Dependency = require("./Dependency");
 const Module = require("./Module");
-const ModuleBuildError = require("./ModuleBuildError");
-const ModuleError = require("./ModuleError");
 const ModuleGraphConnection = require("./ModuleGraphConnection");
-const ModuleParseError = require("./ModuleParseError");
 const { JAVASCRIPT_MODULE_TYPE_AUTO } = require("./ModuleTypeConstants");
-const ModuleWarning = require("./ModuleWarning");
 const RuntimeGlobals = require("./RuntimeGlobals");
-const UnhandledSchemeError = require("./UnhandledSchemeError");
-const WebpackError = require("./WebpackError");
-const formatLocation = require("./formatLocation");
+const HookWebpackError = require("./errors/HookWebpackError");
+const ModuleBuildError = require("./errors/ModuleBuildError");
+const ModuleError = require("./errors/ModuleError");
+const ModuleParseError = require("./errors/ModuleParseError");
+const ModuleWarning = require("./errors/ModuleWarning");
+const NonErrorEmittedError = require("./errors/NonErrorEmittedError");
+const UnhandledSchemeError = require("./errors/UnhandledSchemeError");
+const {
+	createLoaderContext,
+	getContext,
+	runLoaders
+} = require("./loaders/LoaderRunner");
 const LazySet = require("./util/LazySet");
 const { isSubset } = require("./util/SetHelpers");
 const { getScheme } = require("./util/URLAbsoluteSpecifier");
 const {
-	compareLocations,
 	concatComparators,
-	compareSelect,
-	keepOriginalOrder
+	keepOriginalOrder,
+	sortWithSourceOrder
 } = require("./util/comparators");
 const createHash = require("./util/createHash");
+const createHooksRegistry = require("./util/createHooksRegistry");
 const { createFakeHook } = require("./util/deprecation");
+const formatLocation = require("./util/formatLocation");
 const { join } = require("./util/fs");
 const {
-	contextify,
+	ABSOLUTE_PATH_REGEXP,
 	absolutify,
-	makePathsRelative
+	contextify,
+	contextifySourceUrl
 } = require("./util/identifier");
 const makeSerializable = require("./util/makeSerializable");
 const memoize = require("./util/memoize");
+const parseJson = require("./util/parseJson");
 
+/** @typedef {import("enhanced-resolve").ResolveContext} ResolveContext */
+/** @typedef {import("enhanced-resolve").ResolveRequest} ResolveRequest */
 /** @typedef {import("webpack-sources").Source} Source */
-/** @typedef {import("../declarations/WebpackOptions").Mode} Mode */
+/** @typedef {import("webpack-sources").RawSourceMap} RawSourceMap */
 /** @typedef {import("../declarations/WebpackOptions").ResolveOptions} ResolveOptions */
-/** @typedef {import("../declarations/WebpackOptions").WebpackOptionsNormalized} WebpackOptions */
 /** @typedef {import("../declarations/WebpackOptions").NoParse} NoParse */
-/** @typedef {import("./ChunkGraph")} ChunkGraph */
-/** @typedef {import("./Compiler")} Compiler */
+/** @typedef {import("./Compilation")} Compilation */
+/** @typedef {import("./config/defaults").WebpackOptionsNormalizedWithDefaults} WebpackOptions */
 /** @typedef {import("./Dependency").UpdateHashContext} UpdateHashContext */
-/** @typedef {import("./DependencyTemplates")} DependencyTemplates */
 /** @typedef {import("./Generator")} Generator */
 /** @typedef {import("./Generator").GenerateErrorFn} GenerateErrorFn */
+/** @typedef {import("./FileSystemInfo").Snapshot} Snapshot */
 /** @typedef {import("./Module").BuildInfo} BuildInfo */
+/** @typedef {import("./Module").FileSystemDependencies} FileSystemDependencies */
+/** @typedef {import("./Module").ValueCacheVersions} ValueCacheVersions */
 /** @typedef {import("./Module").BuildMeta} BuildMeta */
 /** @typedef {import("./Module").CodeGenerationContext} CodeGenerationContext */
 /** @typedef {import("./Module").CodeGenerationResult} CodeGenerationResult */
+/** @typedef {import("./Module").CodeGenerationResultData} CodeGenerationResultData */
 /** @typedef {import("./Module").ConcatenationBailoutReasonContext} ConcatenationBailoutReasonContext */
 /** @typedef {import("./Module").KnownBuildInfo} KnownBuildInfo */
 /** @typedef {import("./Module").LibIdentOptions} LibIdentOptions */
+/** @typedef {import("./Module").LibIdent} LibIdent */
+/** @typedef {import("./Module").NameForCondition} NameForCondition */
 /** @typedef {import("./Module").NeedBuildContext} NeedBuildContext */
 /** @typedef {import("./Module").NeedBuildCallback} NeedBuildCallback */
 /** @typedef {import("./Module").BuildCallback} BuildCallback */
-/** @typedef {import("./Generator").SourceTypes} SourceTypes */
+/** @typedef {import("./Module").RuntimeRequirements} RuntimeRequirements */
+/** @typedef {import("./Module").Sources} Sources */
+/** @typedef {import("./Module").SourceType} SourceType */
+/** @typedef {import("./Module").SourceTypes} SourceTypes */
 /** @typedef {import("./Module").UnsafeCacheData} UnsafeCacheData */
 /** @typedef {import("./ModuleGraph")} ModuleGraph */
 /** @typedef {import("./ModuleGraphConnection").ConnectionState} ConnectionState */
-/** @typedef {import("./ModuleTypeConstants").JavaScriptModuleTypes} JavaScriptModuleTypes */
 /** @typedef {import("./NormalModuleFactory")} NormalModuleFactory */
-/** @typedef {import("./NormalModuleFactory").ResourceDataWithData} ResourceDataWithData */
+/** @typedef {import("./NormalModuleFactory").NormalModuleTypes} NormalModuleTypes */
+/** @typedef {import("./NormalModuleFactory").ParserByType} ParserByType */
+/** @typedef {import("./NormalModuleFactory").ParserOptionsByType} ParserOptionsByType */
+/** @typedef {import("./NormalModuleFactory").GeneratorByType} GeneratorByType */
+/** @typedef {import("./NormalModuleFactory").GeneratorOptionsByType} GeneratorOptionsByType */
 /** @typedef {import("./NormalModuleFactory").ResourceSchemeData} ResourceSchemeData */
 /** @typedef {import("./Parser")} Parser */
 /** @typedef {import("./Parser").PreparsedAst} PreparsedAst */
 /** @typedef {import("./RequestShortener")} RequestShortener */
-/** @typedef {import("./ResolverFactory").ResolveContext} ResolveContext */
 /** @typedef {import("./ResolverFactory").ResolverWithOptions} ResolverWithOptions */
-/** @typedef {import("./ResolverFactory").ResolveRequest} ResolveRequest */
-/** @typedef {import("./RuntimeTemplate")} RuntimeTemplate */
-/** @typedef {import("./logging/Logger").Logger} WebpackLogger */
 /** @typedef {import("./serialization/ObjectMiddleware").ObjectDeserializerContext} ObjectDeserializerContext */
 /** @typedef {import("./serialization/ObjectMiddleware").ObjectSerializerContext} ObjectSerializerContext */
 /** @typedef {import("./util/Hash")} Hash */
 /** @typedef {import("./util/fs").InputFileSystem} InputFileSystem */
-/** @typedef {import("./util/runtime").RuntimeSpec} RuntimeSpec */
 /** @typedef {import("../declarations/WebpackOptions").HashFunction} HashFunction */
 /** @typedef {import("./util/identifier").AssociatedObjectForCache} AssociatedObjectForCache */
 /**
@@ -115,70 +127,294 @@ const memoize = require("./util/memoize");
  * @typedef {import("../declarations/LoaderContext").NormalModuleLoaderContext<T>} NormalModuleLoaderContext
  */
 
-/**
- * @typedef {object} SourceMap
- * @property {number} version
- * @property {string[]} sources
- * @property {string} mappings
- * @property {string=} file
- * @property {string=} sourceRoot
- * @property {string[]=} sourcesContent
- * @property {string[]=} names
- * @property {string=} debugId
- */
+/** @typedef {(content: string) => boolean} NoParseFn */
 
 const getInvalidDependenciesModuleWarning = memoize(() =>
-	require("./InvalidDependenciesModuleWarning")
+	require("./errors/InvalidDependenciesModuleWarning")
 );
+
+const getExtractSourceMap = memoize(() => require("./util/extractSourceMap"));
+
 const getValidate = memoize(() => require("schema-utils").validate);
 
-const ABSOLUTE_PATH_REGEX = /^([a-zA-Z]:\\|\\\\|\/)/;
+const getHarmonyImportSideEffectDependency = memoize(() =>
+	require("./dependencies/HarmonyImportSideEffectDependency")
+);
+
+/**
+ * @param {NormalModule} mod the module
+ * @param {ModuleGraph} moduleGraph the module graph
+ * @param {Dependency} dep the dep that triggered the bailout
+ */
+const recordSideEffectsBailout = (mod, moduleGraph, dep) => {
+	if (mod._addedSideEffectsBailout === undefined) {
+		mod._addedSideEffectsBailout = new WeakSet();
+	} else if (mod._addedSideEffectsBailout.has(moduleGraph)) {
+		return;
+	}
+	mod._addedSideEffectsBailout.add(moduleGraph);
+	moduleGraph
+		.getOptimizationBailout(mod)
+		.push(
+			() =>
+				`Dependency (${dep.type}) with side effects at ${formatLocation(dep.loc)}`
+		);
+};
+
+/**
+ * Walks the `HarmonyImportSideEffectDependency` graph to decide how `rootMod`
+ * connects to a referrer when consumed for its side effects only.
+ *
+ * Iterative (explicit work stack) so deep import chains never approach V8's
+ * recursion limit — the overflow behind #20986 — with no separate recursive
+ * form or depth cap. Cycles use Tarjan's `index`/`lowlink`: a module's result
+ * is memoized on `_sideEffectsStateGraph` only when it is context-independent
+ * (cycle-free, or the root of its strongly-connected component), i.e. exactly
+ * when the result cannot depend on which ancestors are mid-walk.
+ *
+ * The previous walker disabled memoization for the whole walk the moment any
+ * cycle appeared (one global `circular` flag). With diamond-shaped graphs that
+ * made the walk exponential, so a single circular import could blow up an
+ * otherwise-linear graph. Per-module lowlink keeps the cycle-free majority
+ * memoized while a cycle exists elsewhere.
+ *
+ * Caching under `lowlink === index` is conservative: an imprecise lowlink can
+ * only skip caching (a later recompute yields the same value), never memoize a
+ * state that depended on stack context. `true` is monotonic and always cached.
+ * A non-`NormalModule` dependency (e.g. `ConcatenatedModule` re-entering this
+ * method) is treated as a taint so its chain is never memoized, and any module
+ * already flagged `_isEvaluatingSideEffects` (this walk or an outer re-entrant
+ * one) counts as circular, matching the previous walker.
+ * @param {NormalModule} rootMod the module being walked
+ * @param {ModuleGraph} moduleGraph the module graph
+ * @param {EXPECTED_ANY} SideEffectDep `HarmonyImportSideEffectDependency` constructor, resolved once at the entry
+ * @returns {ConnectionState} the side-effects connection state
+ */
+const walkSideEffects = (rootMod, moduleGraph, SideEffectDep) => {
+	// Context-independent state without descending; `undefined` => walk deps.
+	/**
+	 * @param {NormalModule} mod module
+	 * @returns {ConnectionState | undefined} resolved state or undefined
+	 */
+	const quick = (mod) => {
+		if (mod._sideEffectsStateGraph === moduleGraph) {
+			return /** @type {ConnectionState} */ (mod._sideEffectsStateValue);
+		}
+		const fm = mod.factoryMeta;
+		if (fm !== undefined) {
+			if (fm.sideEffectFree) return false;
+			if (fm.sideEffectFree === false) return true;
+		}
+		if (!(mod.buildMeta !== undefined && mod.buildMeta.sideEffectFree)) {
+			return true;
+		}
+		return undefined;
+	};
+
+	const q0 = quick(rootMod);
+	if (q0 !== undefined) return q0;
+
+	/** @type {Map<NormalModule, number>} module -> Tarjan index */
+	const indexOf = new Map();
+	/** @type {Map<NormalModule, number>} module -> Tarjan lowlink */
+	const lowOf = new Map();
+	// Parallel frame arrays, to avoid a per-frame object allocation.
+	/** @type {NormalModule[]} */
+	const fMod = [];
+	/** @type {Dependency[][]} */
+	const fDeps = [];
+	/** @type {number[]} */
+	const fIdx = [];
+	/** @type {ConnectionState[]} */
+	const fCur = [];
+	let counter = 0;
+
+	/**
+	 * @param {NormalModule} mod module to push a frame for
+	 */
+	const enter = (mod) => {
+		indexOf.set(mod, counter);
+		lowOf.set(mod, counter);
+		counter++;
+		mod._isEvaluatingSideEffects = true;
+		fMod.push(mod);
+		fDeps.push(mod.dependencies);
+		fIdx.push(0);
+		fCur.push(false);
+	};
+
+	enter(rootMod);
+	/** @type {ConnectionState} the just-popped frame's result */
+	let result = false;
+	/**
+	 * Result of a just-popped child frame, to apply to the new top's current
+	 * dep. `undefined` means "no pending; advance normally".
+	 * @type {ConnectionState | undefined}
+	 */
+	let pending;
+
+	while (fMod.length > 0) {
+		const top = fMod.length - 1;
+		const mod = fMod[top];
+		const deps = fDeps[top];
+		let i = fIdx[top];
+		let current = fCur[top];
+
+		// Apply a popped child's result to the dep that spawned it.
+		if (pending !== undefined) {
+			const state = pending;
+			pending = undefined;
+			const dep = deps[i];
+			if (state === true) {
+				recordSideEffectsBailout(mod, moduleGraph, dep);
+				mod._sideEffectsStateGraph = moduleGraph;
+				mod._sideEffectsStateValue = true;
+				mod._isEvaluatingSideEffects = false;
+				fMod.pop();
+				fDeps.pop();
+				fIdx.pop();
+				fCur.pop();
+				result = true;
+				pending = true;
+				continue;
+			}
+			if (state !== ModuleGraphConnection.CIRCULAR_CONNECTION) {
+				current = ModuleGraphConnection.addConnectionStates(current, state);
+			}
+			i++;
+		}
+
+		let descended = false;
+		while (i < deps.length) {
+			const dep = deps[i];
+			/** @type {ConnectionState} */
+			let state;
+
+			if (dep instanceof SideEffectDep) {
+				const refModule = moduleGraph.getModule(dep);
+				if (!refModule) {
+					state = true;
+				} else if (refModule instanceof NormalModule) {
+					if (refModule._isEvaluatingSideEffects) {
+						// On the current stack (or an outer re-entrant walk) => cycle.
+						state = ModuleGraphConnection.CIRCULAR_CONNECTION;
+						const ri = indexOf.get(refModule);
+						lowOf.set(
+							mod,
+							Math.min(
+								/** @type {number} */ (lowOf.get(mod)),
+								ri === undefined ? -1 : ri
+							)
+						);
+					} else {
+						const q = quick(refModule);
+						if (q !== undefined) {
+							state = q;
+						} else {
+							// Descend: pause this frame, walk the child next.
+							fIdx[top] = i;
+							fCur[top] = current;
+							enter(refModule);
+							descended = true;
+							break;
+						}
+					}
+				} else {
+					// Non-NormalModule (e.g. ConcatenatedModule delegating back
+					// through here) resolves via a re-entrant walk that may see our
+					// in-progress modules as circular, so taint this chain: never
+					// memoize it.
+					state = refModule.getSideEffectsConnectionState(moduleGraph);
+					lowOf.set(mod, -1);
+				}
+			} else {
+				state = dep.getModuleEvaluationSideEffectsState(moduleGraph);
+			}
+
+			if (state === true) {
+				recordSideEffectsBailout(mod, moduleGraph, dep);
+				// `true` is monotonic — always safe to memoize.
+				mod._sideEffectsStateGraph = moduleGraph;
+				mod._sideEffectsStateValue = true;
+				mod._isEvaluatingSideEffects = false;
+				fMod.pop();
+				fDeps.pop();
+				fIdx.pop();
+				fCur.pop();
+				result = true;
+				pending = true;
+				descended = true;
+				break;
+			}
+			if (state !== ModuleGraphConnection.CIRCULAR_CONNECTION) {
+				current = ModuleGraphConnection.addConnectionStates(current, state);
+			}
+			i++;
+		}
+
+		if (descended) continue;
+
+		// `mod` finished without a `true` bailout.
+		mod._isEvaluatingSideEffects = false;
+		// Memoize only when the result is context-independent: no back-edge in
+		// this subtree reached above `mod` (a cycle-free module or an SCC root).
+		if (lowOf.get(mod) === indexOf.get(mod)) {
+			mod._sideEffectsStateGraph = moduleGraph;
+			mod._sideEffectsStateValue = current;
+		}
+		fMod.pop();
+		fDeps.pop();
+		fIdx.pop();
+		fCur.pop();
+		result = current;
+		pending = current;
+		if (fMod.length > 0) {
+			const parent = fMod[fMod.length - 1];
+			lowOf.set(
+				parent,
+				Math.min(
+					/** @type {number} */ (lowOf.get(parent)),
+					/** @type {number} */ (lowOf.get(mod))
+				)
+			);
+		}
+	}
+
+	return result;
+};
 
 /**
  * @typedef {object} LoaderItem
  * @property {string} loader
  * @property {string | null | undefined | Record<string, EXPECTED_ANY>} options
- * @property {string?} ident
- * @property {string?} type
+ * @property {string | null=} ident
+ * @property {string | null=} type
  */
 
 /**
  * @param {string} context absolute context path
- * @param {string} source a source path
+ * @param {string | RawSourceMap} sourceMap a source map
  * @param {AssociatedObjectForCache=} associatedObjectForCache an object to which the cache will be attached
- * @returns {string} new source path
- */
-const contextifySourceUrl = (context, source, associatedObjectForCache) => {
-	if (source.startsWith("webpack://")) return source;
-	return `webpack://${makePathsRelative(
-		context,
-		source,
-		associatedObjectForCache
-	)}`;
-};
-
-/**
- * @param {string} context absolute context path
- * @param {SourceMap} sourceMap a source map
- * @param {AssociatedObjectForCache=} associatedObjectForCache an object to which the cache will be attached
- * @returns {SourceMap} new source map
+ * @returns {string | RawSourceMap} new source map
  */
 const contextifySourceMap = (context, sourceMap, associatedObjectForCache) => {
-	if (!Array.isArray(sourceMap.sources)) return sourceMap;
+	if (typeof sourceMap === "string" || !Array.isArray(sourceMap.sources)) {
+		return sourceMap;
+	}
 	const { sourceRoot } = sourceMap;
 	/** @type {(source: string) => string} */
 	const mapper = !sourceRoot
-		? source => source
+		? (source) => source
 		: sourceRoot.endsWith("/")
-			? source =>
+			? (source) =>
 					source.startsWith("/")
 						? `${sourceRoot.slice(0, -1)}${source}`
 						: `${sourceRoot}${source}`
-			: source =>
+			: (source) =>
 					source.startsWith("/")
 						? `${sourceRoot}${source}`
 						: `${sourceRoot}/${source}`;
-	const newSources = sourceMap.sources.map(source =>
+	const newSources = sourceMap.sources.map((source) =>
 		contextifySourceUrl(context, mapper(source), associatedObjectForCache)
 	);
 	return {
@@ -193,9 +429,9 @@ const contextifySourceMap = (context, sourceMap, associatedObjectForCache) => {
  * @param {string | Buffer} input the input
  * @returns {string} the converted string
  */
-const asString = input => {
+const asString = (input) => {
 	if (Buffer.isBuffer(input)) {
-		return input.toString("utf-8");
+		return input.toString("utf8");
 	}
 	return input;
 };
@@ -204,49 +440,102 @@ const asString = input => {
  * @param {string | Buffer} input the input
  * @returns {Buffer} the converted buffer
  */
-const asBuffer = input => {
+const asBuffer = (input) => {
 	if (!Buffer.isBuffer(input)) {
-		return Buffer.from(input, "utf-8");
+		return Buffer.from(input, "utf8");
 	}
 	return input;
 };
 
-class NonErrorEmittedError extends WebpackError {
-	/**
-	 * @param {EXPECTED_ANY} error value which is not an instance of Error
-	 */
-	constructor(error) {
-		super();
+/** @typedef {[string | Buffer, string | RawSourceMap | undefined, PreparsedAst | undefined]}  Result */
 
-		this.name = "NonErrorEmittedError";
-		this.message = `(Emitted value instead of an instance of Error) ${error}`;
-	}
-}
-
-makeSerializable(
-	NonErrorEmittedError,
-	"webpack/lib/NormalModule",
-	"NonErrorEmittedError"
-);
-
-/** @typedef {[string | Buffer, string | SourceMapSource, PreparsedAst]}  Result */
+/** @typedef {LoaderContext<EXPECTED_ANY>} AnyLoaderContext */
 
 /**
- * @typedef {object} NormalModuleCompilationHooks
- * @property {SyncHook<[LoaderContext<EXPECTED_ANY>, NormalModule]>} loader
- * @property {SyncHook<[LoaderItem[], NormalModule, LoaderContext<EXPECTED_ANY>]>} beforeLoaders
- * @property {SyncHook<[NormalModule]>} beforeParse
- * @property {SyncHook<[NormalModule]>} beforeSnapshot
- * @property {HookMap<FakeHook<AsyncSeriesBailHook<[string, NormalModule], string | Buffer | null>>>} readResourceForScheme
- * @property {HookMap<AsyncSeriesBailHook<[LoaderContext<EXPECTED_ANY>], string | Buffer | null>>} readResource
- * @property {SyncWaterfallHook<[Result, NormalModule]>} processResult
- * @property {AsyncSeriesBailHook<[NormalModule, NeedBuildContext], boolean>} needBuild
+ * @deprecated Use the `readResource` hook instead.
+ * @typedef {HookMap<FakeHook<AsyncSeriesBailHook<[string, NormalModule], string | Buffer | null>>>} DeprecatedReadResourceForScheme
+ */
+
+const createCompilationHooks = () => {
+	/** @type {HookMap<AsyncSeriesBailHook<[AnyLoaderContext], string | Buffer | null>>} */
+	const readResource = new HookMap(
+		() => new AsyncSeriesBailHook(["loaderContext"])
+	);
+	return {
+		// TODO webpack 6 deprecate
+		/**
+		 * @deprecated Use the `readResource` hook instead.
+		 * @type {DeprecatedReadResourceForScheme}
+		 */
+		readResourceForScheme: new HookMap((scheme) => {
+			const hook = readResource.for(scheme);
+			return createFakeHook(
+				/** @type {AsyncSeriesBailHook<[string, NormalModule], string | Buffer | null>} */ ({
+					tap: (options, fn) =>
+						hook.tap(options, (loaderContext) =>
+							fn(
+								loaderContext.resource,
+								/** @type {NormalModule} */ (loaderContext._module)
+							)
+						),
+					tapAsync: (options, fn) =>
+						hook.tapAsync(options, (loaderContext, callback) =>
+							fn(
+								loaderContext.resource,
+								/** @type {NormalModule} */ (loaderContext._module),
+								callback
+							)
+						),
+					tapPromise: (options, fn) =>
+						hook.tapPromise(options, (loaderContext) =>
+							fn(
+								loaderContext.resource,
+								/** @type {NormalModule} */ (loaderContext._module)
+							)
+						)
+				})
+			);
+		}),
+		/**
+		 * @since 5.58.0
+		 */
+		readResource,
+		/** @type {SyncHook<[AnyLoaderContext, NormalModule]>} */
+		loader: new SyncHook(["loaderContext", "module"]),
+		/** @type {SyncHook<[LoaderItem[], NormalModule, AnyLoaderContext]>} */
+		beforeLoaders: new SyncHook(["loaders", "module", "loaderContext"]),
+		/**
+		 * @type {SyncHook<[NormalModule]>}
+		 * @since 5.59.0
+		 */
+		beforeParse: new SyncHook(["module"]),
+		/**
+		 * @type {SyncHook<[NormalModule]>}
+		 * @since 5.59.0
+		 */
+		beforeSnapshot: new SyncHook(["module"]),
+		/**
+		 * @type {SyncWaterfallHook<[Result, NormalModule]>}
+		 * @since 5.99.0
+		 */
+		processResult: new SyncWaterfallHook(["result", "module"]),
+		/**
+		 * @type {AsyncSeriesBailHook<[NormalModule, NeedBuildContext], boolean>}
+		 * @since 5.49.0
+		 */
+		needBuild: new AsyncSeriesBailHook(["module", "context"])
+	};
+};
+
+/**
+ * @typedef {ReturnType<typeof createCompilationHooks>} NormalModuleCompilationHooks
  */
 
 /**
+ * @template {NormalModuleTypes | ""} [T=NormalModuleTypes | ""]
  * @typedef {object} NormalModuleCreateData
  * @property {string=} layer an optional layer in which the module is
- * @property {JavaScriptModuleTypes | ""} type module type. When deserializing, this is set to an empty string "".
+ * @property {T} type module type. When deserializing, this is set to an empty string "".
  * @property {string} request request string
  * @property {string} userRequest request intended by user (without loaders from config)
  * @property {string} rawRequest request without resolving
@@ -255,17 +544,35 @@ makeSerializable(
  * @property {(ResourceSchemeData & Partial<ResolveRequest>)=} resourceResolveData resource resolve data
  * @property {string} context context directory for resolving
  * @property {string=} matchResource path + query of the matched resource (virtual)
- * @property {Parser} parser the parser used
- * @property {ParserOptions=} parserOptions the options of the parser used
- * @property {Generator} generator the generator used
- * @property {GeneratorOptions=} generatorOptions the options of the generator used
+ * @property {ParserByType[T]} parser the parser used
+ * @property {ParserOptionsByType[T]=} parserOptions the options of the parser used
+ * @property {GeneratorByType[T]} generator the generator used
+ * @property {GeneratorOptionsByType[T]=} generatorOptions the options of the generator used
  * @property {ResolveOptions=} resolveOptions options used for resolving requests from this module
+ * @property {boolean} extractSourceMap enable/disable extracting source map
  */
 
-/** @type {WeakMap<Compilation, NormalModuleCompilationHooks>} */
-const compilationHooksMap = new WeakMap();
+/**
+ * @typedef {(resourcePath: string, getLoaderContext: (resourcePath: string) => AnyLoaderContext) => Promise<string | Buffer<ArrayBufferLike>>} ReadResource
+ */
 
-/** @typedef {Map<string, EXPECTED_ANY>} CodeGeneratorData */
+/**
+ * Defines the build info properties of normal modules (filesystem-backed, loader-processed).
+ * @typedef {object} KnownNormalModuleBuildInfo
+ * @property {boolean=} parsed
+ * @property {string=} hash
+ * @property {FileSystemDependencies=} fileDependencies
+ * @property {FileSystemDependencies=} contextDependencies
+ * @property {FileSystemDependencies=} missingDependencies
+ * @property {FileSystemDependencies=} buildDependencies
+ * @property {ValueCacheVersions=} valueDependencies
+ * @property {(Snapshot | null)=} snapshot
+ * @property {string=} resourceIntegrity using in HttpUriPlugin
+ */
+
+/** @typedef {BuildInfo & KnownNormalModuleBuildInfo} NormalModuleBuildInfo */
+
+const normalModuleHooksRegistry = createHooksRegistry(createCompilationHooks);
 
 class NormalModule extends Module {
 	/**
@@ -273,62 +580,7 @@ class NormalModule extends Module {
 	 * @returns {NormalModuleCompilationHooks} the attached hooks
 	 */
 	static getCompilationHooks(compilation) {
-		if (!(compilation instanceof Compilation)) {
-			throw new TypeError(
-				"The 'compilation' argument must be an instance of Compilation"
-			);
-		}
-		let hooks = compilationHooksMap.get(compilation);
-		if (hooks === undefined) {
-			hooks = {
-				loader: new SyncHook(["loaderContext", "module"]),
-				beforeLoaders: new SyncHook(["loaders", "module", "loaderContext"]),
-				beforeParse: new SyncHook(["module"]),
-				beforeSnapshot: new SyncHook(["module"]),
-				// TODO webpack 6 deprecate
-				readResourceForScheme: new HookMap(scheme => {
-					const hook =
-						/** @type {NormalModuleCompilationHooks} */
-						(hooks).readResource.for(scheme);
-					return createFakeHook(
-						/** @type {AsyncSeriesBailHook<[string, NormalModule], string | Buffer | null>} */ ({
-							tap: (options, fn) =>
-								hook.tap(options, loaderContext =>
-									fn(
-										loaderContext.resource,
-										/** @type {NormalModule} */ (loaderContext._module)
-									)
-								),
-							tapAsync: (options, fn) =>
-								hook.tapAsync(options, (loaderContext, callback) =>
-									fn(
-										loaderContext.resource,
-										/** @type {NormalModule} */ (loaderContext._module),
-										callback
-									)
-								),
-							tapPromise: (options, fn) =>
-								hook.tapPromise(options, loaderContext =>
-									fn(
-										loaderContext.resource,
-										/** @type {NormalModule} */ (loaderContext._module)
-									)
-								)
-						})
-					);
-				}),
-				readResource: new HookMap(
-					() => new AsyncSeriesBailHook(["loaderContext"])
-				),
-				processResult: new SyncWaterfallHook(["result", "module"]),
-				needBuild: new AsyncSeriesBailHook(["module", "context"])
-			};
-			compilationHooksMap.set(
-				compilation,
-				/** @type {NormalModuleCompilationHooks} */ (hooks)
-			);
-		}
-		return /** @type {NormalModuleCompilationHooks} */ (hooks);
+		return normalModuleHooksRegistry(compilation);
 	}
 
 	/**
@@ -349,50 +601,68 @@ class NormalModule extends Module {
 		parserOptions,
 		generator,
 		generatorOptions,
-		resolveOptions
+		resolveOptions,
+		extractSourceMap
 	}) {
 		super(type, context || getContext(resource), layer);
 
 		// Info from Factory
-		/** @type {string} */
+		/** @type {NormalModuleCreateData['request']} */
 		this.request = request;
-		/** @type {string} */
+		/** @type {NormalModuleCreateData['userRequest']} */
 		this.userRequest = userRequest;
-		/** @type {string} */
+		/** @type {NormalModuleCreateData['rawRequest']} */
 		this.rawRequest = rawRequest;
 		/** @type {boolean} */
-		this.binary = /^(asset|webassembly)\b/.test(type);
-		/** @type {undefined | Parser} */
+		this.binary = /^(?:asset|webassembly)\b/.test(type);
+		/** @type {NormalModuleCreateData['parser'] | undefined} */
 		this.parser = parser;
-		/** @type {undefined | ParserOptions} */
+		/** @type {NormalModuleCreateData['parserOptions']} */
 		this.parserOptions = parserOptions;
-		/** @type {undefined | Generator} */
+		/** @type {NormalModuleCreateData['generator'] | undefined} */
 		this.generator = generator;
-		/** @type {undefined | GeneratorOptions} */
+		/** @type {NormalModuleCreateData['generatorOptions']} */
 		this.generatorOptions = generatorOptions;
-		/** @type {string} */
+		/** @type {NormalModuleCreateData['resource']} */
 		this.resource = resource;
+		/** @type {NormalModuleCreateData['resourceResolveData']} */
 		this.resourceResolveData = resourceResolveData;
-		/** @type {string | undefined} */
+		/** @type {NormalModuleCreateData['matchResource']} */
 		this.matchResource = matchResource;
-		/** @type {LoaderItem[]} */
+		/** @type {NormalModuleCreateData['loaders']} */
 		this.loaders = loaders;
 		if (resolveOptions !== undefined) {
 			// already declared in super class
+			/** @type {NormalModuleCreateData['resolveOptions']} */
 			this.resolveOptions = resolveOptions;
 		}
+		/** @type {NormalModuleCreateData['extractSourceMap']} */
+		this.extractSourceMap = extractSourceMap;
+
+		// Set by HotModuleReplacementPlugin via NormalModuleFactory's `module` hook
+		/** @type {boolean} */
+		this.hot = false;
 
 		// Info from Build
-		/** @type {WebpackError | null} */
+		// Redeclared with the normal module specific shape (see KnownNormalModuleBuildInfo)
+		/** @type {NormalModuleBuildInfo | undefined} */
+		this.buildInfo = undefined;
+		/** @type {Error | null} */
 		this.error = null;
 		/**
 		 * @private
 		 * @type {Source | null}
 		 */
 		this._source = null;
+		// Set at build time; declared here so the instance shape is fixed at construction
 		/**
 		 * @private
-		 * @type {Map<string | undefined, number> | undefined}
+		 * @type {PreparsedAst | null}
+		 */
+		this._ast = null;
+		/**
+		 * @private
+		 * @type {Map<undefined | SourceType, number> | undefined}
 		 */
 		this._sourceSizes = undefined;
 		/**
@@ -400,18 +670,46 @@ class NormalModule extends Module {
 		 * @type {undefined | SourceTypes}
 		 */
 		this._sourceTypes = undefined;
-
 		// Cache
+		/**
+		 * @private
+		 * @type {BuildMeta}
+		 */
 		this._lastSuccessfulBuildMeta = {};
+		/**
+		 * @private
+		 * @type {boolean}
+		 */
 		this._forceBuild = true;
+		/**
+		 * @type {boolean}
+		 */
 		this._isEvaluatingSideEffects = false;
-		/** @type {WeakSet<ModuleGraph> | undefined} */
+		/**
+		 * @type {WeakSet<ModuleGraph> | undefined}
+		 */
 		this._addedSideEffectsBailout = undefined;
-		/** @type {CodeGeneratorData} */
+		/**
+		 * Memoizes the result of `getSideEffectsConnectionState`. The
+		 * graph slot keys the cached value to the `ModuleGraph` it was
+		 * computed against so stale values never leak across compilations
+		 * — a walk that targets a different graph just overwrites both
+		 * slots. Populated only for context-independent results (cycle-free
+		 * or SCC-root modules; see `walkSideEffects`).
+		 * @type {ModuleGraph | undefined}
+		 */
+		this._sideEffectsStateGraph = undefined;
+		/** @type {ConnectionState | undefined} */
+		this._sideEffectsStateValue = undefined;
+		/**
+		 * @private
+		 * @type {CodeGenerationResultData}
+		 */
 		this._codeGeneratorData = new Map();
 	}
 
 	/**
+	 * Returns the unique identifier used to reference this module.
 	 * @returns {string} a unique identifier of the module
 	 */
 	identifier() {
@@ -425,6 +723,7 @@ class NormalModule extends Module {
 	}
 
 	/**
+	 * Returns a human-readable identifier for this module.
 	 * @param {RequestShortener} requestShortener the request shortener
 	 * @returns {string} a user readable identifier of the module
 	 */
@@ -433,8 +732,16 @@ class NormalModule extends Module {
 	}
 
 	/**
+	 * @returns {string | null} return the resource path
+	 */
+	getResource() {
+		return this.matchResource || this.resource;
+	}
+
+	/**
+	 * Gets the library identifier.
 	 * @param {LibIdentOptions} options options
-	 * @returns {string | null} an identifier for library inclusion
+	 * @returns {LibIdent | null} an identifier for library inclusion
 	 */
 	libIdent(options) {
 		let ident = contextify(
@@ -447,10 +754,11 @@ class NormalModule extends Module {
 	}
 
 	/**
-	 * @returns {string | null} absolute path which should be used for condition matching (usually the resource path)
+	 * Returns the path used when matching this module against rule conditions.
+	 * @returns {NameForCondition | null} absolute path which should be used for condition matching (usually the resource path)
 	 */
 	nameForCondition() {
-		const resource = this.matchResource || this.resource;
+		const resource = /** @type {string} */ (this.getResource());
 		const idx = resource.indexOf("?");
 		if (idx >= 0) return resource.slice(0, idx);
 		return resource;
@@ -479,6 +787,7 @@ class NormalModule extends Module {
 		this.context = m.context;
 		this.matchResource = m.matchResource;
 		this.loaders = m.loaders;
+		this.extractSourceMap = m.extractSourceMap;
 	}
 
 	/**
@@ -499,6 +808,11 @@ class NormalModule extends Module {
 		this.parserOptions = undefined;
 		this.generator = undefined;
 		this.generatorOptions = undefined;
+		// Drop the side-effects memoization so a long-lived module doesn't
+		// strong-reference a stale `ModuleGraph`/`Compilation` for graphs
+		// that never get re-queried with a fresh one.
+		this._sideEffectsStateGraph = undefined;
+		this._sideEffectsStateValue = undefined;
 	}
 
 	/**
@@ -543,7 +857,7 @@ class NormalModule extends Module {
 	 * @param {string} context the compilation context
 	 * @param {string} name the asset name
 	 * @param {string | Buffer} content the content
-	 * @param {(string | SourceMap)=} sourceMap an optional source map
+	 * @param {(string | RawSourceMap)=} sourceMap an optional source map
 	 * @param {AssociatedObjectForCache=} associatedObjectForCache object for caching
 	 * @returns {Source} the created source
 	 */
@@ -571,7 +885,8 @@ class NormalModule extends Module {
 					name,
 					contextifySourceMap(
 						context,
-						/** @type {SourceMap} */ (sourceMap),
+						/** @type {RawSourceMap} */
+						(sourceMap),
 						associatedObjectForCache
 					)
 				);
@@ -595,7 +910,8 @@ class NormalModule extends Module {
 		const { requestShortener } = compilation.runtimeTemplate;
 		const getCurrentLoaderName = () => {
 			const currentLoader = this.getCurrentLoader(
-				/** @type {LoaderContext<EXPECTED_ANY>} */ (loaderContext)
+				/** @type {AnyLoaderContext} */
+				(loaderContext)
 			);
 			if (!currentLoader) return "(not in loader scope)";
 			return requestShortener.shorten(currentLoader.loader);
@@ -605,22 +921,19 @@ class NormalModule extends Module {
 		 */
 		const getResolveContext = () => ({
 			fileDependencies: {
-				add: d =>
-					/** @type {LoaderContext<EXPECTED_ANY>} */ (
-						loaderContext
-					).addDependency(d)
+				add: (d) =>
+					/** @type {AnyLoaderContext} */
+					(loaderContext).addDependency(d)
 			},
 			contextDependencies: {
-				add: d =>
-					/** @type {LoaderContext<EXPECTED_ANY>} */ (
-						loaderContext
-					).addContextDependency(d)
+				add: (d) =>
+					/** @type {AnyLoaderContext} */
+					(loaderContext).addContextDependency(d)
 			},
 			missingDependencies: {
-				add: d =>
-					/** @type {LoaderContext<EXPECTED_ANY>} */ (
-						loaderContext
-					).addMissingDependency(d)
+				add: (d) =>
+					/** @type {AnyLoaderContext} */
+					(loaderContext).addMissingDependency(d)
 			}
 		});
 		const getAbsolutify = memoize(() =>
@@ -666,23 +979,17 @@ class NormalModule extends Module {
 			 * @param {HashFunction=} type type
 			 * @returns {Hash} hash
 			 */
-			createHash: type =>
-				createHash(
-					type ||
-						/** @type {HashFunction} */
-						(compilation.outputOptions.hashFunction)
-				)
+			createHash: (type) =>
+				createHash(type || compilation.outputOptions.hashFunction)
 		};
-		/** @type {import("../declarations/LoaderContext").NormalModuleLoaderContext<T>} */
+		/** @type {NormalModuleLoaderContext<T>} */
 		const loaderContext = {
 			version: 2,
-			/**
-			 * @param {import("../declarations/LoaderContext").Schema=} schema schema
-			 * @returns {T} options
-			 */
-			getOptions: schema => {
+			/** @type {LoaderContext<EXPECTED_ANY>["getOptions"]} */
+			getOptions: (/** @type {EXPECTED_ANY} */ schema = undefined) => {
 				const loader = this.getCurrentLoader(
-					/** @type {LoaderContext<EXPECTED_ANY>} */ (loaderContext)
+					/** @type {AnyLoaderContext} */
+					(loaderContext)
 				);
 
 				let { options } = /** @type {LoaderItem} */ (loader);
@@ -690,10 +997,13 @@ class NormalModule extends Module {
 				if (typeof options === "string") {
 					if (options.startsWith("{") && options.endsWith("}")) {
 						try {
-							options = parseJson(options);
+							options =
+								/** @type {LoaderItem["options"]} */
+								(parseJson(options));
 						} catch (err) {
 							throw new Error(
-								`Cannot parse string options: ${/** @type {Error} */ (err).message}`
+								`Cannot parse string options: ${/** @type {Error} */ (err).message}`,
+								{ cause: err }
 							);
 						}
 					} else {
@@ -707,9 +1017,10 @@ class NormalModule extends Module {
 					options = {};
 				}
 
-				if (schema) {
+				if (schema && compilation.options.validate) {
 					let name = "Loader";
 					let baseDataPath = "options";
+					/** @type {RegExpExecArray | null} */
 					let match;
 					if (schema.title && (match = /^(.+) (.+)$/.exec(schema.title))) {
 						[, name, baseDataPath] = match;
@@ -722,7 +1033,8 @@ class NormalModule extends Module {
 
 				return /** @type {T} */ (options);
 			},
-			emitWarning: warning => {
+			/** @type {LoaderContext<EXPECTED_ANY>["emitWarning"]} */
+			emitWarning: (warning) => {
 				if (!(warning instanceof Error)) {
 					warning = new NonErrorEmittedError(warning);
 				}
@@ -732,7 +1044,8 @@ class NormalModule extends Module {
 					})
 				);
 			},
-			emitError: error => {
+			/** @type {LoaderContext<EXPECTED_ANY>["emitError"]} */
+			emitError: (error) => {
 				if (!(error instanceof Error)) {
 					error = new NonErrorEmittedError(error);
 				}
@@ -742,9 +1055,11 @@ class NormalModule extends Module {
 					})
 				);
 			},
-			getLogger: name => {
+			/** @type {LoaderContext<EXPECTED_ANY>["getLogger"]} */
+			getLogger: (name) => {
 				const currentLoader = this.getCurrentLoader(
-					/** @type {LoaderContext<EXPECTED_ANY>} */ (loaderContext)
+					/** @type {AnyLoaderContext} */
+					(loaderContext)
 				);
 				return compilation.getLogger(() =>
 					[currentLoader && currentLoader.loader, name, this.identifier()]
@@ -752,9 +1067,11 @@ class NormalModule extends Module {
 						.join("|")
 				);
 			},
+			/** @type {LoaderContext<EXPECTED_ANY>["resolve"]} */
 			resolve(context, request, callback) {
 				resolver.resolve({}, context, request, getResolveContext(), callback);
 			},
+			/** @type {LoaderContext<EXPECTED_ANY>["getResolve"]} */
 			getResolve(options) {
 				const child = options ? resolver.withOptions(options) : resolver;
 				return /** @type {ReturnType<import("../declarations/LoaderContext").NormalModuleLoaderContext<T>["getResolve"]>} */ (
@@ -784,8 +1101,9 @@ class NormalModule extends Module {
 					}
 				);
 			},
+			/** @type {LoaderContext<EXPECTED_ANY>["emitFile"]} */
 			emitFile: (name, content, sourceMap, assetInfo) => {
-				const buildInfo = /** @type {BuildInfo} */ (this.buildInfo);
+				const buildInfo = /** @type {NormalModuleBuildInfo} */ (this.buildInfo);
 
 				if (!buildInfo.assets) {
 					buildInfo.assets = Object.create(null);
@@ -800,7 +1118,7 @@ class NormalModule extends Module {
 					(buildInfo.assetsInfo);
 
 				assets[name] = this.createSourceForAsset(
-					/** @type {string} */ (options.context),
+					options.context,
 					name,
 					content,
 					sourceMap,
@@ -808,8 +1126,8 @@ class NormalModule extends Module {
 				);
 				assetsInfo.set(name, assetInfo);
 			},
-			addBuildDependency: dep => {
-				const buildInfo = /** @type {BuildInfo} */ (this.buildInfo);
+			addBuildDependency: (dep) => {
+				const buildInfo = /** @type {NormalModuleBuildInfo} */ (this.buildInfo);
 
 				if (buildInfo.buildDependencies === undefined) {
 					buildInfo.buildDependencies = new LazySet();
@@ -817,14 +1135,14 @@ class NormalModule extends Module {
 				buildInfo.buildDependencies.add(dep);
 			},
 			utils,
-			rootContext: /** @type {string} */ (options.context),
+			rootContext: options.context,
 			webpack: true,
 			sourceMap: Boolean(this.useSourceMap),
 			mode: options.mode || "production",
-			hashFunction: /** @type {string} */ (options.output.hashFunction),
-			hashDigest: /** @type {string} */ (options.output.hashDigest),
-			hashDigestLength: /** @type {number} */ (options.output.hashDigestLength),
-			hashSalt: /** @type {string} */ (options.output.hashSalt),
+			hashFunction: options.output.hashFunction,
+			hashDigest: options.output.hashDigest,
+			hashDigestLength: options.output.hashDigestLength,
+			hashSalt: options.output.hashSalt,
 			_module: this,
 			_compilation: compilation,
 			_compiler: compilation.compiler,
@@ -832,20 +1150,19 @@ class NormalModule extends Module {
 		};
 
 		Object.assign(loaderContext, options.loader);
+		createLoaderContext(loaderContext);
 
-		// After `hooks.loader.call` is called, the loaderContext is typed as LoaderContext<EXPECTED_ANY>
 		hooks.loader.call(
-			/** @type {LoaderContext<EXPECTED_ANY>} */
+			/** @type {AnyLoaderContext} */
 			(loaderContext),
 			this
 		);
 
-		return /** @type {LoaderContext<EXPECTED_ANY>} */ (loaderContext);
+		return /** @type {AnyLoaderContext} */ (loaderContext);
 	}
 
-	// TODO remove `loaderContext` in webpack@6
 	/**
-	 * @param {LoaderContext<EXPECTED_ANY>} loaderContext loader context
+	 * @param {AnyLoaderContext} loaderContext loader context
 	 * @param {number} index index
 	 * @returns {LoaderItem | null} loader
 	 */
@@ -865,7 +1182,7 @@ class NormalModule extends Module {
 	/**
 	 * @param {string} context the compilation context
 	 * @param {string | Buffer} content the content
-	 * @param {(string | SourceMapSource | null)=} sourceMap an optional source map
+	 * @param {(string | RawSourceMap | null)=} sourceMap an optional source map
 	 * @param {AssociatedObjectForCache=} associatedObjectForCache object for caching
 	 * @returns {Source} the created source
 	 */
@@ -886,11 +1203,7 @@ class NormalModule extends Module {
 			return new SourceMapSource(
 				content,
 				contextifySourceUrl(context, identifier, associatedObjectForCache),
-				contextifySourceMap(
-					context,
-					/** @type {TODO} */ (sourceMap),
-					associatedObjectForCache
-				)
+				contextifySourceMap(context, sourceMap, associatedObjectForCache)
 			);
 		}
 
@@ -924,10 +1237,10 @@ class NormalModule extends Module {
 
 		/**
 		 * @param {Error | null} err err
-		 * @param {(Result | null)=} _result result
+		 * @param {(Result | null)=} result_ result
 		 * @returns {void}
 		 */
-		const processResult = (err, _result) => {
+		const processResult = (err, result_) => {
 			if (err) {
 				if (!(err instanceof Error)) {
 					err = new NonErrorEmittedError(err);
@@ -943,7 +1256,8 @@ class NormalModule extends Module {
 				return callback(error);
 			}
 			const result = hooks.processResult.call(
-				/** @type {Result} */ (_result),
+				/** @type {Result} */
+				(result_),
 				this
 			);
 			const source = result[0];
@@ -971,12 +1285,13 @@ class NormalModule extends Module {
 					: this.binary;
 
 			this._source = this.createSource(
-				/** @type {string} */ (options.context),
+				options.context,
 				isBinaryModule ? asBuffer(source) : asString(source),
 				sourceMap,
 				compilation.compiler.root
 			);
 			if (this._sourceSizes !== undefined) this._sourceSizes.clear();
+			/** @type {PreparsedAst | null} */
 			this._ast =
 				typeof extraInfo === "object" &&
 				extraInfo !== null &&
@@ -986,7 +1301,7 @@ class NormalModule extends Module {
 			return callback();
 		};
 
-		const buildInfo = /** @type {BuildInfo} */ (this.buildInfo);
+		const buildInfo = /** @type {NormalModuleBuildInfo} */ (this.buildInfo);
 
 		buildInfo.fileDependencies = new LazySet();
 		buildInfo.contextDependencies = new LazySet();
@@ -997,7 +1312,7 @@ class NormalModule extends Module {
 			hooks.beforeLoaders.call(
 				this.loaders,
 				this,
-				/** @type {LoaderContext<EXPECTED_ANY>} */
+				/** @type {AnyLoaderContext} */
 				(loaderContext)
 			);
 		} catch (err) {
@@ -1006,7 +1321,7 @@ class NormalModule extends Module {
 		}
 
 		if (this.loaders.length > 0) {
-			/** @type {BuildInfo} */
+			/** @type {NormalModuleBuildInfo} */
 			(this.buildInfo).buildDependencies = new LazySet();
 		}
 
@@ -1016,28 +1331,80 @@ class NormalModule extends Module {
 				loaders: this.loaders,
 				context: loaderContext,
 				/**
-				 * @param {LoaderContext<EXPECTED_ANY>} loaderContext the loader context
+				 * @param {AnyLoaderContext} loaderContext the loader context
 				 * @param {string} resourcePath the resource Path
-				 * @param {(err: Error | null, result?: string | Buffer) => void} callback callback
+				 * @param {(err: Error | null, result?: string | Buffer, sourceMap?: Result[1]) => void} callback callback
+				 * @returns {Promise<void>}
 				 */
-				processResource: (loaderContext, resourcePath, callback) => {
-					const resource = loaderContext.resource;
-					const scheme = getScheme(resource);
-					hooks.readResource
-						.for(scheme)
-						.callAsync(loaderContext, (err, result) => {
-							if (err) return callback(err);
-							if (typeof result !== "string" && !result) {
-								return callback(
-									new UnhandledSchemeError(
-										/** @type {string} */
-										(scheme),
-										resource
-									)
-								);
-							}
-							return callback(null, result);
+				processResource: async (loaderContext, resourcePath, callback) => {
+					/** @type {ReadResource} */
+					const readResource = (resourcePath, getLoaderContext) => {
+						const scheme = getScheme(resourcePath);
+						return new Promise((resolve, reject) => {
+							hooks.readResource
+								.for(scheme)
+								.callAsync(getLoaderContext(resourcePath), (err, result) => {
+									if (err) {
+										reject(err);
+									} else {
+										if (typeof result !== "string" && !result) {
+											return reject(
+												new UnhandledSchemeError(
+													/** @type {string} */
+													(scheme),
+													resourcePath
+												)
+											);
+										}
+										resolve(result);
+									}
+								});
 						});
+					};
+					try {
+						const result = await readResource(
+							resourcePath,
+							() => loaderContext
+						);
+						if (
+							this.extractSourceMap &&
+							(this.useSourceMap || this.useSimpleSourceMap)
+						) {
+							try {
+								const { source, sourceMap } = await getExtractSourceMap()(
+									result,
+									resourcePath,
+									/** @type {ReadResource} */
+									(resourcePath) =>
+										readResource(
+											resourcePath,
+											(resourcePath) =>
+												/** @type {AnyLoaderContext} */
+												({
+													addDependency(dependency) {
+														loaderContext.addDependency(dependency);
+													},
+													fs: loaderContext.fs,
+													_module: undefined,
+													resourcePath,
+													resource: resourcePath
+												})
+										).catch((err) => {
+											throw new Error(
+												`Failed to parse source map. ${/** @type {Error} */ (err).message}`
+											);
+										})
+								);
+								return callback(null, source, sourceMap);
+							} catch (err) {
+								this.addWarning(new ModuleWarning(/** @type {Error} */ (err)));
+								return callback(null, result);
+							}
+						}
+						return callback(null, result);
+					} catch (error) {
+						return callback(/** @type {Error} */ (error));
+					}
 				}
 			},
 			(err, result) => {
@@ -1050,7 +1417,7 @@ class NormalModule extends Module {
 						(undefined);
 
 				if (!result) {
-					/** @type {BuildInfo} */
+					/** @type {NormalModuleBuildInfo} */
 					(this.buildInfo).cacheable = false;
 					return processResult(
 						err || new Error("No result from loader-runner processing"),
@@ -1058,16 +1425,16 @@ class NormalModule extends Module {
 					);
 				}
 
-				const buildInfo = /** @type {BuildInfo} */ (this.buildInfo);
+				const buildInfo = /** @type {NormalModuleBuildInfo} */ (this.buildInfo);
 
 				const fileDependencies =
-					/** @type {NonNullable<KnownBuildInfo["fileDependencies"]>} */
+					/** @type {NonNullable<KnownNormalModuleBuildInfo["fileDependencies"]>} */
 					(buildInfo.fileDependencies);
 				const contextDependencies =
-					/** @type {NonNullable<KnownBuildInfo["contextDependencies"]>} */
+					/** @type {NonNullable<KnownNormalModuleBuildInfo["contextDependencies"]>} */
 					(buildInfo.contextDependencies);
 				const missingDependencies =
-					/** @type {NonNullable<KnownBuildInfo["missingDependencies"]>} */
+					/** @type {NonNullable<KnownNormalModuleBuildInfo["missingDependencies"]>} */
 					(buildInfo.missingDependencies);
 
 				fileDependencies.addAll(result.fileDependencies);
@@ -1075,19 +1442,22 @@ class NormalModule extends Module {
 				missingDependencies.addAll(result.missingDependencies);
 				for (const loader of this.loaders) {
 					const buildDependencies =
-						/** @type {NonNullable<KnownBuildInfo["buildDependencies"]>} */
+						/** @type {NonNullable<KnownNormalModuleBuildInfo["buildDependencies"]>} */
 						(buildInfo.buildDependencies);
 
 					buildDependencies.add(loader.loader);
 				}
 				buildInfo.cacheable = buildInfo.cacheable && result.cacheable;
+				if (result.notCacheableReasons.length > 0) {
+					buildInfo.notCacheableReasons = result.notCacheableReasons;
+				}
 				processResult(err, result.result);
 			}
 		);
 	}
 
 	/**
-	 * @param {WebpackError} error the error
+	 * @param {Error} error the error
 	 * @returns {void}
 	 */
 	markModuleAsErrored(error) {
@@ -1150,21 +1520,19 @@ class NormalModule extends Module {
 	 * @private
 	 */
 	_initBuildHash(compilation) {
-		const hash = createHash(
-			/** @type {HashFunction} */
-			(compilation.outputOptions.hashFunction)
-		);
+		const hash = createHash(compilation.outputOptions.hashFunction);
 		if (this._source) {
 			hash.update("source");
 			this._source.updateHash(hash);
 		}
 		hash.update("meta");
 		hash.update(JSON.stringify(this.buildMeta));
-		/** @type {BuildInfo} */
-		(this.buildInfo).hash = /** @type {string} */ (hash.digest("hex"));
+		/** @type {NormalModuleBuildInfo} */
+		(this.buildInfo).hash = hash.digest("hex");
 	}
 
 	/**
+	 * Builds the module using the provided compilation context.
 	 * @param {WebpackOptions} options webpack options
 	 * @param {Compilation} compilation the compilation
 	 * @param {ResolverWithOptions} resolver the resolver
@@ -1181,9 +1549,15 @@ class NormalModule extends Module {
 		this.error = null;
 		this.clearWarningsAndErrors();
 		this.clearDependenciesAndBlocks();
-		this.buildMeta = {};
+		this.buildMeta = {
+			exportsType: undefined,
+			defaultObject: undefined,
+			strictHarmonyModule: undefined,
+			async: undefined
+		};
 		this.buildInfo = {
 			cacheable: false,
+			notCacheableReasons: undefined,
 			parsed: true,
 			fileDependencies: undefined,
 			contextDependencies: undefined,
@@ -1192,14 +1566,23 @@ class NormalModule extends Module {
 			valueDependencies: undefined,
 			hash: undefined,
 			assets: undefined,
-			assetsInfo: undefined
+			assetsInfo: undefined,
+			snapshot: undefined,
+			strict: undefined,
+			exportsArgument: undefined,
+			moduleArgument: undefined,
+			topLevelDeclarations: undefined,
+			pureFunctions: undefined,
+			inlineExports: undefined,
+			moduleConcatenationBailout: undefined,
+			needCreateRequire: undefined
 		};
 
 		const startTime = compilation.compiler.fsStartTime || Date.now();
 
 		const hooks = NormalModule.getCompilationHooks(compilation);
 
-		return this._doBuild(options, compilation, resolver, fs, hooks, err => {
+		return this._doBuild(options, compilation, resolver, fs, hooks, (err) => {
 			// if we have an error mark module as failed and exit
 			if (err) {
 				this.markModuleAsErrored(err);
@@ -1211,14 +1594,10 @@ class NormalModule extends Module {
 			 * @param {Error} e error
 			 * @returns {void}
 			 */
-			const handleParseError = e => {
+			const handleParseError = (e) => {
 				const source = /** @type {Source} */ (this._source).source();
-				const loaders = this.loaders.map(item =>
-					contextify(
-						/** @type {string} */ (options.context),
-						item.loader,
-						compilation.compiler.root
-					)
+				const loaders = this.loaders.map((item) =>
+					contextify(options.context, item.loader, compilation.compiler.root)
 				);
 				const error = new ModuleParseError(source, e, loaders, this.type);
 				this.markModuleAsErrored(error);
@@ -1229,10 +1608,11 @@ class NormalModule extends Module {
 			const handleParseResult = () => {
 				this.dependencies.sort(
 					concatComparators(
-						compareSelect(a => a.loc, compareLocations),
+						Dependency.compareLocations,
 						keepOriginalOrder(this.dependencies)
 					)
 				);
+				sortWithSourceOrder(this.dependencies, new WeakMap());
 				this._initBuildHash(compilation);
 				this._lastSuccessfulBuildMeta =
 					/** @type {BuildMeta} */
@@ -1244,12 +1624,14 @@ class NormalModule extends Module {
 				try {
 					hooks.beforeSnapshot.call(this);
 				} catch (err) {
-					this.markModuleAsErrored(/** @type {WebpackError} */ (err));
+					this.markModuleAsErrored(/** @type {Error} */ (err));
 					return callback();
 				}
 
 				const snapshotOptions = compilation.options.snapshot.module;
-				const { cacheable } = /** @type {BuildInfo} */ (this.buildInfo);
+				const { cacheable } = /** @type {NormalModuleBuildInfo} */ (
+					this.buildInfo
+				);
 				if (!cacheable || !snapshotOptions) {
 					return callback();
 				}
@@ -1258,13 +1640,14 @@ class NormalModule extends Module {
 				/** @type {undefined | Set<string>} */
 				let nonAbsoluteDependencies;
 				/**
-				 * @param {LazySet<string>} deps deps
+				 * @param {FileSystemDependencies} deps deps
 				 */
-				const checkDependencies = deps => {
+				const checkDependencies = (deps) => {
 					for (const dep of deps) {
-						if (!ABSOLUTE_PATH_REGEX.test(dep)) {
-							if (nonAbsoluteDependencies === undefined)
+						if (!ABSOLUTE_PATH_REGEXP.test(dep)) {
+							if (nonAbsoluteDependencies === undefined) {
 								nonAbsoluteDependencies = new Set();
+							}
 							nonAbsoluteDependencies.add(dep);
 							deps.delete(dep);
 							try {
@@ -1275,11 +1658,11 @@ class NormalModule extends Module {
 									(this.context),
 									depWithoutGlob
 								);
-								if (absolute !== dep && ABSOLUTE_PATH_REGEX.test(absolute)) {
+								if (absolute !== dep && ABSOLUTE_PATH_REGEXP.test(absolute)) {
 									(depWithoutGlob !== dep
-										? /** @type {NonNullable<KnownBuildInfo["contextDependencies"]>} */
+										? /** @type {NonNullable<KnownNormalModuleBuildInfo["contextDependencies"]>} */
 											(
-												/** @type {BuildInfo} */
+												/** @type {NormalModuleBuildInfo} */
 												(this.buildInfo).contextDependencies
 											)
 										: deps
@@ -1291,15 +1674,15 @@ class NormalModule extends Module {
 						}
 					}
 				};
-				const buildInfo = /** @type {BuildInfo} */ (this.buildInfo);
+				const buildInfo = /** @type {NormalModuleBuildInfo} */ (this.buildInfo);
 				const fileDependencies =
-					/** @type {NonNullable<KnownBuildInfo["fileDependencies"]>} */
+					/** @type {NonNullable<KnownNormalModuleBuildInfo["fileDependencies"]>} */
 					(buildInfo.fileDependencies);
 				const contextDependencies =
-					/** @type {NonNullable<KnownBuildInfo["contextDependencies"]>} */
+					/** @type {NonNullable<KnownNormalModuleBuildInfo["contextDependencies"]>} */
 					(buildInfo.contextDependencies);
 				const missingDependencies =
-					/** @type {NonNullable<KnownBuildInfo["missingDependencies"]>} */
+					/** @type {NonNullable<KnownNormalModuleBuildInfo["missingDependencies"]>} */
 					(buildInfo.missingDependencies);
 				checkDependencies(fileDependencies);
 				checkDependencies(missingDependencies);
@@ -1335,7 +1718,7 @@ class NormalModule extends Module {
 			try {
 				hooks.beforeParse.call(this);
 			} catch (err) {
-				this.markModuleAsErrored(/** @type {WebpackError} */ (err));
+				this.markModuleAsErrored(/** @type {Error} */ (err));
 				this._initBuildHash(compilation);
 				return callback();
 			}
@@ -1345,7 +1728,7 @@ class NormalModule extends Module {
 			const noParseRule = options.module && options.module.noParse;
 			if (this.shouldPreventParsing(noParseRule, this.request)) {
 				// We assume that we need module and exports
-				/** @type {BuildInfo} */
+				/** @type {NormalModuleBuildInfo} */
 				(this.buildInfo).parsed = false;
 				this._initBuildHash(compilation);
 				return handleBuildDone();
@@ -1359,7 +1742,11 @@ class NormalModule extends Module {
 					current: this,
 					module: this,
 					compilation,
-					options
+					options,
+					harmonyNamedExports: undefined,
+					harmonyStarExports: undefined,
+					lastHarmonyImportOrder: undefined,
+					localModules: undefined
 				});
 			} catch (parseErr) {
 				handleParseError(/** @type {Error} */ (parseErr));
@@ -1370,6 +1757,7 @@ class NormalModule extends Module {
 	}
 
 	/**
+	 * Returns the reason this module cannot be concatenated, when one exists.
 	 * @param {ConcatenationBailoutReasonContext} context context
 	 * @returns {string | undefined} reason why this module can't be concatenated, undefined when it can be concatenated
 	 */
@@ -1380,53 +1768,23 @@ class NormalModule extends Module {
 	}
 
 	/**
+	 * Gets side effects connection state.
 	 * @param {ModuleGraph} moduleGraph the module graph
 	 * @returns {ConnectionState} how this module should be connected to referencing modules when consumed for side-effects only
 	 */
 	getSideEffectsConnectionState(moduleGraph) {
-		if (this.factoryMeta !== undefined) {
-			if (this.factoryMeta.sideEffectFree) return false;
-			if (this.factoryMeta.sideEffectFree === false) return true;
-		}
-		if (this.buildMeta !== undefined && this.buildMeta.sideEffectFree) {
-			if (this._isEvaluatingSideEffects)
-				return ModuleGraphConnection.CIRCULAR_CONNECTION;
-			this._isEvaluatingSideEffects = true;
-			/** @type {ConnectionState} */
-			let current = false;
-			for (const dep of this.dependencies) {
-				const state = dep.getModuleEvaluationSideEffectsState(moduleGraph);
-				if (state === true) {
-					if (
-						this._addedSideEffectsBailout === undefined
-							? ((this._addedSideEffectsBailout = new WeakSet()), true)
-							: !this._addedSideEffectsBailout.has(moduleGraph)
-					) {
-						this._addedSideEffectsBailout.add(moduleGraph);
-						moduleGraph
-							.getOptimizationBailout(this)
-							.push(
-								() =>
-									`Dependency (${
-										dep.type
-									}) with side effects at ${formatLocation(dep.loc)}`
-							);
-					}
-					this._isEvaluatingSideEffects = false;
-					return true;
-				} else if (state !== ModuleGraphConnection.CIRCULAR_CONNECTION) {
-					current = ModuleGraphConnection.addConnectionStates(current, state);
-				}
-			}
-			this._isEvaluatingSideEffects = false;
-			// When caching is implemented here, make sure to not cache when
-			// at least one circular connection was in the loop above
-			return current;
-		}
-		return true;
+		// Each call owns its Tarjan bookkeeping; re-entrant calls (e.g.
+		// `ConcatenatedModule.getSideEffectsConnectionState` delegating back
+		// through here) can't clobber the outer walk.
+		return walkSideEffects(
+			this,
+			moduleGraph,
+			getHarmonyImportSideEffectDependency()
+		);
 	}
 
 	/**
+	 * Returns the source types this module can generate.
 	 * @returns {SourceTypes} types available (do not mutate)
 	 */
 	getSourceTypes() {
@@ -1439,6 +1797,19 @@ class NormalModule extends Module {
 	}
 
 	/**
+	 * Freshly recomputed source types when they depend on incoming connections, for chunk-graph cache invalidation; undefined otherwise. #20800
+	 * @returns {SourceTypes | undefined} source types or undefined
+	 */
+	getReferencedSourceTypes() {
+		const generator = /** @type {Generator} */ (this.generator);
+		// Bypass the _sourceTypes cache: it may be stale when the module is not rebuilt.
+		return generator.getTypesDependOnIncomingConnections()
+			? generator.getTypes(this)
+			: undefined;
+	}
+
+	/**
+	 * Generates code and runtime requirements for this module.
 	 * @param {CodeGenerationContext} context context for code generation
 	 * @returns {CodeGenerationResult} result
 	 */
@@ -1452,10 +1823,10 @@ class NormalModule extends Module {
 		codeGenerationResults,
 		sourceTypes
 	}) {
-		/** @type {Set<string>} */
+		/** @type {RuntimeRequirements} */
 		const runtimeRequirements = new Set();
 
-		const { parsed } = /** @type {BuildInfo} */ (this.buildInfo);
+		const { parsed } = /** @type {NormalModuleBuildInfo} */ (this.buildInfo);
 
 		if (!parsed) {
 			runtimeRequirements.add(RuntimeGlobals.module);
@@ -1463,11 +1834,9 @@ class NormalModule extends Module {
 			runtimeRequirements.add(RuntimeGlobals.thisAsExports);
 		}
 
-		/**
-		 * @type {() => CodeGeneratorData}
-		 */
 		const getData = () => this._codeGeneratorData;
 
+		/** @type {Sources} */
 		const sources = new Map();
 		for (const type of sourceTypes || chunkGraph.getModuleSourceTypes(this)) {
 			// TODO webpack@6 make generateError required
@@ -1513,12 +1882,14 @@ class NormalModule extends Module {
 		const resultEntry = {
 			sources,
 			runtimeRequirements,
-			data: this._codeGeneratorData
+			data: this._codeGeneratorData,
+			hash: undefined
 		};
 		return resultEntry;
 	}
 
 	/**
+	 * Gets the original source.
 	 * @returns {Source | null} the original source for the module before webpack transformation
 	 */
 	originalSource() {
@@ -1526,6 +1897,7 @@ class NormalModule extends Module {
 	}
 
 	/**
+	 * Invalidates the cached state associated with this value.
 	 * @returns {void}
 	 */
 	invalidateBuild() {
@@ -1533,6 +1905,7 @@ class NormalModule extends Module {
 	}
 
 	/**
+	 * Checks whether the module needs to be rebuilt for the current build state.
 	 * @param {NeedBuildContext} context context info
 	 * @param {NeedBuildCallback} callback callback function, returns true, if the module needs a rebuild
 	 * @returns {void}
@@ -1546,7 +1919,7 @@ class NormalModule extends Module {
 		if (this.error) return callback(null, true);
 
 		const { cacheable, snapshot, valueDependencies } =
-			/** @type {BuildInfo} */ (this.buildInfo);
+			/** @type {NormalModuleBuildInfo} */ (this.buildInfo);
 
 		// always build when module is not cacheable
 		if (!cacheable) return callback(null, true);
@@ -1592,6 +1965,7 @@ class NormalModule extends Module {
 	}
 
 	/**
+	 * Returns the estimated size for the requested source type.
 	 * @param {string=} type the source type for which the size should be estimated
 	 * @returns {number} the estimated size of the module (must be non-zero)
 	 */
@@ -1613,10 +1987,11 @@ class NormalModule extends Module {
 	}
 
 	/**
-	 * @param {LazySet<string>} fileDependencies set where file dependencies are added to
-	 * @param {LazySet<string>} contextDependencies set where context dependencies are added to
-	 * @param {LazySet<string>} missingDependencies set where missing dependencies are added to
-	 * @param {LazySet<string>} buildDependencies set where build dependencies are added to
+	 * Adds the provided file dependencies to the module.
+	 * @param {FileSystemDependencies} fileDependencies set where file dependencies are added to
+	 * @param {FileSystemDependencies} contextDependencies set where context dependencies are added to
+	 * @param {FileSystemDependencies} missingDependencies set where missing dependencies are added to
+	 * @param {FileSystemDependencies} buildDependencies set where build dependencies are added to
 	 */
 	addCacheDependencies(
 		fileDependencies,
@@ -1625,7 +2000,7 @@ class NormalModule extends Module {
 		buildDependencies
 	) {
 		const { snapshot, buildDependencies: buildDeps } =
-			/** @type {BuildInfo} */ (this.buildInfo);
+			/** @type {NormalModuleBuildInfo} */ (this.buildInfo);
 		if (snapshot) {
 			fileDependencies.addAll(snapshot.getFileIterable());
 			contextDependencies.addAll(snapshot.getContextIterable());
@@ -1635,7 +2010,7 @@ class NormalModule extends Module {
 				fileDependencies: fileDeps,
 				contextDependencies: contextDeps,
 				missingDependencies: missingDeps
-			} = /** @type {BuildInfo} */ (this.buildInfo);
+			} = /** @type {NormalModuleBuildInfo} */ (this.buildInfo);
 			if (fileDeps !== undefined) fileDependencies.addAll(fileDeps);
 			if (contextDeps !== undefined) contextDependencies.addAll(contextDeps);
 			if (missingDeps !== undefined) missingDependencies.addAll(missingDeps);
@@ -1646,16 +2021,26 @@ class NormalModule extends Module {
 	}
 
 	/**
+	 * Updates the hash with the data contributed by this instance.
 	 * @param {Hash} hash the hash used to track dependencies
 	 * @param {UpdateHashContext} context context
 	 * @returns {void}
 	 */
 	updateHash(hash, context) {
-		const buildInfo = /** @type {BuildInfo} */ (this.buildInfo);
+		const buildInfo = /** @type {NormalModuleBuildInfo} */ (this.buildInfo);
 		hash.update(
 			/** @type {string} */
 			(buildInfo.hash)
 		);
+		// Clear cached source types and re-compute so that changes in incoming
+		// connections (e.g. asset module newly referenced from JS via lazy
+		// compilation) are reflected in the hash and trigger code generation
+		// cache invalidation.
+		// https://github.com/webpack/webpack/issues/20800
+		this._sourceTypes = undefined;
+		for (const type of this.getSourceTypes()) {
+			hash.update(type);
+		}
 		/** @type {Generator} */
 		(this.generator).updateHash(hash, {
 			module: this,
@@ -1665,6 +2050,7 @@ class NormalModule extends Module {
 	}
 
 	/**
+	 * Serializes this instance into the provided serializer context.
 	 * @param {ObjectSerializerContext} context context
 	 */
 	serialize(context) {
@@ -1675,6 +2061,7 @@ class NormalModule extends Module {
 		write(this._lastSuccessfulBuildMeta);
 		write(this._forceBuild);
 		write(this._codeGeneratorData);
+		write(this.hot);
 		super.serialize(context);
 	}
 
@@ -1683,7 +2070,8 @@ class NormalModule extends Module {
 	 * @returns {NormalModule} module
 	 */
 	static deserialize(context) {
-		const obj = new NormalModule({
+		// `new this` so subclasses without extra constructor options inherit this method
+		const obj = new this({
 			// will be deserialized by Module
 			layer: /** @type {EXPECTED_ANY} */ (null),
 			type: "",
@@ -1699,13 +2087,15 @@ class NormalModule extends Module {
 			parserOptions: /** @type {EXPECTED_ANY} */ (null),
 			generator: /** @type {EXPECTED_ANY} */ (null),
 			generatorOptions: /** @type {EXPECTED_ANY} */ (null),
-			resolveOptions: /** @type {EXPECTED_ANY} */ (null)
+			resolveOptions: /** @type {EXPECTED_ANY} */ (null),
+			extractSourceMap: /** @type {EXPECTED_ANY} */ (null)
 		});
 		obj.deserialize(context);
 		return obj;
 	}
 
 	/**
+	 * Restores this instance from the provided deserializer context.
 	 * @param {ObjectDeserializerContext} context context
 	 */
 	deserialize(context) {
@@ -1715,6 +2105,7 @@ class NormalModule extends Module {
 		this._lastSuccessfulBuildMeta = read();
 		this._forceBuild = read();
 		this._codeGeneratorData = read();
+		this.hot = read();
 		super.deserialize(context);
 	}
 }

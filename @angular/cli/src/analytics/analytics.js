@@ -180,3 +180,4 @@ async function getAnalyticsInfoString(context) {
      Effective status: ${analyticsInstance ? 'enabled' : 'disabled'}
    ` + '\n');
 }
+//# sourceMappingURL=analytics.js.map

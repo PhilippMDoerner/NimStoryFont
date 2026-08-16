@@ -56,3 +56,4 @@ class UnimplementedException extends core_1.BaseException {
     }
 }
 exports.UnimplementedException = UnimplementedException;
+//# sourceMappingURL=exception.js.map

@@ -12,18 +12,18 @@ import {
 } from '@ngrx/signals';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
 import { map, pipe, switchMap } from 'rxjs';
-import { NodeLinkTypeRaw } from 'src/app/_models/graph';
-import { MapMarkerType } from 'src/app/_models/mapMarkerType';
-import { PlayerClass } from 'src/app/_models/playerclass';
-import { httpErrorToast } from 'src/app/_models/toast';
-import { MarkerTypeService } from 'src/app/_services/article/marker-type.service';
-import { PlayerClassService } from 'src/app/_services/article/player-class.service';
-import { RelationshipTypeService } from 'src/app/_services/article/relationship-type.service';
-import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
-import { GlobalStore } from 'src/app/global.store';
-import { sortByProp } from 'src/utils/array';
-import { filterNil } from 'src/utils/rxjs-operators';
-import { withQueries } from 'src/utils/store/withQueries';
+import { sortByProp } from '../../../../utils/array';
+import { filterNil } from '../../../../utils/rxjs-operators';
+import { withQueries } from '../../../../utils/store/withQueries';
+import { NodeLinkTypeRaw } from '../../../_models/graph';
+import { MapMarkerType } from '../../../_models/mapMarkerType';
+import { PlayerClass } from '../../../_models/playerclass';
+import { httpErrorToast } from '../../../_models/toast';
+import { MarkerTypeService } from '../../../_services/article/marker-type.service';
+import { PlayerClassService } from '../../../_services/article/player-class.service';
+import { RelationshipTypeService } from '../../../_services/article/relationship-type.service';
+import { ToastService } from '../../../design/organisms/toast-overlay/toast.service';
+import { GlobalStore } from '../../../global.store';
 
 export interface ConfigAdministrationPageState {}
 
@@ -108,8 +108,8 @@ export const ConfigAdministrationPageStore = signalStore(
           switchMap((relationshipType) =>
             relationshipTypeService.create(relationshipType),
           ),
-          tapResponse(
-            (createdRelationshipType) => {
+          tapResponse({
+            next: (createdRelationshipType) => {
               const oldList: any[] | undefined = isGlobal()
                 ? state.nodeLinkTypes()
                 : state.campaignNodeLinkTypes();
@@ -122,9 +122,9 @@ export const ConfigAdministrationPageStore = signalStore(
                 campaignNodeLinkTypes: newList,
               });
             },
-            (error: HttpErrorResponse) =>
+            error: (error: HttpErrorResponse) =>
               toastService.addToast(httpErrorToast(error)),
-          ),
+          }),
         ),
       ),
       deleteRelationshipType: rxMethod<number>(

@@ -4,9 +4,9 @@ import {
   computed,
   inject,
 } from '@angular/core';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { HomeComponent } from 'src/app/design//templates/home/home.component';
-import { GlobalStore } from 'src/app/global.store';
+import { RoutingService } from '../../../_services/routing.service';
+import { HomeComponent } from '../../../design/templates/home/home.component';
+import { GlobalStore } from '../../../global.store';
 import { HomePageStore } from './home-page.store';
 
 @Component({
@@ -17,17 +17,17 @@ import { HomePageStore } from './home-page.store';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class HomePageComponent {
-  globalStore = inject(GlobalStore);
-  store = inject(HomePageStore);
-  routingService = inject(RoutingService);
+  readonly globalStore = inject(GlobalStore);
+  readonly store = inject(HomePageStore);
+  readonly routingService = inject(RoutingService);
 
-  serverUrl = '';
-  campaignData = this.globalStore.currentCampaign;
-  currentCampaignName = computed(
+  readonly serverUrl = '';
+  readonly campaignData = this.globalStore.currentCampaign;
+  readonly currentCampaignName = computed(
     () => this.globalStore.currentCampaign()?.name,
   );
-  recentlyUpdatedArticles = this.store.recentlyUpdatedArticles;
-  hasMoreArticles = this.store.canLoadMore;
+  readonly recentlyUpdatedArticles = this.store.recentlyUpdatedArticles;
+  readonly hasMoreArticles = this.store.canLoadMore;
 
   constructor() {
     this.globalStore.trackIsPageLoading(false);

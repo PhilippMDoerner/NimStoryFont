@@ -26,3 +26,4 @@ __exportStar(require("./level"), exports);
 __exportStar(require("./logger"), exports);
 __exportStar(require("./null-logger"), exports);
 __exportStar(require("./transform-logger"), exports);
+//# sourceMappingURL=index.js.map

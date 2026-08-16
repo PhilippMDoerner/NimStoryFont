@@ -11,23 +11,25 @@ const ModuleChunkLoadingRuntimeModule = require("./ModuleChunkLoadingRuntimeModu
 
 /** @typedef {import("../Chunk")} Chunk */
 /** @typedef {import("../Compiler")} Compiler */
+/** @typedef {import("../Module").RuntimeRequirements} RuntimeRequirements */
 
 const PLUGIN_NAME = "ModuleChunkLoadingPlugin";
 
 class ModuleChunkLoadingPlugin {
 	/**
-	 * Apply the plugin
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Compiler} compiler the compiler instance
 	 * @returns {void}
 	 */
 	apply(compiler) {
-		compiler.hooks.thisCompilation.tap(PLUGIN_NAME, compilation => {
+		compiler.hooks.thisCompilation.tap(PLUGIN_NAME, (compilation) => {
 			const globalChunkLoading = compilation.outputOptions.chunkLoading;
 			/**
+			 * Checks whether this module chunk loading plugin is enabled for chunk.
 			 * @param {Chunk} chunk chunk to check
 			 * @returns {boolean} true, when the plugin is enabled for the chunk
 			 */
-			const isEnabledForChunk = chunk => {
+			const isEnabledForChunk = (chunk) => {
 				const options = chunk.getEntryOptions();
 				const chunkLoading =
 					options && options.chunkLoading !== undefined
@@ -35,10 +37,12 @@ class ModuleChunkLoadingPlugin {
 						: globalChunkLoading;
 				return chunkLoading === "import";
 			};
+			/** @type {WeakSet<Chunk>} */
 			const onceForChunkSet = new WeakSet();
 			/**
+			 * Handles the hook callback for this code path.
 			 * @param {Chunk} chunk chunk to check
-			 * @param {Set<string>} set runtime requirements
+			 * @param {RuntimeRequirements} set runtime requirements
 			 */
 			const handler = (chunk, set) => {
 				if (onceForChunkSet.has(chunk)) return;
@@ -61,11 +65,20 @@ class ModuleChunkLoadingPlugin {
 				.for(RuntimeGlobals.externalInstallChunk)
 				.tap(PLUGIN_NAME, handler);
 			compilation.hooks.runtimeRequirementInTree
+				.for(RuntimeGlobals.analyzableChunkImport)
+				.tap(PLUGIN_NAME, handler);
+			compilation.hooks.runtimeRequirementInTree
 				.for(RuntimeGlobals.onChunksLoaded)
 				.tap(PLUGIN_NAME, handler);
 			compilation.hooks.runtimeRequirementInTree
+				.for(RuntimeGlobals.hmrDownloadUpdateHandlers)
+				.tap(PLUGIN_NAME, handler);
+			compilation.hooks.runtimeRequirementInTree
+				.for(RuntimeGlobals.hmrDownloadManifest)
+				.tap(PLUGIN_NAME, handler);
+			compilation.hooks.runtimeRequirementInTree
 				.for(RuntimeGlobals.externalInstallChunk)
-				.tap(PLUGIN_NAME, (chunk, set) => {
+				.tap(PLUGIN_NAME, (chunk) => {
 					if (!isEnabledForChunk(chunk)) return;
 					compilation.addRuntimeModule(
 						chunk,
@@ -73,12 +86,15 @@ class ModuleChunkLoadingPlugin {
 					);
 				});
 
-			// We need public path only when we prefetch/preload chunk or public path is not `auto`
+			// The prefetch/preload handlers build the chunk URL themselves, so they need
+			// the public path and script filename directly — without relying on
+			// `ensureChunkHandlers` to pull them in (an analyzable `import()` may replace it).
 			compilation.hooks.runtimeRequirementInTree
 				.for(RuntimeGlobals.prefetchChunkHandlers)
 				.tap(PLUGIN_NAME, (chunk, set) => {
 					if (!isEnabledForChunk(chunk)) return;
 					set.add(RuntimeGlobals.publicPath);
+					set.add(RuntimeGlobals.getChunkScriptFilename);
 				});
 
 			compilation.hooks.runtimeRequirementInTree
@@ -86,6 +102,7 @@ class ModuleChunkLoadingPlugin {
 				.tap(PLUGIN_NAME, (chunk, set) => {
 					if (!isEnabledForChunk(chunk)) return;
 					set.add(RuntimeGlobals.publicPath);
+					set.add(RuntimeGlobals.getChunkScriptFilename);
 				});
 
 			compilation.hooks.runtimeRequirementInTree
@@ -99,6 +116,34 @@ class ModuleChunkLoadingPlugin {
 
 					set.add(RuntimeGlobals.getChunkScriptFilename);
 				});
+
+			compilation.hooks.runtimeRequirementInTree
+				.for(RuntimeGlobals.hmrDownloadUpdateHandlers)
+				.tap(PLUGIN_NAME, (chunk, set) => {
+					if (!isEnabledForChunk(chunk)) return;
+					set.add(RuntimeGlobals.publicPath);
+					set.add(RuntimeGlobals.getChunkUpdateScriptFilename);
+					set.add(RuntimeGlobals.moduleCache);
+					set.add(RuntimeGlobals.hmrModuleData);
+					set.add(RuntimeGlobals.moduleFactoriesAddOnly);
+				});
+
+			compilation.hooks.runtimeRequirementInTree
+				.for(RuntimeGlobals.hmrDownloadManifest)
+				.tap(PLUGIN_NAME, (chunk, set) => {
+					if (!isEnabledForChunk(chunk)) return;
+					set.add(RuntimeGlobals.publicPath);
+					set.add(RuntimeGlobals.getUpdateManifestFilename);
+				});
+
+			compilation.hooks.additionalTreeRuntimeRequirements.tap(
+				PLUGIN_NAME,
+				(chunk, set, { chunkGraph }) => {
+					if (chunkGraph.hasChunkEntryDependentChunks(chunk)) {
+						set.add(RuntimeGlobals.externalInstallChunk);
+					}
+				}
+			);
 		});
 	}
 }

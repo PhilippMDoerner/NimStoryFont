@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RULE_NAME = void 0;
+exports.RULE_DOCS_EXTENSION = exports.RULE_NAME = void 0;
 const bundled_angular_compiler_1 = require("@angular-eslint/bundled-angular-compiler");
 const utils_1 = require("@angular-eslint/utils");
 const create_eslint_rule_1 = require("../utils/create-eslint-rule");
@@ -36,10 +36,12 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
         const sourceCode = context.sourceCode;
         return {
             BoundAttribute(node) {
-                if (!node.value.source || node.value.ast instanceof bundled_angular_compiler_1.Interpolation) {
+                if (!node.value.source ||
+                    !node.valueSpan ||
+                    node.value.ast instanceof bundled_angular_compiler_1.Interpolation) {
                     return;
                 }
-                const possibleBinary = extractPossibleBinaryOrConditionalFrom(getParser().parseBinding(node.value.source, '', 0).ast);
+                const possibleBinary = extractPossibleBinaryOrConditionalFrom(getParser().parseBinding(node.value.source, node.valueSpan, 0).ast);
                 const totalComplexity = getTotalComplexity(possibleBinary);
                 if (totalComplexity <= maxComplexity) {
                     return;
@@ -110,3 +112,6 @@ function getTotalComplexity(ast) {
     }
     return total;
 }
+exports.RULE_DOCS_EXTENSION = {
+    rationale: "Complex conditional expressions in templates (like multiple '&&' or '||' operators, nested ternaries, or long chains of conditions) make templates hard to read, test, and maintain. Template logic should be minimal and easy to understand at a glance. Complex conditionals are better moved to the component class as computed properties or methods, where they can be properly tested, documented, and reasoned about. For example, instead of '*ngIf=\"user && user.role === 'admin' && user.isActive && !user.isLocked\"', create a component property like 'get canAccessAdmin() { return this.user?.role === 'admin' && this.user?.isActive && !this.user?.isLocked; }' and use '*ngIf=\"canAccessAdmin\"'. This makes templates more declarative and components easier to unit test.",
+};

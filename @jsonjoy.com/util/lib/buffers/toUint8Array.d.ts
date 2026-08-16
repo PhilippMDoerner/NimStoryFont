@@ -1,1 +1,1 @@
-export declare const toUint8Array: (data: unknown) => Uint8Array;
+export * from '@jsonjoy.com/buffers/lib/toUint8Array';

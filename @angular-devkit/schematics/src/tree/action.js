@@ -23,7 +23,7 @@ class ActionList {
         this._actions.push({
             ...action,
             id: _id++,
-            parent: this._actions[this._actions.length - 1]?.id ?? 0,
+            parent: this._actions.at(-1)?.id ?? 0,
         });
     }
     create(path, content) {
@@ -136,3 +136,4 @@ exports.ActionList = ActionList;
 function isContentAction(action) {
     return action.kind == 'c' || action.kind == 'o';
 }
+//# sourceMappingURL=action.js.map

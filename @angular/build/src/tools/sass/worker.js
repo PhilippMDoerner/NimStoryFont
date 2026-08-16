@@ -199,3 +199,4 @@ function convertDeprecation(deprecation, deprecationType) {
         },
     };
 }
+//# sourceMappingURL=worker.js.map

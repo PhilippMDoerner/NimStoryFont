@@ -4,8 +4,8 @@ import { tapResponse } from '@ngrx/operators';
 import { patchState, signalStoreFeature, withMethods } from '@ngrx/signals';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
 import { Observable, pipe, switchMap, tap } from 'rxjs';
-import { successToast } from 'src/app/_models/toast';
-import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
+import { successToast } from '../../../app/_models/toast';
+import { ToastService } from '../../../app/design/organisms/toast-overlay/toast.service';
 import {
   MethodsDictionary,
   Request,
@@ -52,8 +52,13 @@ type NewMethodUnion<Requests extends RequestMap> =
  */ export type AllNewMethods<Requests extends RequestMap> =
   UnionToIntersection<NewMethodUnion<Requests>>;
 
+export interface UpdateFeatureConfig {
+  suppressUpdateNotification?: boolean;
+}
+
 export function withUpdateMethods<Requests extends RequestMap>(
   requests: Requests,
+  config: UpdateFeatureConfig | undefined,
 ) {
   return signalStoreFeature(
     withMethods((store) => {
@@ -71,32 +76,38 @@ export function withUpdateMethods<Requests extends RequestMap>(
                     [keys.errorField]: undefined,
                   }),
                 ),
-                switchMap((params) => requests[keys.name](params)),
-                tapResponse({
-                  next: (val) => {
-                    toastService.addToast(
-                      successToast('Updated successfully!'),
-                    );
-                    patchState(store, {
-                      [keys.dataField]: val,
-                      [keys.requestStateField]:
-                        'success' satisfies RequestState,
-                      [keys.serverModelField]: undefined,
-                    });
-                  },
-                  error: (err: HttpErrorResponse) => {
-                    const isOutdatedUpdateError = err.status === 409;
-                    const serverModel = isOutdatedUpdateError
-                      ? err.error
-                      : undefined;
+                switchMap((params) =>
+                  requests[keys.name](params).pipe(
+                    tapResponse({
+                      next: (val) => {
+                        if (!config?.suppressUpdateNotification) {
+                          toastService.addToast(
+                            successToast('Updated successfully!'),
+                          );
+                        }
+                        patchState(store, {
+                          [keys.dataField]: val,
+                          [keys.requestStateField]:
+                            'success' satisfies RequestState,
+                          [keys.serverModelField]: undefined,
+                        });
+                      },
+                      error: (err: HttpErrorResponse) => {
+                        const isOutdatedUpdateError = err.status === 409;
+                        const serverModel = isOutdatedUpdateError
+                          ? err.error
+                          : undefined;
 
-                    patchState(store, {
-                      [keys.errorField]: err,
-                      [keys.requestStateField]: 'error' satisfies RequestState,
-                      [keys.serverModelField]: serverModel,
-                    });
-                  },
-                }),
+                        patchState(store, {
+                          [keys.errorField]: err,
+                          [keys.requestStateField]:
+                            'error' satisfies RequestState,
+                          [keys.serverModelField]: serverModel,
+                        });
+                      },
+                    }),
+                  ),
+                ),
               ),
             ),
           };

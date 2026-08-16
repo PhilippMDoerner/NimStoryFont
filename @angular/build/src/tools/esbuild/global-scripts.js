@@ -6,45 +6,12 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.dev/license
  */
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createGlobalScriptsBundleOptions = createGlobalScriptsBundleOptions;
-const magic_string_1 = __importStar(require("magic-string"));
+const magic_string_1 = require("magic-string");
 const node_assert_1 = __importDefault(require("node:assert"));
 const promises_1 = require("node:fs/promises");
 const node_path_1 = __importDefault(require("node:path"));
@@ -137,7 +104,7 @@ function createGlobalScriptsBundleOptions(options, target, initial) {
                                 watchFiles.push(resolveResult.path);
                                 fileContent = await (0, promises_1.readFile)(resolveResult.path, 'utf-8');
                             }
-                            bundleContent.addSource(new magic_string_1.default(fileContent, { filename }));
+                            bundleContent.addSource(new magic_string_1.MagicString(fileContent, { filename }));
                         }
                         return {
                             contents: bundleContent.toString(),
@@ -150,3 +117,4 @@ function createGlobalScriptsBundleOptions(options, target, initial) {
         };
     };
 }
+//# sourceMappingURL=global-scripts.js.map

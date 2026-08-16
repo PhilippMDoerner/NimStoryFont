@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { MapMarkerType } from 'src/app/_models/mapMarkerType';
-import { OverviewItem } from 'src/app/_models/overview';
+import { MapMarkerType } from '../../_models/mapMarkerType';
+import { OverviewItem } from '../../_models/overview';
 import { BaseService } from '../base.service';
 
 @Injectable({

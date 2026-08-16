@@ -4,13 +4,15 @@
 
 "use strict";
 
-/** @typedef {import("./ObjectMiddleware").ObjectDeserializerContext} ObjectDeserializerContext */
-/** @typedef {import("./ObjectMiddleware").ObjectSerializerContext} ObjectSerializerContext */
+/** @typedef {import("./types").ComplexSerializableType} ComplexSerializableType */
+/** @typedef {import("./ObjectMiddleware").ObjectDeserializerContext<ComplexSerializableType[]>} ObjectDeserializerContext */
+/** @typedef {import("./ObjectMiddleware").ObjectSerializerContext<ComplexSerializableType[]>} ObjectSerializerContext */
 
-/** @typedef {Error & { cause: unknown, errors: EXPECTED_ANY[] }} AggregateError */
+/** @typedef {Error & { cause?: unknown, errors: EXPECTED_ANY[] }} AggregateError */
 
 class AggregateErrorSerializer {
 	/**
+	 * Serializes this instance into the provided serializer context.
 	 * @param {AggregateError} obj error
 	 * @param {ObjectSerializerContext} context context
 	 */
@@ -18,21 +20,21 @@ class AggregateErrorSerializer {
 		context.write(obj.errors);
 		context.write(obj.message);
 		context.write(obj.stack);
-		context.write(obj.cause);
+		context.write(/** @type {ComplexSerializableType} */ (obj.cause));
 	}
 
 	/**
+	 * Restores this instance from the provided deserializer context.
 	 * @param {ObjectDeserializerContext} context context
 	 * @returns {AggregateError} error
 	 */
 	deserialize(context) {
-		const errors = context.read();
-		// @ts-expect-error ES2018 doesn't `AggregateError`, but it can be used by developers
-		// eslint-disable-next-line n/no-unsupported-features/es-builtins, n/no-unsupported-features/es-syntax
+		const errors = /** @type {EXPECTED_ANY[]} */ (context.read());
+		// eslint-disable-next-line n/no-unsupported-features/es-builtins, n/no-unsupported-features/es-syntax, unicorn/error-message
 		const err = new AggregateError(errors);
 
-		err.message = context.read();
-		err.stack = context.read();
+		err.message = /** @type {string} */ (context.read());
+		err.stack = /** @type {string | undefined} */ (context.read());
 		err.cause = context.read();
 
 		return err;

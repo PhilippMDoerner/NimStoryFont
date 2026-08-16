@@ -5,30 +5,31 @@
 
 "use strict";
 
-const formatLocation = require("../formatLocation");
+const formatLocation = require("../util/formatLocation");
 const UnsupportedWebAssemblyFeatureError = require("./UnsupportedWebAssemblyFeatureError");
 
 /** @typedef {import("../Compiler")} Compiler */
 /** @typedef {import("../Dependency")} Dependency */
 /** @typedef {import("../Module")} Module */
 /** @typedef {import("../Module").BuildMeta} BuildMeta */
+/** @typedef {import("./SyncWasmModule").SyncWasmModuleBuildMeta} SyncWasmModuleBuildMeta */
 
 const PLUGIN_NAME = "WasmFinalizeExportsPlugin";
 
 class WasmFinalizeExportsPlugin {
 	/**
-	 * Apply the plugin
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Compiler} compiler the compiler instance
 	 * @returns {void}
 	 */
 	apply(compiler) {
-		compiler.hooks.compilation.tap(PLUGIN_NAME, compilation => {
-			compilation.hooks.finishModules.tap(PLUGIN_NAME, modules => {
+		compiler.hooks.compilation.tap(PLUGIN_NAME, (compilation) => {
+			compilation.hooks.finishModules.tap(PLUGIN_NAME, (modules) => {
 				for (const module of modules) {
 					// 1. if a WebAssembly module
 					if (module.type.startsWith("webassembly") === true) {
 						const jsIncompatibleExports =
-							/** @type {BuildMeta} */
+							/** @type {SyncWasmModuleBuildMeta} */
 							(module.buildMeta).jsIncompatibleExports;
 
 						if (jsIncompatibleExports === undefined) {

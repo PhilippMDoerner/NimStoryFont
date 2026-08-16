@@ -5,12 +5,24 @@
 
 "use strict";
 
+const {
+	JAVASCRIPT_MODULE_TYPE_AUTO,
+	JAVASCRIPT_MODULE_TYPE_DYNAMIC
+} = require("../ModuleTypeConstants");
 const RuntimeGlobals = require("../RuntimeGlobals");
 const RuntimeModule = require("../RuntimeModule");
 const SelfModuleFactory = require("../SelfModuleFactory");
 const Template = require("../Template");
+const {
+	evaluateToIdentifier,
+	expressionIsUnsupported,
+	toConstantDependency
+} = require("../javascript/JavascriptParserHelpers");
+const CommonJsExportRequireDependency = require("./CommonJsExportRequireDependency");
 const CommonJsExportsDependency = require("./CommonJsExportsDependency");
+const CommonJsExportsParserPlugin = require("./CommonJsExportsParserPlugin");
 const CommonJsFullRequireDependency = require("./CommonJsFullRequireDependency");
+const CommonJsImportsParserPlugin = require("./CommonJsImportsParserPlugin");
 const CommonJsRequireContextDependency = require("./CommonJsRequireContextDependency");
 const CommonJsRequireDependency = require("./CommonJsRequireDependency");
 const CommonJsSelfReferenceDependency = require("./CommonJsSelfReferenceDependency");
@@ -20,19 +32,6 @@ const RequireResolveContextDependency = require("./RequireResolveContextDependen
 const RequireResolveDependency = require("./RequireResolveDependency");
 const RequireResolveHeaderDependency = require("./RequireResolveHeaderDependency");
 const RuntimeRequirementsDependency = require("./RuntimeRequirementsDependency");
-
-const CommonJsExportsParserPlugin = require("./CommonJsExportsParserPlugin");
-const CommonJsImportsParserPlugin = require("./CommonJsImportsParserPlugin");
-
-const {
-	JAVASCRIPT_MODULE_TYPE_AUTO,
-	JAVASCRIPT_MODULE_TYPE_DYNAMIC
-} = require("../ModuleTypeConstants");
-const {
-	evaluateToIdentifier,
-	toConstantDependency
-} = require("../javascript/JavascriptParserHelpers");
-const CommonJsExportRequireDependency = require("./CommonJsExportRequireDependency");
 
 /** @typedef {import("../../declarations/WebpackOptions").JavascriptParserOptions} JavascriptParserOptions */
 /** @typedef {import("../Compilation")} Compilation */
@@ -45,7 +44,7 @@ const PLUGIN_NAME = "CommonJsPlugin";
 
 class CommonJsPlugin {
 	/**
-	 * Apply the plugin
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Compiler} compiler the compiler instance
 	 * @returns {void}
 	 */
@@ -158,7 +157,7 @@ class CommonJsPlugin {
 
 				compilation.hooks.runtimeRequirementInTree
 					.for(RuntimeGlobals.harmonyModuleDecorator)
-					.tap(PLUGIN_NAME, (chunk, set) => {
+					.tap(PLUGIN_NAME, (chunk, _set) => {
 						compilation.addRuntimeModule(
 							chunk,
 							new HarmonyModuleDecoratorRuntimeModule()
@@ -167,7 +166,7 @@ class CommonJsPlugin {
 
 				compilation.hooks.runtimeRequirementInTree
 					.for(RuntimeGlobals.nodeModuleDecorator)
-					.tap(PLUGIN_NAME, (chunk, set) => {
+					.tap(PLUGIN_NAME, (chunk, _set) => {
 						compilation.addRuntimeModule(
 							chunk,
 							new NodeModuleDecoratorRuntimeModule()
@@ -175,13 +174,15 @@ class CommonJsPlugin {
 					});
 
 				/**
+				 * Handles the hook callback for this code path.
 				 * @param {Parser} parser parser parser
 				 * @param {JavascriptParserOptions} parserOptions parserOptions
 				 * @returns {void}
 				 */
 				const handler = (parser, parserOptions) => {
-					if (parserOptions.commonjs !== undefined && !parserOptions.commonjs)
+					if (parserOptions.commonjs !== undefined && !parserOptions.commonjs) {
 						return;
+					}
 					parser.hooks.typeof
 						.for("module")
 						.tap(
@@ -199,30 +200,41 @@ class CommonJsPlugin {
 								[RuntimeGlobals.moduleCache, RuntimeGlobals.entryModuleId]
 							)
 						);
+
+					parser.hooks.expression
+						.for("require.extensions")
+						.tap(
+							PLUGIN_NAME,
+							expressionIsUnsupported(
+								parser,
+								"require.extensions is not supported by webpack. Use a loader instead."
+							)
+						);
+
 					parser.hooks.expression
 						.for(RuntimeGlobals.moduleLoaded)
-						.tap(PLUGIN_NAME, expr => {
+						.tap(PLUGIN_NAME, (expr) => {
 							/** @type {BuildInfo} */
 							(parser.state.module.buildInfo).moduleConcatenationBailout =
 								RuntimeGlobals.moduleLoaded;
 							const dep = new RuntimeRequirementsDependency([
 								RuntimeGlobals.moduleLoaded
 							]);
-							dep.loc = /** @type {DependencyLocation} */ (expr.loc);
+							dep.loc = parser.getLocation(expr);
 							parser.state.module.addPresentationalDependency(dep);
 							return true;
 						});
 
 					parser.hooks.expression
 						.for(RuntimeGlobals.moduleId)
-						.tap(PLUGIN_NAME, expr => {
+						.tap(PLUGIN_NAME, (expr) => {
 							/** @type {BuildInfo} */
 							(parser.state.module.buildInfo).moduleConcatenationBailout =
 								RuntimeGlobals.moduleId;
 							const dep = new RuntimeRequirementsDependency([
 								RuntimeGlobals.moduleId
 							]);
-							dep.loc = /** @type {DependencyLocation} */ (expr.loc);
+							dep.loc = parser.getLocation(expr);
 							parser.state.module.addPresentationalDependency(dep);
 							return true;
 						});
@@ -255,6 +267,7 @@ class HarmonyModuleDecoratorRuntimeModule extends RuntimeModule {
 	}
 
 	/**
+	 * Generates runtime code for this runtime module.
 	 * @returns {string | null} runtime code
 	 */
 	generate() {
@@ -268,7 +281,7 @@ class HarmonyModuleDecoratorRuntimeModule extends RuntimeModule {
 				"Object.defineProperty(module, 'exports', {",
 				Template.indent([
 					"enumerable: true,",
-					`set: ${runtimeTemplate.basicFunction("", [
+					`${runtimeTemplate.method("set", "", [
 						"throw new Error('ES Modules may not assign module.exports or exports.*, Use ESM export syntax, instead: ' + module.id);"
 					])}`
 				]),
@@ -285,6 +298,7 @@ class NodeModuleDecoratorRuntimeModule extends RuntimeModule {
 	}
 
 	/**
+	 * Generates runtime code for this runtime module.
 	 * @returns {string | null} runtime code
 	 */
 	generate() {

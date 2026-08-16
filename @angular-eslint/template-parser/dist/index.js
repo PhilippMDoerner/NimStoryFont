@@ -18,11 +18,15 @@ const KEYS = {
     Conditional: ['condition', 'trueExp', 'falseExp'],
     Element: ['children', 'inputs', 'outputs', 'attributes'],
     Interpolation: ['expressions'],
+    KeyedRead: ['receiver', 'key'],
+    SafeKeyedRead: ['receiver', 'key'],
+    NonNullAssert: ['expression'],
     PrefixNot: ['expression'],
     Program: ['templateNodes'],
     PropertyRead: ['receiver'],
+    SafePropertyRead: ['receiver'],
     Template: ['templateAttrs', 'children', 'inputs'],
-    BindingPipe: ['exp'],
+    BindingPipe: ['exp', 'args'],
     DeferredBlock: [
         'children',
         'placeholder',
@@ -38,13 +42,24 @@ const KEYS = {
     BoundDeferredTrigger: ['value'],
     IfBlock: ['branches'],
     IfBlockBranch: ['children', 'expression'],
-    SwitchBlock: ['cases', 'expression'],
-    SwitchBlockCase: ['children', 'expression'],
+    SwitchBlock: ['groups', 'expression'],
+    SwitchBlockCaseGroup: ['cases', 'children'],
+    SwitchBlockCase: ['expression'],
     ForLoopBlock: ['children', 'empty', 'expression', 'trackBy'],
     ForLoopBlockEmpty: ['children'],
     Content: ['children'],
     LetDeclaration: ['value'],
     ParenthesizedExpression: ['expression'],
+    // Angular v22 expression syntax. Without these entries traversal falls back
+    // to `getFallbackKeys`, whose filter drops single-object children that do not
+    // yet have a `.type` string at preprocess time, silently dropping entire
+    // subtrees nested inside these positions.
+    // NOTE: `ArrowFunction.parameters` are name-only
+    // `ArrowFunctionIdentifierParameter` nodes with no nested expressions, so they
+    // intentionally do not need traversal.
+    ArrowFunction: ['body'],
+    SpreadElement: ['expression'],
+    TaggedTemplateLiteral: ['tag', 'template'],
 };
 function fallbackKeysFilter(key) {
     let value = null;
@@ -68,15 +83,86 @@ function isNode(node) {
         typeof node.type === 'string');
 }
 /**
+ * Get line offsets for a source code string (cached for performance)
+ */
+let lineOffsetsCache = null;
+function getLineOffsets(sourceCode) {
+    if (!lineOffsetsCache) {
+        lineOffsetsCache = new Map();
+    }
+    let offsets = lineOffsetsCache.get(sourceCode);
+    if (!offsets) {
+        offsets = [0];
+        for (let i = 0; i < sourceCode.length; i++) {
+            if (sourceCode[i] === '\n') {
+                offsets.push(i + 1);
+            }
+        }
+        lineOffsetsCache.set(sourceCode, offsets);
+    }
+    return offsets;
+}
+/**
+ * Convert absolute offsets to line/column positions
+ */
+function convertAbsoluteSourceSpanToLoc(sourceCode, span) {
+    const lineOffsets = getLineOffsets(sourceCode);
+    // Binary search for start line
+    let startLine = 0;
+    let left = 0;
+    let right = lineOffsets.length - 1;
+    while (left <= right) {
+        const mid = Math.floor((left + right) / 2);
+        if (lineOffsets[mid] <= span.start) {
+            startLine = mid;
+            left = mid + 1;
+        }
+        else {
+            right = mid - 1;
+        }
+    }
+    const startColumn = span.start - lineOffsets[startLine];
+    // Binary search for end line
+    let endLine = startLine; // Start from startLine as optimization
+    left = startLine;
+    right = lineOffsets.length - 1;
+    while (left <= right) {
+        const mid = Math.floor((left + right) / 2);
+        if (lineOffsets[mid] <= span.end) {
+            endLine = mid;
+            left = mid + 1;
+        }
+        else {
+            right = mid - 1;
+        }
+    }
+    const endColumn = span.end - lineOffsets[endLine];
+    return {
+        start: { line: startLine + 1, column: startColumn },
+        end: { line: endLine + 1, column: endColumn },
+    };
+}
+/**
  * ESLint requires all Nodes to have `type` and `loc` properties before it can
  * work with the custom AST.
  */
-function preprocessNode(node) {
+function preprocessNode(node, sourceCode) {
     let i = 0;
     let j = 0;
     const keys = KEYS[node.type] || getFallbackKeys(node);
-    if (!node.loc && node.sourceSpan) {
-        node.loc = (0, convert_source_span_to_loc_1.convertNodeSourceSpanToLoc)(node.sourceSpan);
+    if (!node.loc) {
+        if (node.sourceSpan &&
+            node.sourceSpan.start &&
+            typeof node.sourceSpan.start.line === 'number') {
+            // Regular ParseSourceSpan
+            node.loc = (0, convert_source_span_to_loc_1.convertNodeSourceSpanToLoc)(node.sourceSpan);
+        }
+        else if (node.sourceSpan &&
+            typeof node.sourceSpan.start === 'number' &&
+            sourceCode) {
+            // AbsoluteSourceSpan
+            node.loc = convertAbsoluteSourceSpanToLoc(sourceCode, node.sourceSpan);
+        }
     }
     for (i = 0; i < keys.length; ++i) {
         const child = node[keys[i]];
@@ -105,12 +191,12 @@ function preprocessNode(node) {
                     c.type = c.constructor.name;
                 }
                 if (isNode(c)) {
-                    preprocessNode(c);
+                    preprocessNode(c, sourceCode);
                 }
             }
         }
         else if (isNode(child)) {
-            preprocessNode(child);
+            preprocessNode(child, sourceCode);
         }
     }
 }
@@ -146,11 +232,21 @@ function getEndSourceSpanFromAST(ast) {
     });
     return endSourceSpan;
 }
-function convertNgAstCommentsToTokens(comments) {
+function convertNgAstCommentsToTokens(comments, code) {
     const commentTokens = comments.map((comment) => {
+        // As of Angular v22, the compiler collects TypeScript-style comments
+        // written inside an element's opening tag alongside classic HTML
+        // `<!-- -->` comments. `//` comments must be surfaced as Line comments so
+        // that ESLint applies its inline directive semantics (e.g.
+        // `eslint-disable-next-line`) correctly, whereas block-style and HTML
+        // comments are Block comments. The compiler does not expose a
+        // discriminator on the Comment node, so we inspect the raw source text at
+        // the start of the comment's span.
+        const type = code.startsWith('//', comment.sourceSpan.start.offset)
+            ? 'Line'
+            : 'Block';
         return {
-            // In an HTML context, effectively all our comments are Block comments
-            type: 'Block',
+            type,
             value: comment.value,
             loc: (0, convert_source_span_to_loc_1.convertNodeSourceSpanToLoc)(comment.sourceSpan),
             range: [comment.sourceSpan.start.offset, comment.sourceSpan.end.offset],
@@ -201,7 +297,7 @@ function parseForESLint(code, options) {
     }
     const ast = {
         type: 'Program',
-        comments: convertNgAstCommentsToTokens(ngAstCommentNodes),
+        comments: convertNgAstCommentsToTokens(ngAstCommentNodes, code),
         tokens: [],
         range: [0, 0],
         loc: {
@@ -211,9 +307,18 @@ function parseForESLint(code, options) {
         templateNodes: angularCompilerResult.nodes,
         value: code,
     };
-    const scopeManager = new eslint_scope_1.ScopeManager({});
-    new eslint_scope_1.Scope(scopeManager, 'module', null, ast, false);
-    preprocessNode(ast);
+    const astAsProgram = Object.defineProperties(ast, {
+        body: {
+            value: [],
+            enumerable: false,
+        },
+        sourceType: {
+            value: 'module',
+            enumerable: false,
+        },
+    });
+    const scopeManager = (0, eslint_scope_1.analyze)(astAsProgram);
+    preprocessNode(ast, code);
     const startSourceSpan = getStartSourceSpanFromAST(ast);
     const endSourceSpan = getEndSourceSpanFromAST(ast);
     if (startSourceSpan && endSourceSpan) {

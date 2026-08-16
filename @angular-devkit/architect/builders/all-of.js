@@ -46,3 +46,4 @@ const builder = (0, src_1.createBuilder)((options, context) => {
     }));
 });
 exports.default = builder;
+//# sourceMappingURL=all-of.js.map

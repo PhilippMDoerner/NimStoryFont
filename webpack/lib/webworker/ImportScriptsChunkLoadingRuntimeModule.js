@@ -8,8 +8,11 @@ const RuntimeGlobals = require("../RuntimeGlobals");
 const RuntimeModule = require("../RuntimeModule");
 const Template = require("../Template");
 const {
-	getChunkFilenameTemplate,
-	chunkHasJs
+	generateJavascriptHMR
+} = require("../hmr/JavascriptHotModuleReplacementHelper");
+const {
+	chunkHasJs,
+	getChunkFilenameTemplate
 } = require("../javascript/JavascriptModulesPlugin");
 const { getInitialChunkIds } = require("../javascript/StartupHelpers");
 const compileBooleanMatcher = require("../util/compileBooleanMatcher");
@@ -27,7 +30,9 @@ class ImportScriptsChunkLoadingRuntimeModule extends RuntimeModule {
 	 */
 	constructor(runtimeRequirements, withCreateScriptUrl) {
 		super("importScripts chunk loading", RuntimeModule.STAGE_ATTACH);
+		/** @type {ReadOnlyRuntimeRequirements} */
 		this.runtimeRequirements = runtimeRequirements;
+		/** @type {boolean} */
 		this._withCreateScriptUrl = withCreateScriptUrl;
 	}
 
@@ -51,7 +56,7 @@ class ImportScriptsChunkLoadingRuntimeModule extends RuntimeModule {
 		);
 		const rootOutputDir = getUndoPath(
 			outputName,
-			/** @type {string} */ (compilation.outputOptions.path),
+			compilation.outputOptions.path,
 			false
 		);
 		return `${RuntimeGlobals.baseURI} = self.location + ${JSON.stringify(
@@ -60,6 +65,7 @@ class ImportScriptsChunkLoadingRuntimeModule extends RuntimeModule {
 	}
 
 	/**
+	 * Generates runtime code for this runtime module.
 	 * @returns {string | null} runtime code
 	 */
 	generate() {
@@ -94,6 +100,11 @@ class ImportScriptsChunkLoadingRuntimeModule extends RuntimeModule {
 			: undefined;
 		const runtimeTemplate = compilation.runtimeTemplate;
 		const { _withCreateScriptUrl: withCreateScriptUrl } = this;
+		const installedChunksObject = `{\n${Template.indent(
+			Array.from(initialChunkIds, (id) => `${JSON.stringify(id)}: 1`).join(
+				",\n"
+			)
+		)}\n}`;
 
 		return Template.asString([
 			withBaseURI ? this._generateBaseUri(chunk) : "// no baseURI",
@@ -101,14 +112,10 @@ class ImportScriptsChunkLoadingRuntimeModule extends RuntimeModule {
 			"// object to store loaded chunks",
 			'// "1" means "already loaded"',
 			`var installedChunks = ${
-				stateExpression ? `${stateExpression} = ${stateExpression} || ` : ""
-			}{`,
-			Template.indent(
-				Array.from(initialChunkIds, id => `${JSON.stringify(id)}: 1`).join(
-					",\n"
-				)
-			),
-			"};",
+				stateExpression
+					? runtimeTemplate.assignOr(stateExpression, installedChunksObject)
+					: installedChunksObject
+			};`,
 			"",
 			withCallback || withLoading
 				? Template.asString([
@@ -162,8 +169,11 @@ class ImportScriptsChunkLoadingRuntimeModule extends RuntimeModule {
 								)};`
 							: "",
 						"",
-						`var chunkLoadingGlobal = ${chunkLoadingGlobalExpr} = ${chunkLoadingGlobalExpr} || [];`,
+						`var chunkLoadingGlobal = ${runtimeTemplate.assignOr(chunkLoadingGlobalExpr, "[]")};`,
 						"var parentChunkLoadingFunction = chunkLoadingGlobal.push.bind(chunkLoadingGlobal);",
+						// Install chunks pushed before this runtime loaded (worklets
+						// pre-load every chunk via `addModule` before the entry runs).
+						"chunkLoadingGlobal.forEach(installChunk);",
 						"chunkLoadingGlobal.push = installChunk;"
 					])
 				: "// no chunk loading",
@@ -181,7 +191,7 @@ class ImportScriptsChunkLoadingRuntimeModule extends RuntimeModule {
 									`if(${RuntimeGlobals.hasOwnProperty}(moreModules, moduleId)) {`,
 									Template.indent([
 										"currentUpdate[moduleId] = moreModules[moduleId];",
-										"if(updatedModulesList) updatedModulesList.push(moduleId);"
+										`${runtimeTemplate.optionalChaining("updatedModulesList", "push(moduleId)")};`
 									]),
 									"}"
 								]),
@@ -199,28 +209,7 @@ class ImportScriptsChunkLoadingRuntimeModule extends RuntimeModule {
 						]),
 						"}",
 						"",
-						Template.getFunctionContent(
-							require("../hmr/JavascriptHotModuleReplacement.runtime.js")
-						)
-							.replace(/\$key\$/g, "importScripts")
-							.replace(/\$installedChunks\$/g, "installedChunks")
-							.replace(/\$loadUpdateChunk\$/g, "loadUpdateChunk")
-							.replace(/\$moduleCache\$/g, RuntimeGlobals.moduleCache)
-							.replace(/\$moduleFactories\$/g, RuntimeGlobals.moduleFactories)
-							.replace(
-								/\$ensureChunkHandlers\$/g,
-								RuntimeGlobals.ensureChunkHandlers
-							)
-							.replace(/\$hasOwnProperty\$/g, RuntimeGlobals.hasOwnProperty)
-							.replace(/\$hmrModuleData\$/g, RuntimeGlobals.hmrModuleData)
-							.replace(
-								/\$hmrDownloadUpdateHandlers\$/g,
-								RuntimeGlobals.hmrDownloadUpdateHandlers
-							)
-							.replace(
-								/\$hmrInvalidateModuleHandlers\$/g,
-								RuntimeGlobals.hmrInvalidateModuleHandlers
-							)
+						generateJavascriptHMR("importScripts")
 					])
 				: "// no HMR",
 			"",

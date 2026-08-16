@@ -1,6 +1,6 @@
 {
   "name": "babel-plugin-polyfill-corejs3",
-  "version": "0.11.1",
+  "version": "1.0.0",
   "description": "A Babel plugin to inject imports to core-js@3 polyfills",
   "repository": {
     "type": "git",
@@ -11,39 +11,36 @@
   "publishConfig": {
     "access": "public"
   },
-  "main": "lib/index.js",
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
+  "type": "module",
   "exports": {
-    ".": [
-      {
-        "import": "./esm/index.mjs",
-        "default": "./lib/index.js"
-      },
-      "./lib/index.js"
-    ],
+    ".": "./lib/index.js",
     "./package.json": "./package.json"
   },
   "keywords": [
     "babel-plugin"
   ],
   "dependencies": {
-    "@babel/helper-define-polyfill-provider": "^0.6.3",
-    "core-js-compat": "^3.40.0"
+    "@babel/helper-define-polyfill-provider": "^1.0.0",
+    "core-js-compat": "^3.48.0"
   },
   "devDependencies": {
-    "@babel/core": "^7.22.6",
-    "@babel/helper-plugin-test-runner": "^7.22.5",
-    "@babel/plugin-proposal-decorators": "^7.22.15",
-    "@babel/plugin-transform-class-properties": "^7.22.5",
-    "@babel/plugin-transform-classes": "^7.22.6",
-    "@babel/plugin-transform-for-of": "^7.22.5",
-    "@babel/plugin-transform-modules-commonjs": "^7.22.5",
-    "@babel/plugin-transform-runtime": "^7.22.15",
-    "@babel/plugin-transform-spread": "^7.22.5",
-    "core-js": "^3.40.0",
-    "core-js-pure": "^3.40.0"
+    "@babel/core": "^8.0.0",
+    "@babel/helper-plugin-test-runner": "^8.0.0",
+    "@babel/plugin-proposal-decorators": "^8.0.0",
+    "@babel/plugin-transform-class-properties": "^8.0.0",
+    "@babel/plugin-transform-classes": "^8.0.0",
+    "@babel/plugin-transform-for-of": "^8.0.0",
+    "@babel/plugin-transform-modules-commonjs": "^8.0.0",
+    "@babel/plugin-transform-runtime": "^8.0.0",
+    "@babel/plugin-transform-spread": "^8.0.0",
+    "core-js": "^3.48.0",
+    "core-js-pure": "^3.48.0"
   },
   "peerDependencies": {
-    "@babel/core": "^7.4.0 || ^8.0.0-0 <8.0.0"
+    "@babel/core": "^7.4.0 || ^8.0.0"
   },
-  "gitHead": "786a49e4fc05408168aefd9df018a56dcf97c450"
+  "gitHead": "6ef4cbfa11a278111869ca5ccab9e1d805ab69f7"
 }

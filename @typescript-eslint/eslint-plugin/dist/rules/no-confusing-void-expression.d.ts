@@ -7,6 +7,7 @@ export type Options = [
     }
 ];
 export type MessageId = 'invalidVoidExpr' | 'invalidVoidExprArrow' | 'invalidVoidExprArrowWrapVoid' | 'invalidVoidExprReturn' | 'invalidVoidExprReturnLast' | 'invalidVoidExprReturnWrapVoid' | 'invalidVoidExprWrapVoid' | 'voidExprWrapVoid';
-declare const _default: TSESLint.RuleModule<MessageId, Options, import("../../rules").ESLintPluginDocs, TSESLint.RuleListener>;
+declare const _default: TSESLint.RuleModule<MessageId, Options, import("../../rules").ESLintPluginDocs, TSESLint.RuleListener> & {
+    name: string;
+};
 export default _default;
-//# sourceMappingURL=no-confusing-void-expression.d.ts.map

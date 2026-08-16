@@ -8,8 +8,8 @@
 import ts from 'typescript';
 import { OwningModule, Reference } from '../../imports';
 import { ClassDeclaration, ReflectionHost } from '../../reflection';
-import { DirectiveMeta, DirectiveTypeCheckMeta, HostDirectiveMeta, HostDirectiveMetaForGlobalMode, InputMapping, MetadataReader, NgModuleMeta, PipeMeta } from './api';
-import { ClassPropertyMapping } from './property_mapping';
+import { DirectiveMeta, DirectiveTypeCheckMeta, HostDirectiveMeta, HostDirectiveMetaForGlobalMode, InputMapping, MetadataReader, NgModuleMeta, PipeMeta, ForeignComponentMeta } from './api';
+import { ClassPropertyMapping, SelectorlessMatcher } from '@angular/compiler';
 export declare function extractReferencesFromType(checker: ts.TypeChecker, def: ts.TypeNode, bestGuessOwningModule: OwningModule | null): {
     result: Reference<ClassDeclaration>[];
     isIncomplete: boolean;
@@ -44,3 +44,5 @@ export declare class CompoundMetadataReader implements MetadataReader {
 /** Returns whether a class declaration has the necessary class fields to make it injectable. */
 export declare function hasInjectableFields(clazz: ClassDeclaration, host: ReflectionHost): boolean;
 export declare function isHostDirectiveMetaForGlobalMode(hostDirectiveMeta: HostDirectiveMeta): hostDirectiveMeta is HostDirectiveMetaForGlobalMode;
+/** Extracts foreign component names from foreignImports and creates a SelectorlessMatcher. */
+export declare function createForeignComponentMatcher(foreignImports: ForeignComponentMeta[] | null): SelectorlessMatcher<ForeignComponentMeta> | null;

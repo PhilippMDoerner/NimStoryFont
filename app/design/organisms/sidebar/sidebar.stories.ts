@@ -1,6 +1,6 @@
 import { RouterTestingModule } from '@angular/router/testing';
 import { Meta, StoryFn, moduleMetadata } from '@storybook/angular';
-import { dummyCampaign } from 'src/app/_services/utils/campaign.mock.service';
+import { dummyCampaign } from '../../../_services/utils/campaign.mock.service';
 import { SidebarComponent } from './sidebar.component';
 
 // Add MockTokenService

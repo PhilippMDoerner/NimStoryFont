@@ -1,0 +1,49 @@
+var UnprotectedAttributes_1;
+import { __decorate } from "tslib";
+import { AsnProp, AsnPropTypes, AsnArray, AsnType, AsnTypeTypes, } from "@peculiar/asn1-schema";
+import { CMSVersion } from "./types.js";
+import { Attribute } from "./attribute.js";
+import { RecipientInfos } from "./recipient_infos.js";
+import { OriginatorInfo } from "./originator_info.js";
+import { EncryptedContentInfo } from "./encrypted_content_info.js";
+let UnprotectedAttributes = UnprotectedAttributes_1 = class UnprotectedAttributes extends AsnArray {
+    constructor(items) {
+        super(items);
+        Object.setPrototypeOf(this, UnprotectedAttributes_1.prototype);
+    }
+};
+UnprotectedAttributes = UnprotectedAttributes_1 = __decorate([
+    AsnType({
+        type: AsnTypeTypes.Set, itemType: Attribute,
+    })
+], UnprotectedAttributes);
+export { UnprotectedAttributes };
+export class EnvelopedData {
+    version = CMSVersion.v0;
+    originatorInfo;
+    recipientInfos = new RecipientInfos();
+    encryptedContentInfo = new EncryptedContentInfo();
+    unprotectedAttrs;
+    constructor(params = {}) {
+        Object.assign(this, params);
+    }
+}
+__decorate([
+    AsnProp({ type: AsnPropTypes.Integer })
+], EnvelopedData.prototype, "version", void 0);
+__decorate([
+    AsnProp({
+        type: OriginatorInfo, context: 0, implicit: true, optional: true,
+    })
+], EnvelopedData.prototype, "originatorInfo", void 0);
+__decorate([
+    AsnProp({ type: RecipientInfos })
+], EnvelopedData.prototype, "recipientInfos", void 0);
+__decorate([
+    AsnProp({ type: EncryptedContentInfo })
+], EnvelopedData.prototype, "encryptedContentInfo", void 0);
+__decorate([
+    AsnProp({
+        type: UnprotectedAttributes, context: 1, implicit: true, optional: true,
+    })
+], EnvelopedData.prototype, "unprotectedAttrs", void 0);

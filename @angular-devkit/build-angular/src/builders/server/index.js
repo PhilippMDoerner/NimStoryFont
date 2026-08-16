@@ -55,7 +55,6 @@ const configs_1 = require("../../tools/webpack/configs");
 const helpers_1 = require("../../tools/webpack/utils/helpers");
 const stats_1 = require("../../tools/webpack/utils/stats");
 const utils_1 = require("../../utils");
-const color_1 = require("../../utils/color");
 const copy_assets_1 = require("../../utils/copy-assets");
 const error_1 = require("../../utils/error");
 const i18n_inlining_1 = require("../../utils/i18n-inlining");
@@ -67,6 +66,8 @@ const webpack_browser_config_1 = require("../../utils/webpack-browser-config");
  */
 function execute(options, context, transforms = {}) {
     const root = context.workspaceRoot;
+    context.logger.warn('The "@angular-devkit/build-angular:server" builder is deprecated as part of Angular\'s Webpack support deprecation. ' +
+        'Use "@angular/build:application" instead. For more information, see https://angular.dev/tools/cli/build-system-migration.');
     // Check Angular version.
     (0, private_1.assertCompatibleAngularVersion)(root);
     const baseOutputPath = path.resolve(root, options.outputPath);
@@ -105,7 +106,7 @@ function execute(options, context, transforms = {}) {
                     spinner.succeed('Copying assets complete.');
                 }
                 catch (err) {
-                    spinner.fail(color_1.colors.redBright('Copying of assets failed.'));
+                    spinner.fail('Copying of assets failed.');
                     (0, error_1.assertIsError)(err);
                     return {
                         ...output,
@@ -128,6 +129,7 @@ function execute(options, context, transforms = {}) {
         }));
     }), (0, rxjs_1.concatMap)(async (output) => {
         if (!output.success) {
+            // The `as unknown` is here primarily for the linter.
             return output;
         }
         return {
@@ -167,6 +169,7 @@ async function initialize(options, context, webpackConfigurationTransform) {
             {
                 plugins: [
                     new webpack_1.default.DefinePlugin({
+                        'ngJitMode': false,
                         'ngServerMode': true,
                     }),
                 ],
@@ -205,22 +208,19 @@ async function checkTsConfigForPreserveWhitespacesSetting(context, tsConfigPath)
 function getPlatformServerExportsConfig(wco) {
     // Add `@angular/platform-server` exports.
     // This is needed so that DI tokens can be referenced and set at runtime outside of the bundle.
-    // Only add `@angular/platform-server` exports when it is installed.
-    // In some cases this builder is used when `@angular/platform-server` is not installed.
-    // Example: when using `@nguniversal/common/clover` which does not need `@angular/platform-server`.
-    return (0, helpers_1.isPackageInstalled)(wco.root, '@angular/platform-server')
-        ? {
-            module: {
-                rules: [
-                    {
-                        loader: require.resolve('./platform-server-exports-loader'),
-                        include: [path.resolve(wco.root, wco.buildOptions.main)],
-                        options: {
-                            angularSSRInstalled: (0, helpers_1.isPackageInstalled)(wco.root, '@angular/ssr'),
-                        },
+    return {
+        module: {
+            rules: [
+                {
+                    loader: require.resolve('./platform-server-exports-loader'),
+                    include: [path.resolve(wco.root, wco.buildOptions.main)],
+                    options: {
+                        angularSSRInstalled: (0, helpers_1.isPackageInstalled)(wco.root, '@angular/ssr'),
+                        isZoneJsInstalled: (0, helpers_1.isPackageInstalled)(wco.root, 'zone.js'),
                     },
-                ],
-            },
-        }
-        : {};
+                },
+            ],
+        },
+    };
 }
+//# sourceMappingURL=index.js.map

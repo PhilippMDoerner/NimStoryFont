@@ -81,3 +81,4 @@ class AliasHost extends resolver_1.ResolverHost {
     }
 }
 exports.AliasHost = AliasHost;
+//# sourceMappingURL=alias.js.map

@@ -2,7 +2,7 @@ import type { Program } from 'typescript';
 import type { Lib } from './lib';
 export type DebugLevel = boolean | ('eslint' | 'typescript' | 'typescript-eslint')[];
 export type CacheDurationSeconds = number | 'Infinity';
-export type EcmaVersion = 'latest' | 3 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 2015 | 2016 | 2017 | 2018 | 2019 | 2020 | 2021 | 2022 | 2023 | 2024 | 2025 | undefined;
+export type EcmaVersion = 3 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 2015 | 2016 | 2017 | 2018 | 2019 | 2020 | 2021 | 2022 | 2023 | 2024 | 2025 | 2026 | 'latest' | undefined;
 export type SourceTypeClassic = 'module' | 'script';
 export type SourceType = 'commonjs' | SourceTypeClassic;
 export type JSDocParsingMode = 'all' | 'none' | 'type-info';
@@ -64,6 +64,18 @@ export interface ParserOptions {
     sourceType?: SourceType | undefined;
     tokens?: boolean;
     tsconfigRootDir?: string;
+    /**
+     * Controls how the parser reacts when run with a TypeScript version that is
+     * not officially supported by typescript-eslint.
+     * - `'warn'` (default): log a warning to the console.
+     * - `'error'`: throw, causing the lint run to fail. Useful in CI to prevent
+     *   unsupported TypeScript versions from being merged unnoticed.
+     * - `'ignore'`: do nothing.
+     */
+    onUnsupportedTypeScriptVersion?: 'error' | 'ignore' | 'warn';
+    /**
+     * @deprecated Use {@link onUnsupportedTypeScriptVersion} instead.
+     * `true` is equivalent to `'warn'` and `false` is equivalent to `'ignore'`.
+     */
     warnOnUnsupportedTypeScriptVersion?: boolean;
 }
-//# sourceMappingURL=parser-options.d.ts.map

@@ -1,7 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { ElementKind } from 'src/app/design/atoms/_models/button';
-import { Icon } from 'src/app/design/atoms/_models/icon';
-import { copyToClipboard } from 'src/utils/clipboard';
+import { copyToClipboard } from '../../utils/clipboard';
+import { ElementKind } from '../design/atoms/_models/button';
+import { Icon } from '../design/atoms/_models/icon';
 
 export interface ToastButton {
   label: string;

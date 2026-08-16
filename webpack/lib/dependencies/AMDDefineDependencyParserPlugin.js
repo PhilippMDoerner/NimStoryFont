@@ -24,19 +24,22 @@ const { addLocalModule, getLocalModule } = require("./LocalModulesHelpers");
 /** @typedef {import("estree").Literal} Literal */
 /** @typedef {import("estree").MemberExpression} MemberExpression */
 /** @typedef {import("estree").ObjectExpression} ObjectExpression */
-/** @typedef {import("estree").SimpleCallExpression} SimpleCallExpression */
 /** @typedef {import("estree").SpreadElement} SpreadElement */
 /** @typedef {import("../../declarations/WebpackOptions").JavascriptParserOptions} JavascriptParserOptions */
+/** @typedef {import("../Dependency")} Dependency */
 /** @typedef {import("../Dependency").DependencyLocation} DependencyLocation */
 /** @typedef {import("../javascript/BasicEvaluatedExpression")} BasicEvaluatedExpression */
 /** @typedef {import("../javascript/JavascriptParser")} JavascriptParser */
+/** @typedef {import("../javascript/JavascriptParser").ExportedVariableInfo} ExportedVariableInfo */
 /** @typedef {import("../javascript/JavascriptParser").Range} Range */
+/** @typedef {import("./LocalModule")} LocalModule */
 
 /**
+ * Checks whether this object is bound function expression.
  * @param {Expression | SpreadElement} expr expression
  * @returns {expr is CallExpression} true if it's a bound function expression
  */
-const isBoundFunctionExpression = expr => {
+const isBoundFunctionExpression = (expr) => {
 	if (expr.type !== "CallExpression") return false;
 	if (expr.callee.type !== "MemberExpression") return false;
 	if (expr.callee.computed) return false;
@@ -49,51 +52,58 @@ const isBoundFunctionExpression = expr => {
 /** @typedef {FunctionExpression | ArrowFunctionExpression} UnboundFunctionExpression */
 
 /**
+ * Checks whether this object is unbound function expression.
  * @param {Expression | SpreadElement} expr expression
  * @returns {expr is FunctionExpression | ArrowFunctionExpression} true when unbound function expression
  */
-const isUnboundFunctionExpression = expr => {
+const isUnboundFunctionExpression = (expr) => {
 	if (expr.type === "FunctionExpression") return true;
 	if (expr.type === "ArrowFunctionExpression") return true;
 	return false;
 };
 
 /**
+ * Checks whether this object is callable.
  * @param {Expression | SpreadElement} expr expression
  * @returns {expr is FunctionExpression | ArrowFunctionExpression | CallExpression} true when callable
  */
-const isCallable = expr => {
+const isCallable = (expr) => {
 	if (isUnboundFunctionExpression(expr)) return true;
 	if (isBoundFunctionExpression(expr)) return true;
 	return false;
 };
 
+/** @typedef {Record<number, string>} Identifiers */
+
+const PLUGIN_NAME = "AMDDefineDependencyParserPlugin";
+
 class AMDDefineDependencyParserPlugin {
 	/**
+	 * Creates an instance of AMDDefineDependencyParserPlugin.
 	 * @param {JavascriptParserOptions} options parserOptions
 	 */
 	constructor(options) {
+		/** @type {JavascriptParserOptions} */
 		this.options = options;
 	}
 
 	/**
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {JavascriptParser} parser the parser
 	 * @returns {void}
 	 */
 	apply(parser) {
 		parser.hooks.call
 			.for("define")
-			.tap(
-				"AMDDefineDependencyParserPlugin",
-				this.processCallDefine.bind(this, parser)
-			);
+			.tap(PLUGIN_NAME, this.processCallDefine.bind(this, parser));
 	}
 
 	/**
+	 * Processes the provided parser.
 	 * @param {JavascriptParser} parser the parser
 	 * @param {CallExpression} expr call expression
 	 * @param {BasicEvaluatedExpression} param param
-	 * @param {Record<number, string>} identifiers identifiers
+	 * @param {Identifiers} identifiers identifiers
 	 * @param {string=} namedModule named module
 	 * @returns {boolean | undefined} result
 	 */
@@ -106,10 +116,11 @@ class AMDDefineDependencyParserPlugin {
 					["require", "module", "exports"].includes(
 						/** @type {string} */ (item.string)
 					)
-				)
-					identifiers[/** @type {number} */ (idx)] = /** @type {string} */ (
-						item.string
-					);
+				) {
+					identifiers[idx] =
+						/** @type {string} */
+						(item.string);
+				}
 				const result = this.processItem(parser, expr, item, namedModule);
 				if (result === undefined) {
 					this.processContext(parser, expr, item);
@@ -121,7 +132,9 @@ class AMDDefineDependencyParserPlugin {
 			const deps = [];
 			const array = /** @type {string[]} */ (param.array);
 			for (const [idx, request] of array.entries()) {
+				/** @type {string | LocalModuleDependency | AMDRequireItemDependency} */
 				let dep;
+				/** @type {undefined | null | LocalModule} */
 				let localModule;
 				if (request === "require") {
 					identifiers[idx] = request;
@@ -132,11 +145,11 @@ class AMDDefineDependencyParserPlugin {
 				} else if ((localModule = getLocalModule(parser.state, request))) {
 					localModule.flagUsed();
 					dep = new LocalModuleDependency(localModule, undefined, false);
-					dep.loc = /** @type {DependencyLocation} */ (expr.loc);
+					dep.loc = parser.getLocation(expr);
 					parser.state.module.addPresentationalDependency(dep);
 				} else {
 					dep = this.newRequireItemDependency(request);
-					dep.loc = /** @type {DependencyLocation} */ (expr.loc);
+					dep.loc = parser.getLocation(expr);
 					dep.optional = Boolean(parser.scope.inTry);
 					parser.state.current.addDependency(dep);
 				}
@@ -146,7 +159,7 @@ class AMDDefineDependencyParserPlugin {
 				deps,
 				/** @type {Range} */ (param.range)
 			);
-			dep.loc = /** @type {DependencyLocation} */ (expr.loc);
+			dep.loc = parser.getLocation(expr);
 			dep.optional = Boolean(parser.scope.inTry);
 			parser.state.module.addPresentationalDependency(dep);
 			return true;
@@ -154,6 +167,7 @@ class AMDDefineDependencyParserPlugin {
 	}
 
 	/**
+	 * Processes the provided parser.
 	 * @param {JavascriptParser} parser the parser
 	 * @param {CallExpression} expr call expression
 	 * @param {BasicEvaluatedExpression} param param
@@ -172,7 +186,9 @@ class AMDDefineDependencyParserPlugin {
 
 			return true;
 		} else if (param.isString()) {
+			/** @type {Dependency} */
 			let dep;
+			/** @type {undefined | null | LocalModule} */
 			let localModule;
 
 			if (param.string === "require") {
@@ -211,13 +227,14 @@ class AMDDefineDependencyParserPlugin {
 				parser.state.current.addDependency(dep);
 				return true;
 			}
-			dep.loc = /** @type {DependencyLocation} */ (expr.loc);
+			dep.loc = parser.getLocation(expr);
 			parser.state.module.addPresentationalDependency(dep);
 			return true;
 		}
 	}
 
 	/**
+	 * Processes the provided parser.
 	 * @param {JavascriptParser} parser the parser
 	 * @param {CallExpression} expr call expression
 	 * @param {BasicEvaluatedExpression} param param
@@ -236,13 +253,14 @@ class AMDDefineDependencyParserPlugin {
 			parser
 		);
 		if (!dep) return;
-		dep.loc = /** @type {DependencyLocation} */ (expr.loc);
+		dep.loc = parser.getLocation(expr);
 		dep.optional = Boolean(parser.scope.inTry);
 		parser.state.current.addDependency(dep);
 		return true;
 	}
 
 	/**
+	 * Process call define.
 	 * @param {JavascriptParser} parser the parser
 	 * @param {CallExpression} expr call expression
 	 * @returns {boolean | undefined} result
@@ -347,9 +365,10 @@ class AMDDefineDependencyParserPlugin {
 				}
 			}
 		}
+		/** @type {Map<string, ExportedVariableInfo>} */
 		const fnRenames = new Map();
 		if (array) {
-			/** @type {Record<number, string>} */
+			/** @type {Identifiers} */
 			const identifiers = {};
 			const param = parser.evaluateExpression(array);
 			const result = this.processArray(
@@ -385,21 +404,25 @@ class AMDDefineDependencyParserPlugin {
 		let inTry;
 		if (fn && isUnboundFunctionExpression(fn)) {
 			inTry = parser.scope.inTry;
-			parser.inScope(/** @type {Identifier[]} */ (fnParams), () => {
-				for (const [name, varInfo] of fnRenames) {
-					parser.setVariable(name, varInfo);
+			parser.inFunctionScope(
+				true,
+				/** @type {Identifier[]} */ (fnParams),
+				() => {
+					for (const [name, varInfo] of fnRenames) {
+						parser.setVariable(name, varInfo);
+					}
+					parser.scope.inTry = /** @type {boolean} */ (inTry);
+					if (fn.body.type === "BlockStatement") {
+						parser.detectMode(fn.body.body);
+						const prev = parser.prevStatement;
+						parser.preWalkStatement(fn.body);
+						parser.prevStatement = prev;
+						parser.walkStatement(fn.body);
+					} else {
+						parser.walkExpression(fn.body);
+					}
 				}
-				parser.scope.inTry = /** @type {boolean} */ (inTry);
-				if (fn.body.type === "BlockStatement") {
-					parser.detectMode(fn.body.body);
-					const prev = parser.prevStatement;
-					parser.preWalkStatement(fn.body);
-					parser.prevStatement = prev;
-					parser.walkStatement(fn.body);
-				} else {
-					parser.walkExpression(fn.body);
-				}
-			});
+			);
 		} else if (fn && isBoundFunctionExpression(fn)) {
 			inTry = parser.scope.inTry;
 
@@ -407,29 +430,22 @@ class AMDDefineDependencyParserPlugin {
 				/** @type {FunctionExpression} */
 				(/** @type {MemberExpression} */ (fn.callee).object);
 
-			parser.inScope(
+			parser.inFunctionScope(
+				true,
 				/** @type {Identifier[]} */
 				(object.params).filter(
-					i => !["require", "module", "exports"].includes(i.name)
+					(i) => !["require", "module", "exports"].includes(i.name)
 				),
 				() => {
 					for (const [name, varInfo] of fnRenames) {
 						parser.setVariable(name, varInfo);
 					}
 					parser.scope.inTry = /** @type {boolean} */ (inTry);
-
-					if (object.body.type === "BlockStatement") {
-						parser.detectMode(object.body.body);
-						const prev = parser.prevStatement;
-						parser.preWalkStatement(object.body);
-						parser.prevStatement = prev;
-						parser.walkStatement(object.body);
-					} else {
-						parser.walkExpression(
-							/** @type {TODO} */
-							(object.body)
-						);
-					}
+					parser.detectMode(object.body.body);
+					const prev = parser.prevStatement;
+					parser.preWalkStatement(object.body);
+					parser.prevStatement = prev;
+					parser.walkStatement(object.body);
 				}
 			);
 			if (fn.arguments) {
@@ -449,7 +465,7 @@ class AMDDefineDependencyParserPlugin {
 			obj ? /** @type {Range} */ (obj.range) : null,
 			namedModule || null
 		);
-		dep.loc = /** @type {DependencyLocation} */ (expr.loc);
+		dep.loc = parser.getLocation(expr);
 		if (namedModule) {
 			dep.localModule = addLocalModule(parser.state, namedModule);
 		}
@@ -458,6 +474,7 @@ class AMDDefineDependencyParserPlugin {
 	}
 
 	/**
+	 * New define dependency.
 	 * @param {Range} range range
 	 * @param {Range | null} arrayRange array range
 	 * @param {Range | null} functionRange function range
@@ -482,6 +499,7 @@ class AMDDefineDependencyParserPlugin {
 	}
 
 	/**
+	 * New require array dependency.
 	 * @param {(string | LocalModuleDependency | AMDRequireItemDependency)[]} depsArray deps array
 	 * @param {Range} range range
 	 * @returns {AMDRequireArrayDependency} AMDRequireArrayDependency
@@ -491,6 +509,7 @@ class AMDDefineDependencyParserPlugin {
 	}
 
 	/**
+	 * New require item dependency.
 	 * @param {string} request request
 	 * @param {Range=} range range
 	 * @returns {AMDRequireItemDependency} AMDRequireItemDependency

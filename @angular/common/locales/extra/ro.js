@@ -7,5 +7,5 @@
  */
 // THIS CODE IS GENERATED - DO NOT MODIFY.
 const u = undefined;
-export default [[["miezul nopții", "la amiază", "dimineața", "după-amiaza", "seara", "noaptea"], ["miezul nopții", "amiază", "dimineața", "după-amiaza", "seara", "noaptea"], ["la miezul nopții", "la amiază", "dimineața", "după-amiaza", "seara", "noaptea"]], [["miezul nopții", "amiază", "dimineața", "după-amiaza", "seara", "noaptea"], u, ["la miezul nopții", "la amiază", "dimineața", "după-amiaza", "seara", "noaptea"]], ["00:00", "12:00", ["05:00", "12:00"], ["12:00", "18:00"], ["18:00", "22:00"], ["22:00", "05:00"]]];
+export default [[["miezul nopții", "amiază", "dimineața", "după-amiaza", "seara", "noaptea"], u, ["la miezul nopții", "la amiază", "dimineața", "după-amiaza", "seara", "noaptea"]], u, ["00:00", "12:00", ["05:00", "12:00"], ["12:00", "18:00"], ["18:00", "22:00"], ["22:00", "05:00"]]];
 //# sourceMappingURL=ro.js.map

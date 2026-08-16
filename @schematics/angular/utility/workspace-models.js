@@ -30,6 +30,7 @@ var Builders;
     Builders["BrowserEsbuild"] = "@angular-devkit/build-angular:browser-esbuild";
     Builders["Karma"] = "@angular-devkit/build-angular:karma";
     Builders["BuildKarma"] = "@angular/build:karma";
+    Builders["BuildUnitTest"] = "@angular/build:unit-test";
     Builders["TsLint"] = "@angular-devkit/build-angular:tslint";
     Builders["NgPackagr"] = "@angular-devkit/build-angular:ng-packagr";
     Builders["BuildNgPackagr"] = "@angular/build:ng-packagr";
@@ -37,6 +38,6 @@ var Builders;
     Builders["BuildDevServer"] = "@angular/build:dev-server";
     Builders["ExtractI18n"] = "@angular-devkit/build-angular:extract-i18n";
     Builders["BuildExtractI18n"] = "@angular/build:extract-i18n";
-    Builders["Protractor"] = "@angular-devkit/build-angular:private-protractor";
     Builders["BuildApplication"] = "@angular/build:application";
 })(Builders || (exports.Builders = Builders = {}));
+//# sourceMappingURL=workspace-models.js.map

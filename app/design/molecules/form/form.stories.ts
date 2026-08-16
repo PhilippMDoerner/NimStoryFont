@@ -5,17 +5,12 @@ import { BrowserModule } from '@angular/platform-browser';
 import { NgbModule } from '@ng-bootstrap/ng-bootstrap';
 import { FormlyBootstrapModule } from '@ngx-formly/bootstrap';
 import { FormlyFieldConfig } from '@ngx-formly/core';
-import { action } from 'storybook/actions';
 import { Meta, StoryFn, moduleMetadata } from '@storybook/angular';
-import { EditorModule } from '@tinymce/tinymce-angular';
 import { Observable, of } from 'rxjs';
-import * as all from 'tinymce/tinymce';
+import { action } from 'storybook/actions';
 
-import { FORMLY_MODULE } from 'src/app/_modules/formly_constants';
+import { FORMLY_MODULE } from '../../../_modules/formly_constants';
 import { FormComponent } from './form.component';
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const x = all;
 
 const dummyData: any[] = [
   {
@@ -292,7 +287,6 @@ export default {
         ReactiveFormsModule,
         FormsModule,
         NgbModule,
-        EditorModule,
         FORMLY_MODULE,
         FormlyBootstrapModule,
       ],

@@ -7,26 +7,27 @@
 
 /** @typedef {import("../Compiler")} Compiler */
 
+const PLUGIN_NAME = "AddBuildDependenciesPlugin";
+
 class AddBuildDependenciesPlugin {
 	/**
+	 * Creates an instance of AddBuildDependenciesPlugin.
 	 * @param {Iterable<string>} buildDependencies list of build dependencies
 	 */
 	constructor(buildDependencies) {
+		/** @type {Set<string>} */
 		this.buildDependencies = new Set(buildDependencies);
 	}
 
 	/**
-	 * Apply the plugin
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Compiler} compiler the compiler instance
 	 * @returns {void}
 	 */
 	apply(compiler) {
-		compiler.hooks.compilation.tap(
-			"AddBuildDependenciesPlugin",
-			compilation => {
-				compilation.buildDependencies.addAll(this.buildDependencies);
-			}
-		);
+		compiler.hooks.compilation.tap(PLUGIN_NAME, (compilation) => {
+			compilation.buildDependencies.addAll(this.buildDependencies);
+		});
 	}
 }
 

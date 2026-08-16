@@ -17,6 +17,7 @@ exports.default = (plugin, parser) => [
             '@angular-eslint/template/banana-in-box': 'error',
             '@angular-eslint/template/eqeqeq': 'error',
             '@angular-eslint/template/no-negated-async': 'error',
+            '@angular-eslint/template/prefer-control-flow': 'error',
         },
     },
 ];

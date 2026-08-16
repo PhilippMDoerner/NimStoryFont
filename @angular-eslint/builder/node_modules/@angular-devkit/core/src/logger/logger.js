@@ -120,3 +120,4 @@ class Logger extends rxjs_1.Observable {
     }
 }
 exports.Logger = Logger;
+//# sourceMappingURL=logger.js.map

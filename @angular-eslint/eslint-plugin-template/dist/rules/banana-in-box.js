@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RULE_NAME = void 0;
+exports.RULE_DOCS_EXTENSION = exports.RULE_NAME = void 0;
 const utils_1 = require("@angular-eslint/utils");
 const create_eslint_rule_1 = require("../utils/create-eslint-rule");
 exports.RULE_NAME = 'banana-in-box';
@@ -45,3 +45,6 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
         };
     },
 });
+exports.RULE_DOCS_EXTENSION = {
+    rationale: 'The Angular two-way binding syntax is [(ngModel)]="value", where the parentheses are INSIDE the brackets, resembling a banana in a box. A common typo is ([ngModel])="value" with the parentheses outside, which creates a one-way binding FROM the template TO the component (the opposite of what\'s intended). This will make the input update when the value changes but won\'t update the value when the user types. This syntax error is easy to make and can be hard to spot visually, but it breaks two-way data binding. The correct syntax is: [()] for two-way binding, [] for property binding (component to template), and () for event binding (template to component).',
+};

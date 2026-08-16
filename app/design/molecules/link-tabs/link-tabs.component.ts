@@ -17,5 +17,5 @@ export interface LinkTab {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LinkTabsComponent {
-  tabs = input.required<LinkTab[]>();
+  readonly tabs = input.required<LinkTab[]>();
 }

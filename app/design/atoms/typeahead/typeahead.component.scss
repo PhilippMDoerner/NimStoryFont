@@ -2,19 +2,22 @@
   display: flex;
   flex-direction: row;
   align-items: center;
+  gap: var(--spacer-2);
   color: var(--bs-white);
-  background-color: var(--bs-dark);
+  background-color: var(--typeahead-bg-color, var(--bs-dark));
   border-radius: var(--bs-border-radius);
   padding: var(--spacer-1) var(--spacer-2);
 
   &:has(.input:focus) {
-    outline: var(--focus-outline);
+    outline: var(--typeahead-focus-outline, var(--focus-outline));
   }
 }
 
 .input {
   background-color: unset;
-  border: unset;
   outline: unset;
+
+  border: none;
+  border-radius: var(--bs-border-radius);
   color: var(--bs-white);
 }

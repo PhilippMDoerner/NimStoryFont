@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RandomJson = void 0;
+const string_1 = require("./string");
 const defaultOpts = {
     rootNode: 'object',
     nodeCount: 32,
@@ -189,15 +190,21 @@ class RandomJson {
                 this.opts.odds.binary +
                 this.opts.odds.array +
                 this.opts.odds.object;
-        this.root =
-            this.opts.rootNode === 'object'
-                ? {}
-                : this.opts.rootNode === 'array'
-                    ? []
-                    : this.pickContainerType() === 'object'
-                        ? {}
-                        : [];
-        this.containers.push(this.root);
+        if (this.opts.rootNode === 'string') {
+            this.root = this.generateString();
+            this.opts.nodeCount = 0;
+        }
+        else {
+            this.root =
+                this.opts.rootNode === 'object'
+                    ? {}
+                    : this.opts.rootNode === 'array'
+                        ? []
+                        : this.pickContainerType() === 'object'
+                            ? {}
+                            : [];
+            this.containers.push(this.root);
+        }
     }
     create() {
         for (let i = 0; i < this.opts.nodeCount; i++)
@@ -228,7 +235,7 @@ class RandomJson {
             case 'number':
                 return RandomJson.genNumber();
             case 'string':
-                return RandomJson.genString();
+                return this.generateString();
             case 'binary':
                 return RandomJson.genBinary();
             case 'array':
@@ -236,6 +243,10 @@ class RandomJson {
             case 'object':
                 return {};
         }
+    }
+    generateString() {
+        const strings = this.opts.strings;
+        return strings ? (0, string_1.randomString)(strings) : RandomJson.genString();
     }
     pickNodeType() {
         const odd = Math.random() * this.totalOdds;

@@ -21,3 +21,4 @@ class ScopedHost extends resolver_1.ResolverHost {
     }
 }
 exports.ScopedHost = ScopedHost;
+//# sourceMappingURL=scoped.js.map

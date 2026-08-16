@@ -47,11 +47,9 @@ function shouldWrapSchematic(schematicFile, schematicEncapsulation) {
     }
     // Check for first-party Angular schematic packages
     // Angular schematics are safe to use in the wrapped VM context
-    if (/\/node_modules\/@(?:angular|schematics|nguniversal)\//.test(normalizedSchematicFile)) {
-        return true;
-    }
-    // Otherwise use the value of the schematic collection's encapsulation option (current default of false)
-    return schematicEncapsulation;
+    const isFirstParty = /\/node_modules\/@(?:angular|schematics|nguniversal)\//.test(normalizedSchematicFile);
+    // Use value of defined option if present, otherwise default to first-party usage.
+    return schematicEncapsulation ?? isFirstParty;
 }
 class SchematicEngineHost extends tools_1.NodeModulesEngineHost {
     _resolveReferenceString(refString, parentPath, collectionDescription) {
@@ -60,7 +58,7 @@ class SchematicEngineHost extends tools_1.NodeModulesEngineHost {
         const fullPath = path[0] === '.' ? (0, node_path_1.resolve)(parentPath ?? process.cwd(), path) : path;
         const referenceRequire = (0, node_module_1.createRequire)(__filename);
         const schematicFile = referenceRequire.resolve(fullPath, { paths: [parentPath] });
-        if (shouldWrapSchematic(schematicFile, !!collectionDescription?.encapsulation)) {
+        if (shouldWrapSchematic(schematicFile, collectionDescription?.encapsulation)) {
             const schematicPath = (0, node_path_1.dirname)(schematicFile);
             const moduleCache = new Map();
             const factoryInitializer = wrap(schematicFile, schematicPath, moduleCache, name || 'default');
@@ -178,3 +176,4 @@ function wrap(schematicFile, schematicDirectory, moduleCache, exportName) {
 function loadBuiltinModule(id) {
     return undefined;
 }
+//# sourceMappingURL=schematic-engine-host.js.map

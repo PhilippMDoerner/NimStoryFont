@@ -5,13 +5,19 @@
 
 "use strict";
 
+/**
+ * Simple counting semaphore used to limit how many asynchronous tasks may run
+ * concurrently.
+ */
 class Semaphore {
 	/**
-	 * Creates an instance of Semaphore.
+	 * Initializes the semaphore with the number of permits that may be held at
+	 * the same time.
 	 * @param {number} available the amount available number of "tasks"
 	 * in the Semaphore
 	 */
 	constructor(available) {
+		/** @type {number} */
 		this.available = available;
 		/** @type {(() => void)[]} */
 		this.waiters = [];
@@ -20,6 +26,8 @@ class Semaphore {
 	}
 
 	/**
+	 * Acquires a permit for the callback immediately when one is available or
+	 * queues the callback until another task releases its permit.
 	 * @param {() => void} callback function block to capture and run
 	 * @returns {void}
 	 */
@@ -32,6 +40,9 @@ class Semaphore {
 		}
 	}
 
+	/**
+	 * Releases a permit and schedules the next waiting callback, if any.
+	 */
 	release() {
 		this.available++;
 		if (this.waiters.length > 0) {
@@ -39,6 +50,9 @@ class Semaphore {
 		}
 	}
 
+	/**
+	 * Drains the next waiting callback after a permit becomes available.
+	 */
 	_continue() {
 		if (this.available > 0 && this.waiters.length > 0) {
 			this.available--;

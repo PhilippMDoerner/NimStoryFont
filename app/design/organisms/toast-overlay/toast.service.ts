@@ -1,11 +1,13 @@
 import { computed, Injectable, signal } from '@angular/core';
-import { ToastConfig } from 'src/app/_models/toast';
-import { log } from 'src/utils/logging';
+import { log } from '../../../../utils/logging';
+import { ToastConfig } from '../../../_models/toast';
 
 @Injectable({ providedIn: 'root' })
 export class ToastService {
-  private toasts = signal<ToastConfig[]>([]);
-  currentToast = computed<ToastConfig | undefined>(() => this.toasts()[0]);
+  private readonly toasts = signal<ToastConfig[]>([]);
+  readonly currentToast = computed<ToastConfig | undefined>(
+    () => this.toasts()[0],
+  );
 
   public addToast(newToast: ToastConfig) {
     log(this.addToast.name, newToast);

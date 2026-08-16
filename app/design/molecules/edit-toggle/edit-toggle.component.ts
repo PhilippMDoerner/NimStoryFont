@@ -6,9 +6,9 @@ import {
   output,
 } from '@angular/core';
 import { NgbTooltip } from '@ng-bootstrap/ng-bootstrap';
-import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
-import { ElementKind } from 'src/app/design/atoms/_models/button';
-import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
+import { HotkeyDirective } from '../../../_directives/hotkey.directive';
+import { ElementKind } from '../../atoms/_models/button';
+import { ButtonComponent } from '../../atoms/button/button.component';
 
 @Component({
   selector: 'app-edit-toggle',
@@ -18,13 +18,13 @@ import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
   imports: [ButtonComponent, HotkeyDirective, NgbTooltip],
 })
 export class EditToggleComponent {
-  buttonKind = input<ElementKind>('SECONDARY');
-  toggled = input<boolean>(false);
-  disabledHotkey = input(false);
-  title = input.required<string>();
-  _toggled = linkedSignal(() => this.toggled());
+  readonly buttonKind = input<ElementKind>('SECONDARY');
+  readonly toggled = input<boolean>(false);
+  readonly disabledHotkey = input(false);
+  readonly title = input.required<string>();
+  readonly _toggled = linkedSignal(() => this.toggled());
 
-  toggleEdit = output<boolean>();
+  readonly toggleEdit = output<boolean>();
 
   onClick() {
     this._toggled.set(!this._toggled());

@@ -1,6 +1,6 @@
 import { TitleCasePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
-import { Key } from 'src/app/_models/hotkey';
+import { Key } from '../../../_models/hotkey';
 
 @Component({
   selector: 'app-key',
@@ -10,5 +10,5 @@ import { Key } from 'src/app/_models/hotkey';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class KeyComponent {
-  key = input.required<Key>();
+  readonly key = input.required<Key>();
 }

@@ -2,11 +2,11 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CborDecoderBase = void 0;
 const tslib_1 = require("tslib");
-const f16_1 = require("@jsonjoy.com/util/lib/buffers/f16");
+const f16_1 = require("@jsonjoy.com/buffers/lib/f16");
 const JsonPackExtension_1 = require("../JsonPackExtension");
 const JsonPackValue_1 = require("../JsonPackValue");
-const Reader_1 = require("@jsonjoy.com/util/lib/buffers/Reader");
-const sharedCachedUtf8Decoder_1 = tslib_1.__importDefault(require("@jsonjoy.com/util/lib/buffers/utf8/sharedCachedUtf8Decoder"));
+const Reader_1 = require("@jsonjoy.com/buffers/lib/Reader");
+const sharedCachedUtf8Decoder_1 = tslib_1.__importDefault(require("@jsonjoy.com/buffers/lib/utf8/sharedCachedUtf8Decoder"));
 class CborDecoderBase {
     constructor(reader = new Reader_1.Reader(), keyDecoder = sharedCachedUtf8Decoder_1.default) {
         this.reader = reader;
@@ -14,13 +14,16 @@ class CborDecoderBase {
     }
     read(uint8) {
         this.reader.reset(uint8);
-        return this.val();
+        return this.readAny();
     }
     decode(uint8) {
         this.reader.reset(uint8);
-        return this.val();
+        return this.readAny();
     }
     val() {
+        return this.readAny();
+    }
+    readAny() {
         const reader = this.reader;
         const octet = reader.u8();
         const major = octet >> 5;
@@ -214,13 +217,13 @@ class CborDecoderBase {
     readArrRaw(length) {
         const arr = [];
         for (let i = 0; i < length; i++)
-            arr.push(this.val());
+            arr.push(this.readAny());
         return arr;
     }
     readArrIndef() {
         const arr = [];
         while (this.reader.peak() !== 255)
-            arr.push(this.val());
+            arr.push(this.readAny());
         this.reader.x++;
         return arr;
     }
@@ -246,7 +249,7 @@ class CborDecoderBase {
                 const key = this.key();
                 if (key === '__proto__')
                     throw 6;
-                const value = this.val();
+                const value = this.readAny();
                 obj[key] = value;
             }
             return obj;
@@ -260,7 +263,7 @@ class CborDecoderBase {
         const obj = {};
         for (let i = 0; i < length; i++) {
             const key = this.key();
-            const value = this.val();
+            const value = this.readAny();
             obj[key] = value;
         }
         return obj;
@@ -271,7 +274,7 @@ class CborDecoderBase {
             const key = this.key();
             if (this.reader.peak() === 255)
                 throw 7;
-            const value = this.val();
+            const value = this.readAny();
             obj[key] = value;
         }
         this.reader.x++;
@@ -307,7 +310,7 @@ class CborDecoderBase {
         }
     }
     readTagRaw(tag) {
-        return new JsonPackExtension_1.JsonPackExtension(tag, this.val());
+        return new JsonPackExtension_1.JsonPackExtension(tag, this.readAny());
     }
     readTkn(minor) {
         switch (minor) {

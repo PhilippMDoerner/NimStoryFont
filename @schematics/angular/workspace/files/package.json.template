@@ -9,6 +9,7 @@
     "test": "ng test"<% } %>
   },
   "private": true,
+  <% if (packageManagerWithVersion) { %>"packageManager": "<%= packageManagerWithVersion %>",<% } %>
   "dependencies": {
     "@angular/common": "<%= latestVersions.Angular %>",
     "@angular/compiler": "<%= latestVersions.Angular %>",
@@ -21,14 +22,8 @@
   },
   "devDependencies": {
     "@angular/cli": "<%= '^' + version %>",
-    "@angular/compiler-cli": "<%= latestVersions.Angular %>",<% if (!minimal) { %>
-    "@types/jasmine": "<%= latestVersions['@types/jasmine'] %>",
-    "jasmine-core": "<%= latestVersions['jasmine-core'] %>",
-    "karma": "<%= latestVersions['karma'] %>",
-    "karma-chrome-launcher": "<%= latestVersions['karma-chrome-launcher'] %>",
-    "karma-coverage": "<%= latestVersions['karma-coverage'] %>",
-    "karma-jasmine": "<%= latestVersions['karma-jasmine'] %>",
-    "karma-jasmine-html-reporter": "<%= latestVersions['karma-jasmine-html-reporter'] %>",<% } %>
+    "@angular/compiler-cli": "<%= latestVersions.Angular %>",
+    "prettier": "<%= latestVersions['prettier'] %>",
     "typescript": "<%= latestVersions['typescript'] %>"
   }
 }

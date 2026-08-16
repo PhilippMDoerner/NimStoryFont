@@ -13,3 +13,4 @@ const builder_1 = require("./builder");
 Object.defineProperty(exports, "execute", { enumerable: true, get: function () { return builder_1.execute; } });
 const builder = (0, architect_1.createBuilder)(builder_1.execute);
 exports.default = builder;
+//# sourceMappingURL=index.js.map

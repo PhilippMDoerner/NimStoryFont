@@ -5,6 +5,8 @@
 
 "use strict";
 
+const { ImportPhaseUtils } = require("./dependencies/ImportPhase");
+const { InlinedUsedName } = require("./optimize/InlineExports");
 const { equals } = require("./util/ArrayHelpers");
 const SortableSet = require("./util/SortableSet");
 const makeSerializable = require("./util/makeSerializable");
@@ -12,15 +14,47 @@ const { forEachRuntime } = require("./util/runtime");
 
 /** @typedef {import("./Dependency")} Dependency */
 /** @typedef {import("./Dependency").RuntimeSpec} RuntimeSpec */
+/** @typedef {import("./Dependency").ExportInfoName} ExportInfoName */
+/** @typedef {import("./Dependency").ExportsSpecExcludeExports} ExportsSpecExcludeExports */
+/** @typedef {import("./dependencies/HarmonyImportDependency")} HarmonyImportDependency */
 /** @typedef {import("./Module")} Module */
 /** @typedef {import("./ModuleGraph")} ModuleGraph */
 /** @typedef {import("./ModuleGraphConnection")} ModuleGraphConnection */
-/** @typedef {import("./serialization/ObjectMiddleware").ObjectDeserializerContext} ObjectDeserializerContext */
-/** @typedef {import("./serialization/ObjectMiddleware").ObjectSerializerContext} ObjectSerializerContext */
+/** @typedef {import("./optimize/InlineExports").InlinedValue} InlinedValue */
+/** @typedef {[RestoreProvidedDataExports[], ExportInfo["provided"], ExportInfo["canMangleProvide"], ExportInfo["terminalBinding"]]} RestoreProvidedDataTuple */
+/** @typedef {import("./serialization/ObjectMiddleware").ObjectDeserializerContext<RestoreProvidedDataTuple>} ObjectDeserializerContext */
+/** @typedef {import("./serialization/ObjectMiddleware").ObjectSerializerContext<RestoreProvidedDataTuple>} ObjectSerializerContext */
 /** @typedef {import("./util/Hash")} Hash */
 
 /** @typedef {typeof UsageState.OnlyPropertiesUsed | typeof UsageState.NoInfo | typeof UsageState.Unknown | typeof UsageState.Used} RuntimeUsageStateType */
 /** @typedef {typeof UsageState.Unused | RuntimeUsageStateType} UsageStateType */
+
+/** @typedef {Map<string, RuntimeUsageStateType>} UsedInRuntime */
+/** @typedef {{ module: Module, export: ExportInfoName[], deferred: boolean }} TargetItemWithoutConnection */
+/** @typedef {{ module: Module, connection: ModuleGraphConnection, export: ExportInfoName[] | undefined }} TargetItemWithConnection */
+/** @typedef {(target: TargetItemWithConnection) => boolean} ResolveTargetFilter */
+/** @typedef {(module: Module) => boolean} ValidTargetModuleFilter */
+/** @typedef {{ connection: ModuleGraphConnection, export: ExportInfoName[], priority: number }} TargetItem */
+/** @typedef {Map<Dependency | undefined, TargetItem>} Target */
+
+/** @typedef {string | InlinedUsedName | null} ExportInfoUsedName */
+/** @typedef {boolean | null} ExportInfoProvided */
+
+/** @typedef {Map<ExportInfoName, ExportInfo>} Exports */
+/** @typedef {string | string[] | InlinedUsedName | false} UsedName */
+/** @typedef {Set<ExportInfo>} AlreadyVisitedExportInfo */
+
+/**
+ * Defines the restore provided data exports type used by this module.
+ * @typedef {object} RestoreProvidedDataExports
+ * @property {ExportInfoName} name
+ * @property {ExportInfo["provided"]} provided
+ * @property {ExportInfo["canMangleProvide"]} canMangleProvide
+ * @property {ExportInfo["canInlineProvide"]=} canInlineProvide
+ * @property {ExportInfo["terminalBinding"]} terminalBinding
+ * @property {ExportInfo["pureProvide"]=} pureProvide
+ * @property {RestoreProvidedData | undefined} exportsInfo
+ */
 
 const UsageState = Object.freeze({
 	Unused: /** @type {0} */ (0),
@@ -32,19 +66,22 @@ const UsageState = Object.freeze({
 
 const RETURNS_TRUE = () => true;
 
+// Shared empty visited-set for `findTarget`: `_findTarget` only reads
+// `alreadyVisited` (`.has`), never mutates it, so a fresh `new Set()` per call
+// is pure churn on the per-export reexport hot path. Must stay never-mutated.
+const EMPTY_VISITED = /** @type {Set<ExportInfo>} */ (new Set());
+
 const CIRCULAR = Symbol("circular target");
 
-/**
- * @typedef {object} RestoreProvidedDataExports
- * @property {ExportInfoName} name
- * @property {ExportInfo["provided"]} provided
- * @property {ExportInfo["canMangleProvide"]} canMangleProvide
- * @property {ExportInfo["terminalBinding"]} terminalBinding
- * @property {RestoreProvidedData | undefined} exportsInfo
- */
+// bit layout of ExportInfo._inlineFlags
+const INLINE_USE_TRUE = 1;
+const INLINE_USE_FALSE = 2;
+const INLINE_USE_MASK = 3;
+const PURE_PROVIDE_FLAG = 4;
 
 class RestoreProvidedData {
 	/**
+	 * Creates an instance of RestoreProvidedData.
 	 * @param {RestoreProvidedDataExports[]} exports exports
 	 * @param {ExportInfo["provided"]} otherProvided other provided
 	 * @param {ExportInfo["canMangleProvide"]} otherCanMangleProvide other can mangle provide
@@ -56,28 +93,47 @@ class RestoreProvidedData {
 		otherCanMangleProvide,
 		otherTerminalBinding
 	) {
+		/** @type {RestoreProvidedDataExports[]} */
 		this.exports = exports;
+		/** @type {ExportInfoProvided | undefined} */
 		this.otherProvided = otherProvided;
+		/** @type {boolean | undefined} */
 		this.otherCanMangleProvide = otherCanMangleProvide;
+		/** @type {boolean} */
 		this.otherTerminalBinding = otherTerminalBinding;
 	}
 
 	/**
+	 * Serializes this instance into the provided serializer context.
 	 * @param {ObjectSerializerContext} context context
 	 */
-	serialize({ write }) {
-		write(this.exports);
-		write(this.otherProvided);
-		write(this.otherCanMangleProvide);
-		write(this.otherTerminalBinding);
+	serialize(context) {
+		context
+			.write(this.exports)
+			.write(this.otherProvided)
+			.write(this.otherCanMangleProvide)
+			.write(this.otherTerminalBinding);
 	}
 
 	/**
+	 * Restores this instance from the provided deserializer context.
 	 * @param {ObjectDeserializerContext} context context
 	 * @returns {RestoreProvidedData} RestoreProvidedData
 	 */
-	static deserialize({ read }) {
-		return new RestoreProvidedData(read(), read(), read(), read());
+	static deserialize(context) {
+		const exports = context.read();
+		const c1 = context.rest;
+		const otherProvided = c1.read();
+		const c2 = c1.rest;
+		const otherCanMangleProvide = c2.read();
+		const c3 = c2.rest;
+		const otherTerminalBinding = c3.read();
+		return new RestoreProvidedData(
+			exports,
+			otherProvided,
+			otherCanMangleProvide,
+			otherTerminalBinding
+		);
 	}
 }
 
@@ -87,21 +143,48 @@ makeSerializable(
 	"RestoreProvidedData"
 );
 
-/** @typedef {Map<ExportInfoName, ExportInfo>} Exports */
-/** @typedef {string | string[] | false} UsedName */
-
 class ExportsInfo {
 	constructor() {
 		/** @type {Exports} */
 		this._exports = new Map();
-		this._otherExportsInfo = new ExportInfo(/** @type {TODO} */ (null));
+
+		// `_otherExportsInfo` is a fallback entry for unlisted exports. Two roles:
+		// 1. factory template — `getExportInfo` creates `new ExportInfo(name, this)`,
+		//    so created export info extends its properties.
+		// 2. flags whether the whole exportsInfo can be statically analyzed.
+		// Its `used` reachable values:
+		// 	- NoInfo: no use analysis yet (`optimization#usedExports` off), or used without info
+		// 	- Unused: analyzed, no unlisted export needed
+		// 	- Unknown: used in unknown way
+		// 	- Used/OnlyPropertiesUsed: never reached
+		// Its `provided` reachable values:
+		// 	- undefined: provision not determined yet
+		// 	- false: determined, no unlisted export is provided
+		// 	- null: only runtime knows (dynamic/unknown exports)
+		// 	- true: never reached
+		/** @type {ExportInfo} */
+		this._otherExportsInfo = new ExportInfo(null);
+		/** @type {ExportInfo} */
 		this._sideEffectsOnlyInfo = new ExportInfo("*side effects only*");
+		/** @type {boolean} */
 		this._exportsAreOrdered = false;
 		/** @type {ExportsInfo=} */
 		this._redirectTo = undefined;
+		// fast-path flag for hasInlinedUsedName; set by InlineExportsPlugin
+		/** @type {boolean} */
+		this._hasInlinedExports = false;
 	}
 
 	/**
+	 * Records that an owned export got an inlined used name.
+	 * @returns {void}
+	 */
+	markInlinedExports() {
+		this._hasInlinedExports = true;
+	}
+
+	/**
+	 * Gets owned exports.
 	 * @returns {Iterable<ExportInfo>} all owned exports in any order
 	 */
 	get ownedExports() {
@@ -109,6 +192,7 @@ class ExportsInfo {
 	}
 
 	/**
+	 * Gets ordered owned exports.
 	 * @returns {Iterable<ExportInfo>} all owned exports in order
 	 */
 	get orderedOwnedExports() {
@@ -119,6 +203,7 @@ class ExportsInfo {
 	}
 
 	/**
+	 * Returns all exports in any order.
 	 * @returns {Iterable<ExportInfo>} all exports in any order
 	 */
 	get exports() {
@@ -133,6 +218,7 @@ class ExportsInfo {
 	}
 
 	/**
+	 * Gets ordered exports.
 	 * @returns {Iterable<ExportInfo>} all exports in order
 	 */
 	get orderedExports() {
@@ -142,7 +228,7 @@ class ExportsInfo {
 		if (this._redirectTo !== undefined) {
 			/** @type {Exports} */
 			const map = new Map(
-				Array.from(this._redirectTo.orderedExports, item => [item.name, item])
+				Array.from(this._redirectTo.orderedExports, (item) => [item.name, item])
 			);
 			for (const [key, value] of this._exports) {
 				map.set(key, value);
@@ -156,21 +242,24 @@ class ExportsInfo {
 	}
 
 	/**
+	 * Gets other exports info.
 	 * @returns {ExportInfo} the export info of unlisted exports
 	 */
 	get otherExportsInfo() {
-		if (this._redirectTo !== undefined)
+		if (this._redirectTo !== undefined) {
 			return this._redirectTo.otherExportsInfo;
+		}
 		return this._otherExportsInfo;
 	}
 
 	/**
+	 * Processes the provided export.
 	 * @param {Exports} exports exports
 	 * @private
 	 */
 	_sortExportsMap(exports) {
 		if (exports.size > 1) {
-			/** @type {string[]} */
+			/** @type {ExportInfoName[]} */
 			const namesInOrder = [];
 			for (const entry of exports.values()) {
 				namesInOrder.push(entry.name);
@@ -197,6 +286,7 @@ class ExportsInfo {
 	}
 
 	/**
+	 * Sets redirect named to.
 	 * @param {ExportsInfo | undefined} exportsInfo exports info
 	 * @returns {boolean} result
 	 */
@@ -208,22 +298,12 @@ class ExportsInfo {
 
 	setHasProvideInfo() {
 		for (const exportInfo of this._exports.values()) {
-			if (exportInfo.provided === undefined) {
-				exportInfo.provided = false;
-			}
-			if (exportInfo.canMangleProvide === undefined) {
-				exportInfo.canMangleProvide = true;
-			}
+			exportInfo.setHasProvideInfo();
 		}
 		if (this._redirectTo !== undefined) {
 			this._redirectTo.setHasProvideInfo();
 		} else {
-			if (this._otherExportsInfo.provided === undefined) {
-				this._otherExportsInfo.provided = false;
-			}
-			if (this._otherExportsInfo.canMangleProvide === undefined) {
-				this._otherExportsInfo.canMangleProvide = true;
-			}
+			this._otherExportsInfo.setHasProvideInfo();
 		}
 	}
 
@@ -240,6 +320,7 @@ class ExportsInfo {
 	}
 
 	/**
+	 * Gets own export info.
 	 * @param {ExportInfoName} name export name
 	 * @returns {ExportInfo} export info for this name
 	 */
@@ -253,14 +334,16 @@ class ExportsInfo {
 	}
 
 	/**
+	 * Returns export info for this name.
 	 * @param {ExportInfoName} name export name
 	 * @returns {ExportInfo} export info for this name
 	 */
 	getExportInfo(name) {
 		const info = this._exports.get(name);
 		if (info !== undefined) return info;
-		if (this._redirectTo !== undefined)
+		if (this._redirectTo !== undefined) {
 			return this._redirectTo.getExportInfo(name);
+		}
 		const newInfo = new ExportInfo(name, this._otherExportsInfo);
 		this._exports.set(name, newInfo);
 		this._exportsAreOrdered = false;
@@ -268,44 +351,59 @@ class ExportsInfo {
 	}
 
 	/**
+	 * Gets read only export info.
 	 * @param {ExportInfoName} name export name
 	 * @returns {ExportInfo} export info for this name
 	 */
 	getReadOnlyExportInfo(name) {
 		const info = this._exports.get(name);
 		if (info !== undefined) return info;
-		if (this._redirectTo !== undefined)
+		if (this._redirectTo !== undefined) {
 			return this._redirectTo.getReadOnlyExportInfo(name);
+		}
 		return this._otherExportsInfo;
 	}
 
 	/**
+	 * Gets read only export info recursive.
 	 * @param {ExportInfoName[]} name export name
 	 * @returns {ExportInfo | undefined} export info for this name
 	 */
 	getReadOnlyExportInfoRecursive(name) {
-		const exportInfo = this.getReadOnlyExportInfo(name[0]);
-		if (name.length === 1) return exportInfo;
-		if (!exportInfo.exportsInfo) return;
-		return exportInfo.exportsInfo.getReadOnlyExportInfoRecursive(name.slice(1));
+		/** @type {ExportsInfo} */
+		let exportsInfo = this;
+		const last = name.length - 1;
+		for (let i = 0; ; i++) {
+			const exportInfo = exportsInfo.getReadOnlyExportInfo(name[i]);
+			if (i === last) return exportInfo;
+			if (!exportInfo.exportsInfo) return;
+			exportsInfo = exportInfo.exportsInfo;
+		}
 	}
 
 	/**
+	 * Gets nested exports info.
 	 * @param {ExportInfoName[]=} name the export name
 	 * @returns {ExportsInfo | undefined} the nested exports info
 	 */
 	getNestedExportsInfo(name) {
 		if (Array.isArray(name) && name.length > 0) {
-			const info = this.getReadOnlyExportInfo(name[0]);
-			if (!info.exportsInfo) return;
-			return info.exportsInfo.getNestedExportsInfo(name.slice(1));
+			/** @type {ExportsInfo} */
+			let exportsInfo = this;
+			for (let i = 0; i < name.length; i++) {
+				const info = exportsInfo.getReadOnlyExportInfo(name[i]);
+				if (!info.exportsInfo) return;
+				exportsInfo = info.exportsInfo;
+			}
+			return exportsInfo;
 		}
 		return this;
 	}
 
 	/**
+	 * Sets unknown exports provided.
 	 * @param {boolean=} canMangle true, if exports can still be mangled (defaults to false)
-	 * @param {Set<string>=} excludeExports list of unaffected exports
+	 * @param {ExportsSpecExcludeExports=} excludeExports list of unaffected exports
 	 * @param {Dependency=} targetKey use this as key for the target
 	 * @param {ModuleGraphConnection=} targetModule set this module as target
 	 * @param {number=} priority priority
@@ -382,6 +480,7 @@ class ExportsInfo {
 	}
 
 	/**
+	 * Sets used in unknown way.
 	 * @param {RuntimeSpec} runtime the runtime
 	 * @returns {boolean} true, when something changed
 	 */
@@ -396,25 +495,14 @@ class ExportsInfo {
 			if (this._redirectTo.setUsedInUnknownWay(runtime)) {
 				changed = true;
 			}
-		} else {
-			if (
-				this._otherExportsInfo.setUsedConditionally(
-					used => used < UsageState.Unknown,
-					UsageState.Unknown,
-					runtime
-				)
-			) {
-				changed = true;
-			}
-			if (this._otherExportsInfo.canMangleUse !== false) {
-				this._otherExportsInfo.canMangleUse = false;
-				changed = true;
-			}
+		} else if (this._otherExportsInfo.setUsedInUnknownWay(runtime)) {
+			changed = true;
 		}
 		return changed;
 	}
 
 	/**
+	 * Sets used without info.
 	 * @param {RuntimeSpec} runtime the runtime
 	 * @returns {boolean} true, when something changed
 	 */
@@ -429,19 +517,14 @@ class ExportsInfo {
 			if (this._redirectTo.setUsedWithoutInfo(runtime)) {
 				changed = true;
 			}
-		} else {
-			if (this._otherExportsInfo.setUsed(UsageState.NoInfo, runtime)) {
-				changed = true;
-			}
-			if (this._otherExportsInfo.canMangleUse !== false) {
-				this._otherExportsInfo.canMangleUse = false;
-				changed = true;
-			}
+		} else if (this._otherExportsInfo.setUsedWithoutInfo(runtime)) {
+			changed = true;
 		}
 		return changed;
 	}
 
 	/**
+	 * Sets all known exports used.
 	 * @param {RuntimeSpec} runtime the runtime
 	 * @returns {boolean} true, when something changed
 	 */
@@ -457,18 +540,20 @@ class ExportsInfo {
 	}
 
 	/**
+	 * Sets used for side effects only.
 	 * @param {RuntimeSpec} runtime the runtime
 	 * @returns {boolean} true, when something changed
 	 */
 	setUsedForSideEffectsOnly(runtime) {
 		return this._sideEffectsOnlyInfo.setUsedConditionally(
-			used => used === UsageState.Unused,
+			(used) => used === UsageState.Unused,
 			UsageState.Used,
 			runtime
 		);
 	}
 
 	/**
+	 * Checks whether this exports info is used.
 	 * @param {RuntimeSpec} runtime the runtime
 	 * @returns {boolean} true, when the module exports are used in any way
 	 */
@@ -489,32 +574,34 @@ class ExportsInfo {
 	}
 
 	/**
+	 * Checks whether this exports info is module used.
 	 * @param {RuntimeSpec} runtime the runtime
 	 * @returns {boolean} true, when the module is used in any way
 	 */
 	isModuleUsed(runtime) {
 		if (this.isUsed(runtime)) return true;
-		if (this._sideEffectsOnlyInfo.getUsed(runtime) !== UsageState.Unused)
+		if (this._sideEffectsOnlyInfo.getUsed(runtime) !== UsageState.Unused) {
 			return true;
+		}
 		return false;
 	}
 
 	/**
+	 * Returns set of used exports, or true (when namespace object is used), or false (when unused), or null (when unknown).
 	 * @param {RuntimeSpec} runtime the runtime
-	 * @returns {SortableSet<string> | boolean | null} set of used exports, or true (when namespace object is used), or false (when unused), or null (when unknown)
+	 * @returns {SortableSet<ExportInfoName> | boolean | null} set of used exports, or true (when namespace object is used), or false (when unused), or null (when unknown)
 	 */
 	getUsedExports(runtime) {
-		// eslint-disable-next-line no-constant-binary-expression
-		if (!this._redirectTo !== undefined) {
-			switch (this._otherExportsInfo.getUsed(runtime)) {
-				case UsageState.NoInfo:
-					return null;
-				case UsageState.Unknown:
-				case UsageState.OnlyPropertiesUsed:
-				case UsageState.Used:
-					return true;
-			}
+		switch (this._otherExportsInfo.getUsed(runtime)) {
+			case UsageState.NoInfo:
+				return null;
+			case UsageState.Unknown:
+			case UsageState.OnlyPropertiesUsed:
+			case UsageState.Used:
+				return true;
 		}
+
+		/** @type {ExportInfoName[]} */
 		const array = [];
 		if (!this._exportsAreOrdered) this._sortExports();
 		for (const exportInfo of this._exports.values()) {
@@ -546,25 +633,24 @@ class ExportsInfo {
 					return false;
 			}
 		}
-		return /** @type {SortableSet<string>} */ (new SortableSet(array));
+		return /** @type {SortableSet<ExportInfoName>} */ (new SortableSet(array));
 	}
 
 	/**
-	 * @returns {null | true | string[]} list of exports when known
+	 * Gets provided exports.
+	 * @returns {null | true | ExportInfoName[]} list of exports when known
 	 */
 	getProvidedExports() {
-		// eslint-disable-next-line no-constant-binary-expression
-		if (!this._redirectTo !== undefined) {
-			switch (this._otherExportsInfo.provided) {
-				case undefined:
-					return null;
-				case null:
-					return true;
-				case true:
-					return true;
-			}
+		switch (this._otherExportsInfo.provided) {
+			case undefined:
+				return null;
+			case null:
+				return true;
+			case true:
+				return true;
 		}
-		/** @type {string[]} */
+
+		/** @type {ExportInfoName[]} */
 		const array = [];
 		if (!this._exportsAreOrdered) this._sortExports();
 		for (const exportInfo of this._exports.values()) {
@@ -591,10 +677,12 @@ class ExportsInfo {
 	}
 
 	/**
+	 * Gets relevant exports.
 	 * @param {RuntimeSpec} runtime the runtime
 	 * @returns {ExportInfo[]} exports that are relevant (not unused and potential provided)
 	 */
 	getRelevantExports(runtime) {
+		/** @type {ExportInfo[]} */
 		const list = [];
 		for (const exportInfo of this._exports.values()) {
 			const used = exportInfo.getUsed(runtime);
@@ -617,26 +705,35 @@ class ExportsInfo {
 	}
 
 	/**
+	 * Checks whether this exports info is export provided.
 	 * @param {ExportInfoName | ExportInfoName[]} name the name of the export
 	 * @returns {boolean | undefined | null} if the export is provided
 	 */
 	isExportProvided(name) {
 		if (Array.isArray(name)) {
-			const info = this.getReadOnlyExportInfo(name[0]);
-			if (info.exportsInfo && name.length > 1) {
-				return info.exportsInfo.isExportProvided(name.slice(1));
+			/** @type {ExportsInfo} */
+			let exportsInfo = this;
+			const last = name.length - 1;
+			for (let i = 0; ; i++) {
+				const info = exportsInfo.getReadOnlyExportInfo(name[i]);
+				if (info.exportsInfo && i < last) {
+					exportsInfo = info.exportsInfo;
+					continue;
+				}
+				return info.provided ? i === last || undefined : info.provided;
 			}
-			return info.provided ? name.length === 1 || undefined : info.provided;
 		}
 		const info = this.getReadOnlyExportInfo(name);
 		return info.provided;
 	}
 
 	/**
+	 * Returns key representing the usage.
 	 * @param {RuntimeSpec} runtime runtime
 	 * @returns {string} key representing the usage
 	 */
 	getUsageKey(runtime) {
+		/** @type {(string | number)[]} */
 		const key = [];
 		if (this._redirectTo !== undefined) {
 			key.push(this._redirectTo.getUsageKey(runtime));
@@ -651,6 +748,7 @@ class ExportsInfo {
 	}
 
 	/**
+	 * Checks whether this exports info is equally used.
 	 * @param {RuntimeSpec} runtimeA first runtime
 	 * @param {RuntimeSpec} runtimeB second runtime
 	 * @returns {boolean} true, when equally used
@@ -671,13 +769,15 @@ class ExportsInfo {
 			return false;
 		}
 		for (const exportInfo of this.ownedExports) {
-			if (exportInfo.getUsed(runtimeA) !== exportInfo.getUsed(runtimeB))
+			if (exportInfo.getUsed(runtimeA) !== exportInfo.getUsed(runtimeB)) {
 				return false;
+			}
 		}
 		return true;
 	}
 
 	/**
+	 * Returns usage status.
 	 * @param {ExportInfoName | ExportInfoName[]} name export name
 	 * @param {RuntimeSpec} runtime check usage for this runtime only
 	 * @returns {UsageStateType} usage status
@@ -685,53 +785,121 @@ class ExportsInfo {
 	getUsed(name, runtime) {
 		if (Array.isArray(name)) {
 			if (name.length === 0) return this.otherExportsInfo.getUsed(runtime);
-			const info = this.getReadOnlyExportInfo(name[0]);
-			if (info.exportsInfo && name.length > 1) {
-				return info.exportsInfo.getUsed(name.slice(1), runtime);
+			// Walk the nested path iteratively to avoid a `slice` per level
+			/** @type {ExportsInfo} */
+			let exportsInfo = this;
+			const last = name.length - 1;
+			for (let i = 0; ; i++) {
+				const info = exportsInfo.getReadOnlyExportInfo(name[i]);
+				if (i === last || !info.exportsInfo) return info.getUsed(runtime);
+				exportsInfo = info.exportsInfo;
 			}
-			return info.getUsed(runtime);
 		}
 		const info = this.getReadOnlyExportInfo(name);
 		return info.getUsed(runtime);
 	}
 
 	/**
+	 * Returns the used name.
 	 * @param {ExportInfoName | ExportInfoName[]} name the export name
 	 * @param {RuntimeSpec} runtime check usage for this runtime only
 	 * @returns {UsedName} the used name
 	 */
 	getUsedName(name, runtime) {
 		if (Array.isArray(name)) {
-			// TODO improve this
 			if (name.length === 0) {
 				if (!this.isUsed(runtime)) return false;
 				return name;
 			}
-			const info = this.getReadOnlyExportInfo(name[0]);
-			const x = info.getUsedName(name[0], runtime);
-			if (x === false) return false;
-			const arr =
-				/** @type {ExportInfoName[]} */
-				(x === name[0] && name.length === 1 ? name : [x]);
-			if (name.length === 1) {
-				return arr;
+			// Walk the nested path once, collecting used names into a single array
+			// instead of slicing/spreading at every level.
+			/** @type {ExportsInfo} */
+			let exportsInfo = this;
+			/** @type {ExportInfoName[] | undefined} */
+			let result;
+			const last = name.length - 1;
+			for (let i = 0; ; i++) {
+				const info = exportsInfo.getReadOnlyExportInfo(name[i]);
+				const x = info.getUsedName(name[i], runtime);
+				if (x === false) return false;
+				if (x instanceof InlinedUsedName) {
+					// The inlined value replaces the prefix; trailing ids become its suffix
+					if (i === last) return x;
+					return new InlinedUsedName(x.value, [
+						...x.suffix,
+						...name.slice(i + 1)
+					]);
+				}
+				if (i === last) {
+					if (result === undefined) return x === name[i] ? name : [x];
+					result.push(x);
+					return result;
+				}
+				if (result === undefined) result = [];
+				result.push(x);
+				// Descend only while the parent is reached purely via property access
+				if (
+					info.exportsInfo &&
+					info.getUsed(runtime) === UsageState.OnlyPropertiesUsed
+				) {
+					exportsInfo = info.exportsInfo;
+					continue;
+				}
+				// Cannot descend further: keep the remaining ids unchanged
+				for (let j = i + 1; j <= last; j++) result.push(name[j]);
+				return result;
+			}
+		}
+		const info = this.getReadOnlyExportInfo(name);
+		return info.getUsedName(name, runtime);
+	}
+
+	/**
+	 * Checks whether `getUsedName(name, runtime)` would return an `InlinedUsedName`,
+	 * without allocating intermediate used-name arrays (hot path for connection conditions).
+	 * @param {ExportInfoName[]} name the export name path
+	 * @param {RuntimeSpec} runtime check usage for this runtime only
+	 * @returns {boolean} true when the used name resolves to an inlined value
+	 */
+	hasInlinedUsedName(name, runtime) {
+		if (name.length === 0) return false;
+		/** @type {ExportsInfo} */
+		let exportsInfo = this;
+		const last = name.length - 1;
+		for (let i = 0; ; i++) {
+			// follow redirects for the fast-path flag; InlinedUsedName can only
+			// exist on a level whose (redirected) exportsInfo is marked
+			let hasInlined = false;
+			/** @type {ExportsInfo | undefined} */
+			let e = exportsInfo;
+			while (e !== undefined) {
+				if (e._hasInlinedExports) {
+					hasInlined = true;
+					break;
+				}
+				e = e._redirectTo;
+			}
+			if (!hasInlined && i === last) return false;
+			const info = exportsInfo.getReadOnlyExportInfo(name[i]);
+			if (hasInlined) {
+				const x = info.getUsedName(name[i], runtime);
+				if (x === false) return false;
+				if (x instanceof InlinedUsedName) return true;
+				if (i === last) return false;
 			}
 			if (
 				info.exportsInfo &&
 				info.getUsed(runtime) === UsageState.OnlyPropertiesUsed
 			) {
-				const nested = info.exportsInfo.getUsedName(name.slice(1), runtime);
-				if (!nested) return false;
-				return arr.concat(nested);
+				exportsInfo = info.exportsInfo;
+				continue;
 			}
-			return arr.concat(name.slice(1));
+			return false;
 		}
-		const info = this.getReadOnlyExportInfo(name);
-		const usedName = info.getUsedName(name, runtime);
-		return usedName;
 	}
 
 	/**
+	 * Updates the hash with the data contributed by this instance.
 	 * @param {Hash} hash the hash
 	 * @param {RuntimeSpec} runtime the runtime
 	 * @returns {void}
@@ -741,27 +909,38 @@ class ExportsInfo {
 	}
 
 	/**
+	 * Updates hash using the provided hash.
 	 * @param {Hash} hash the hash
 	 * @param {RuntimeSpec} runtime the runtime
 	 * @param {Set<ExportsInfo>} alreadyVisitedExportsInfo for circular references
 	 * @returns {void}
 	 */
 	_updateHash(hash, runtime, alreadyVisitedExportsInfo) {
-		const set = new Set(alreadyVisitedExportsInfo);
-		set.add(this);
+		// add/delete keeps path semantics without copying the set per level
+		alreadyVisitedExportsInfo.add(this);
 		for (const exportInfo of this.orderedExports) {
 			if (exportInfo.hasInfo(this._otherExportsInfo, runtime)) {
-				exportInfo._updateHash(hash, runtime, set);
+				exportInfo._updateHash(hash, runtime, alreadyVisitedExportsInfo);
 			}
 		}
-		this._sideEffectsOnlyInfo._updateHash(hash, runtime, set);
-		this._otherExportsInfo._updateHash(hash, runtime, set);
+		this._sideEffectsOnlyInfo._updateHash(
+			hash,
+			runtime,
+			alreadyVisitedExportsInfo
+		);
+		this._otherExportsInfo._updateHash(
+			hash,
+			runtime,
+			alreadyVisitedExportsInfo
+		);
 		if (this._redirectTo !== undefined) {
-			this._redirectTo._updateHash(hash, runtime, set);
+			this._redirectTo._updateHash(hash, runtime, alreadyVisitedExportsInfo);
 		}
+		alreadyVisitedExportsInfo.delete(this);
 	}
 
 	/**
+	 * Gets restore provided data.
 	 * @returns {RestoreProvidedData} restore provided data
 	 */
 	getRestoreProvidedData() {
@@ -771,22 +950,42 @@ class ExportsInfo {
 		/** @type {RestoreProvidedDataExports[]} */
 		const exports = [];
 		for (const exportInfo of this.orderedExports) {
+			const canInlineProvide = exportInfo.canInlineProvide;
+			const pureProvide = exportInfo.pureProvide;
+			// inline-exports data is only stored when present, so builds without the
+			// feature don't pay for it in the persistent cache
+			const hasInlineInfo =
+				canInlineProvide !== undefined || pureProvide !== undefined;
 			if (
 				exportInfo.provided !== otherProvided ||
 				exportInfo.canMangleProvide !== otherCanMangleProvide ||
 				exportInfo.terminalBinding !== otherTerminalBinding ||
+				hasInlineInfo ||
 				exportInfo.exportsInfoOwned
 			) {
-				exports.push({
-					name: exportInfo.name,
-					provided: exportInfo.provided,
-					canMangleProvide: exportInfo.canMangleProvide,
-					terminalBinding: exportInfo.terminalBinding,
-					exportsInfo: exportInfo.exportsInfoOwned
-						? /** @type {NonNullable<ExportInfo["exportsInfo"]>} */
-							(exportInfo.exportsInfo).getRestoreProvidedData()
-						: undefined
-				});
+				const exportsInfo = exportInfo.exportsInfoOwned
+					? /** @type {NonNullable<ExportInfo["exportsInfo"]>} */
+						(exportInfo.exportsInfo).getRestoreProvidedData()
+					: undefined;
+				exports.push(
+					hasInlineInfo
+						? {
+								name: exportInfo.name,
+								provided: exportInfo.provided,
+								canMangleProvide: exportInfo.canMangleProvide,
+								canInlineProvide,
+								terminalBinding: exportInfo.terminalBinding,
+								pureProvide,
+								exportsInfo
+							}
+						: {
+								name: exportInfo.name,
+								provided: exportInfo.provided,
+								canMangleProvide: exportInfo.canMangleProvide,
+								terminalBinding: exportInfo.terminalBinding,
+								exportsInfo
+							}
+				);
 			}
 		}
 		return new RestoreProvidedData(
@@ -798,6 +997,7 @@ class ExportsInfo {
 	}
 
 	/**
+	 * Processes the provided data.
 	 * @param {RestoreProvidedData} data data
 	 */
 	restoreProvided({
@@ -820,7 +1020,9 @@ class ExportsInfo {
 			const exportInfo = this.getExportInfo(exp.name);
 			exportInfo.provided = exp.provided;
 			exportInfo.canMangleProvide = exp.canMangleProvide;
+			exportInfo.canInlineProvide = exp.canInlineProvide;
 			exportInfo.terminalBinding = exp.terminalBinding;
+			exportInfo.pureProvide = exp.pureProvide;
 			if (exp.exportsInfo) {
 				const exportsInfo = exportInfo.createNestedExportsInfo();
 				exportsInfo.restoreProvided(exp.exportsInfo);
@@ -830,32 +1032,15 @@ class ExportsInfo {
 	}
 }
 
-/** @typedef {Map<string, RuntimeUsageStateType>} UsedInRuntime */
-
-/** @typedef {{ module: Module, export: string[] }} TargetItemWithoutConnection */
-
-/** @typedef {{ module: Module, connection: ModuleGraphConnection, export: string[] | undefined }} TargetItemWithConnection */
-
-/** @typedef {(target: TargetItemWithConnection) => boolean} ResolveTargetFilter */
-
-/** @typedef {(module: Module) => boolean} ValidTargetModuleFilter */
-
-/** @typedef {{ connection: ModuleGraphConnection, export: string[], priority: number }} TargetItem */
-
-/** @typedef {Map<Dependency | undefined, TargetItem>} Target */
-
-/** @typedef {string} ExportInfoName */
-/** @typedef {string | null} ExportInfoUsedName */
-/** @typedef {boolean | null} ExportInfoProvided */
-
 class ExportInfo {
 	/**
-	 * @param {ExportInfoName} name the original name of the export
+	 * Creates an instance of ExportInfo.
+	 * @param {ExportInfoName | null} name the original name of the export
 	 * @param {ExportInfo=} initFrom init values from this ExportInfo
 	 */
 	constructor(name, initFrom) {
 		/** @type {ExportInfoName} */
-		this.name = name;
+		this.name = /** @type {ExportInfoName} */ (name);
 		/**
 		 * @private
 		 * @type {ExportInfoUsedName}
@@ -901,6 +1086,14 @@ class ExportInfo {
 		 * @type {boolean | undefined}
 		 */
 		this.canMangleProvide = initFrom ? initFrom.canMangleProvide : undefined;
+		// only specific export info can be inlined,
+		// so _otherExportsInfo.canInlineProvide is always undefined
+		/**
+		 * value slot for `canInlineProvide`
+		 * @private
+		 * @type {InlinedValue | undefined}
+		 */
+		this._inlinedValue = undefined;
 		/**
 		 * true: it can be mangled
 		 * false: is can not be mangled
@@ -908,6 +1101,12 @@ class ExportInfo {
 		 * @type {boolean | undefined}
 		 */
 		this.canMangleUse = initFrom ? initFrom.canMangleUse : undefined;
+		/**
+		 * bitfield backing `canInlineUse` and `pureProvide`
+		 * @private
+		 * @type {number}
+		 */
+		this._inlineFlags = 0;
 		/** @type {boolean} */
 		this.exportsInfoOwned = false;
 		/** @type {ExportsInfo | undefined} */
@@ -915,7 +1114,7 @@ class ExportInfo {
 		/** @type {Target | undefined} */
 		this._target = undefined;
 		if (initFrom && initFrom._target) {
-			this._target = new Map();
+			this._target = /** @type {Target} */ (new Map());
 			for (const [key, value] of initFrom._target) {
 				this._target.set(key, {
 					connection: value.connection,
@@ -928,34 +1127,55 @@ class ExportInfo {
 		this._maxTarget = undefined;
 	}
 
-	// TODO webpack 5 remove
 	/**
-	 * @private
-	 * @param {EXPECTED_ANY} v v
+	 * defined: the export binds to a small primitive constant and may be inlined
+	 * undefined: not an inlined constant export
+	 * @returns {InlinedValue | undefined} inlined value
 	 */
-	set used(v) {
-		throw new Error("REMOVED");
+	get canInlineProvide() {
+		return this._inlinedValue;
 	}
 
-	// TODO webpack 5 remove
-	/** @private */
-	get used() {
-		throw new Error("REMOVED");
+	set canInlineProvide(value) {
+		this._inlinedValue = value;
 	}
 
-	// TODO webpack 5 remove
 	/**
-	 * @private
-	 * @param {EXPECTED_ANY} v v
+	 * true: at least one consumer accepts inlining, none rejected
+	 * false: at least one consumer rejected inlining
+	 * undefined: collecting; no consumer has decided yet
+	 * @returns {boolean | undefined} can inline use
 	 */
-	set usedName(v) {
-		throw new Error("REMOVED");
+	get canInlineUse() {
+		switch (this._inlineFlags & INLINE_USE_MASK) {
+			case INLINE_USE_TRUE:
+				return true;
+			case INLINE_USE_FALSE:
+				return false;
+			default:
+				return undefined;
+		}
 	}
 
-	// TODO webpack 5 remove
-	/** @private */
-	get usedName() {
-		throw new Error("REMOVED");
+	set canInlineUse(value) {
+		this._inlineFlags =
+			(this._inlineFlags & ~INLINE_USE_MASK) |
+			(value === undefined ? 0 : value ? INLINE_USE_TRUE : INLINE_USE_FALSE);
+	}
+
+	/**
+	 * Only specific export info can be pure, so other_export_info.pure is always undefined.
+	 * true: calling the export has no observable side effects
+	 * undefined: it was not determined whether the export is pure
+	 * @returns {boolean | undefined} pure provide
+	 */
+	get pureProvide() {
+		return (this._inlineFlags & PURE_PROVIDE_FLAG) !== 0 ? true : undefined;
+	}
+
+	set pureProvide(value) {
+		if (value) this._inlineFlags |= PURE_PROVIDE_FLAG;
+		else this._inlineFlags &= ~PURE_PROVIDE_FLAG;
 	}
 
 	get canMangle() {
@@ -980,6 +1200,16 @@ class ExportInfo {
 	}
 
 	/**
+	 * @returns {InlinedValue | undefined} the inlined value when both provide and use sides agree, otherwise undefined
+	 */
+	canInline() {
+		return this.canInlineProvide !== undefined && this.canInlineUse === true
+			? this.canInlineProvide
+			: undefined;
+	}
+
+	/**
+	 * Sets used in unknown way.
 	 * @param {RuntimeSpec} runtime only apply to this runtime
 	 * @returns {boolean} true, when something changed
 	 */
@@ -987,7 +1217,7 @@ class ExportInfo {
 		let changed = false;
 		if (
 			this.setUsedConditionally(
-				used => used < UsageState.Unknown,
+				(used) => used < UsageState.Unknown,
 				UsageState.Unknown,
 				runtime
 			)
@@ -998,10 +1228,15 @@ class ExportInfo {
 			this.canMangleUse = false;
 			changed = true;
 		}
+		if (this.canInlineUse !== false) {
+			this.canInlineUse = false;
+			changed = true;
+		}
 		return changed;
 	}
 
 	/**
+	 * Sets used without info.
 	 * @param {RuntimeSpec} runtime only apply to this runtime
 	 * @returns {boolean} true, when something changed
 	 */
@@ -1014,7 +1249,20 @@ class ExportInfo {
 			this.canMangleUse = false;
 			changed = true;
 		}
+		if (this.canInlineUse !== false) {
+			this.canInlineUse = false;
+			changed = true;
+		}
 		return changed;
+	}
+
+	setHasProvideInfo() {
+		if (this.provided === undefined) {
+			this.provided = false;
+		}
+		if (this.canMangleProvide === undefined) {
+			this.canMangleProvide = true;
+		}
 	}
 
 	setHasUseInfo() {
@@ -1031,6 +1279,7 @@ class ExportInfo {
 	}
 
 	/**
+	 * Sets used conditionally.
 	 * @param {(condition: UsageStateType) => boolean} condition compare with old value
 	 * @param {UsageStateType} newValue set when condition is true
 	 * @param {RuntimeSpec} runtime only apply to this runtime
@@ -1049,7 +1298,7 @@ class ExportInfo {
 		} else if (this._usedInRuntime === undefined) {
 			if (newValue !== UsageState.Unused && condition(UsageState.Unused)) {
 				this._usedInRuntime = new Map();
-				forEachRuntime(runtime, runtime =>
+				forEachRuntime(runtime, (runtime) =>
 					/** @type {UsedInRuntime} */
 					(this._usedInRuntime).set(/** @type {string} */ (runtime), newValue)
 				);
@@ -1057,8 +1306,8 @@ class ExportInfo {
 			}
 		} else {
 			let changed = false;
-			forEachRuntime(runtime, _runtime => {
-				const runtime = /** @type {string} */ (_runtime);
+			forEachRuntime(runtime, (runtime_) => {
+				const runtime = /** @type {string} */ (runtime_);
 				const usedInRuntime =
 					/** @type {UsedInRuntime} */
 					(this._usedInRuntime);
@@ -1084,6 +1333,7 @@ class ExportInfo {
 	}
 
 	/**
+	 * Updates used using the provided new value.
 	 * @param {UsageStateType} newValue new value of the used state
 	 * @param {RuntimeSpec} runtime only apply to this runtime
 	 * @returns {boolean} true when something has changed
@@ -1097,7 +1347,7 @@ class ExportInfo {
 		} else if (this._usedInRuntime === undefined) {
 			if (newValue !== UsageState.Unused) {
 				this._usedInRuntime = new Map();
-				forEachRuntime(runtime, runtime =>
+				forEachRuntime(runtime, (runtime) =>
 					/** @type {UsedInRuntime} */
 					(this._usedInRuntime).set(/** @type {string} */ (runtime), newValue)
 				);
@@ -1105,7 +1355,7 @@ class ExportInfo {
 			}
 		} else {
 			let changed = false;
-			forEachRuntime(runtime, _runtime => {
+			forEachRuntime(runtime, (_runtime) => {
 				const runtime = /** @type {string} */ (_runtime);
 				const usedInRuntime =
 					/** @type {UsedInRuntime} */
@@ -1132,6 +1382,7 @@ class ExportInfo {
 	}
 
 	/**
+	 * Returns true, if something has changed.
 	 * @param {Dependency} key the key
 	 * @returns {boolean} true, if something has changed
 	 */
@@ -1145,19 +1396,24 @@ class ExportInfo {
 	}
 
 	/**
+	 * Updates target using the provided key.
 	 * @param {Dependency} key the key
 	 * @param {ModuleGraphConnection} connection the target module if a single one
-	 * @param {(string[] | null)=} exportName the exported name
+	 * @param {ExportInfoName[] | null=} exportName the exported name
 	 * @param {number=} priority priority
 	 * @returns {boolean} true, if something has changed
 	 */
 	setTarget(key, connection, exportName, priority = 0) {
-		if (exportName) exportName = [...exportName];
+		// `equals` compares element-wise, so the incoming `exportName` can be used
+		// directly for the change-check; only copy it when actually stored, so the
+		// common no-op (unchanged target) path allocates nothing.
 		if (!this._target) {
-			this._target = new Map();
+			this._target = /** @type {Target} */ (new Map());
 			this._target.set(key, {
 				connection,
-				export: /** @type {string[]} */ (exportName),
+				export: /** @type {ExportInfoName[]} */ (
+					exportName ? [...exportName] : exportName
+				),
 				priority
 			});
 			return true;
@@ -1167,7 +1423,9 @@ class ExportInfo {
 			if (oldTarget === null && !connection) return false;
 			this._target.set(key, {
 				connection,
-				export: /** @type {string[]} */ (exportName),
+				export: /** @type {ExportInfoName[]} */ (
+					exportName ? [...exportName] : exportName
+				),
 				priority
 			});
 			this._maxTarget = undefined;
@@ -1181,7 +1439,9 @@ class ExportInfo {
 				: oldTarget.export)
 		) {
 			oldTarget.connection = connection;
-			oldTarget.export = /** @type {string[]} */ (exportName);
+			oldTarget.export = /** @type {ExportInfoName[]} */ (
+				exportName ? [...exportName] : exportName
+			);
 			oldTarget.priority = priority;
 			this._maxTarget = undefined;
 			return true;
@@ -1190,6 +1450,7 @@ class ExportInfo {
 	}
 
 	/**
+	 * Returns usage state.
 	 * @param {RuntimeSpec} runtime for this runtime
 	 * @returns {UsageStateType} usage state
 	 */
@@ -1228,10 +1489,10 @@ class ExportInfo {
 	}
 
 	/**
-	 * get used name
+	 * Returns used name. May return InlinedUsedName when the export is inlined to a primitive.
 	 * @param {string | undefined} fallbackName fallback name for used exports with no name
 	 * @param {RuntimeSpec} runtime check usage for this runtime only
-	 * @returns {string | false} used name
+	 * @returns {string | InlinedUsedName | false} used name
 	 */
 	getUsedName(fallbackName, runtime) {
 		if (this._hasUseInRuntimeInfo) {
@@ -1243,14 +1504,17 @@ class ExportInfo {
 					if (!this._usedInRuntime.has(runtime)) {
 						return false;
 					}
-				} else if (
-					runtime !== undefined &&
-					Array.from(runtime).every(
-						runtime =>
-							!(/** @type {UsedInRuntime} */ (this._usedInRuntime).has(runtime))
-					)
-				) {
-					return false;
+				} else if (runtime !== undefined) {
+					// Unused unless at least one runtime in the set is used; loop avoids
+					// allocating an array from the runtime set on this hot path.
+					let anyUsed = false;
+					for (const r of runtime) {
+						if (this._usedInRuntime.has(r)) {
+							anyUsed = true;
+							break;
+						}
+					}
+					if (!anyUsed) return false;
 				}
 			}
 		}
@@ -1259,6 +1523,7 @@ class ExportInfo {
 	}
 
 	/**
+	 * Checks whether this export info has used name.
 	 * @returns {boolean} true, when a mangled name of this export is set
 	 */
 	hasUsedName() {
@@ -1266,8 +1531,8 @@ class ExportInfo {
 	}
 
 	/**
-	 * Sets the mangled name of this export
-	 * @param {string} name the new name
+	 * Updates used name using the provided name.
+	 * @param {string | InlinedUsedName} name the new name
 	 * @returns {void}
 	 */
 	setUsedName(name) {
@@ -1275,6 +1540,7 @@ class ExportInfo {
 	}
 
 	/**
+	 * Gets terminal binding.
 	 * @param {ModuleGraph} moduleGraph the module graph
 	 * @param {ResolveTargetFilter} resolveTargetFilter filter function to further resolve target
 	 * @returns {ExportInfo | ExportsInfo | undefined} the terminal binding export(s) info if known
@@ -1294,8 +1560,9 @@ class ExportInfo {
 
 	_getMaxTarget() {
 		if (this._maxTarget !== undefined) return this._maxTarget;
-		if (/** @type {Target} */ (this._target).size <= 1)
+		if (/** @type {Target} */ (this._target).size <= 1) {
 			return (this._maxTarget = this._target);
+		}
 		let maxPriority = -Infinity;
 		let minPriority = Infinity;
 		for (const { priority } of /** @type {Target} */ (this._target).values()) {
@@ -1318,18 +1585,24 @@ class ExportInfo {
 	}
 
 	/**
+	 * Returns the target, undefined when there is no target, false when no target is valid.
 	 * @param {ModuleGraph} moduleGraph the module graph
 	 * @param {ValidTargetModuleFilter} validTargetModuleFilter a valid target module
 	 * @returns {TargetItemWithoutConnection | null | undefined | false} the target, undefined when there is no target, false when no target is valid
 	 */
 	findTarget(moduleGraph, validTargetModuleFilter) {
-		return this._findTarget(moduleGraph, validTargetModuleFilter, new Set());
+		return this._findTarget(
+			moduleGraph,
+			validTargetModuleFilter,
+			EMPTY_VISITED
+		);
 	}
 
 	/**
+	 * Returns the target, undefined when there is no target, false when no target is valid.
 	 * @param {ModuleGraph} moduleGraph the module graph
 	 * @param {ValidTargetModuleFilter} validTargetModuleFilter a valid target module
-	 * @param {Set<ExportInfo>} alreadyVisited set of already visited export info to avoid circular references
+	 * @param {AlreadyVisitedExportInfo} alreadyVisited set of already visited export info to avoid circular references
 	 * @returns {TargetItemWithoutConnection | null | undefined | false} the target, undefined when there is no target, false when no target is valid
 	 */
 	_findTarget(moduleGraph, validTargetModuleFilter, alreadyVisited) {
@@ -1341,7 +1614,15 @@ class ExportInfo {
 		/** @type {TargetItemWithoutConnection} */
 		let target = {
 			module: rawTarget.connection.module,
-			export: rawTarget.export
+			export: rawTarget.export,
+			deferred: Boolean(
+				rawTarget.connection.dependency &&
+				ImportPhaseUtils.isDefer(
+					/** @type {HarmonyImportDependency} */ (
+						rawTarget.connection.dependency
+					).phase
+				)
+			)
 		};
 		for (;;) {
 			if (validTargetModuleFilter(target.module)) return target;
@@ -1360,14 +1641,16 @@ class ExportInfo {
 				target = {
 					module: newTarget.module,
 					export: newTarget.export
-						? newTarget.export.concat(target.export.slice(1))
-						: target.export.slice(1)
+						? [...newTarget.export, ...target.export.slice(1)]
+						: target.export.slice(1),
+					deferred: newTarget.deferred
 				};
 			}
 		}
 	}
 
 	/**
+	 * Returns the target.
 	 * @param {ModuleGraph} moduleGraph the module graph
 	 * @param {ResolveTargetFilter} resolveTargetFilter filter function to further resolve target
 	 * @returns {TargetItemWithConnection | undefined} the target
@@ -1379,15 +1662,17 @@ class ExportInfo {
 	}
 
 	/**
+	 * Returns the target.
 	 * @param {ModuleGraph} moduleGraph the module graph
 	 * @param {ResolveTargetFilter} resolveTargetFilter filter function to further resolve target
-	 * @param {Set<ExportInfo> | undefined} alreadyVisited set of already visited export info to avoid circular references
+	 * @param {AlreadyVisitedExportInfo | undefined} alreadyVisited set of already visited export info to avoid circular references
 	 * @returns {TargetItemWithConnection | CIRCULAR | undefined} the target
 	 */
 	_getTarget(moduleGraph, resolveTargetFilter, alreadyVisited) {
 		/**
+		 * Returns resolved target.
 		 * @param {TargetItem | undefined | null} inputTarget unresolved target
-		 * @param {Set<ExportInfo>} alreadyVisited set of already visited export info to avoid circular references
+		 * @param {AlreadyVisitedExportInfo} alreadyVisited set of already visited export info to avoid circular references
 		 * @returns {TargetItemWithConnection | CIRCULAR | null} resolved target
 		 */
 		const resolveTarget = (inputTarget, alreadyVisited) => {
@@ -1433,10 +1718,11 @@ class ExportInfo {
 						module: newTarget.module,
 						connection: newTarget.connection,
 						export: newTarget.export
-							? newTarget.export.concat(
-									/** @type {NonNullable<TargetItemWithConnection["export"]>} */
+							? [
+									...newTarget.export,
+									.../** @type {NonNullable<TargetItemWithConnection["export"]>} */
 									(target.export).slice(1)
-								)
+								]
 							: /** @type {NonNullable<TargetItemWithConnection["export"]>} */
 								(target.export).slice(1)
 					};
@@ -1468,8 +1754,9 @@ class ExportInfo {
 			if (
 				target.export &&
 				!equals(/** @type {ArrayLike<string>} */ (t.export), target.export)
-			)
+			) {
 				return;
+			}
 			result = values.next();
 		}
 		return target;
@@ -1479,7 +1766,7 @@ class ExportInfo {
 	 * Move the target forward as long resolveTargetFilter is fulfilled
 	 * @param {ModuleGraph} moduleGraph the module graph
 	 * @param {ResolveTargetFilter} resolveTargetFilter filter function to further resolve target
-	 * @param {(target: TargetItemWithConnection) => ModuleGraphConnection=} updateOriginalConnection updates the original connection instead of using the target connection
+	 * @param {((target: TargetItemWithConnection) => ModuleGraphConnection | undefined)=} updateOriginalConnection updates the original connection instead of using the target connection
 	 * @returns {TargetItemWithConnection | undefined} the resolved target when moved
 	 */
 	moveTarget(moduleGraph, resolveTargetFilter, updateOriginalConnection) {
@@ -1503,7 +1790,7 @@ class ExportInfo {
 		/** @type {Target} */
 		(this._target).set(undefined, {
 			connection: updateOriginalConnection
-				? updateOriginalConnection(target)
+				? updateOriginalConnection(target) || target.connection
 				: target.connection,
 			export: /** @type {NonNullable<TargetItemWithConnection["export"]>} */ (
 				target.export
@@ -1514,11 +1801,13 @@ class ExportInfo {
 	}
 
 	/**
+	 * Creates a nested exports info.
 	 * @returns {ExportsInfo} an exports info
 	 */
 	createNestedExportsInfo() {
-		if (this.exportsInfoOwned)
+		if (this.exportsInfoOwned) {
 			return /** @type {ExportsInfo} */ (this.exportsInfo);
+		}
 		this.exportsInfoOwned = true;
 		const oldExportsInfo = this.exportsInfo;
 		this.exportsInfo = new ExportsInfo();
@@ -1534,6 +1823,7 @@ class ExportInfo {
 	}
 
 	/**
+	 * Checks whether this export info contains the base info.
 	 * @param {ExportInfo} baseInfo base info
 	 * @param {RuntimeSpec} runtime runtime
 	 * @returns {boolean} true when has info, otherwise false
@@ -1548,6 +1838,7 @@ class ExportInfo {
 	}
 
 	/**
+	 * Updates the hash with the data contributed by this instance.
 	 * @param {Hash} hash the hash
 	 * @param {RuntimeSpec} runtime the runtime
 	 * @returns {void}
@@ -1557,15 +1848,20 @@ class ExportInfo {
 	}
 
 	/**
+	 * Updates hash using the provided hash.
 	 * @param {Hash} hash the hash
 	 * @param {RuntimeSpec} runtime the runtime
 	 * @param {Set<ExportsInfo>} alreadyVisitedExportsInfo for circular references
 	 */
 	_updateHash(hash, runtime, alreadyVisitedExportsInfo) {
+		const usedNameHash =
+			this._usedName instanceof InlinedUsedName
+				? `inlined:${this._usedName.render("")}`
+				: this._usedName || this.name;
 		hash.update(
-			`${this._usedName || this.name}${this.getUsed(runtime)}${this.provided}${
+			`${usedNameHash}${this.getUsed(runtime)}${this.provided}${
 				this.terminalBinding
-			}`
+			}${this.pureProvide ? "P" : ""}`
 		);
 		if (this.exportsInfo && !alreadyVisitedExportsInfo.has(this.exportsInfo)) {
 			this.exportsInfo._updateHash(hash, runtime, alreadyVisitedExportsInfo);
@@ -1671,5 +1967,5 @@ class ExportInfo {
 
 module.exports = ExportsInfo;
 module.exports.ExportInfo = ExportInfo;
-module.exports.UsageState = UsageState;
 module.exports.RestoreProvidedData = RestoreProvidedData;
+module.exports.UsageState = UsageState;

@@ -1,8 +1,5 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.Debug = void 0;
-const createDebug = require("debug");
+import createDebug from 'debug';
 /**
  * Debug instance with the given namespace: http-proxy-middleware
  */
-exports.Debug = createDebug('http-proxy-middleware');
+export const Debug = createDebug('http-proxy-middleware');

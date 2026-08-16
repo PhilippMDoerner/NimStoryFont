@@ -1,4 +1,7 @@
-import { capitalize } from 'src/utils/string';
+import { capitalize } from '../../utils/string';
+
+// Hotkeys = Shortcuts with global scope
+// Shortcuts = Overarching word for key-combinations performing an action
 
 export type Key = Pick<KeyboardEvent, 'key'> &
   Partial<Pick<KeyboardEvent, 'ctrlKey' | 'shiftKey' | 'altKey' | 'metaKey'>>;
@@ -15,7 +18,7 @@ export const MODIFIER_KEYS = new Set([
   'Tab',
 ]);
 
-export const ACTIONS = [
+export const HOTKEY_ACTIONS = [
   'create',
   'delete',
   'update',
@@ -30,16 +33,16 @@ export const ACTIONS = [
   'show-tooltips',
   'show-onboarding',
 ] as const;
-export const ACTIONS_SET = new Set<string>(ACTIONS);
-export type ShortcutAction = (typeof ACTIONS)[number];
+export const ACTIONS_SET = new Set<string>(HOTKEY_ACTIONS);
+export type HotkeyAction = (typeof HOTKEY_ACTIONS)[number];
 
 export type KeyCombination = Key[];
 
-export type ShortcutMapping = {
-  [key in ShortcutAction]: { keys: KeyCombination; modified: boolean };
+export type HotkeyMapping = {
+  [key in HotkeyAction]: { keys: KeyCombination; modified: boolean };
 };
 
-export const DEFAULT_MAPPINGS: ShortcutMapping = {
+export const DEFAULT_HOTKEY_MAPPINGS: HotkeyMapping = {
   create: { keys: [{ key: 'c', altKey: true }], modified: false },
   delete: { keys: [{ key: 'd', altKey: true }], modified: false },
   update: { keys: [{ key: 'e', altKey: true }], modified: false },
@@ -99,3 +102,5 @@ export function parseKeyStr(str: string): Key | undefined {
     shiftKey: segments.includes('shift'),
   };
 }
+
+export const HOTKEY_IGNORE_ATTR = 'hotkey-ignore';

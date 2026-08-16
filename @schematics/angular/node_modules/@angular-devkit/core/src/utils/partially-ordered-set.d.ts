@@ -12,6 +12,9 @@ export declare class DependencyNotFoundException extends BaseException {
 export declare class CircularDependencyFoundException extends BaseException {
     constructor();
 }
+/**
+ * @deprecated Use standard arrays and ensure correct insertion order instead.
+ */
 export declare class PartiallyOrderedSet<T> {
     private _items;
     protected _checkCircularDependencies(item: T, deps: Set<T>): void;

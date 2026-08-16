@@ -7,33 +7,73 @@
 
 const util = require("util");
 const ExternalModule = require("./ExternalModule");
+const { ASSET_URL_TYPE } = require("./ModuleSourceTypeConstants");
 const ContextElementDependency = require("./dependencies/ContextElementDependency");
 const CssImportDependency = require("./dependencies/CssImportDependency");
 const CssUrlDependency = require("./dependencies/CssUrlDependency");
 const HarmonyImportDependency = require("./dependencies/HarmonyImportDependency");
 const ImportDependency = require("./dependencies/ImportDependency");
-const { resolveByProperty, cachedSetProperty } = require("./util/cleverMerge");
+const { coreModules } = require("./node/nodeBuiltins");
+const { cachedSetProperty, resolveByProperty } = require("./util/cleverMerge");
 
-/** @typedef {import("../declarations/WebpackOptions").ExternalItemFunctionData} ExternalItemFunctionData */
+/** @typedef {import("enhanced-resolve").ResolveContext} ResolveContext */
+/** @typedef {import("../declarations/WebpackOptions").ResolveOptions} ResolveOptions */
+/** @typedef {import("../declarations/WebpackOptions").ExternalsType} ExternalsType */
+/** @typedef {import("../declarations/WebpackOptions").ExternalItem} ExternalItem */
+/** @typedef {import("../declarations/WebpackOptions").ExternalItemValue} ExternalItemValue */
 /** @typedef {import("../declarations/WebpackOptions").ExternalItemObjectKnown} ExternalItemObjectKnown */
 /** @typedef {import("../declarations/WebpackOptions").ExternalItemObjectUnknown} ExternalItemObjectUnknown */
+/** @typedef {import("../declarations/WebpackOptions").ExternalItemInterop} ExternalItemInterop */
 /** @typedef {import("../declarations/WebpackOptions").Externals} Externals */
-/** @typedef {import("./Compilation").DepConstructor} DepConstructor */
+/** @typedef {import("./Dependency")} Dependency */
 /** @typedef {import("./ExternalModule").DependencyMeta} DependencyMeta */
-/** @typedef {import("./Module")} Module */
 /** @typedef {import("./ModuleFactory").IssuerLayer} IssuerLayer */
+/** @typedef {import("./ModuleFactory").ModuleFactoryCreateDataContextInfo} ModuleFactoryCreateDataContextInfo */
 /** @typedef {import("./NormalModuleFactory")} NormalModuleFactory */
+
+/** @typedef {((context: string, request: string, callback: (err?: Error | null, result?: string | false, resolveRequest?: import("enhanced-resolve").ResolveRequest) => void) => void)} ExternalItemFunctionDataGetResolveCallbackResult */
+/** @typedef {((context: string, request: string) => Promise<string>)} ExternalItemFunctionDataGetResolveResult */
+/** @typedef {(options?: ResolveOptions) => ExternalItemFunctionDataGetResolveCallbackResult | ExternalItemFunctionDataGetResolveResult} ExternalItemFunctionDataGetResolve */
+
+/**
+ * Defines the external item function data type used by this module.
+ * @typedef {object} ExternalItemFunctionData
+ * @property {string} context the directory in which the request is placed
+ * @property {ModuleFactoryCreateDataContextInfo} contextInfo contextual information
+ * @property {string} dependencyType the category of the referencing dependency
+ * @property {ExternalItemFunctionDataGetResolve} getResolve get a resolve function with the current resolver options
+ * @property {string} request the request as written by the user in the require/import expression/statement
+ */
+
+/** @typedef {((data: ExternalItemFunctionData, callback: (err?: (Error | null), result?: ExternalItemValue) => void) => void)} ExternalItemFunctionCallback */
+/** @typedef {((data: import("../lib/ExternalModuleFactoryPlugin").ExternalItemFunctionData) => Promise<ExternalItemValue>)} ExternalItemFunctionPromise */
 
 const UNSPECIFIED_EXTERNAL_TYPE_REGEXP = /^[a-z0-9-]+ /;
 const EMPTY_RESOLVE_OPTIONS = {};
+const NODE_PREFIX = "node:";
+
+/**
+ * For a node.js core module request, returns its `node:`-prefixed/unprefixed
+ * counterpart so externals match regardless of which form the code uses.
+ * @param {string} request the request as written in the import/require
+ * @returns {string | undefined} the alternate form, or undefined when not a core module
+ */
+const getAlternateCoreModuleRequest = (request) => {
+	if (request.startsWith(NODE_PREFIX)) {
+		const name = request.slice(NODE_PREFIX.length);
+		return coreModules.has(name) ? name : undefined;
+	}
+	return coreModules.has(request) ? NODE_PREFIX + request : undefined;
+};
 
 // TODO webpack 6 remove this
 const callDeprecatedExternals = util.deprecate(
 	/**
+	 * Handles the callback logic for this hook.
 	 * @param {EXPECTED_FUNCTION} externalsFunction externals function
 	 * @param {string} context context
 	 * @param {string} request request
-	 * @param {(err: Error | null | undefined, value: ExternalValue | undefined, ty: ExternalType | undefined) => void} cb cb
+	 * @param {(err: Error | null | undefined, value: ExternalValue | undefined, ty: ExternalsType | undefined) => void} cb cb
 	 */
 	(externalsFunction, context, request, cb) => {
 		// eslint-disable-next-line no-useless-call
@@ -43,9 +83,11 @@ const callDeprecatedExternals = util.deprecate(
 	"DEP_WEBPACK_EXTERNALS_FUNCTION_PARAMETERS"
 );
 
+/** @typedef {(layer: string | null) => ExternalItem} ExternalItemByLayerFn */
 /** @typedef {ExternalItemObjectKnown & ExternalItemObjectUnknown} ExternalItemObject */
 
 /**
+ * Defines the external weak cache type used by this module.
  * @template {ExternalItemObject} T
  * @typedef {WeakMap<T, Map<IssuerLayer, Omit<T, "byLayer">>>} ExternalWeakCache
  */
@@ -54,6 +96,7 @@ const callDeprecatedExternals = util.deprecate(
 const cache = new WeakMap();
 
 /**
+ * Returns result.
  * @param {ExternalItemObject} obj obj
  * @param {IssuerLayer} layer layer
  * @returns {Omit<ExternalItemObject, "byLayer">} result
@@ -73,26 +116,30 @@ const resolveLayer = (obj, layer) => {
 };
 
 /** @typedef {string | string[] | boolean | Record<string, string | string[]>} ExternalValue */
-/** @typedef {string | undefined} ExternalType */
+
+const PLUGIN_NAME = "ExternalModuleFactoryPlugin";
 
 class ExternalModuleFactoryPlugin {
 	/**
-	 * @param {string | undefined} type default external type
+	 * Creates an instance of ExternalModuleFactoryPlugin.
+	 * @param {ExternalsType | ((dependency: Dependency) => ExternalsType)} type default external type
 	 * @param {Externals} externals externals config
 	 */
 	constructor(type, externals) {
 		this.type = type;
+		/** @type {Externals} */
 		this.externals = externals;
 	}
 
 	/**
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {NormalModuleFactory} normalModuleFactory the normal module factory
 	 * @returns {void}
 	 */
 	apply(normalModuleFactory) {
 		const globalType = this.type;
 		normalModuleFactory.hooks.factorize.tapAsync(
-			"ExternalModuleFactoryPlugin",
+			PLUGIN_NAME,
 			(data, callback) => {
 				const context = data.context;
 				const contextInfo = data.contextInfo;
@@ -102,8 +149,9 @@ class ExternalModuleFactoryPlugin {
 				/** @typedef {(err?: Error | null, externalModule?: ExternalModule) => void} HandleExternalCallback */
 
 				/**
+				 * Processes the provided value.
 				 * @param {ExternalValue} value the external config
-				 * @param {ExternalType | undefined} type type of external
+				 * @param {ExternalsType | undefined} type type of external
 				 * @param {HandleExternalCallback} callback callback
 				 * @returns {void}
 				 */
@@ -112,8 +160,25 @@ class ExternalModuleFactoryPlugin {
 						// Not externals, fallback to original factory
 						return callback();
 					}
-					/** @type {string | string[] | Record<string, string|string[]>} */
+					/** @type {ExternalValue} */
 					let externalConfig = value === true ? dependency.request : value;
+					// `interop` is a reserved key on the object form, not a target;
+					// pull it out so the rest stays a pure externalsType->request map.
+					/** @type {ExternalItemInterop | undefined} */
+					let interop;
+					if (
+						typeof externalConfig === "object" &&
+						externalConfig !== null &&
+						!Array.isArray(externalConfig) &&
+						Object.prototype.hasOwnProperty.call(externalConfig, "interop")
+					) {
+						const { interop: interopValue, ...rest } =
+							/** @type {Record<string, string | string[]> & { interop?: ExternalItemInterop }} */ (
+								externalConfig
+							);
+						interop = interopValue;
+						externalConfig = rest;
+					}
 					// When no explicit type is specified, extract it from the externalConfig
 					if (type === undefined) {
 						if (
@@ -121,7 +186,9 @@ class ExternalModuleFactoryPlugin {
 							UNSPECIFIED_EXTERNAL_TYPE_REGEXP.test(externalConfig)
 						) {
 							const idx = externalConfig.indexOf(" ");
-							type = externalConfig.slice(0, idx);
+							type =
+								/** @type {ExternalsType} */
+								(externalConfig.slice(0, idx));
 							externalConfig = externalConfig.slice(idx + 1);
 						} else if (
 							Array.isArray(externalConfig) &&
@@ -130,7 +197,7 @@ class ExternalModuleFactoryPlugin {
 						) {
 							const firstItem = externalConfig[0];
 							const idx = firstItem.indexOf(" ");
-							type = firstItem.slice(0, idx);
+							type = /** @type {ExternalsType} */ (firstItem.slice(0, idx));
 							externalConfig = [
 								firstItem.slice(idx + 1),
 								...externalConfig.slice(1)
@@ -138,7 +205,11 @@ class ExternalModuleFactoryPlugin {
 						}
 					}
 
-					const resolvedType = /** @type {string} */ (type || globalType);
+					const defaultType =
+						typeof globalType === "function"
+							? globalType(dependency)
+							: globalType;
+					const resolvedType = type || defaultType;
 
 					// TODO make it pluggable/add hooks to `ExternalModule` to allow output modules own externals?
 					/** @type {DependencyMeta | undefined} */
@@ -157,7 +228,12 @@ class ExternalModuleFactoryPlugin {
 									: undefined;
 
 						dependencyMeta = {
-							attributes: dependency.assertions,
+							attributes: dependency.attributes,
+							phase:
+								dependency instanceof HarmonyImportDependency ||
+								dependency instanceof ImportDependency
+									? dependency.phase
+									: undefined,
 							externalType
 						};
 					} else if (dependency instanceof CssImportDependency) {
@@ -172,7 +248,7 @@ class ExternalModuleFactoryPlugin {
 						resolvedType === "asset" &&
 						dependency instanceof CssUrlDependency
 					) {
-						dependencyMeta = { sourceType: "css-url" };
+						dependencyMeta = { sourceType: ASSET_URL_TYPE };
 					}
 
 					callback(
@@ -181,19 +257,24 @@ class ExternalModuleFactoryPlugin {
 							externalConfig,
 							resolvedType,
 							dependency.request,
-							dependencyMeta
+							dependencyMeta,
+							interop
 						)
 					);
 				};
 
 				/**
+				 * Processes the provided external.
 				 * @param {Externals} externals externals config
 				 * @param {HandleExternalCallback} callback callback
 				 * @returns {void}
 				 */
 				const handleExternals = (externals, callback) => {
 					if (typeof externals === "string") {
-						if (externals === dependency.request) {
+						if (
+							externals === dependency.request ||
+							externals === getAlternateCoreModuleRequest(dependency.request)
+						) {
 							return handleExternal(dependency.request, undefined, callback);
 						}
 					} else if (Array.isArray(externals)) {
@@ -202,6 +283,7 @@ class ExternalModuleFactoryPlugin {
 							/** @type {boolean | undefined} */
 							let asyncFlag;
 							/**
+							 * Handle externals and callback.
 							 * @param {(Error | null)=} err err
 							 * @param {ExternalModule=} module module
 							 * @returns {void}
@@ -234,9 +316,10 @@ class ExternalModuleFactoryPlugin {
 						}
 					} else if (typeof externals === "function") {
 						/**
+						 * Processes the provided err.
 						 * @param {Error | null | undefined} err err
 						 * @param {ExternalValue=} value value
-						 * @param {ExternalType=} type type
+						 * @param {ExternalsType=} type type
 						 * @returns {void}
 						 */
 						const cb = (err, value, type) => {
@@ -262,7 +345,8 @@ class ExternalModuleFactoryPlugin {
 									request: dependency.request,
 									dependencyType,
 									contextInfo,
-									getResolve: options => (context, request, callback) => {
+									getResolve: (options) => (context, request, callback) => {
+										/** @type {ResolveContext} */
 										const resolveContext = {
 											fileDependencies: data.fileDependencies,
 											missingDependencies: data.missingDependencies,
@@ -305,7 +389,9 @@ class ExternalModuleFactoryPlugin {
 								},
 								cb
 							);
-							if (promise && promise.then) promise.then(r => cb(null, r), cb);
+							if (promise && promise.then) {
+								promise.then((r) => cb(null, r), cb);
+							}
 						}
 						return;
 					} else if (typeof externals === "object") {
@@ -326,6 +412,23 @@ class ExternalModuleFactoryPlugin {
 								callback
 							);
 						}
+						// Fall back to the `node:`-prefixed/unprefixed core module form.
+						const alternateRequest = getAlternateCoreModuleRequest(
+							dependency.request
+						);
+						if (
+							alternateRequest !== undefined &&
+							Object.prototype.hasOwnProperty.call(
+								resolvedExternals,
+								alternateRequest
+							)
+						) {
+							return handleExternal(
+								resolvedExternals[alternateRequest],
+								undefined,
+								callback
+							);
+						}
 					}
 					callback();
 				};
@@ -335,4 +438,5 @@ class ExternalModuleFactoryPlugin {
 		);
 	}
 }
+
 module.exports = ExternalModuleFactoryPlugin;

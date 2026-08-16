@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RULE_NAME = void 0;
+exports.RULE_DOCS_EXTENSION = exports.RULE_NAME = void 0;
 const utils_1 = require("@angular-eslint/utils");
 const create_eslint_rule_1 = require("../utils/create-eslint-rule");
 const get_dom_elements_1 = require("../utils/get-dom-elements");
@@ -22,7 +22,12 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
     defaultOptions: [],
     create(context) {
         const parserServices = (0, utils_1.getTemplateParserServices)(context);
-        const domElementsPattern = (0, to_pattern_1.toPattern)([...(0, get_dom_elements_1.getDomElements)()].filter((domElement) => domElement !== 'th'));
+        const domElements = [...(0, get_dom_elements_1.getDomElements)()].filter((domElement) => domElement !== 'th');
+        const uppercaseDomElements = domElements.map((element) => element.toUpperCase());
+        const domElementsPattern = (0, to_pattern_1.toPattern)([
+            ...domElements,
+            ...uppercaseDomElements,
+        ]);
         return {
             [`Element[name=${domElementsPattern}] > :matches(BoundAttribute, TextAttribute)[name='scope']`]({ sourceSpan, }) {
                 const loc = parserServices.convertNodeSourceSpanToLoc(sourceSpan);
@@ -38,3 +43,6 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
         };
     },
 });
+exports.RULE_DOCS_EXTENSION = {
+    rationale: 'The scope attribute on table headers (<th>) tells screen readers whether a header applies to a column or row, enabling more efficient table navigation. When screen reader users navigate table cells, the screen reader announces the associated headers. Without proper scope attributes, users must manually explore the table structure to understand what each cell represents. Use scope="col" for column headers and scope="row" for row headers. For simple tables, screen readers can often infer the scope, but explicit scope attributes ensure reliable accessibility across all screen readers.',
+};

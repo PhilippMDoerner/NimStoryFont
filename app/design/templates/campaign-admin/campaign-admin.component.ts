@@ -11,25 +11,25 @@ import {
 import { toObservable } from '@angular/core/rxjs-interop';
 import { FormlyFieldConfig } from '@ngx-formly/core';
 import { map, Observable } from 'rxjs';
-import { Campaign, WikiStatistics } from 'src/app/_models/campaign';
-import { EmptySearchResponse } from 'src/app/_models/emptySearchResponse';
-import { CampaignRole } from 'src/app/_models/token';
-import { User } from 'src/app/_models/user';
-import { FormlyService } from 'src/app/_services/formly/formly-service.service';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
-import { CardComponent } from 'src/app/design/atoms/card/card.component';
-import { HtmlTextComponent } from 'src/app/design/atoms/html-text/html-text.component';
-import { IconComponent } from 'src/app/design/atoms/icon/icon.component';
-import { InfoCircleTooltipComponent } from 'src/app/design/atoms/info-circle-tooltip/info-circle-tooltip.component';
+import { Campaign, WikiStatistics } from '../../../_models/campaign';
+import { EmptySearchResponse } from '../../../_models/emptySearchResponse';
+import { CampaignRole } from '../../../_models/token';
+import { User } from '../../../_models/user';
+import { FormlyService } from '../../../_services/formly/formly-service.service';
+import { RoutingService } from '../../../_services/routing.service';
+import { ButtonComponent } from '../../../design/atoms/button/button.component';
+import { CardComponent } from '../../../design/atoms/card/card.component';
+import { HtmlTextComponent } from '../../../design/atoms/html-text/html-text.component';
+import { IconComponent } from '../../../design/atoms/icon/icon.component';
+import { InfoCircleTooltipComponent } from '../../../design/atoms/info-circle-tooltip/info-circle-tooltip.component';
 
 import { NgbTooltip } from '@ng-bootstrap/ng-bootstrap';
 import {
   ArticleFooterComponent,
   ConfirmationToggleButtonComponent,
   FormComponent,
-} from 'src/app/design/molecules';
-import { PageContainerComponent } from 'src/app/design/organisms/page-container/page-container.component';
+} from '../../../design/molecules';
+import { PageContainerComponent } from '../../../design/organisms/page-container/page-container.component';
 import { ArticleContextMenuComponent } from '../../molecules/article-context-menu/article-context-menu.component';
 
 @Component({
@@ -54,10 +54,10 @@ import { ArticleContextMenuComponent } from '../../molecules/article-context-men
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CampaignAdminComponent {
-  campaign = input.required<Campaign>();
-  serverUrl = input.required<string>();
-  campaignStatistics = input.required<WikiStatistics>();
-  users = input<User[]>();
+  readonly campaign = input.required<Campaign>();
+  readonly serverUrl = input.required<string>();
+  readonly campaignStatistics = input.required<WikiStatistics>();
+  readonly users = input<User[]>();
 
   readonly removeMember = output<User>();
   readonly removeAdmin = output<User>();
@@ -69,21 +69,21 @@ export class CampaignAdminComponent {
   readonly addEmptySearchResponse = output<EmptySearchResponse>();
   readonly deactivateCampaign = output<Campaign>();
 
-  updateUrl = computed<string>(() =>
+  readonly updateUrl = computed<string>(() =>
     this.routingService.getRoutePath('campaign-update', {
       campaign: this.campaign().name,
     }),
   );
-  homeUrl = computed<string>(() =>
+  readonly homeUrl = computed<string>(() =>
     this.routingService.getRoutePath('home', {
       campaign: this.campaign().name,
     }),
   );
-  users$ = toObservable(this.users).pipe(map((x) => x ?? []));
-  memberModel = signal<Partial<User>>({});
-  showMemberAddForm = signal(false);
-  memberTooltip = `Allows creating, reading, updating and deleting articles in this campaign. Also makes the person a possible "author" for diaryentries.`;
-  memberFormlyFields: Signal<FormlyFieldConfig[]> = computed(() => [
+  readonly users$ = toObservable(this.users).pipe(map((x) => x ?? []));
+  readonly memberModel = signal<Partial<User>>({});
+  readonly showMemberAddForm = signal(false);
+  readonly memberTooltip = `Allows creating, reading, updating and deleting articles in this campaign. Also makes the person a possible "author" for diaryentries.`;
+  readonly memberFormlyFields: Signal<FormlyFieldConfig[]> = computed(() => [
     this.formlyService.buildDisableSelectConfig({
       key: 'pk',
       labelProp: 'username',
@@ -106,10 +106,10 @@ export class CampaignAdminComponent {
     }),
   ]);
 
-  adminModel = signal<Partial<User>>({});
-  showAdminAddForm = signal(false);
-  adminTooltip = `Allows adding admins, members and guests to a campaign. Does not add the person to the list of possible "authors" for diaryentries.`;
-  adminFormlyFields: Signal<FormlyFieldConfig[]> = computed(() => [
+  readonly adminModel = signal<Partial<User>>({});
+  readonly showAdminAddForm = signal(false);
+  readonly adminTooltip = `Allows adding admins, members and guests to a campaign. Does not add the person to the list of possible "authors" for diaryentries.`;
+  readonly adminFormlyFields: Signal<FormlyFieldConfig[]> = computed(() => [
     this.formlyService.buildDisableSelectConfig({
       key: 'pk',
       labelProp: 'username',
@@ -131,10 +131,10 @@ export class CampaignAdminComponent {
     }),
   ]);
 
-  guestModel = signal<Partial<User>>({});
-  showGuestAddForm = signal(false);
-  guestTooltip = `Allows only reading articles in this campaign.`;
-  guestFormlyFields: Signal<FormlyFieldConfig[]> = computed(() => [
+  readonly guestModel = signal<Partial<User>>({});
+  readonly showGuestAddForm = signal(false);
+  readonly guestTooltip = `Allows only reading articles in this campaign.`;
+  readonly guestFormlyFields: Signal<FormlyFieldConfig[]> = computed(() => [
     this.formlyService.buildDisableSelectConfig({
       key: 'pk',
       labelProp: 'username',
@@ -170,8 +170,8 @@ export class CampaignAdminComponent {
   ]);
 
   responseModel!: Partial<EmptySearchResponse>;
-  showResponseForm = false;
-  responseFormlyFields: FormlyFieldConfig[] = [
+  readonly showResponseForm = signal(false);
+  readonly responseFormlyFields: FormlyFieldConfig[] = [
     this.formlyService.buildInputConfig({
       key: 'text',
       placeholder: 'Text to show for empty searches',
@@ -224,9 +224,9 @@ export class CampaignAdminComponent {
   }
 
   toggleResponseAddForm(): void {
-    this.showResponseForm = !this.showResponseForm;
+    this.showResponseForm.update((show) => !show);
 
-    if (this.showResponseForm) {
+    if (this.showResponseForm()) {
       this.responseModel = { campaign: this.campaign().pk as number };
     }
   }

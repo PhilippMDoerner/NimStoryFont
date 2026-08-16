@@ -5,8 +5,8 @@ import {
   input,
   output,
 } from '@angular/core';
-import { HeadingDirective } from 'src/app/_directives/heading.directive';
-import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
+import { HeadingDirective } from '../../../_directives/heading.directive';
+import { ButtonComponent } from '../../../design/atoms/button/button.component';
 import { HeadingLevel } from '../../atoms/_models/heading';
 import { CardComponent } from '../../atoms/card/card.component';
 import { IconComponent } from '../../atoms/icon/icon.component';
@@ -40,13 +40,13 @@ export class ConfigTableComponent<
   FullObj extends object,
   RawObj extends object,
 > {
-  table = input.required<ConfigTable<FullObj, RawObj>>();
-  canDeleteGlobalEntries = input.required<boolean>();
-  canDeleteCampaignEntries = input.required<boolean>();
-  canCreate = input.required<boolean>();
-  ariaLevel = input.required<HeadingLevel>();
+  readonly table = input.required<ConfigTable<FullObj, RawObj>>();
+  readonly canDeleteGlobalEntries = input.required<boolean>();
+  readonly canDeleteCampaignEntries = input.required<boolean>();
+  readonly canCreate = input.required<boolean>();
+  readonly ariaLevel = input.required<HeadingLevel>();
 
-  tableEntries = computed<TableEntry<FullObj>[]>(() => {
+  readonly tableEntries = computed<TableEntry<FullObj>[]>(() => {
     const entries = this.table().entries ?? [];
     const entryIdProp = this.table().idProp;
     const campaignIdProp = this.table().campaignIdProp;
@@ -56,16 +56,16 @@ export class ConfigTableComponent<
     );
   });
 
-  columnNames = computed<string[]>(() => {
+  readonly columnNames = computed<string[]>(() => {
     const firstEntry = this.table().entries?.[0];
     if (!firstEntry) return [];
 
     return Object.keys(firstEntry).filter((key) => key !== this.table().idProp);
   });
 
-  loadTableEntries = output<void>();
-  deleteTableEntry = output<FullObj>();
-  createTableEntry = output<RawObj>();
+  readonly loadTableEntries = output<void>();
+  readonly deleteTableEntry = output<FullObj>();
+  readonly createTableEntry = output<RawObj>();
 
   createEntry(entry: Partial<RawObj>): void {
     this.createTableEntry.emit(entry as RawObj);

@@ -12,11 +12,7 @@ import {
   componentWrapperDecorator,
   moduleMetadata,
 } from '@storybook/angular';
-import * as all from 'tinymce/tinymce';
 import { FormlyEditorFieldComponent } from './formly-editor-field.component';
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const sth = all; //Needed so that the import of "tinymce/tinymce" does not get removed
 
 export default {
   title: 'DesignSystem/Organisms/FormlyEditorFieldComponent',
@@ -54,10 +50,10 @@ export default {
     componentWrapperDecorator(
       () => `
       <form [formGroup]="form">
-        <formly-form 
-          [model]="model" 
-          [fields]="fields" 
-          [options]="options" 
+        <formly-form
+          [model]="model"
+          [fields]="fields"
+          [options]="options"
           [form]="form"
         ></formly-form>
       </form>

@@ -11,13 +11,16 @@
 
 class SelfModuleFactory {
 	/**
+	 * Creates an instance of SelfModuleFactory.
 	 * @param {ModuleGraph} moduleGraph module graph
 	 */
 	constructor(moduleGraph) {
+		/** @type {ModuleGraph} */
 		this.moduleGraph = moduleGraph;
 	}
 
 	/**
+	 * Processes the provided data.
 	 * @param {ModuleFactoryCreateData} data data object
 	 * @param {ModuleFactoryCallback} callback callback
 	 * @returns {void}

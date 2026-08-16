@@ -2,8 +2,8 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { patchState, signalStore, withMethods, withState } from '@ngrx/signals';
 import { take } from 'rxjs';
-import { SpecialLoginState } from 'src/app/_models/login';
-import { MailService } from 'src/app/_services/utils/mail.service';
+import { SpecialLoginState } from '../../../_models/login';
+import { MailService } from '../../../_services/utils/mail.service';
 
 export interface LoginPageState {
   specialLoginState: SpecialLoginState | undefined;

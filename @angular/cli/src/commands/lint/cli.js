@@ -22,3 +22,4 @@ class LintCommandModule extends architect_command_module_1.ArchitectCommandModul
     describe = 'Runs linting tools on Angular application code in a given project folder.';
 }
 exports.default = LintCommandModule;
+//# sourceMappingURL=cli.js.map

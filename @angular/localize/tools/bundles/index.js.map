@@ -1,6 +1,6 @@
 {
   "version": 3,
   "sources": ["../index.ts"],
-  "mappings": ";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;AAWA,SAAQ,kBAAkB,qBAAoB;AAC9C,cAAc,IAAI,iBAAgB,CAAE;",
+  "mappings": ";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;AAWA,SAAQ,kBAAkB,qBAAoB;AAC9C,cAAc,IAAI,iBAAiB,CAAC;",
   "names": []
 }

@@ -11,3 +11,4 @@ exports.addRootProvider = exports.addRootImport = void 0;
 var rules_1 = require("./rules");
 Object.defineProperty(exports, "addRootImport", { enumerable: true, get: function () { return rules_1.addRootImport; } });
 Object.defineProperty(exports, "addRootProvider", { enumerable: true, get: function () { return rules_1.addRootProvider; } });
+//# sourceMappingURL=index.js.map

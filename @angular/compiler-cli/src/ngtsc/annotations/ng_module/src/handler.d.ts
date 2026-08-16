@@ -85,7 +85,8 @@ export declare class NgModuleDecoratorHandler implements DecoratorHandler<Decora
     private readonly compilationMode;
     private readonly localCompilationExtraImportsTracker;
     private readonly jitDeclarationRegistry;
-    constructor(reflector: ReflectionHost, evaluator: PartialEvaluator, metaReader: MetadataReader, metaRegistry: MetadataRegistry, scopeRegistry: LocalModuleScopeRegistry, referencesRegistry: ReferencesRegistry, exportedProviderStatusResolver: ExportedProviderStatusResolver, semanticDepGraphUpdater: SemanticDepGraphUpdater | null, isCore: boolean, refEmitter: ReferenceEmitter, annotateForClosureCompiler: boolean, onlyPublishPublicTypings: boolean, injectableRegistry: InjectableClassRegistry, perf: PerfRecorder, includeClassMetadata: boolean, includeSelectorScope: boolean, compilationMode: CompilationMode, localCompilationExtraImportsTracker: LocalCompilationExtraImportsTracker | null, jitDeclarationRegistry: JitDeclarationRegistry);
+    private readonly emitDeclarationOnly;
+    constructor(reflector: ReflectionHost, evaluator: PartialEvaluator, metaReader: MetadataReader, metaRegistry: MetadataRegistry, scopeRegistry: LocalModuleScopeRegistry, referencesRegistry: ReferencesRegistry, exportedProviderStatusResolver: ExportedProviderStatusResolver, semanticDepGraphUpdater: SemanticDepGraphUpdater | null, isCore: boolean, refEmitter: ReferenceEmitter, annotateForClosureCompiler: boolean, onlyPublishPublicTypings: boolean, injectableRegistry: InjectableClassRegistry, perf: PerfRecorder, includeClassMetadata: boolean, includeSelectorScope: boolean, compilationMode: CompilationMode, localCompilationExtraImportsTracker: LocalCompilationExtraImportsTracker | null, jitDeclarationRegistry: JitDeclarationRegistry, emitDeclarationOnly: boolean);
     readonly precedence = HandlerPrecedence.PRIMARY;
     readonly name = "NgModuleDecoratorHandler";
     detect(node: ClassDeclaration, decorators: Decorator[] | null): DetectResult<Decorator> | undefined;
@@ -106,6 +107,13 @@ export declare class NgModuleDecoratorHandler implements DecoratorHandler<Decora
     private appendRemoteScopingStatements;
     private compileNgModule;
     private _toR3Reference;
+    /**
+     * Analyze path used in `emitDeclarationOnly` (isolated declarations) mode. The
+     * `declarations`/`imports`/`exports` arrays are NOT statically resolved here - they're transformed
+     * syntactically into the `Isolated` metadata kind's type-tuple expressions, which downstream
+     * `.d.ts` metadata readers resolve. This skips the partial-evaluator path entirely.
+     */
+    private analyzeForDeclarationOnly;
     private isClassDeclarationReference;
     /**
      * Compute a list of `Reference`s from a resolved metadata value.

@@ -7,17 +7,16 @@ import {
   output,
   signal,
 } from '@angular/core';
-import { OverviewItem } from 'src/app/_models/overview';
-import { RoutingService } from 'src/app/_services/routing.service';
-
-import { CharacterDetails } from 'src/app/_models/character';
-import { Quote, QuoteConnection } from 'src/app/_models/quote';
-import { SeparatorComponent } from 'src/app/design/atoms/separator/separator.component';
-import { SpinnerComponent } from 'src/app/design/atoms/spinner/spinner.component';
-import { BadgeListComponent, BadgeListEntry } from 'src/app/design/molecules';
-import { copyToClipboard } from 'src/utils/clipboard';
-import { componentId } from 'src/utils/DOM';
+import { copyToClipboard } from '../../../../utils/clipboard';
+import { componentId } from '../../../../utils/DOM';
+import { CharacterDetails } from '../../../_models/character';
+import { OverviewItem } from '../../../_models/overview';
+import { Quote, QuoteConnection } from '../../../_models/quote';
+import { RoutingService } from '../../../_services/routing.service';
 import { ButtonComponent } from '../../atoms/button/button.component';
+import { SeparatorComponent } from '../../atoms/separator/separator.component';
+import { SpinnerComponent } from '../../atoms/spinner/spinner.component';
+import { BadgeListComponent, BadgeListEntry } from '../../molecules';
 import { MenuItem } from '../../molecules/_models/menu';
 import { ContextMenuComponent } from '../../molecules/context-menu/context-menu.component';
 import { ToastService } from '../toast-overlay/toast.service';

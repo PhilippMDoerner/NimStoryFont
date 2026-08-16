@@ -33,12 +33,18 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.NullishComparisonType = exports.OperandValidity = void 0;
+exports.ComparisonType = exports.NullishComparisonType = exports.OperandValidity = exports.Yoda = void 0;
 exports.gatherLogicalOperands = gatherLogicalOperands;
 const utils_1 = require("@typescript-eslint/utils");
 const ts_api_utils_1 = require("ts-api-utils");
 const ts = __importStar(require("typescript"));
 const util_1 = require("../../util");
+var Yoda;
+(function (Yoda) {
+    Yoda[Yoda["Yes"] = 0] = "Yes";
+    Yoda[Yoda["No"] = 1] = "No";
+    Yoda[Yoda["Unknown"] = 2] = "Unknown";
+})(Yoda || (exports.Yoda = Yoda = {}));
 var ComparisonValueType;
 (function (ComparisonValueType) {
     ComparisonValueType["Null"] = "Null";
@@ -48,6 +54,7 @@ var ComparisonValueType;
 var OperandValidity;
 (function (OperandValidity) {
     OperandValidity["Valid"] = "Valid";
+    OperandValidity["Last"] = "Last";
     OperandValidity["Invalid"] = "Invalid";
 })(OperandValidity || (exports.OperandValidity = OperandValidity = {}));
 var NullishComparisonType;
@@ -69,10 +76,18 @@ var NullishComparisonType;
     /** `x` */
     NullishComparisonType["Boolean"] = "Boolean";
 })(NullishComparisonType || (exports.NullishComparisonType = NullishComparisonType = {}));
+var ComparisonType;
+(function (ComparisonType) {
+    ComparisonType["NotEqual"] = "NotEqual";
+    ComparisonType["Equal"] = "Equal";
+    ComparisonType["NotStrictEqual"] = "NotStrictEqual";
+    ComparisonType["StrictEqual"] = "StrictEqual";
+})(ComparisonType || (exports.ComparisonType = ComparisonType = {}));
 const NULLISH_FLAGS = ts.TypeFlags.Null | ts.TypeFlags.Undefined;
 function isValidFalseBooleanCheckType(node, disallowFalseyLiteral, parserServices, options) {
     const type = parserServices.getTypeAtLocation(node);
-    const types = (0, ts_api_utils_1.unionTypeParts)(type);
+    const types = (0, ts_api_utils_1.unionConstituents)(type);
+    const primitiveAndObjectParts = types.flatMap(type => (0, ts_api_utils_1.intersectionConstituents)(type));
     if (disallowFalseyLiteral &&
         /*
         ```
@@ -84,10 +99,10 @@ function isValidFalseBooleanCheckType(node, disallowFalseyLiteral, parserService
         We don't want to consider these two cases because the boolean expression
         narrows out the non-nullish falsy cases - so converting the chain to `x?.a`
         would introduce a build error
-        */ (types.some(t => (0, ts_api_utils_1.isBooleanLiteralType)(t) && t.intrinsicName === 'false') ||
-            types.some(t => (0, ts_api_utils_1.isStringLiteralType)(t) && t.value === '') ||
-            types.some(t => (0, ts_api_utils_1.isNumberLiteralType)(t) && t.value === 0) ||
-            types.some(t => (0, ts_api_utils_1.isBigIntLiteralType)(t) && t.value.base10Value === '0'))) {
+        */ (primitiveAndObjectParts.some(t => (0, ts_api_utils_1.isBooleanLiteralType)(t) && t.intrinsicName === 'false') ||
+            primitiveAndObjectParts.some(t => (0, ts_api_utils_1.isStringLiteralType)(t) && t.value === '') ||
+            primitiveAndObjectParts.some(t => (0, ts_api_utils_1.isNumberLiteralType)(t) && t.value === 0) ||
+            primitiveAndObjectParts.some(t => (0, ts_api_utils_1.isBigIntLiteralType)(t) && t.value.base10Value === '0'))) {
         return false;
     }
     let allowedFlags = NULLISH_FLAGS | ts.TypeFlags.Object;
@@ -109,7 +124,7 @@ function isValidFalseBooleanCheckType(node, disallowFalseyLiteral, parserService
     if (options.checkBigInt === true) {
         allowedFlags |= ts.TypeFlags.BigIntLike;
     }
-    return types.every(t => (0, util_1.isTypeFlagSet)(t, allowedFlags));
+    return primitiveAndObjectParts.every(t => (0, util_1.isTypeFlagSet)(t, allowedFlags));
 }
 function gatherLogicalOperands(node, parserServices, sourceCode, options) {
     const result = [];
@@ -161,56 +176,92 @@ function gatherLogicalOperands(node, parserServices, sourceCode, options) {
                     result.push({ type: OperandValidity.Invalid });
                     continue;
                 }
-                switch (operand.operator) {
-                    case '!=':
-                    case '==':
-                        if (comparedValue === ComparisonValueType.Null ||
-                            comparedValue === ComparisonValueType.Undefined) {
-                            // x == null, x == undefined
+                if (operand.operator.startsWith('!') !== (node.operator === '||')) {
+                    switch (operand.operator) {
+                        case '!=':
+                        case '==':
+                            if (comparedValue === ComparisonValueType.Null ||
+                                comparedValue === ComparisonValueType.Undefined) {
+                                // x == null, x == undefined
+                                result.push({
+                                    comparedName: comparedExpression,
+                                    comparisonType: operand.operator.startsWith('!')
+                                        ? NullishComparisonType.NotEqualNullOrUndefined
+                                        : NullishComparisonType.EqualNullOrUndefined,
+                                    isYoda,
+                                    node: operand,
+                                    type: OperandValidity.Valid,
+                                });
+                                continue;
+                            }
+                            break;
+                        case '!==':
+                        case '===': {
+                            const comparedName = comparedExpression;
+                            switch (comparedValue) {
+                                case ComparisonValueType.Null:
+                                    result.push({
+                                        comparedName,
+                                        comparisonType: operand.operator.startsWith('!')
+                                            ? NullishComparisonType.NotStrictEqualNull
+                                            : NullishComparisonType.StrictEqualNull,
+                                        isYoda,
+                                        node: operand,
+                                        type: OperandValidity.Valid,
+                                    });
+                                    continue;
+                                case ComparisonValueType.Undefined:
+                                    result.push({
+                                        comparedName,
+                                        comparisonType: operand.operator.startsWith('!')
+                                            ? NullishComparisonType.NotStrictEqualUndefined
+                                            : NullishComparisonType.StrictEqualUndefined,
+                                        isYoda,
+                                        node: operand,
+                                        type: OperandValidity.Valid,
+                                    });
+                                    continue;
+                            }
+                        }
+                    }
+                }
+                // x == something :(
+                // x === something :(
+                // x != something :(
+                // x !== something :(
+                const binaryComparisonChain = getBinaryComparisonChain(operand);
+                if (binaryComparisonChain) {
+                    const { comparedName, comparedValue, yoda } = binaryComparisonChain;
+                    switch (operand.operator) {
+                        case '==':
+                        case '===': {
+                            const comparisonType = operand.operator === '=='
+                                ? ComparisonType.Equal
+                                : ComparisonType.StrictEqual;
                             result.push({
-                                comparedName: comparedExpression,
-                                comparisonType: operand.operator.startsWith('!')
-                                    ? NullishComparisonType.NotEqualNullOrUndefined
-                                    : NullishComparisonType.EqualNullOrUndefined,
-                                isYoda,
+                                comparedName,
+                                comparisonType,
+                                comparisonValue: comparedValue,
                                 node: operand,
-                                type: OperandValidity.Valid,
+                                type: OperandValidity.Last,
+                                yoda,
                             });
                             continue;
                         }
-                        // x == something :(
-                        result.push({ type: OperandValidity.Invalid });
-                        continue;
-                    case '!==':
-                    case '===': {
-                        const comparedName = comparedExpression;
-                        switch (comparedValue) {
-                            case ComparisonValueType.Null:
-                                result.push({
-                                    comparedName,
-                                    comparisonType: operand.operator.startsWith('!')
-                                        ? NullishComparisonType.NotStrictEqualNull
-                                        : NullishComparisonType.StrictEqualNull,
-                                    isYoda,
-                                    node: operand,
-                                    type: OperandValidity.Valid,
-                                });
-                                continue;
-                            case ComparisonValueType.Undefined:
-                                result.push({
-                                    comparedName,
-                                    comparisonType: operand.operator.startsWith('!')
-                                        ? NullishComparisonType.NotStrictEqualUndefined
-                                        : NullishComparisonType.StrictEqualUndefined,
-                                    isYoda,
-                                    node: operand,
-                                    type: OperandValidity.Valid,
-                                });
-                                continue;
-                            default:
-                                // x === something :(
-                                result.push({ type: OperandValidity.Invalid });
-                                continue;
+                        case '!=':
+                        case '!==': {
+                            const comparisonType = operand.operator === '!='
+                                ? ComparisonType.NotEqual
+                                : ComparisonType.NotStrictEqual;
+                            result.push({
+                                comparedName,
+                                comparisonType,
+                                comparisonValue: comparedValue,
+                                node: operand,
+                                type: OperandValidity.Last,
+                                yoda,
+                            });
+                            continue;
                         }
                     }
                 }
@@ -219,7 +270,8 @@ function gatherLogicalOperands(node, parserServices, sourceCode, options) {
             }
             case utils_1.AST_NODE_TYPES.UnaryExpression:
                 if (operand.operator === '!' &&
-                    isValidFalseBooleanCheckType(operand.argument, areMoreOperands && node.operator === '||', parserServices, options)) {
+                    (!areMoreOperands ||
+                        isValidFalseBooleanCheckType(operand.argument, node.operator === '||', parserServices, options))) {
                     result.push({
                         comparedName: operand.argument,
                         comparisonType: NullishComparisonType.NotBoolean,
@@ -236,7 +288,8 @@ function gatherLogicalOperands(node, parserServices, sourceCode, options) {
                 result.push({ type: OperandValidity.Invalid });
                 continue;
             default:
-                if (isValidFalseBooleanCheckType(operand, areMoreOperands && node.operator === '&&', parserServices, options)) {
+                if (!areMoreOperands ||
+                    isValidFalseBooleanCheckType(operand, node.operator === '&&', parserServices, options)) {
                     result.push({
                         comparedName: operand,
                         comparisonType: NullishComparisonType.Boolean,
@@ -313,6 +366,45 @@ function gatherLogicalOperands(node, parserServices, sourceCode, options) {
                     return ComparisonValueType.Undefined;
                 }
                 return null;
+        }
+        return null;
+    }
+    function isMemberBasedExpression(node) {
+        if (node.type === utils_1.AST_NODE_TYPES.MemberExpression) {
+            return true;
+        }
+        if (node.type === utils_1.AST_NODE_TYPES.CallExpression &&
+            node.callee.type === utils_1.AST_NODE_TYPES.MemberExpression) {
+            return true;
+        }
+        return false;
+    }
+    function getBinaryComparisonChain(node) {
+        const { left, right } = node;
+        const isLeftMemberExpression = isMemberBasedExpression(left);
+        const isRightMemberExpression = isMemberBasedExpression(right);
+        if (isLeftMemberExpression && !isRightMemberExpression) {
+            const [comparedName, comparedValue] = [left, right];
+            return {
+                comparedName,
+                comparedValue,
+                yoda: Yoda.No,
+            };
+        }
+        if (!isLeftMemberExpression && isRightMemberExpression) {
+            const [comparedName, comparedValue] = [right, left];
+            return {
+                comparedName,
+                comparedValue,
+                yoda: Yoda.Yes,
+            };
+        }
+        if (isLeftMemberExpression && isRightMemberExpression) {
+            return {
+                comparedName: left,
+                comparedValue: right,
+                yoda: Yoda.Unknown,
+            };
         }
         return null;
     }

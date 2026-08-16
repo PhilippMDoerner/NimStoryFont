@@ -302,3 +302,4 @@ function* checkThresholds(thresholds, size, label) {
         }
     }
 }
+//# sourceMappingURL=bundle-calculator.js.map

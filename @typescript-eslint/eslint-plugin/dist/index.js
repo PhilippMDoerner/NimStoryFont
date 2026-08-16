@@ -1,46 +1,53 @@
 "use strict";
+/* eslint-disable import/first -- intentionally executing code before rest of the require()s. This will not work with ESM. */
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
-const all_1 = __importDefault(require("./configs/all"));
-const base_1 = __importDefault(require("./configs/base"));
-const disable_type_checked_1 = __importDefault(require("./configs/disable-type-checked"));
-const eslint_recommended_1 = __importDefault(require("./configs/eslint-recommended"));
-const recommended_1 = __importDefault(require("./configs/recommended"));
-const recommended_type_checked_1 = __importDefault(require("./configs/recommended-type-checked"));
-const recommended_type_checked_only_1 = __importDefault(require("./configs/recommended-type-checked-only"));
-const strict_1 = __importDefault(require("./configs/strict"));
-const strict_type_checked_1 = __importDefault(require("./configs/strict-type-checked"));
-const strict_type_checked_only_1 = __importDefault(require("./configs/strict-type-checked-only"));
-const stylistic_1 = __importDefault(require("./configs/stylistic"));
-const stylistic_type_checked_1 = __importDefault(require("./configs/stylistic-type-checked"));
-const stylistic_type_checked_only_1 = __importDefault(require("./configs/stylistic-type-checked-only"));
-const rules_1 = __importDefault(require("./rules"));
-// note - cannot migrate this to an import statement because it will make TSC copy the package.json to the dist folder
-const { name, version } = require('../package.json');
-const configs = {
-    all: all_1.default,
-    base: base_1.default,
-    'disable-type-checked': disable_type_checked_1.default,
-    'eslint-recommended': eslint_recommended_1.default,
-    recommended: recommended_1.default,
-    /** @deprecated - please use "recommended-type-checked" instead. */
-    'recommended-requiring-type-checking': recommended_type_checked_1.default,
-    'recommended-type-checked': recommended_type_checked_1.default,
-    'recommended-type-checked-only': recommended_type_checked_only_1.default,
-    strict: strict_1.default,
-    'strict-type-checked': strict_type_checked_1.default,
-    'strict-type-checked-only': strict_type_checked_only_1.default,
-    stylistic: stylistic_1.default,
-    'stylistic-type-checked': stylistic_type_checked_1.default,
-    'stylistic-type-checked-only': stylistic_type_checked_only_1.default,
-};
-const meta = {
-    name,
-    version,
-};
-module.exports = {
-    configs,
-    meta,
-    rules: rules_1.default,
-};
+const ts = __importStar(require("typescript"));
+const [versionMajor, _versionMinor] = ts.versionMajorMinor
+    .split('.')
+    .map(Number);
+if (versionMajor >= 7) {
+    // eslint-disable-next-line no-console
+    console.error([
+        'typescript-eslint does not support TS 7.0.',
+        'Please see https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/#running-side-by-side-with-typescript-6.0 to run typescript-eslint using the TS 6 API.',
+        "See also https://github.com/typescript-eslint/typescript-eslint/issues/10940 for tracking typescript-eslint's support for TS >=7.1",
+    ].join('\n'));
+    throw new Error('typescript-eslint does not support TS 7.0.');
+}
+const raw_plugin_1 = __importDefault(require("./raw-plugin"));
+module.exports = raw_plugin_1.default.plugin;

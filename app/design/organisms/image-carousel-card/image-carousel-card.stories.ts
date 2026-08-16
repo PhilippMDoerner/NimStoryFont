@@ -1,7 +1,7 @@
-import { action } from 'storybook/actions';
 import { Meta, StoryFn, moduleMetadata } from '@storybook/angular';
-import { Image } from 'src/app/_models/image';
-import { FORMLY_CHILD_MODULE } from 'src/app/_modules/formly_constants';
+import { action } from 'storybook/actions';
+import { Image } from '../../../_models/image';
+import { FORMLY_CHILD_MODULE } from '../../../_modules/formly_constants';
 import { ImageCarouselCardComponent } from './image-carousel-card.component';
 
 const dummyImages: Image[] = [

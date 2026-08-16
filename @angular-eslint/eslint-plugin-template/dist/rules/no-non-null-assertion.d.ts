@@ -1,0 +1,11 @@
+export type Options = [];
+export type MessageIds = 'noNonNullAssertion';
+export declare const RULE_NAME = "no-non-null-assertion";
+declare const _default: import("@typescript-eslint/utils/ts-eslint").RuleModule<"noNonNullAssertion", [], import("../utils/create-eslint-rule").RuleDocs, import("@typescript-eslint/utils/ts-eslint").RuleListener> & {
+    name: string;
+};
+export default _default;
+export declare const RULE_DOCS_EXTENSION: {
+    rationale: string;
+};
+//# sourceMappingURL=no-non-null-assertion.d.ts.map

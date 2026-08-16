@@ -30,6 +30,35 @@ test('quote', function (t) {
 	t.end();
 });
 
+test('quote tilde (escapes every ~ to prevent shell tilde-expansion)', function (t) {
+	t.equal(quote(['~']), '\\~');
+	t.equal(quote(['~/foo']), '\\~/foo');
+	t.equal(quote(['~root']), '\\~root');
+	t.equal(quote(['~root/x']), '\\~root/x');
+	t.equal(quote(['~+']), '\\~+');
+	t.equal(quote(['~-']), '\\~-');
+	t.equal(quote(['a~b']), 'a\\~b');
+	t.equal(quote(['x~']), 'x\\~');
+	t.end();
+});
+
+test('backslash with whitespace is not doubled in single quotes (#14)', function (t) {
+	t.equal(quote(['foo \\ bar']), "'foo \\ bar'", 'a backslash between spaces stays a single literal backslash');
+	t.equal(quote(['foo \\\\ bar']), "'foo \\\\ bar'", 'a double backslash is preserved, not quadrupled');
+	t.equal(quote(['foo\\\nbar']), "'foo\\\nbar'", 'a backslash before a newline is preserved');
+	t.end();
+});
+
+test('escapes shell-special characters conservatively (issue #11)', function (t) {
+	t.equal(quote(['make', 'CFLAGS=-DRELEASE']), 'make CFLAGS\\=-DRELEASE', 'escapes = so a leading word is not read as an assignment');
+	t.equal(quote(['a@b']), 'a\\@b', 'escapes @ (zsh globbing)');
+	t.equal(quote(['a^b']), 'a\\^b', 'escapes ^ (zsh extendedglob, csh)');
+	t.equal(quote(['a:b']), 'a\\:b', 'escapes :');
+	t.equal(quote(['a,b']), 'a\\,b', 'escapes , (brace expansion)');
+	t.equal(quote(['a!b']), 'a\\!b', 'escapes ! (history expansion / pipeline negation)');
+	t.end();
+});
+
 test('quote ops', function (t) {
 	t.equal(quote(['a', { op: '|' }, 'b']), 'a \\| b');
 	t.equal(
@@ -56,5 +85,61 @@ test("chars for windows paths don't break out", function (t) {
 test('empty strings', function (t) {
 	t.equal(quote(['-x', '', 'y']), '-x \'\' y');
 
+	t.end();
+});
+
+test('quote ops: allowlist', function (t) {
+	var ops = ['||', '&&', ';;', '|&', '<(', '<<<', '>>', '>&', '<&', '&', ';', '(', ')', '|', '<', '>'];
+	for (var i = 0; i < ops.length; i++) {
+		var op = ops[i];
+		var expected = '';
+		for (var j = 0; j < op.length; j++) { expected += '\\' + op.charAt(j); }
+		t.equal(quote([{ op: op }]), expected, 'op ' + op);
+	}
+	t.end();
+});
+
+test('quote ops: rejects line terminators (GHSA-w7jw-789q-3m8p)', function (t) {
+	t['throws'](function () { quote([{ op: ';\nid' }]); }, TypeError, 'newline in op');
+	t['throws'](function () { quote([{ op: ';\rid' }]); }, TypeError, 'carriage return in op');
+	t['throws'](function () { quote([{ op: ';\u2028id' }]); }, TypeError, 'U+2028 in op');
+	t['throws'](function () { quote([{ op: ';\u2029id' }]); }, TypeError, 'U+2029 in op');
+	t.end();
+});
+
+test('quote ops: rejects non-allowlisted values', function (t) {
+	t['throws'](function () { quote([{ op: '' }]); }, TypeError, 'empty op');
+	t['throws'](function () { quote([{ op: 'foo' }]); }, TypeError, 'arbitrary string');
+	t['throws'](function () { quote([{ op: '|||' }]); }, TypeError, 'near-miss');
+	t['throws'](function () { quote([{ op: 42 }]); }, TypeError, 'non-string op');
+	t.end();
+});
+
+test('quote glob pattern', function (t) {
+	t.equal(quote([{ op: 'glob', pattern: 'test/*.test.js' }]), 'test/*.test.js');
+	t.equal(quote([{ op: 'glob', pattern: '?ab' }]), '?ab');
+	t.equal(quote([{ op: 'glob', pattern: '[ab]c' }]), '[ab]c');
+	t.equal(quote([{ op: 'glob', pattern: '{a,b}' }]), '{a,b}');
+	t.equal(quote([{ op: 'glob', pattern: 'my dir/*.txt' }]), 'my\\ dir/*.txt');
+	t.equal(quote([{ op: 'glob', pattern: 'a$b' }]), 'a\\$b');
+	t['throws'](function () { quote([{ op: 'glob' }]); }, TypeError, 'missing pattern');
+	t['throws'](function () { quote([{ op: 'glob', pattern: 'a\nb' }]); }, TypeError, 'newline in pattern');
+	t['throws'](function () { quote([{ op: 'glob', pattern: 'a\u2028b' }]); }, TypeError, 'U+2028 in pattern');
+	t.end();
+});
+
+test('quote comment', function (t) {
+	t.equal(quote(['echo', 'hi', { comment: ' a comment' }]), 'echo hi # a comment');
+	t.equal(quote([{ comment: '' }]), '#');
+	t['throws'](function () { quote([{ comment: 'a\nb' }]); }, TypeError, 'newline in comment');
+	t['throws'](function () { quote([{ comment: 'a\rb' }]); }, TypeError, 'CR in comment');
+	t['throws'](function () { quote([{ comment: 'a\u2028b' }]); }, TypeError, 'U+2028 in comment');
+	t.end();
+});
+
+test('quote rejects unrecognized object shapes', function (t) {
+	t['throws'](function () { quote([{}]); }, TypeError, 'empty object');
+	t['throws'](function () { quote([{ foo: 'bar' }]); }, TypeError, 'unknown key');
+	t['throws'](function () { quote([{ op: null }]); }, TypeError, 'null op');
 	t.end();
 });

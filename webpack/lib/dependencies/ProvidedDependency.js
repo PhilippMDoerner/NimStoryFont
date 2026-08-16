@@ -7,45 +7,41 @@
 
 const Dependency = require("../Dependency");
 const InitFragment = require("../InitFragment");
+const Template = require("../Template");
+const { InlinedUsedName } = require("../optimize/InlineExports");
 const makeSerializable = require("../util/makeSerializable");
+const { propertyAccess } = require("../util/property");
 const ModuleDependency = require("./ModuleDependency");
 
 /** @typedef {import("webpack-sources").ReplaceSource} ReplaceSource */
-/** @typedef {import("../ChunkGraph")} ChunkGraph */
-/** @typedef {import("../Dependency").ReferencedExport} ReferencedExport */
+/** @typedef {import("../Dependency").ReferencedExports} ReferencedExports */
 /** @typedef {import("../Dependency").UpdateHashContext} UpdateHashContext */
 /** @typedef {import("../DependencyTemplate").DependencyTemplateContext} DependencyTemplateContext */
-/** @typedef {import("../DependencyTemplates")} DependencyTemplates */
 /** @typedef {import("../ModuleGraph")} ModuleGraph */
 /** @typedef {import("../ModuleGraphConnection")} ModuleGraphConnection */
-/** @typedef {import("../RuntimeTemplate")} RuntimeTemplate */
+/** @typedef {import("../ExportsInfo").ExportInfoName} ExportInfoName */
 /** @typedef {import("../javascript/JavascriptParser").Range} Range */
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext} ObjectDeserializerContext */
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext} ObjectSerializerContext */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext<[string, ExportInfoName[]]>} ObjectDeserializerContext */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext<[string, ExportInfoName[]]>} ObjectSerializerContext */
 /** @typedef {import("../util/Hash")} Hash */
 /** @typedef {import("../util/runtime").RuntimeSpec} RuntimeSpec */
 
-/**
- * @param {string[]|null} path the property path array
- * @returns {string} the converted path
- */
-const pathToString = path =>
-	path !== null && path.length > 0
-		? path.map(part => `[${JSON.stringify(part)}]`).join("")
-		: "";
-
 class ProvidedDependency extends ModuleDependency {
 	/**
+	 * Creates an instance of ProvidedDependency.
 	 * @param {string} request request
 	 * @param {string} identifier identifier
-	 * @param {string[]} ids ids
+	 * @param {ExportInfoName[]} ids ids
 	 * @param {Range} range range
 	 */
 	constructor(request, identifier, ids, range) {
 		super(request);
+		/** @type {string} */
 		this.identifier = identifier;
+		/** @type {string[]} */
 		this.ids = ids;
 		this.range = range;
+		/** @type {undefined | string} */
 		this._hashUpdate = undefined;
 	}
 
@@ -61,7 +57,7 @@ class ProvidedDependency extends ModuleDependency {
 	 * Returns list of exports referenced by this dependency
 	 * @param {ModuleGraph} moduleGraph module graph
 	 * @param {RuntimeSpec} runtime the runtime for which the module is analysed
-	 * @returns {(string[] | ReferencedExport)[]} referenced exports
+	 * @returns {ReferencedExports} referenced exports
 	 */
 	getReferencedExports(moduleGraph, runtime) {
 		const ids = this.ids;
@@ -70,7 +66,7 @@ class ProvidedDependency extends ModuleDependency {
 	}
 
 	/**
-	 * Update the hash
+	 * Updates the hash with the data contributed by this instance.
 	 * @param {Hash} hash hash to be updated
 	 * @param {UpdateHashContext} context context
 	 * @returns {void}
@@ -83,23 +79,23 @@ class ProvidedDependency extends ModuleDependency {
 	}
 
 	/**
+	 * Serializes this instance into the provided serializer context.
 	 * @param {ObjectSerializerContext} context context
 	 */
 	serialize(context) {
-		const { write } = context;
-		write(this.identifier);
-		write(this.ids);
+		context.write(this.identifier).write(this.ids);
 		super.serialize(context);
 	}
 
 	/**
+	 * Restores this instance from the provided deserializer context.
 	 * @param {ObjectDeserializerContext} context context
 	 */
 	deserialize(context) {
-		const { read } = context;
-		this.identifier = read();
-		this.ids = read();
-		super.deserialize(context);
+		this.identifier = context.read();
+		const c1 = context.rest;
+		this.ids = c1.read();
+		super.deserialize(c1.rest);
 	}
 }
 
@@ -110,6 +106,7 @@ makeSerializable(
 
 class ProvidedDependencyTemplate extends ModuleDependency.Template {
 	/**
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Dependency} dependency the dependency for which the template should be applied
 	 * @param {ReplaceSource} source the current replace source which can be modified
 	 * @param {DependencyTemplateContext} templateContext the context object
@@ -133,16 +130,27 @@ class ProvidedDependencyTemplate extends ModuleDependency.Template {
 			(moduleGraph.getConnection(dep));
 		const exportsInfo = moduleGraph.getExportsInfo(connection.module);
 		const usedName = exportsInfo.getUsedName(dep.ids, runtime);
+
+		const moduleRaw = runtimeTemplate.moduleRaw({
+			module: moduleGraph.getModule(dep),
+			chunkGraph,
+			request: dep.request,
+			runtimeRequirements
+		});
+
+		const provided = !usedName
+			? moduleRaw
+			: usedName instanceof InlinedUsedName
+				? `(${moduleRaw}, ${usedName.render(
+						Template.toNormalComment(
+							`inlined export ${propertyAccess(dep.ids)}`
+						)
+					)})`
+				: `${moduleRaw}${propertyAccess(/** @type {string[]} */ (usedName), 0)}`;
+
 		initFragments.push(
 			new InitFragment(
-				`/* provided dependency */ var ${
-					dep.identifier
-				} = ${runtimeTemplate.moduleExports({
-					module: moduleGraph.getModule(dep),
-					chunkGraph,
-					request: dep.request,
-					runtimeRequirements
-				})}${pathToString(/** @type {string[]} */ (usedName))};\n`,
+				`/* provided dependency */ var ${dep.identifier} = ${provided};\n`,
 				InitFragment.STAGE_PROVIDES,
 				1,
 				`provided ${dep.identifier}`

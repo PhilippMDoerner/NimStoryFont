@@ -10,7 +10,7 @@ const {
 	JAVASCRIPT_MODULE_TYPE_DYNAMIC
 } = require("../ModuleTypeConstants");
 const RuntimeGlobals = require("../RuntimeGlobals");
-const WebpackError = require("../WebpackError");
+const WebpackError = require("../errors/WebpackError");
 const {
 	evaluateToString,
 	expressionIsUnsupported,
@@ -30,7 +30,7 @@ const PLUGIN_NAME = "SystemPlugin";
 
 class SystemPlugin {
 	/**
-	 * Apply the plugin
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Compiler} compiler the compiler instance
 	 * @returns {void}
 	 */
@@ -46,11 +46,12 @@ class SystemPlugin {
 
 				compilation.hooks.runtimeRequirementInTree
 					.for(RuntimeGlobals.system)
-					.tap(PLUGIN_NAME, (chunk, set) => {
+					.tap(PLUGIN_NAME, (chunk, _set) => {
 						compilation.addRuntimeModule(chunk, new SystemRuntimeModule());
 					});
 
 				/**
+				 * Handles the hook callback for this code path.
 				 * @param {Parser} parser parser parser
 				 * @param {JavascriptParserOptions} parserOptions parserOptions
 				 * @returns {void}
@@ -61,9 +62,10 @@ class SystemPlugin {
 					}
 
 					/**
+					 * Sets not supported.
 					 * @param {string} name name
 					 */
-					const setNotSupported = name => {
+					const setNotSupported = (name) => {
 						parser.hooks.evaluateTypeof
 							.for(name)
 							.tap(PLUGIN_NAME, evaluateToString("undefined"));
@@ -101,22 +103,20 @@ class SystemPlugin {
 					setNotSupported("System.get");
 					setNotSupported("System.register");
 
-					parser.hooks.expression.for("System").tap(PLUGIN_NAME, expr => {
+					parser.hooks.expression.for("System").tap(PLUGIN_NAME, (expr) => {
 						const dep = new ConstDependency(
 							RuntimeGlobals.system,
 							/** @type {Range} */ (expr.range),
 							[RuntimeGlobals.system]
 						);
-						dep.loc = /** @type {DependencyLocation} */ (expr.loc);
+						dep.loc = parser.getLocation(expr);
 						parser.state.module.addPresentationalDependency(dep);
 						return true;
 					});
 
-					parser.hooks.call.for("System.import").tap(PLUGIN_NAME, expr => {
+					parser.hooks.call.for("System.import").tap(PLUGIN_NAME, (expr) => {
 						parser.state.module.addWarning(
-							new SystemImportDeprecationWarning(
-								/** @type {DependencyLocation} */ (expr.loc)
-							)
+							new SystemImportDeprecationWarning(parser.getLocation(expr))
 						);
 
 						return parser.hooks.importCall.call({
@@ -144,6 +144,7 @@ class SystemPlugin {
 
 class SystemImportDeprecationWarning extends WebpackError {
 	/**
+	 * Creates an instance of SystemImportDeprecationWarning.
 	 * @param {DependencyLocation} loc location
 	 */
 	constructor(loc) {
@@ -152,8 +153,10 @@ class SystemImportDeprecationWarning extends WebpackError {
 				"For more info visit https://webpack.js.org/guides/code-splitting/"
 		);
 
+		/** @type {string} */
 		this.name = "SystemImportDeprecationWarning";
 
+		/** @type {DependencyLocation} */
 		this.loc = loc;
 	}
 }

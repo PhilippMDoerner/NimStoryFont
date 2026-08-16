@@ -7,8 +7,8 @@
  */
 import { NormalizedApplicationBuildOptions } from '../../builders/application/options';
 import { OutputMode } from '../../builders/application/schema';
-import { BuildOutputFile } from '../../tools/esbuild/bundler-context';
 import { BuildOutputAsset } from '../../tools/esbuild/bundler-execution-result';
+import { BuildOutputFile } from '../../tools/esbuild/bundler-files';
 import { SerializableRouteTreeNode } from './models';
 type PrerenderOptions = NormalizedApplicationBuildOptions['prerenderOptions'];
 type AppShellOptions = NormalizedApplicationBuildOptions['appShellOptions'];

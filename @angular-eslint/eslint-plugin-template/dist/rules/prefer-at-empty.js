@@ -1,10 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RULE_NAME = void 0;
+exports.RULE_DOCS_EXTENSION = exports.RULE_NAME = void 0;
 const bundled_angular_compiler_1 = require("@angular-eslint/bundled-angular-compiler");
 const utils_1 = require("@angular-eslint/utils");
 const create_eslint_rule_1 = require("../utils/create-eslint-rule");
 const are_equivalent_asts_1 = require("../utils/are-equivalent-asts");
+const ast_types_1 = require("../utils/ast-types");
+const to_range_1 = require("../utils/to-range");
 exports.RULE_NAME = 'prefer-at-empty';
 exports.default = (0, create_eslint_rule_1.createESLintRule)({
     name: exports.RULE_NAME,
@@ -64,11 +66,11 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
                         fix: branchEnd
                             ? function* (fixer) {
                                 // Remove the entire `@if` block.
-                                yield fixer.removeRange(toRange(previous.node.sourceSpan));
+                                yield fixer.removeRange((0, to_range_1.toRange)(previous.node.sourceSpan));
                                 if (forInfo.node.empty) {
                                     // There is already an `@empty` block. The contents of the
                                     // `@if` block and the contents of the `@empty` block would
-                                    // both be shown in the collection is empty, so we need to
+                                    // both be shown if the collection is empty, so we need to
                                     // combine the two blocks. The `@if` block would be rendered
                                     // first, so it needs to be inserted before the existing
                                     // contents of the `@empty` block.
@@ -83,7 +85,7 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
                                 else {
                                     // Take the contents of the `@if` block and move
                                     // it into an `@empty` block after the `@for` block.
-                                    yield fixer.insertTextAfterRange(toRange(forInfo.node.sourceSpan), ` @empty {${context.sourceCode.text.slice(branch.startSourceSpan.end.offset, branchEnd.end.offset)}`);
+                                    yield fixer.insertTextAfterRange((0, to_range_1.toRange)(forInfo.node.sourceSpan), ` @empty {${context.sourceCode.text.slice(branch.startSourceSpan.end.offset, branchEnd.end.offset)}`);
                                 }
                             }
                             : undefined,
@@ -115,14 +117,14 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
                                     // the existing contents of the `@empty` block. This can
                                     // easily be achieved by removing the closing brace of the
                                     // `@empty` block and removing the `@if` statement.
-                                    yield fixer.removeRange(toRange(previous.node.empty.endSourceSpan));
-                                    yield fixer.removeRange(toRange(ifInfo.node.startSourceSpan));
+                                    yield fixer.removeRange((0, to_range_1.toRange)(previous.node.empty.endSourceSpan));
+                                    yield fixer.removeRange((0, to_range_1.toRange)(ifInfo.node.startSourceSpan));
                                 }
                                 else {
                                     // There is not already an `@empty` block, so
                                     // we can create one by replacing the entire
                                     // `@if (...) {` segment with `@empty {`.
-                                    yield fixer.replaceTextRange(toRange(ifInfo.node.startSourceSpan), '@empty {');
+                                    yield fixer.replaceTextRange((0, to_range_1.toRange)(ifInfo.node.startSourceSpan), '@empty {');
                                 }
                             },
                         });
@@ -143,16 +145,16 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
                                 fix: previousIfBlockEnd
                                     ? (fixer) => [
                                         // Remove the previous `@if` statement.
-                                        fixer.removeRange(toRange(previous.node.startSourceSpan)),
+                                        fixer.removeRange((0, to_range_1.toRange)(previous.node.startSourceSpan)),
                                         // Remove the closing brace from the previous `@if` block.
-                                        fixer.removeRange(toRange(previousIfBlockEnd)),
+                                        fixer.removeRange((0, to_range_1.toRange)(previousIfBlockEnd)),
                                         // Take the contents of the current `@if` block and move
                                         // it into the `@empty` block of the previous `@for` block.
-                                        fixer.insertTextAfterRange(toRange(forBlock.sourceSpan), ` @empty {${context.sourceCode.text.slice(ifInfo.node.startSourceSpan.end.offset, 
+                                        fixer.insertTextAfterRange((0, to_range_1.toRange)(forBlock.sourceSpan), ` @empty {${context.sourceCode.text.slice(ifInfo.node.startSourceSpan.end.offset, 
                                         // The end offset includes the closing brace.
                                         ifInfo.node.sourceSpan.end.offset)}`),
                                         // Remove the entirety of the current `@if` block.
-                                        fixer.removeRange(toRange(ifInfo.node.sourceSpan)),
+                                        fixer.removeRange((0, to_range_1.toRange)(ifInfo.node.sourceSpan)),
                                     ]
                                     : undefined,
                             });
@@ -185,7 +187,7 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
                             if (forBlock.empty?.endSourceSpan) {
                                 // There is already an `@empty` block, but because the `@for`
                                 // block was inside an `@else` block, the `@empty` block
-                                // would never have be rendered, so we can replace its contents.
+                                // will never be rendered, so we can replace its contents.
                                 yield fixer.replaceTextRange([
                                     forBlock.empty.startSourceSpan.end.offset,
                                     forBlock.empty.endSourceSpan.start.offset,
@@ -202,7 +204,7 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
                                 // There isn't an existing `@empty` block, so we can create
                                 // one. We don't need to include a closing brace, because
                                 // we can reuse the one from the end of the @`if` block.
-                                yield fixer.insertTextAfterRange(toRange(forBlock.sourceSpan), ` @empty {${empty}`);
+                                yield fixer.insertTextAfterRange((0, to_range_1.toRange)(forBlock.sourceSpan), ` @empty {${empty}`);
                             }
                         }
                         : undefined,
@@ -223,12 +225,12 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
                             messageId: 'preferAtEmpty',
                             fix: (fixer) => [
                                 // Remove the entire previous `@if` block.
-                                fixer.removeRange(toRange(previous.node.sourceSpan)),
+                                fixer.removeRange((0, to_range_1.toRange)(previous.node.sourceSpan)),
                                 // Remove the current `@if` statement.
-                                fixer.removeRange(toRange(ifNotInfo.node.startSourceSpan)),
+                                fixer.removeRange((0, to_range_1.toRange)(ifNotInfo.node.startSourceSpan)),
                                 // Take the contents of the previous `@if` block and move
                                 // it into the `@empty` block after the `@for` block.
-                                fixer.insertTextAfterRange(toRange(forBlock.sourceSpan), ` @empty {${context.sourceCode.text.slice(previous.node.startSourceSpan.end.offset, 
+                                fixer.insertTextAfterRange((0, to_range_1.toRange)(forBlock.sourceSpan), ` @empty {${context.sourceCode.text.slice(previous.node.startSourceSpan.end.offset, 
                                 // The end offset is after the closing `}`, so we
                                 // need to subtract one to ensure it gets removed.
                                 previous.node.sourceSpan.end.offset - 1)}`),
@@ -257,10 +259,10 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
                                 // block, the `@empty` block would never be rendered,
                                 // so we can remove it. We could try to replace it,
                                 // but it's easier to remove it and create a new one.
-                                yield fixer.removeRange(toRange(forBlock.empty.sourceSpan));
+                                yield fixer.removeRange((0, to_range_1.toRange)(forBlock.empty.sourceSpan));
                             }
                             // Remove the entire `@if (...) {` segment.
-                            yield fixer.removeRange(toRange(info.node.startSourceSpan));
+                            yield fixer.removeRange((0, to_range_1.toRange)(info.node.startSourceSpan));
                             const elseBranch = info.node.branches[1];
                             if (elseBranch.expression) {
                                 // The second branch is an `@else if` branch. We
@@ -273,7 +275,7 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
                                     ifBranchEnd.end.offset - 1,
                                     elseBranch.nameSpan.end.offset,
                                 ], '@empty { @if ');
-                                yield fixer.insertTextAfterRange(toRange(ifEnd), '}');
+                                yield fixer.insertTextAfterRange((0, to_range_1.toRange)(ifEnd), '}');
                             }
                             else {
                                 // The second branch is just an `@else` branch, so we
@@ -424,16 +426,16 @@ function getNotEmptyTestCollection(node) {
     if (node instanceof bundled_angular_compiler_1.ASTWithSource) {
         node = node.ast;
     }
-    if (isLengthRead(node)) {
+    if ((0, ast_types_1.isLengthRead)(node)) {
         // @if (collection.length)
         return node.receiver;
     }
     if (node instanceof bundled_angular_compiler_1.Binary) {
-        if (isLengthRead(node.left)) {
+        if ((0, ast_types_1.isLengthRead)(node.left)) {
             if (node.operation === '!==' ||
                 node.operation === '>' ||
                 node.operation === '!=') {
-                if (isZero(node.right)) {
+                if ((0, ast_types_1.isZero)(node.right)) {
                     // @if (collection.length !== 0)
                     // @if (collection.length > 0)
                     // @if (collection.length != 0)
@@ -441,11 +443,11 @@ function getNotEmptyTestCollection(node) {
                 }
             }
         }
-        else if (isZero(node.left)) {
+        else if ((0, ast_types_1.isZero)(node.left)) {
             if (node.operation === '!==' ||
                 node.operation === '<' ||
                 node.operation === '!=') {
-                if (isLengthRead(node.right)) {
+                if ((0, ast_types_1.isLengthRead)(node.right)) {
                     // @if (0 !== collection.length)
                     // @if (0 < collection.length)
                     // @if (0 != collection.length)
@@ -461,24 +463,24 @@ function getEmptyTestCollection(node) {
         node = node.ast;
     }
     if (node instanceof bundled_angular_compiler_1.PrefixNot) {
-        if (isLengthRead(node.expression)) {
+        if ((0, ast_types_1.isLengthRead)(node.expression)) {
             // @if (!collection.length)
             return node.expression.receiver;
         }
     }
     else if (node instanceof bundled_angular_compiler_1.Binary) {
-        if (isLengthRead(node.left)) {
+        if ((0, ast_types_1.isLengthRead)(node.left)) {
             if (node.operation === '===' || node.operation === '==') {
-                if (isZero(node.right)) {
+                if ((0, ast_types_1.isZero)(node.right)) {
                     // @if (collection.length === 0)
                     // @if (collection.length == 0)
                     return node.left.receiver;
                 }
             }
         }
-        else if (isZero(node.left)) {
+        else if ((0, ast_types_1.isZero)(node.left)) {
             if (node.operation === '===' || node.operation === '==') {
-                if (isLengthRead(node.right)) {
+                if ((0, ast_types_1.isLengthRead)(node.right)) {
                     // @if (0 === collection.length)
                     // @if (0 == collection.length)
                     return node.right.receiver;
@@ -488,12 +490,6 @@ function getEmptyTestCollection(node) {
     }
     return undefined;
 }
-function isLengthRead(node) {
-    return node instanceof bundled_angular_compiler_1.PropertyRead && node.name === 'length';
-}
-function isZero(node) {
-    return node instanceof bundled_angular_compiler_1.LiteralPrimitive && node.value === 0;
-}
-function toRange(span) {
-    return [span.start.offset, span.end.offset];
-}
+exports.RULE_DOCS_EXTENSION = {
+    rationale: 'The @for loop has a built-in @empty block for displaying content when the collection is empty. Using this feature is clearer and more concise than separate @if blocks that check collection.length === 0 or collection.length > 0. When @if and @for blocks check the same collection, combining them with @empty eliminates duplication, reduces nesting, and makes the template intent immediately obvious. For example, @for (item of items) {...} @empty {No items} is more readable than @if (items.length > 0) { @for (item of items) {...} } @else {No items}. The @empty pattern is the idiomatic Angular way to handle empty collections and should be preferred wherever applicable.',
+};

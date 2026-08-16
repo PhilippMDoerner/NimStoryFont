@@ -16,16 +16,18 @@ class RelativeUrlRuntimeModule extends HelperRuntimeModule {
 	}
 
 	/**
+	 * Generates runtime code for this runtime module.
 	 * @returns {string | null} runtime code
 	 */
 	generate() {
 		const compilation = /** @type {Compilation} */ (this.compilation);
 		const { runtimeTemplate } = compilation;
+		const cst = runtimeTemplate.renderConst();
 		return Template.asString([
 			`${RuntimeGlobals.relativeUrl} = function RelativeURL(url) {`,
 			Template.indent([
-				'var realUrl = new URL(url, "x:/");',
-				"var values = {};",
+				`${cst} realUrl = new URL(url, "x:/");`,
+				`${cst} values = {};`,
 				"for (var key in realUrl) values[key] = realUrl[key];",
 				"values.href = url;",
 				'values.pathname = url.replace(/[?#].*/, "");',

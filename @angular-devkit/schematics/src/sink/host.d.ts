@@ -14,8 +14,8 @@ export declare class HostSink extends SimpleSinkBase {
     protected _force: boolean;
     protected _filesToDelete: Set<Path>;
     protected _filesToRename: Set<[Path, Path]>;
-    protected _filesToCreate: Map<Path, Buffer<ArrayBufferLike>>;
-    protected _filesToUpdate: Map<Path, Buffer<ArrayBufferLike>>;
+    protected _filesToCreate: Map<Path, ArrayBufferLike>;
+    protected _filesToUpdate: Map<Path, ArrayBufferLike>;
     constructor(_host: virtualFs.Host, _force?: boolean);
     protected _validateCreateAction(action: CreateFileAction): Observable<void>;
     protected _validateFileExists(p: Path): Observable<boolean>;

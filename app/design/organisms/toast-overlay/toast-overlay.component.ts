@@ -7,11 +7,11 @@ import {
   inject,
 } from '@angular/core';
 import { NgbToastModule } from '@ng-bootstrap/ng-bootstrap';
-import { ToastType } from 'src/app/_models/toast';
-import { slideRight } from 'src/app/design/animations/slideDown';
-import { Icon } from 'src/app/design/atoms/_models/icon';
-import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
-import { IconComponent } from 'src/app/design/atoms/icon/icon.component';
+import { ToastType } from '../../../_models/toast';
+import { slideRight } from '../../animations/slideDown';
+import { Icon } from '../../atoms/_models/icon';
+import { ButtonComponent } from '../../atoms/button/button.component';
+import { IconComponent } from '../../atoms/icon/icon.component';
 import { ToastService } from './toast.service';
 
 @Component({
@@ -30,17 +30,17 @@ import { ToastService } from './toast.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     '[ariaLive]': 'isCurrentlyImportant() ? "assertive" : "polite"',
-    '[role]': 'isCurrentlyImportant() ? "alert" : "status"',
+    '[attr.role]': 'isCurrentlyImportant() ? "alert" : "status"',
   },
 })
 export class ToastOverlayComponent {
-  toastService = inject(ToastService);
+  readonly toastService = inject(ToastService);
 
-  currentToast = this.toastService.currentToast;
-  isCurrentlyImportant = computed(
+  readonly currentToast = this.toastService.currentToast;
+  readonly isCurrentlyImportant = computed(
     () => this.currentToast()?.important ?? false,
   );
-  icon = computed<Icon | undefined>(() => {
+  readonly icon = computed<Icon | undefined>(() => {
     const currentToast = this.currentToast();
     if (!currentToast) return undefined;
 

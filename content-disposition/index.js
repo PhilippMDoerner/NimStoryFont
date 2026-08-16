@@ -15,12 +15,11 @@ module.exports = contentDisposition
 module.exports.parse = parse
 
 /**
- * Module dependencies.
+ * TextDecoder instance for UTF-8 decoding when decodeURIComponent fails due to invalid byte sequences.
+ * @type {TextDecoder}
  * @private
  */
-
-var basename = require('path').basename
-var Buffer = require('safe-buffer').Buffer
+const utf8Decoder = new TextDecoder('utf-8')
 
 /**
  * RegExp to match non attr-char, *after* encodeURIComponent (i.e. not including "%")
@@ -28,14 +27,6 @@ var Buffer = require('safe-buffer').Buffer
  */
 
 var ENCODE_URL_ATTR_CHAR_REGEXP = /[\x00-\x20"'()*,/:;<=>?@[\\\]{}\x7f]/g // eslint-disable-line no-control-regex
-
-/**
- * RegExp to match percent encoding escape.
- * @private
- */
-
-var HEX_ESCAPE_REGEXP = /%[0-9A-Fa-f]{2}/
-var HEX_ESCAPE_REPLACE_REGEXP = /%([0-9A-Fa-f]{2})/g
 
 /**
  * RegExp to match non-latin1 characters.
@@ -200,7 +191,7 @@ function createparams (filename, fallback) {
   var hasFallback = typeof fallbackName === 'string' && fallbackName !== name
 
   // set extended filename parameter
-  if (hasFallback || !isQuotedString || HEX_ESCAPE_REGEXP.test(name)) {
+  if (hasFallback || !isQuotedString || hasHexEscape(name)) {
     params['filename*'] = name
   }
 
@@ -243,7 +234,7 @@ function format (obj) {
     for (var i = 0; i < params.length; i++) {
       param = params[i]
 
-      var val = param.substr(-1) === '*'
+      var val = param.slice(-1) === '*'
         ? ustring(parameters[param])
         : qstring(parameters[param])
 
@@ -263,31 +254,41 @@ function format (obj) {
  */
 
 function decodefield (str) {
-  var match = EXT_VALUE_REGEXP.exec(str)
+  const match = EXT_VALUE_REGEXP.exec(str)
 
   if (!match) {
     throw new TypeError('invalid extended field value')
   }
 
-  var charset = match[1].toLowerCase()
-  var encoded = match[2]
-  var value
-
-  // to binary string
-  var binary = encoded.replace(HEX_ESCAPE_REPLACE_REGEXP, pdecode)
+  const charset = match[1].toLowerCase()
+  const encoded = match[2]
 
   switch (charset) {
     case 'iso-8859-1':
-      value = getlatin1(binary)
-      break
+    {
+      const binary = decodeHexEscapes(encoded)
+      return getlatin1(binary)
+    }
     case 'utf-8':
-      value = Buffer.from(binary, 'binary').toString('utf8')
-      break
-    default:
-      throw new TypeError('unsupported charset in extended field')
-  }
+    case 'utf8':
+    {
+      try {
+        return decodeURIComponent(encoded)
+      } catch {
+        // Failed to decode with decodeURIComponent, fallback to lenient decoding which replaces invalid UTF-8 byte sequences with the Unicode replacement character
+        // TODO: Consider removing in the next major version to be more strict about invalid percent-encodings
+        const binary = decodeHexEscapes(encoded)
 
-  return value
+        const bytes = new Uint8Array(binary.length)
+        for (let idx = 0; idx < binary.length; idx++) {
+          bytes[idx] = binary.charCodeAt(idx)
+        }
+
+        return utf8Decoder.decode(bytes)
+      }
+    }
+  }
+  throw new TypeError('unsupported charset in extended field')
 }
 
 /**
@@ -332,7 +333,7 @@ function parse (string) {
   var value
 
   // calculate index to start at
-  index = PARAM_REGEXP.lastIndex = match[0].substr(-1) === ';'
+  index = PARAM_REGEXP.lastIndex = match[0].slice(-1) === ';'
     ? index - 1
     : index
 
@@ -369,7 +370,7 @@ function parse (string) {
     if (value[0] === '"') {
       // remove quotes and escapes
       value = value
-        .substr(1, value.length - 2)
+        .slice(1, -1)
         .replace(QESC_REGEXP, '$1')
     }
 
@@ -381,19 +382,6 @@ function parse (string) {
   }
 
   return new ContentDisposition(type, params)
-}
-
-/**
- * Percent decode a single character.
- *
- * @param {string} str
- * @param {string} hex
- * @return {string}
- * @private
- */
-
-function pdecode (str, hex) {
-  return String.fromCharCode(parseInt(hex, 16))
 }
 
 /**
@@ -455,4 +443,94 @@ function ustring (val) {
 function ContentDisposition (type, parameters) {
   this.type = type
   this.parameters = parameters
+}
+
+/**
+ * Return the last portion of a path
+ *
+ * @param {string} path
+ * @returns {string}
+ */
+function basename (path) {
+  const normalized = path.replaceAll('\\', '/')
+
+  let end = normalized.length
+  while (end > 0 && normalized[end - 1] === '/') {
+    end--
+  }
+
+  if (end === 0) {
+    return ''
+  }
+
+  let start = end - 1
+  while (start >= 0 && normalized[start] !== '/') {
+    start--
+  }
+
+  return normalized.slice(start + 1, end)
+}
+
+/**
+ * Check if a character is a hex digit [0-9A-Fa-f]
+ *
+ * @param {string} char
+ * @return {boolean}
+ * @private
+ */
+function isHexDigit (char) {
+  const code = char.charCodeAt(0)
+  return (
+    (code >= 48 && code <= 57) || // 0-9
+    (code >= 65 && code <= 70) || // A-F
+    (code >= 97 && code <= 102) // a-f
+  )
+}
+
+/**
+ * Check if a string contains percent encoding escapes.
+ *
+ * @param {string} str
+ * @return {boolean}
+ * @private
+ */
+function hasHexEscape (str) {
+  const maxIndex = str.length - 3
+  let lastIndex = -1
+
+  while ((lastIndex = str.indexOf('%', lastIndex + 1)) !== -1 && lastIndex <= maxIndex) {
+    if (isHexDigit(str[lastIndex + 1]) && isHexDigit(str[lastIndex + 2])) {
+      return true
+    }
+  }
+
+  return false
+}
+
+/**
+ * Decode hex escapes in a string (e.g., %20 -> space)
+ *
+ * @param {string} str
+ * @return {string}
+ * @private
+ */
+function decodeHexEscapes (str) {
+  const firstEscape = str.indexOf('%')
+  if (firstEscape === -1) return str
+
+  let result = str.slice(0, firstEscape)
+  for (let idx = firstEscape; idx < str.length; idx++) {
+    if (
+      str[idx] === '%' &&
+      idx + 2 < str.length &&
+      isHexDigit(str[idx + 1]) &&
+      isHexDigit(str[idx + 2])
+    ) {
+      result += String.fromCharCode(Number.parseInt(str[idx + 1] + str[idx + 2], 16))
+      idx += 2
+    } else {
+      result += str[idx]
+    }
+  }
+  return result
 }

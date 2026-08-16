@@ -9,26 +9,27 @@ const { parseResource } = require("../util/identifier");
 
 /** @typedef {import("estree").Expression} Expression */
 /** @typedef {import("../../declarations/WebpackOptions").JavascriptParserOptions} JavascriptParserOptions */
-/** @typedef {import("../../declarations/WebpackOptions").ModuleOptionsNormalized} ModuleOptions */
 /** @typedef {import("../Dependency").DependencyLocation} DependencyLocation */
 /** @typedef {import("../javascript/BasicEvaluatedExpression")} BasicEvaluatedExpression */
 /** @typedef {import("../javascript/JavascriptParser")} JavascriptParser */
 /** @typedef {import("../javascript/JavascriptParser").Range} Range */
 /** @typedef {import("./ContextDependency")} ContextDependency */
 /** @typedef {import("./ContextDependency").ContextDependencyOptions} ContextDependencyOptions */
+/** @typedef {import("./ContextDependency").Replaces} Replaces */
 
 /**
  * Escapes regular expression metacharacters
  * @param {string} str String to quote
  * @returns {string} Escaped string
  */
-const quoteMeta = str => str.replace(/[-[\]\\/{}()*+?.^$|]/g, "\\$&");
+const quoteMeta = (str) => str.replace(/[-[\]\\/{}()*+?.^$|]/g, "\\$&");
 
 /**
+ * Split context from prefix.
  * @param {string} prefix prefix
- * @returns {{prefix: string, context: string}} result
+ * @returns {{ prefix: string, context: string }} result
  */
-const splitContextFromPrefix = prefix => {
+const splitContextFromPrefix = (prefix) => {
 	const idx = prefix.lastIndexOf("/");
 	let context = ".";
 	if (idx >= 0) {
@@ -42,17 +43,25 @@ const splitContextFromPrefix = prefix => {
 };
 
 /** @typedef {Partial<Omit<ContextDependencyOptions, "resource">>} PartialContextDependencyOptions */
-/** @typedef {{ new(options: ContextDependencyOptions, range: Range, valueRange: Range, ...args: any[]): ContextDependency }} ContextDependencyConstructor */
+/** @typedef {{ new (options: ContextDependencyOptions, range: Range, valueRange: Range, ...args: EXPECTED_ANY[]): ContextDependency }} ContextDependencyConstructor */
 
 /**
- * @param {ContextDependencyConstructor} Dep the Dependency class
+ * Defines the get additional dep args type used by this module.
+ * @template T
+ * @typedef {T extends new (options: ContextDependencyOptions, range: Range, valueRange: Range, ...remains: infer R) => ContextDependency ? R : []} GetAdditionalDepArgs
+ */
+
+/**
+ * Returns the created Dependency.
+ * @template {ContextDependencyConstructor} T
+ * @param {T} Dep the Dependency class
  * @param {Range} range source range
  * @param {BasicEvaluatedExpression} param context param
  * @param {Expression} expr expr
- * @param {Pick<JavascriptParserOptions, `${"expr"|"wrapped"}Context${"Critical"|"Recursive"|"RegExp"}` | "exprContextRequest">} options options for context creation
+ * @param {Pick<JavascriptParserOptions, `${"expr" | "wrapped"}Context${"Critical" | "Recursive" | "RegExp"}` | "exprContextRequest">} options options for context creation
  * @param {PartialContextDependencyOptions} contextOptions options for the ContextModule
  * @param {JavascriptParser} parser the parser
- * @param {...EXPECTED_ANY} depArgs depArgs
+ * @param {GetAdditionalDepArgs<T>} depArgs depArgs
  * @returns {ContextDependency} the created Dependency
  */
 module.exports.create = (
@@ -87,7 +96,7 @@ module.exports.create = (
 			/** @type {RegExp} */ (options.wrappedContextRegExp).source +
 			innerQuasis
 				.map(
-					q =>
+					(q) =>
 						quoteMeta(/** @type {string} */ (q.string)) +
 						/** @type {RegExp} */ (options.wrappedContextRegExp).source
 				)
@@ -117,9 +126,9 @@ module.exports.create = (
 			valueRange,
 			...depArgs
 		);
-		dep.loc = /** @type {DependencyLocation} */ (expr.loc);
+		dep.loc = parser.getLocation(expr);
 
-		/** @type {{ value: string, range: Range }[]} */
+		/** @type {Replaces} */
 		const replaces = [];
 		const parts = /** @type {BasicEvaluatedExpression[]} */ (param.parts);
 
@@ -215,7 +224,8 @@ module.exports.create = (
 			valueRange,
 			...depArgs
 		);
-		dep.loc = /** @type {DependencyLocation} */ (expr.loc);
+		dep.loc = parser.getLocation(expr);
+		/** @type {Replaces} */
 		const replaces = [];
 		if (prefixRange) {
 			replaces.push({
@@ -236,11 +246,12 @@ module.exports.create = (
 
 		if (parser && param.wrappedInnerExpressions) {
 			for (const part of param.wrappedInnerExpressions) {
-				if (part.expression)
+				if (part.expression) {
 					parser.walkExpression(
 						/** @type {Expression} */
 						(part.expression)
 					);
+				}
 			}
 		}
 
@@ -258,7 +269,7 @@ module.exports.create = (
 		/** @type {Range} */ (param.range),
 		...depArgs
 	);
-	dep.loc = /** @type {DependencyLocation} */ (expr.loc);
+	dep.loc = parser.getLocation(expr);
 	dep.critical =
 		options.exprContextCritical &&
 		"the request of a dependency is an expression";

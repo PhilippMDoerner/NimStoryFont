@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RULE_NAME = void 0;
+exports.RULE_DOCS_EXTENSION = exports.RULE_NAME = void 0;
 const utils_1 = require("@angular-eslint/utils");
 const create_eslint_rule_1 = require("../utils/create-eslint-rule");
 exports.RULE_NAME = 'use-pipe-transform-interface';
@@ -44,3 +44,6 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
         };
     },
 });
+exports.RULE_DOCS_EXTENSION = {
+    rationale: "Implementing the PipeTransform interface provides TypeScript compile-time checking to ensure your pipe has the correct transform() method signature. Without the interface, typos in the method name or incorrect parameters won't be caught until runtime. The interface also serves as self-documentation and enables better IDE support like autocomplete and inline documentation. While Angular requires pipes to have a transform() method, using the PipeTransform interface leverages TypeScript's type system to catch implementation errors during development rather than at runtime.",
+};

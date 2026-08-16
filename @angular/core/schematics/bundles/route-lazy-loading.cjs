@@ -1,43 +1,22 @@
 'use strict';
 /**
- * @license Angular v20.0.3
- * (c) 2010-2025 Google LLC. https://angular.io/
+ * @license Angular v22.1.1
+ * (c) 2010-2026 Google LLC. https://angular.dev/
  * License: MIT
  */
 'use strict';
 
 var schematics = require('@angular-devkit/schematics');
 var fs = require('fs');
-var p = require('path');
-var compiler_host = require('./compiler_host-C_4Iw5UD.cjs');
-var project_tsconfig_paths = require('./project_tsconfig_paths-CDVxT6Ov.cjs');
+var path = require('path');
+var change_tracker = require('./change_tracker-BzE4pgz5.cjs');
+var project_tsconfig_paths = require('./project_tsconfig_paths-BejwmdOG.cjs');
 var ts = require('typescript');
-var checker = require('./checker-Bu1Wu4f7.cjs');
-var property_name = require('./property_name-BBwFuqMe.cjs');
-require('os');
+var migrations = require('@angular/compiler-cli/private/migrations');
+var class_declaration = require('./class_declaration-BiS_wq9g.cjs');
+var property_name = require('./property_name-BCpALNpZ.cjs');
 require('@angular-devkit/core');
-require('module');
-require('url');
 
-/**
- * Finds the class declaration that is being referred to by a node.
- * @param reference Node referring to a class declaration.
- * @param typeChecker
- */
-function findClassDeclaration(reference, typeChecker) {
-    return (typeChecker
-        .getTypeAtLocation(reference)
-        .getSymbol()
-        ?.declarations?.find(ts.isClassDeclaration) || null);
-}
-
-/*!
- * @license
- * Copyright Google LLC All Rights Reserved.
- *
- * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.dev/license
- */
 /**
  * Checks whether a component is standalone.
  * @param node Class being checked.
@@ -48,7 +27,7 @@ function isStandaloneComponent(node, reflector) {
     if (decorators === null) {
         return false;
     }
-    const decorator = checker.findAngularDecorator(decorators, 'Component', false);
+    const decorator = migrations.findAngularDecorator(decorators, 'Component', false);
     if (decorator === undefined || decorator.args === null || decorator.args.length !== 1) {
         return false;
     }
@@ -118,21 +97,10 @@ function isRouterCallExpression(node, typeChecker) {
     return false;
 }
 /**
- * Checks whether a node is a call expression to router provide function.
- * Example: provideRoutes(routes)
- */
-function isRouterProviderCallExpression(node, typeChecker) {
-    if (ts.isIdentifier(node.expression)) {
-        const moduleSymbol = typeChecker.getSymbolAtLocation(node.expression);
-        return moduleSymbol && moduleSymbol.name === 'provideRoutes';
-    }
-    return false;
-}
-/**
  * Checks whether a node is a call expression to provideRouter function.
  * Example: provideRouter(routes)
  */
-function isProvideRoutesCallExpression(node, typeChecker) {
+function isProvideRouterCallExpression(node, typeChecker) {
     if (ts.isIdentifier(node.expression)) {
         const moduleSymbol = typeChecker.getSymbolAtLocation(node.expression);
         return moduleSymbol && moduleSymbol.name === 'provideRouter';
@@ -140,13 +108,6 @@ function isProvideRoutesCallExpression(node, typeChecker) {
     return false;
 }
 
-/*!
- * @license
- * Copyright Google LLC All Rights Reserved.
- *
- * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.dev/license
- */
 /**
  * Converts all application routes that are using standalone components to be lazy loaded.
  * @param sourceFile File that should be migrated.
@@ -154,9 +115,9 @@ function isProvideRoutesCallExpression(node, typeChecker) {
  */
 function migrateFileToLazyRoutes(sourceFile, program) {
     const typeChecker = program.getTypeChecker();
-    const reflector = new checker.TypeScriptReflectionHost(typeChecker);
+    const reflector = new migrations.TypeScriptReflectionHost(typeChecker);
     const printer = ts.createPrinter();
-    const tracker = new compiler_host.ChangeTracker(printer);
+    const tracker = new change_tracker.ChangeTracker(printer);
     const routeArraysToMigrate = findRoutesArrayToMigrate(sourceFile, typeChecker);
     if (routeArraysToMigrate.length === 0) {
         return { pendingChanges: [], skippedRoutes: [], migratedRoutes: [] };
@@ -174,9 +135,8 @@ function findRoutesArrayToMigrate(sourceFile, typeChecker) {
     sourceFile.forEachChild(function walk(node) {
         if (ts.isCallExpression(node)) {
             if (isRouterModuleCallExpression(node, typeChecker) ||
-                isRouterProviderCallExpression(node, typeChecker) ||
                 isRouterCallExpression(node, typeChecker) ||
-                isProvideRoutesCallExpression(node, typeChecker)) {
+                isProvideRouterCallExpression(node, typeChecker)) {
                 const arg = node.arguments[0]; // ex: RouterModule.forRoot(routes) or provideRouter(routes)
                 const routeFileImports = sourceFile.statements.filter(ts.isImportDeclaration);
                 if (ts.isArrayLiteralExpression(arg) && arg.elements.length > 0) {
@@ -189,7 +149,7 @@ function findRoutesArrayToMigrate(sourceFile, typeChecker) {
                 }
                 else if (ts.isIdentifier(arg)) {
                     // ex: reference to routes array: RouterModule.forRoot(routes)
-                    // RouterModule.forRoot(routes), provideRouter(routes), provideRoutes(routes)
+                    // RouterModule.forRoot(routes), provideRouter(routes)
                     const symbol = typeChecker.getSymbolAtLocation(arg);
                     if (!symbol?.declarations)
                         return;
@@ -209,7 +169,7 @@ function findRoutesArrayToMigrate(sourceFile, typeChecker) {
                 }
             }
         }
-        if (ts.isVariableDeclaration(node)) {
+        else if (ts.isVariableDeclaration(node)) {
             if (isAngularRoutesArray(node, typeChecker)) {
                 const initializer = node.initializer;
                 if (initializer &&
@@ -225,6 +185,33 @@ function findRoutesArrayToMigrate(sourceFile, typeChecker) {
                         array: initializer,
                         routeFileImports: sourceFile.statements.filter(ts.isImportDeclaration),
                     });
+                }
+            }
+        }
+        else if (ts.isExportAssignment(node)) {
+            // Handles `export default routes`, `export default [...]` and `export default [...] as Routes`
+            let expression = node.expression;
+            if (ts.isAsExpression(expression)) {
+                expression = expression.expression;
+            }
+            if (ts.isArrayLiteralExpression(expression)) {
+                routesArrays.push({
+                    routeFilePath: sourceFile.fileName,
+                    array: expression,
+                    routeFileImports: sourceFile.statements.filter(ts.isImportDeclaration),
+                });
+            }
+            else if (ts.isIdentifier(expression)) {
+                manageRoutesExportedByDefault(routesArrays, typeChecker, expression, sourceFile);
+            }
+        }
+        else if (ts.isExportDeclaration(node)) {
+            // Handles cases like `export { routes as default }`
+            if (node.exportClause && ts.isNamedExports(node.exportClause)) {
+                for (const specifier of node.exportClause.elements) {
+                    if (specifier.name.text === 'default') {
+                        manageRoutesExportedByDefault(routesArrays, typeChecker, specifier.propertyName ?? specifier.name, sourceFile);
+                    }
                 }
             }
         }
@@ -279,7 +266,7 @@ function migrateRoute(element, route, typeChecker, reflector, tracker) {
     if (!component) {
         return routeMigrationResults;
     }
-    const componentDeclaration = findClassDeclaration(component, typeChecker);
+    const componentDeclaration = class_declaration.findClassDeclaration(component, typeChecker);
     if (!componentDeclaration) {
         return routeMigrationResults;
     }
@@ -298,7 +285,27 @@ function migrateRoute(element, route, typeChecker, reflector, tracker) {
     if (componentDeclaration.getSourceFile().fileName === route.routeFilePath) {
         return routeMigrationResults;
     }
-    const componentImport = route.routeFileImports.find((importDecl) => importDecl.importClause?.getText().includes(componentClassName));
+    // Resolve the import that provides this component by exact specifier match
+    // Handles default imports, named imports, and aliases (e.g., `import { Foo as Bar }`).
+    const componentImport = route.routeFileImports.find((importDecl) => {
+        const clause = importDecl.importClause;
+        if (!clause)
+            return false;
+        // Default import: import FooComponent from '...'
+        if (clause.name && ts.isIdentifier(clause.name) && clause.name.text === componentClassName) {
+            return true;
+        }
+        // Named imports: import { FooComponent } from '...'
+        const named = clause.namedBindings;
+        if (named && ts.isNamedImports(named)) {
+            return named.elements.some((el) => {
+                // Support alias: import { Foo as Bar }
+                const importedName = el.propertyName ? el.propertyName.text : el.name.text;
+                return importedName === componentClassName;
+            });
+        }
+        return false;
+    });
     // remove single and double quotes from the import path
     let componentImportPath = ts.isStringLiteral(componentImport?.moduleSpecifier)
         ? componentImport.moduleSpecifier.text
@@ -334,6 +341,23 @@ function createLoadComponentPropertyAssignment(componentImportPath, componentDec
         // will generate import('./path).then(m => m.componentName)
         ts.factory.createPropertyAccessExpression(createImportCallExpression(componentImportPath), 'then'), undefined, [createImportThenCallExpression(componentDeclarationName)])));
 }
+const manageRoutesExportedByDefault = (routesArrays, typeChecker, expression, sourceFile) => {
+    const symbol = typeChecker.getSymbolAtLocation(expression);
+    if (!symbol?.declarations) {
+        return;
+    }
+    for (const declaration of symbol.declarations) {
+        if (ts.isVariableDeclaration(declaration) &&
+            declaration.initializer &&
+            ts.isArrayLiteralExpression(declaration.initializer)) {
+            routesArrays.push({
+                routeFilePath: sourceFile.fileName,
+                array: declaration.initializer,
+                routeFileImports: sourceFile.statements.filter(ts.isImportDeclaration),
+            });
+        }
+    }
+};
 // import('./path)
 const createImportCallExpression = (componentImportPath) => ts.factory.createCallExpression(ts.factory.createIdentifier('import'), undefined, [
     ts.factory.createStringLiteral(componentImportPath, true),
@@ -347,7 +371,7 @@ function migrate(options) {
         const basePath = process.cwd();
         // TS and Schematic use paths in POSIX format even on Windows. This is needed as otherwise
         // string matching such as `sourceFile.fileName.startsWith(pathToMigrate)` might not work.
-        const pathToMigrate = compiler_host.normalizePath(p.join(basePath, options.path));
+        const pathToMigrate = change_tracker.normalizePath(path.join(basePath, options.path));
         if (!buildPaths.length) {
             throw new schematics.SchematicsException('Could not find any tsconfig file. Cannot run the route lazy loading migration.');
         }
@@ -382,11 +406,11 @@ function standaloneRoutesMigration(tree, tsconfigPath, basePath, pathToMigrate, 
     if (fs.existsSync(pathToMigrate) && !fs.statSync(pathToMigrate).isDirectory()) {
         throw new schematics.SchematicsException(`Migration path ${pathToMigrate} has to be a directory. Cannot run the route lazy loading migration.`);
     }
-    const program = compiler_host.createMigrationProgram(tree, tsconfigPath, basePath);
+    const program = change_tracker.createMigrationProgram(tree, tsconfigPath, basePath);
     const sourceFiles = program
         .getSourceFiles()
         .filter((sourceFile) => sourceFile.fileName.startsWith(pathToMigrate) &&
-        compiler_host.canMigrateFile(basePath, sourceFile, program));
+        change_tracker.canMigrateFile(basePath, sourceFile, program));
     const migratedRoutes = [];
     const skippedRoutes = [];
     if (sourceFiles.length === 0) {
@@ -396,7 +420,7 @@ function standaloneRoutesMigration(tree, tsconfigPath, basePath, pathToMigrate, 
         const { pendingChanges, skippedRoutes: skipped, migratedRoutes: migrated, } = migrateFileToLazyRoutes(sourceFile, program);
         skippedRoutes.push(...skipped);
         migratedRoutes.push(...migrated);
-        const update = tree.beginUpdate(p.relative(basePath, sourceFile.fileName));
+        const update = tree.beginUpdate(path.relative(basePath, sourceFile.fileName));
         pendingChanges.forEach((change) => {
             if (change.removeLength != null) {
                 update.remove(change.start, change.removeLength);

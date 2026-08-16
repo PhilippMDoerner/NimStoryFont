@@ -6,6 +6,39 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.dev/license
  */
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -15,13 +48,13 @@ const node_assert_1 = __importDefault(require("node:assert"));
 const promises_1 = require("node:fs/promises");
 const node_path_1 = require("node:path");
 const node_url_1 = require("node:url");
-const load_esm_1 = require("../../../utils/load-esm");
+const source_map_1 = require("../../../utils/source-map");
 const ANGULAR_PREFIX = '/@ng/';
 const VITE_FS_PREFIX = '/@fs/';
 const FILE_PROTOCOL = 'file:';
 async function createAngularMemoryPlugin(options) {
     const { virtualProjectRoot, outputFiles, external } = options;
-    const { normalizePath } = await (0, load_esm_1.loadEsmModule)('vite');
+    const { normalizePath } = (await Promise.resolve(`${'vite'}`).then(s => __importStar(require(s))));
     return {
         name: 'vite:angular-memory',
         // Ensures plugin hooks run before built-in Vite hooks
@@ -82,7 +115,7 @@ async function createAngularMemoryPlugin(options) {
             return {
                 // Remove source map URL comments from the code if a sourcemap is present.
                 // Vite will inline and add an additional sourcemap URL for the sourcemap.
-                code: mapContents ? code.replace(/^\/\/# sourceMappingURL=[^\r\n]*/gm, '') : code,
+                code: mapContents ? (0, source_map_1.removeSourceMappingURL)(code) : code,
                 map: mapContents && Buffer.from(mapContents).toString('utf-8'),
             };
         },
@@ -98,13 +131,13 @@ async function createAngularMemoryPlugin(options) {
  */
 async function loadViteClientCode(file, disableViteTransport = false) {
     const originalContents = await (0, promises_1.readFile)(file, 'utf-8');
-    let updatedContents = originalContents.replace(`"You can also disable this overlay by setting ",
-      h("code", { part: "config-option-name" }, "server.hmr.overlay"),
-      " to ",
-      h("code", { part: "config-option-value" }, "false"),
-      " in ",
-      h("code", { part: "config-file-name" }, hmrConfigName),
-      "."`, '');
+    let updatedContents = originalContents.replace('"You can also disable this overlay by setting ", ' +
+        'h("code", { part: "config-option-name" }, "server.hmr.overlay"), ' +
+        '" to ", ' +
+        'h("code", { part: "config-option-value" }, "false"), ' +
+        '" in ", ' +
+        'h("code", { part: "config-file-name" }, hmrConfigName), ' +
+        '"."', '');
     (0, node_assert_1.default)(originalContents !== updatedContents, 'Failed to update Vite client error overlay text.');
     if (disableViteTransport) {
         const previousUpdatedContents = updatedContents;
@@ -114,3 +147,4 @@ async function loadViteClientCode(file, disableViteTransport = false) {
     }
     return updatedContents;
 }
+//# sourceMappingURL=angular-memory-plugin.js.map

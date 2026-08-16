@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RULE_NAME = void 0;
+exports.RULE_DOCS_EXTENSION = exports.RULE_NAME = void 0;
 const utils_1 = require("@angular-eslint/utils");
 const create_eslint_rule_1 = require("../utils/create-eslint-rule");
 exports.RULE_NAME = 'prefer-standalone';
@@ -61,3 +61,6 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
         };
     },
 });
+exports.RULE_DOCS_EXTENSION = {
+    rationale: 'Standalone components, directives, and pipes are the recommended way to build Angular applications. Setting standalone: false opts out of the standalone API, tying your code to the older NgModule-based architecture. Standalone components simplify Angular applications by eliminating the need for NgModules in most cases, reducing boilerplate and making dependencies more explicit. Each standalone component declares its own dependencies directly, making it self-contained and easier to understand, test, and reuse. Standalone components also enable better tree-shaking and lazy loading. Angular provides comprehensive migration guides to help transition existing applications, such as https://angular.dev/reference/migrations/standalone. New projects should use standalone components from the start, and existing projects should avoid adding new non-standalone components as they will make future migrations harder.',
+};

@@ -47,4 +47,15 @@ export type Schema = {
      * This can simplify the structure of your library and its usage in applications.
      */
     standalone?: boolean;
+    /**
+     * The unit testing runner to use.
+     */
+    testRunner?: TestRunner;
 };
+/**
+ * The unit testing runner to use.
+ */
+export declare enum TestRunner {
+    Karma = "karma",
+    Vitest = "vitest"
+}

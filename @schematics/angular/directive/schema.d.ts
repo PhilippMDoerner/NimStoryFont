@@ -6,6 +6,11 @@
  */
 export type Schema = {
     /**
+     * When true, the 'type' option will be appended to the generated class name. When false,
+     * only the file name will include the type.
+     */
+    addTypeToClassName?: boolean;
+    /**
      * Automatically export the directive from the specified NgModule, making it accessible to
      * other modules in the application.
      */

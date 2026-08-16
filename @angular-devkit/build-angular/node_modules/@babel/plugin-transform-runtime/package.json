@@ -1,0 +1,58 @@
+{
+  "name": "@babel/plugin-transform-runtime",
+  "version": "8.0.1",
+  "description": "Externalise references to helpers and builtins, automatically polyfilling your code without polluting globals",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/babel/babel.git",
+    "directory": "packages/babel-plugin-transform-runtime"
+  },
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "main": "./lib/index.js",
+  "keywords": [
+    "babel-plugin"
+  ],
+  "dependencies": {
+    "@babel/helper-module-imports": "^8.0.0",
+    "@babel/helper-plugin-utils": "^8.0.1"
+  },
+  "peerDependencies": {
+    "@babel/core": "^8.0.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^8.0.1",
+    "@babel/helper-plugin-test-runner": "^8.0.0",
+    "@babel/helpers": "^8.0.0",
+    "@babel/preset-env": "^8.0.1",
+    "@babel/runtime": "^8.0.0",
+    "@babel/runtime-corejs3": "^8.0.0",
+    "babel-plugin-polyfill-corejs3": "^1.0.0-rc.2"
+  },
+  "homepage": "https://babel.dev/docs/en/next/babel-plugin-transform-runtime",
+  "engines": {
+    "node": "^22.18.0 || >=24.11.0"
+  },
+  "author": "The Babel Team (https://babel.dev/team)",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "imports": {
+    "#get-runtime-path": {
+      "babel-src": {
+        "browser": "./src/get-runtime-path/browser.ts",
+        "default": "./src/get-runtime-path/index.ts"
+      },
+      "types": "./lib/get-runtime-path/index.d.ts",
+      "browser": "./lib/get-runtime-path/browser.js",
+      "default": "./lib/get-runtime-path/index.js"
+    }
+  },
+  "type": "module"
+}

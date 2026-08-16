@@ -5,7 +5,7 @@
 
 > Beasties is a plugin that inlines your app's [critical CSS] and lazy-loads the rest. It is a maintained fork of [GoogleChromeLabs/critters](https://github.com/GoogleChromeLabs/critters)
 
-## beasties [![npm](https://img.shields.io/npm/v/beasties.svg)](https://www.npmjs.org/package/beasties)
+## beasties [![npm](https://npmx.dev/api/registry/badge/version/beasties)](https://www.npmjs.org/package/beasties)
 
 It's a little different from [other options](#similar-libraries), because it **doesn't use a headless browser** to render content. This tradeoff allows Beasties to be very **fast and lightweight**. It also means Beasties inlines all CSS rules used by your document, rather than only those needed for above-the-fold content. For alternatives, see [Similar Libraries](#similar-libraries).
 
@@ -58,7 +58,7 @@ console.log(inlined)
 
 ## Usage with Vite
 
-Beasties can be used with Vite through [vite-plugin-beasties](https://www.npmjs.org/package/vite-plugin-beasties). [![npm](https://img.shields.io/npm/v/vite-plugin-beasties.svg)](https://www.npmjs.org/package/vite-plugin-beasties)
+Beasties can be used with Vite through [vite-plugin-beasties](https://www.npmjs.org/package/vite-plugin-beasties). [![npm](https://npmx.dev/api/registry/badge/version/vite-plugin-beasties)](https://www.npmjs.org/package/vite-plugin-beasties)
 
 Just add it to your Vite configuration:
 
@@ -83,7 +83,7 @@ The plugin will process the output for your `index.html` and inline critical CSS
 
 ## Usage with webpack
 
-Beasties is also available as a Webpack plugin called [beasties-webpack-plugin](https://www.npmjs.org/package/beasties-webpack-plugin). [![npm](https://img.shields.io/npm/v/beasties-webpack-plugin.svg)](https://www.npmjs.org/package/beasties-webpack-plugin)
+Beasties is also available as a Webpack plugin called [beasties-webpack-plugin](https://www.npmjs.org/package/beasties-webpack-plugin). [![npm](https://npmx.dev/api/registry/badge/version/beasties-webpack-plugin)](https://www.npmjs.org/package/beasties-webpack-plugin)
 
 The Webpack plugin supports the same configuration options as the main `beasties` package:
 
@@ -120,6 +120,7 @@ All optional. Pass them to `new Beasties({ ... })`.
 - `path` **[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Base path location of the CSS files _(default: `''`)_
 - `publicPath` **[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Public path of the CSS resources. This prefix is removed from the href _(default: `''`)_
 - `external` **[Boolean](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean)** Inline styles from external stylesheets _(default: `true`)_
+- `remote` **[Boolean](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean)** Download and inline remote stylesheets (http://, https://, //) _(default: `false`)_
 - `inlineThreshold` **[Number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** Inline external stylesheets smaller than a given size _(default: `0`)_
 - `minimumExternalSize` **[Number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** If the non-critical external stylesheet would be below this size, just inline it _(default: `0`)_
 - `pruneSource` **[Boolean](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean)** Remove inlined rules from the external stylesheet _(default: `false`)_
@@ -139,6 +140,7 @@ All optional. Pass them to `new Beasties({ ... })`.
   - `"all"` inline all keyframes rules
   - `"none"` remove all keyframes rules
 - `compress` **[Boolean](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean)** Compress resulting critical CSS _(default: `true`)_
+- `safeParser` **[Boolean](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean)** Use PostCSS safe parser for fault-tolerant CSS parsing. Handles legacy code with syntax errors _(default: `true`)_
 - `logLevel` **[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Controls [log level](#loglevel) of the plugin _(default: `"info"`)_
 - `logger` **[object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** Provide a custom logger interface [logger](#logger)
 
@@ -242,7 +244,39 @@ You can estimate the contents of your viewport roughly and add a <div `data-beas
 </html>
 ```
 
+You can mark more than one element with `data-beasties-container`. CSS is then inlined if it matches inside _any_ of the containers, which is useful when the above-the-fold content is spread across multiple disconnected regions.
+
+```html
+<html>
+  <body>
+    <header data-beasties-container>
+      /* evaluated */
+    </header>
+    <main>
+      /* ignored */
+    </main>
+    <aside data-beasties-container>
+      /* evaluated */
+    </aside>
+  </body>
+</html>
+```
+
 _Note: This is an easy way to improve the performance of Beasties_
+
+### Skipping individual stylesheets
+
+If a stylesheet should not be processed by Beasties — for example a file that is injected or replaced at runtime (e.g. multi-tenant theming via Docker volume mounts) — add the `data-beasties-skip` boolean attribute to its `<link>` tag:
+
+```html
+<!-- processed normally -->
+<link rel="stylesheet" href="styles.css">
+
+<!-- skipped entirely — tag is left untouched in the final HTML -->
+<link rel="stylesheet" href="custom-theme.css" data-beasties-skip>
+```
+
+Beasties will not read, inline, prune, or mutate that tag regardless of the active preload strategy. This is useful when disabling `inlineCritical` globally would sacrifice Core Web Vitals optimizations for the rest of your stylesheets.
 
 ### Logger
 
@@ -310,4 +344,3 @@ This is not an official Google product.
 
 [beasties-webpack-plugin]: https://github.com/danielroe/beasties/tree/main/packages/beasties-webpack-plugin
 [critical css]: https://www.smashingmagazine.com/2015/08/understanding-critical-css/
-[html-webpack-plugin]: https://github.com/jantimon/html-webpack-plugin

@@ -7,10 +7,10 @@ import {
   output,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
-import { ExtendedMap } from 'src/app/_models/map';
-import { OverviewItem } from 'src/app/_models/overview';
-import { RoutingService } from 'src/app/_services/routing.service';
+import { HotkeyDirective } from '../../../_directives/hotkey.directive';
+import { ExtendedMap } from '../../../_models/map';
+import { OverviewItem } from '../../../_models/overview';
+import { RoutingService } from '../../../_services/routing.service';
 import { Icon } from '../../atoms/_models/icon';
 import { ButtonLinkComponent } from '../../atoms/button-link/button-link.component';
 import { SpinnerComponent } from '../../atoms/spinner/spinner.component';
@@ -40,17 +40,17 @@ import { PageContainerComponent } from '../../organisms/page-container/page-cont
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MapComponent {
-  mapChoices = input.required<OverviewItem[]>();
-  map = input.required<ExtendedMap>();
-  serverUrl = input.required<string>();
-  canUpdate = input.required<boolean>();
-  canCreate = input.required<boolean>();
-  canDelete = input.required<boolean>();
+  readonly mapChoices = input.required<OverviewItem[]>();
+  readonly map = input.required<ExtendedMap>();
+  readonly serverUrl = input.required<string>();
+  readonly canUpdate = input.required<boolean>();
+  readonly canCreate = input.required<boolean>();
+  readonly canDelete = input.required<boolean>();
 
   readonly mapDelete = output<ExtendedMap>();
   readonly mapChange = output<OverviewItem>();
 
-  menuItems = computed<MenuItem[]>(() =>
+  readonly menuItems = computed<MenuItem[]>(() =>
     this.mapChoices().map(
       (choice) =>
         ({
@@ -62,20 +62,20 @@ export class MapComponent {
         }) satisfies MenuItem,
     ),
   );
-  campaignName = computed(() => this.map().campaign_details?.name);
-  createUrl = computed(() =>
+  readonly campaignName = computed(() => this.map().campaign_details?.name);
+  readonly createUrl = computed(() =>
     this.routingService.getRoutePath('map-create', {
       campaign: this.campaignName(),
     }),
   );
-  updateUrl = computed(() => {
+  readonly updateUrl = computed(() => {
     const mapName = this.map().name;
     return this.routingService.getRoutePath('map-update', {
       campaign: this.campaignName(),
       name: mapName,
     });
   });
-  homeUrl = computed(() =>
+  readonly homeUrl = computed(() =>
     this.routingService.getRoutePath('home', {
       campaign: this.campaignName(),
     }),

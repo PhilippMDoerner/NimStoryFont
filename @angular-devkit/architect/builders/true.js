@@ -10,3 +10,4 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const src_1 = require("../src");
 const builder = (0, src_1.createBuilder)(() => ({ success: true }));
 exports.default = builder;
+//# sourceMappingURL=true.js.map

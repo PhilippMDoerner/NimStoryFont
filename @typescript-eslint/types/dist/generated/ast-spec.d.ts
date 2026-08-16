@@ -5,7 +5,7 @@
  * ANY CHANGES WILL BE LOST ON THE NEXT BUILD *
  *                                            *
  *   MAKE CHANGES TO ast-spec AND THEN RUN    *
- *                 yarn build                 *
+ *                 pnpm run build             *
  **********************************************/
 import type { SyntaxKind } from 'typescript';
 export declare type Accessibility = 'private' | 'protected' | 'public';
@@ -30,16 +30,25 @@ export declare interface ArrayPattern extends BaseNode {
     optional: boolean;
     typeAnnotation: TSTypeAnnotation | undefined;
 }
-export declare interface ArrowFunctionExpression extends BaseNode {
+export declare type ArrowFunctionExpression = ArrowFunctionExpressionWithBlockBody | ArrowFunctionExpressionWithExpressionBody;
+declare interface ArrowFunctionExpressionBase extends BaseNode {
     type: AST_NODE_TYPES.ArrowFunctionExpression;
     async: boolean;
     body: BlockStatement | Expression;
     expression: boolean;
-    generator: boolean;
+    generator: false;
     id: null;
     params: Parameter[];
     returnType: TSTypeAnnotation | undefined;
     typeParameters: TSTypeParameterDeclaration | undefined;
+}
+export declare interface ArrowFunctionExpressionWithBlockBody extends ArrowFunctionExpressionBase {
+    body: BlockStatement;
+    expression: false;
+}
+export declare interface ArrowFunctionExpressionWithExpressionBody extends ArrowFunctionExpressionBase {
+    body: Expression;
+    expression: true;
 }
 export declare interface AssignmentExpression extends BaseNode {
     type: AST_NODE_TYPES.AssignmentExpression;
@@ -247,6 +256,7 @@ export declare enum AST_TOKEN_TYPES {
     Boolean = "Boolean",
     Identifier = "Identifier",
     JSXIdentifier = "JSXIdentifier",
+    PrivateIdentifier = "PrivateIdentifier",
     JSXText = "JSXText",
     Keyword = "Keyword",
     Null = "Null",
@@ -273,12 +283,7 @@ export declare interface BigIntLiteral extends LiteralBase {
     bigint: string;
     value: bigint | null;
 }
-export declare interface BinaryExpression extends BaseNode {
-    type: AST_NODE_TYPES.BinaryExpression;
-    left: Expression | PrivateIdentifier;
-    operator: ValueOf<BinaryOperatorToText>;
-    right: Expression;
-}
+export declare type BinaryExpression = PrivateInExpression | SymmetricBinaryExpression;
 export declare interface BinaryOperatorToText {
     [SyntaxKind.AmpersandAmpersandToken]: '&&';
     [SyntaxKind.AmpersandToken]: '&';
@@ -815,6 +820,16 @@ export declare interface ImportDeclaration extends BaseNode {
      */
     importKind: ImportKind;
     /**
+     * The phase of the import.
+     * `'defer'` when the import defers evaluation of the module until it is
+     * first used:
+     * ```ts
+     * import defer * as mod from 'mod';
+     * ```
+     * Otherwise `null`.
+     */
+    phase: 'defer' | null;
+    /**
      * The source module being imported from.
      */
     source: StringLiteral;
@@ -854,6 +869,15 @@ export declare interface ImportExpression extends BaseNode {
      * ```
      */
     options: Expression | null;
+    /**
+     * The phase modifier of the import.
+     * @example
+     * ```ts
+     * import('mod'); // phase: null
+     * import.defer('mod'); // phase: defer
+     * ```
+     */
+    phase: 'defer' | null;
     source: Expression;
 }
 declare type ImportKind = ExportAndImportKind;
@@ -1125,6 +1149,9 @@ export declare type OptionalRangeAndLoc<T> = {
     range?: Range;
 } & Pick<T, Exclude<keyof T, 'loc' | 'range'>>;
 export declare type Parameter = ArrayPattern | AssignmentPattern | Identifier | ObjectPattern | RestElement | TSParameterProperty;
+declare type ParameterPropertyParameter = (AssignmentPattern & {
+    left: Identifier;
+}) | Identifier;
 export declare interface Position {
     /**
      * Column number on the line (0-indexed)
@@ -1139,6 +1166,15 @@ export declare type PrimaryExpression = ArrayExpression | ArrayPattern | ClassEx
 export declare interface PrivateIdentifier extends BaseNode {
     type: AST_NODE_TYPES.PrivateIdentifier;
     name: string;
+}
+export declare interface PrivateIdentifierToken extends BaseToken {
+    type: AST_TOKEN_TYPES.PrivateIdentifier;
+}
+export declare interface PrivateInExpression extends BaseNode {
+    type: AST_NODE_TYPES.BinaryExpression;
+    left: PrivateIdentifier;
+    operator: 'in';
+    right: Expression;
 }
 export declare interface Program extends NodeOrTokenData {
     type: AST_NODE_TYPES.Program;
@@ -1324,6 +1360,12 @@ export declare interface SwitchStatement extends BaseNode {
     cases: SwitchCase[];
     discriminant: Expression;
 }
+export declare interface SymmetricBinaryExpression extends BaseNode {
+    type: AST_NODE_TYPES.BinaryExpression;
+    left: Expression;
+    operator: ValueOf<BinaryOperatorToText>;
+    right: Expression;
+}
 export declare interface TaggedTemplateExpression extends BaseNode {
     type: AST_NODE_TYPES.TaggedTemplateExpression;
     quasi: TemplateLiteral;
@@ -1334,7 +1376,7 @@ export declare interface TemplateElement extends BaseNode {
     type: AST_NODE_TYPES.TemplateElement;
     tail: boolean;
     value: {
-        cooked: string;
+        cooked: string | null;
         raw: string;
     };
 }
@@ -1353,7 +1395,7 @@ export declare interface ThrowStatement extends BaseNode {
     type: AST_NODE_TYPES.ThrowStatement;
     argument: Expression;
 }
-export declare type Token = BooleanToken | Comment | IdentifierToken | JSXIdentifierToken | JSXTextToken | KeywordToken | NullToken | NumericToken | PunctuatorToken | RegularExpressionToken | StringToken | TemplateToken;
+export declare type Token = BooleanToken | Comment | IdentifierToken | JSXIdentifierToken | JSXTextToken | KeywordToken | NullToken | NumericToken | PrivateIdentifierToken | PunctuatorToken | RegularExpressionToken | StringToken | TemplateToken;
 export declare interface TryStatement extends BaseNode {
     type: AST_NODE_TYPES.TryStatement;
     block: BlockStatement;
@@ -1519,34 +1561,14 @@ export declare interface TSEnumDeclaration extends BaseNode {
      */
     members: TSEnumMember[];
 }
-export declare type TSEnumMember = TSEnumMemberComputedName | TSEnumMemberNonComputedName;
-declare interface TSEnumMemberBase extends BaseNode {
+export declare interface TSEnumMember extends BaseNode {
     type: AST_NODE_TYPES.TSEnumMember;
-    computed: boolean;
-    id: PropertyNameComputed | PropertyNameNonComputed;
+    id: Identifier | StringLiteral;
     initializer: Expression | undefined;
-}
-/**
- * this should only really happen in semantically invalid code (errors 1164 and 2452)
- *
- * @example
- * ```ts
- * // VALID:
- * enum Foo { ['a'] }
- *
- * // INVALID:
- * const x = 'a';
- * enum Foo { [x] }
- * enum Bar { ['a' + 'b'] }
- * ```
- */
-export declare interface TSEnumMemberComputedName extends TSEnumMemberBase {
-    computed: true;
-    id: PropertyNameComputed;
-}
-export declare interface TSEnumMemberNonComputedName extends TSEnumMemberBase {
-    computed: false;
-    id: PropertyNameNonComputed;
+    /**
+     * @deprecated the enum member is always non-computed.
+     */
+    computed: boolean;
 }
 export declare interface TSExportAssignment extends BaseNode {
     type: AST_NODE_TYPES.TSExportAssignment;
@@ -1623,9 +1645,11 @@ export declare interface TSImportEqualsRequireDeclaration extends TSImportEquals
 }
 export declare interface TSImportType extends BaseNode {
     type: AST_NODE_TYPES.TSImportType;
+    /** @deprecated Use {@link `source`} instead. */
     argument: TypeNode;
     options: ObjectExpression | null;
     qualifier: EntityName | null;
+    source: StringLiteral;
     typeArguments: TSTypeParameterInstantiation | null;
 }
 export declare interface TSIndexedAccessType extends BaseNode {
@@ -1690,7 +1714,7 @@ export declare interface TSIntrinsicKeyword extends BaseNode {
 }
 export declare interface TSLiteralType extends BaseNode {
     type: AST_NODE_TYPES.TSLiteralType;
-    literal: LiteralExpression | UnaryExpression | UpdateExpression;
+    literal: Exclude<LiteralExpression, NullLiteral | RegExpLiteral> | UnaryExpressionMinus | UnaryExpressionPlus;
 }
 export declare interface TSMappedType extends BaseNode {
     type: AST_NODE_TYPES.TSMappedType;
@@ -1879,7 +1903,7 @@ export declare interface TSParameterProperty extends BaseNode {
     accessibility: Accessibility | undefined;
     decorators: Decorator[];
     override: boolean;
-    parameter: AssignmentPattern | BindingName | RestElement;
+    parameter: ParameterPropertyParameter;
     readonly: boolean;
     static: boolean;
 }
@@ -2008,11 +2032,19 @@ export declare interface TSTypeParameterInstantiation extends BaseNode {
     type: AST_NODE_TYPES.TSTypeParameterInstantiation;
     params: TypeNode[];
 }
-export declare interface TSTypePredicate extends BaseNode {
+export declare type TSTypePredicate = TSTypePredicateNoAsserts | TSTypePredicateWithAsserts;
+declare interface TSTypePredicateBase extends BaseNode {
     type: AST_NODE_TYPES.TSTypePredicate;
     asserts: boolean;
     parameterName: Identifier | TSThisType;
     typeAnnotation: TSTypeAnnotation | null;
+}
+export declare interface TSTypePredicateNoAsserts extends TSTypePredicateBase {
+    asserts: false;
+    typeAnnotation: TSTypeAnnotation;
+}
+export declare interface TSTypePredicateWithAsserts extends TSTypePredicateBase {
+    asserts: true;
 }
 export declare interface TSTypeQuery extends BaseNode {
     type: AST_NODE_TYPES.TSTypeQuery;
@@ -2040,18 +2072,32 @@ export declare interface TSVoidKeyword extends BaseNode {
 }
 export declare type TypeElement = TSCallSignatureDeclaration | TSConstructSignatureDeclaration | TSIndexSignature | TSMethodSignature | TSPropertySignature;
 export declare type TypeNode = TSAbstractKeyword | TSAnyKeyword | TSArrayType | TSAsyncKeyword | TSBigIntKeyword | TSBooleanKeyword | TSConditionalType | TSConstructorType | TSDeclareKeyword | TSExportKeyword | TSFunctionType | TSImportType | TSIndexedAccessType | TSInferType | TSIntersectionType | TSIntrinsicKeyword | TSLiteralType | TSMappedType | TSNamedTupleMember | TSNeverKeyword | TSNullKeyword | TSNumberKeyword | TSObjectKeyword | TSOptionalType | TSPrivateKeyword | TSProtectedKeyword | TSPublicKeyword | TSQualifiedName | TSReadonlyKeyword | TSRestType | TSStaticKeyword | TSStringKeyword | TSSymbolKeyword | TSTemplateLiteralType | TSThisType | TSTupleType | TSTypeLiteral | TSTypeOperator | TSTypePredicate | TSTypeQuery | TSTypeReference | TSUndefinedKeyword | TSUnionType | TSUnknownKeyword | TSVoidKeyword;
-export declare interface UnaryExpression extends UnaryExpressionBase {
-    type: AST_NODE_TYPES.UnaryExpression;
-    operator: '!' | '+' | '~' | '-' | 'delete' | 'typeof' | 'void';
-}
+export declare type UnaryExpression = UnaryExpressionBitwiseNot | UnaryExpressionDelete | UnaryExpressionMinus | UnaryExpressionNot | UnaryExpressionPlus | UnaryExpressionTypeof | UnaryExpressionVoid;
 declare interface UnaryExpressionBase extends BaseNode {
+    type: AST_NODE_TYPES.UnaryExpression;
     argument: Expression;
     operator: string;
-    prefix: boolean;
+    /**
+     * @deprecated The `prefix` property is always `true` and is only present for historical reasons.
+     * See https://github.com/estree/estree/pull/118.
+     */
+    prefix: true;
 }
-export declare interface UpdateExpression extends UnaryExpressionBase {
+export declare type UnaryExpressionBitwiseNot = UnaryExpressionSpecific<'~'>;
+export declare type UnaryExpressionDelete = UnaryExpressionSpecific<'delete'>;
+export declare type UnaryExpressionMinus = UnaryExpressionSpecific<'-'>;
+export declare type UnaryExpressionNot = UnaryExpressionSpecific<'!'>;
+export declare type UnaryExpressionPlus = UnaryExpressionSpecific<'+'>;
+declare interface UnaryExpressionSpecific<T extends string> extends UnaryExpressionBase {
+    operator: T;
+}
+export declare type UnaryExpressionTypeof = UnaryExpressionSpecific<'typeof'>;
+export declare type UnaryExpressionVoid = UnaryExpressionSpecific<'void'>;
+export declare interface UpdateExpression extends BaseNode {
     type: AST_NODE_TYPES.UpdateExpression;
+    argument: Expression;
     operator: '++' | '--';
+    prefix: boolean;
 }
 export declare type UsingDeclaration = UsingInForOfDeclaration | UsingInNormalContextDeclaration;
 declare interface UsingDeclarationBase extends BaseNode {
@@ -2151,10 +2197,17 @@ export declare interface WithStatement extends BaseNode {
     body: Statement;
     object: Expression;
 }
-export declare interface YieldExpression extends BaseNode {
+export declare type YieldExpression = YieldNoStarExpression | YieldStarExpression;
+declare interface YieldExpressionBase extends BaseNode {
     type: AST_NODE_TYPES.YieldExpression;
     argument: Expression | null;
     delegate: boolean;
 }
+export declare interface YieldNoStarExpression extends YieldExpressionBase {
+    delegate: false;
+}
+export declare interface YieldStarExpression extends YieldExpressionBase {
+    argument: Expression;
+    delegate: true;
+}
 export {};
-//# sourceMappingURL=ast-spec.d.ts.map

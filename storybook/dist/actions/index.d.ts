@@ -1,102 +1,67 @@
+import { t as Options$1 } from "../chunk-CB2MeY3U.js";
+
+//#region code/core/.dts-emit/code/core/src/actions/constants.d.ts
 declare const PARAM_KEY = "actions";
 declare const ADDON_ID = "storybook/actions";
 declare const PANEL_ID = "storybook/actions/panel";
 declare const EVENT_ID = "storybook/actions/action-event";
 declare const CLEAR_ID = "storybook/actions/action-clear";
 declare const CYCLIC_KEY = "$___storybook.isCyclic";
-
-interface Options$1 {
-    allowRegExp: boolean;
-    allowSymbol: boolean;
-    allowDate: boolean;
-    allowUndefined: boolean;
-    allowError: boolean;
-    maxDepth: number;
-    space: number | undefined;
-}
-
+//#endregion
+//#region code/core/.dts-emit/code/core/src/actions/models/ActionOptions.d.ts
 interface Options {
-    depth: number;
-    clearOnStoryChange: boolean;
-    limit: number;
-    implicit: boolean;
-    id: string;
+  depth: number;
+  clearOnStoryChange: boolean;
+  limit: number;
+  implicit: boolean;
+  id: string;
 }
 type ActionOptions = Partial<Options> & Partial<Options$1>;
-
+//#endregion
+//#region code/core/.dts-emit/code/core/src/actions/models/ActionDisplay.d.ts
 interface ActionDisplay {
-    id: string;
-    data: {
-        name: string;
-        args: any[];
-    };
-    count: number;
-    options: ActionOptions;
+  id: string;
+  data: {
+    name: string;
+    args: any[];
+  };
+  count: number;
+  options: ActionOptions;
 }
-
-type HandlerFunction = (...args: any[]) => void;
-
+//#endregion
+//#region code/core/.dts-emit/code/core/src/actions/models/HandlerFunction.d.ts
+type HandlerFunction = (...args: any[]) => any;
+//#endregion
+//#region code/core/.dts-emit/code/core/src/actions/models/ActionsMap.d.ts
 type ActionsMap<T extends string = string> = Record<T, HandlerFunction>;
-
+//#endregion
+//#region code/core/.dts-emit/code/core/src/actions/models/ActionsFunction.d.ts
 interface ActionsFunction {
-    <T extends string>(handlerMap: Record<T, string>, options?: ActionOptions): ActionsMap<T>;
-    <T extends string>(...handlers: T[]): ActionsMap<T>;
-    <T extends string>(handler1: T, options?: ActionOptions): ActionsMap<T>;
-    <T extends string>(handler1: T, handler2: T, options?: ActionOptions): ActionsMap<T>;
-    <T extends string>(handler1: T, handler2: T, handler3: T, options?: ActionOptions): ActionsMap<T>;
-    <T extends string>(handler1: T, handler2: T, handler3: T, handler4: T, options?: ActionOptions): ActionsMap<T>;
-    <T extends string>(handler1: T, handler2: T, handler3: T, handler4: T, handler5: T, options?: ActionOptions): ActionsMap<T>;
-    <T extends string>(handler1: T, handler2: T, handler3: T, handler4: T, handler5: T, handler6: T, options?: ActionOptions): ActionsMap<T>;
-    <T extends string>(handler1: T, handler2: T, handler3: T, handler4: T, handler5: T, handler6: T, handler7: T, options?: ActionOptions): ActionsMap<T>;
-    <T extends string>(handler1: T, handler2: T, handler3: T, handler4: T, handler5: T, handler6: T, handler7: T, handler8: T, options?: ActionOptions): ActionsMap<T>;
-    <T extends string>(handler1: T, handler2: T, handler3: T, handler4: T, handler5: T, handler6: T, handler7: T, handler8: T, handler9: T, options?: ActionOptions): ActionsMap<T>;
-    <T extends string>(handler1: T, handler2: T, handler3: T, handler4: T, handler5: T, handler6: T, handler7: T, handler8: T, handler9: T, handler10: T, options?: ActionOptions): ActionsMap<T>;
+  <T extends string>(handlerMap: Record<T, string>, options?: ActionOptions): ActionsMap<T>;
+  <T extends string>(...handlers: T[]): ActionsMap<T>;
+  <T extends string>(handler1: T, options?: ActionOptions): ActionsMap<T>;
+  <T extends string>(handler1: T, handler2: T, options?: ActionOptions): ActionsMap<T>;
+  <T extends string>(handler1: T, handler2: T, handler3: T, options?: ActionOptions): ActionsMap<T>;
+  <T extends string>(handler1: T, handler2: T, handler3: T, handler4: T, options?: ActionOptions): ActionsMap<T>;
+  <T extends string>(handler1: T, handler2: T, handler3: T, handler4: T, handler5: T, options?: ActionOptions): ActionsMap<T>;
+  <T extends string>(handler1: T, handler2: T, handler3: T, handler4: T, handler5: T, handler6: T, options?: ActionOptions): ActionsMap<T>;
+  <T extends string>(handler1: T, handler2: T, handler3: T, handler4: T, handler5: T, handler6: T, handler7: T, options?: ActionOptions): ActionsMap<T>;
+  <T extends string>(handler1: T, handler2: T, handler3: T, handler4: T, handler5: T, handler6: T, handler7: T, handler8: T, options?: ActionOptions): ActionsMap<T>;
+  <T extends string>(handler1: T, handler2: T, handler3: T, handler4: T, handler5: T, handler6: T, handler7: T, handler8: T, handler9: T, options?: ActionOptions): ActionsMap<T>;
+  <T extends string>(handler1: T, handler2: T, handler3: T, handler4: T, handler5: T, handler6: T, handler7: T, handler8: T, handler9: T, handler10: T, options?: ActionOptions): ActionsMap<T>;
 }
-
+//#endregion
+//#region code/core/.dts-emit/code/core/src/actions/models/DecoratorFunction.d.ts
 type DecoratorFunction = (args: any[]) => any[];
-
+//#endregion
+//#region code/core/.dts-emit/code/core/src/actions/runtime/action.d.ts
 declare function action(name: string, options?: ActionOptions): HandlerFunction;
-
+//#endregion
+//#region code/core/.dts-emit/code/core/src/actions/runtime/actions.d.ts
 declare const actions: ActionsFunction;
-
+//#endregion
+//#region code/core/.dts-emit/code/core/src/actions/runtime/configureActions.d.ts
 declare const config: ActionOptions;
 declare const configureActions: (options?: ActionOptions) => void;
-
-interface ActionsParameters {
-    /**
-     * Actions configuration
-     *
-     * @see https://storybook.js.org/docs/essentials/actions#parameters
-     */
-    actions: {
-        /**
-         * Create actions for each arg that matches the regex. (**NOT recommended, see below**)
-         *
-         * This is quite useful when your component has dozens (or hundreds) of methods and you do not
-         * want to manually apply the fn utility for each of those methods. However, this is not the
-         * recommended way of writing actions. That's because automatically inferred args are not
-         * available as spies in your play function. If you use argTypesRegex and your stories have play
-         * functions, you will need to also define args with the fn utility to test them in your play
-         * function.
-         *
-         * @example `argTypesRegex: '^on.*'`
-         */
-        argTypesRegex?: string;
-        /** Remove the addon panel and disable the addon's behavior */
-        disable?: boolean;
-        /**
-         * Binds a standard HTML event handler to the outermost HTML element rendered by your component
-         * and triggers an action when the event is called for a given selector. The format is
-         * `<eventname> <selector>`. The selector is optional; it defaults to all elements.
-         *
-         * **To enable this feature, you must use the `withActions` decorator.**
-         *
-         * @example `handles: ['mouseover', 'click .btn']`
-         *
-         * @see https://storybook.js.org/docs/essentials/actions#action-event-handlers
-         */
-        handles?: string[];
-    };
-}
-
-export { ADDON_ID, type ActionDisplay, type ActionOptions, type ActionsFunction, type ActionsMap, type ActionsParameters, CLEAR_ID, CYCLIC_KEY, type DecoratorFunction, EVENT_ID, type HandlerFunction, PANEL_ID, PARAM_KEY, action, actions, config, configureActions };
+//#endregion
+export { ADDON_ID, ActionDisplay, ActionOptions, ActionsFunction, ActionsMap, CLEAR_ID, CYCLIC_KEY, DecoratorFunction, EVENT_ID, HandlerFunction, PANEL_ID, PARAM_KEY, action, actions, config, configureActions };

@@ -5,7 +5,7 @@ import { afterNextRender, Directive, ElementRef, input } from '@angular/core';
   standalone: true,
 })
 export class FocusOnRender {
-  focusOnRender = input<boolean>(true);
+  readonly focusOnRender = input<boolean>(true);
 
   constructor(public elementRef: ElementRef<HTMLElement>) {
     afterNextRender(() => {

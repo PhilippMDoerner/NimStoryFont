@@ -9,8 +9,8 @@ import {
   Routes,
   UrlTree,
 } from '@angular/router';
-import { log } from 'src/utils/logging';
-import { getCorrectKey } from 'src/utils/object';
+import { log } from '../../utils/logging';
+import { getCorrectKey } from '../../utils/object';
 
 interface RouteNode {
   fullPath: string;
@@ -21,8 +21,8 @@ interface RouteNode {
   providedIn: 'root',
 })
 export class RoutingService {
-  private NONE_STRING = 'None';
-  private routeNodes = this.getRouteTree();
+  private readonly NONE_STRING = 'None';
+  private readonly routeNodes = this.getRouteTree();
 
   constructor(private router: Router) {
     log(`${RoutingService.name}-routeNodes`, this.routeNodes);

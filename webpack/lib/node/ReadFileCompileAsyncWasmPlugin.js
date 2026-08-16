@@ -8,12 +8,23 @@
 const { WEBASSEMBLY_MODULE_TYPE_ASYNC } = require("../ModuleTypeConstants");
 const RuntimeGlobals = require("../RuntimeGlobals");
 const Template = require("../Template");
+const { getPresentKinds } = require("../TemplatedPathPlugin");
+const AsyncWasmCompileRuntimeModule = require("../wasm-async/AsyncWasmCompileRuntimeModule");
 const AsyncWasmLoadingRuntimeModule = require("../wasm-async/AsyncWasmLoadingRuntimeModule");
 
 /** @typedef {import("../Chunk")} Chunk */
 /** @typedef {import("../Compiler")} Compiler */
 
 /**
+ * The wasm runtime inlines `[fullhash]` as a runtime `getFullHash()` call, so
+ * that runtime module must be requested (`[hash]` is the per-module hash here).
+ * @param {string} filename `output.webassemblyModuleFilename`
+ * @returns {boolean} whether it references the compilation `[fullhash]`
+ */
+const usesFullHash = (filename) => getPresentKinds(filename).has("fullhash");
+
+/**
+ * Defines the read file compile async wasm plugin options type used by this module.
  * @typedef {object} ReadFileCompileAsyncWasmPluginOptions
  * @property {boolean=} import use import?
  */
@@ -22,25 +33,28 @@ const PLUGIN_NAME = "ReadFileCompileAsyncWasmPlugin";
 
 class ReadFileCompileAsyncWasmPlugin {
 	/**
+	 * Creates an instance of ReadFileCompileAsyncWasmPlugin.
 	 * @param {ReadFileCompileAsyncWasmPluginOptions=} options options object
 	 */
 	constructor({ import: useImport = false } = {}) {
+		/** @type {boolean} */
 		this._import = useImport;
 	}
 
 	/**
-	 * Apply the plugin
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Compiler} compiler the compiler instance
 	 * @returns {void}
 	 */
 	apply(compiler) {
-		compiler.hooks.thisCompilation.tap(PLUGIN_NAME, compilation => {
+		compiler.hooks.thisCompilation.tap(PLUGIN_NAME, (compilation) => {
 			const globalWasmLoading = compilation.outputOptions.wasmLoading;
 			/**
+			 * Checks whether this read file compile async wasm plugin is enabled for chunk.
 			 * @param {Chunk} chunk chunk
 			 * @returns {boolean} true, if wasm loading is enabled for the chunk
 			 */
-			const isEnabledForChunk = chunk => {
+			const isEnabledForChunk = (chunk) => {
 				const options = chunk.getEntryOptions();
 				const wasmLoading =
 					options && options.wasmLoading !== undefined
@@ -53,7 +67,7 @@ class ReadFileCompileAsyncWasmPlugin {
 			 * @type {(path: string) => string} callback to generate code to load the wasm file
 			 */
 			const generateLoadBinaryCode = this._import
-				? path =>
+				? (path) =>
 						Template.asString([
 							"Promise.all([import('fs'), import('url')]).then(([{ readFile }, { URL }]) => new Promise((resolve, reject) => {",
 							Template.indent([
@@ -63,21 +77,25 @@ class ReadFileCompileAsyncWasmPlugin {
 									"",
 									"// Fake fetch response",
 									"resolve({",
-									Template.indent(["arrayBuffer() { return buffer; }"]),
+									Template.indent([
+										// Return a real ArrayBuffer: some runtimes (e.g. Deno)
+										// reject a Node Buffer view here as "not a buffer source".
+										"arrayBuffer() { return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength); }"
+									]),
 									"});"
 								]),
 								"});"
 							]),
 							"}))"
 						])
-				: path =>
+				: (path) =>
 						Template.asString([
 							"new Promise(function (resolve, reject) {",
 							Template.indent([
 								"try {",
 								Template.indent([
-									"var { readFile } = require('fs');",
-									"var { join } = require('path');",
+									`var { readFile } = require(${compilation.runtimeTemplate.renderNodePrefixForCoreModule("fs")});`,
+									`var { join } = require(${compilation.runtimeTemplate.renderNodePrefixForCoreModule("path")});`,
 									"",
 									`readFile(join(__dirname, ${path}), function(err, buffer){`,
 									Template.indent([
@@ -85,7 +103,11 @@ class ReadFileCompileAsyncWasmPlugin {
 										"",
 										"// Fake fetch response",
 										"resolve({",
-										Template.indent(["arrayBuffer() { return buffer; }"]),
+										Template.indent([
+											// Return a real ArrayBuffer: some runtimes (e.g. Deno)
+											// reject a Node Buffer view here as "not a buffer source".
+											"arrayBuffer() { return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength); }"
+										]),
 										"});"
 									]),
 									"});"
@@ -102,14 +124,45 @@ class ReadFileCompileAsyncWasmPlugin {
 					if (
 						!chunkGraph.hasModuleInGraph(
 							chunk,
-							m => m.type === WEBASSEMBLY_MODULE_TYPE_ASYNC
+							(m) => m.type === WEBASSEMBLY_MODULE_TYPE_ASYNC
 						)
 					) {
 						return;
 					}
+					if (
+						usesFullHash(compilation.outputOptions.webassemblyModuleFilename)
+					) {
+						set.add(RuntimeGlobals.getFullHash);
+					}
 					compilation.addRuntimeModule(
 						chunk,
 						new AsyncWasmLoadingRuntimeModule({
+							generateLoadBinaryCode,
+							supportsStreaming: false
+						})
+					);
+				});
+
+			compilation.hooks.runtimeRequirementInTree
+				.for(RuntimeGlobals.compileWasm)
+				.tap(PLUGIN_NAME, (chunk, set, { chunkGraph }) => {
+					if (!isEnabledForChunk(chunk)) return;
+					if (
+						!chunkGraph.hasModuleInGraph(
+							chunk,
+							(m) => m.type === WEBASSEMBLY_MODULE_TYPE_ASYNC
+						)
+					) {
+						return;
+					}
+					if (
+						usesFullHash(compilation.outputOptions.webassemblyModuleFilename)
+					) {
+						set.add(RuntimeGlobals.getFullHash);
+					}
+					compilation.addRuntimeModule(
+						chunk,
+						new AsyncWasmCompileRuntimeModule({
 							generateLoadBinaryCode,
 							supportsStreaming: false
 						})

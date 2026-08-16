@@ -1,13 +1,19 @@
 {
     "name": "@discoveryjs/json-ext",
-    "version": "0.6.3",
-    "description": "A set of utilities that extend the use of JSON",
+    "version": "1.1.0",
+    "description": "A set of efficient utilities that extend the use of JSON (streaming, estimate size, NDJSON/JSONL, etc.)",
     "keywords": [
         "json",
+        "jsonl",
+        "ndjson",
         "utils",
         "stream",
+        "streaming",
+        "webstreams",
         "async",
         "promise",
+        "generator",
+        "parse",
         "stringify",
         "info"
     ],
@@ -52,7 +58,7 @@
     "devDependencies": {
         "c8": "^7.10.0",
         "chalk": "^4.1.0",
-        "esbuild": "^0.24.0",
+        "esbuild": "^0.27.3",
         "eslint": "^8.57.0",
         "mocha": "^9.2.2",
         "rollup": "^2.79.2"

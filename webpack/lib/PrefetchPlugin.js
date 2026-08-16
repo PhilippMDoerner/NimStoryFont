@@ -13,12 +13,15 @@ const PLUGIN_NAME = "PrefetchPlugin";
 
 class PrefetchPlugin {
 	/**
+	 * Creates an instance of PrefetchPlugin.
 	 * @param {string} context context or request if context is not set
 	 * @param {string=} request request
 	 */
 	constructor(context, request) {
 		if (request) {
+			/** @type {string | null} */
 			this.context = context;
+			/** @type {string} */
 			this.request = request;
 		} else {
 			this.context = null;
@@ -27,7 +30,7 @@ class PrefetchPlugin {
 	}
 
 	/**
-	 * Apply the plugin
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Compiler} compiler the compiler instance
 	 * @returns {void}
 	 */
@@ -45,7 +48,7 @@ class PrefetchPlugin {
 			compilation.addModuleChain(
 				this.context || compiler.context,
 				new PrefetchDependency(this.request),
-				err => {
+				(err) => {
 					callback(err);
 				}
 			);

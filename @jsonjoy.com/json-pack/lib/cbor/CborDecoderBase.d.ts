@@ -1,7 +1,7 @@
 import { JsonPackExtension } from '../JsonPackExtension';
 import { JsonPackValue } from '../JsonPackValue';
-import type { CachedUtf8Decoder } from '@jsonjoy.com/util/lib/buffers/utf8/CachedUtf8Decoder';
-import type { IReader, IReaderResettable } from '@jsonjoy.com/util/lib/buffers';
+import type { CachedUtf8Decoder } from '@jsonjoy.com/buffers/lib/utf8/CachedUtf8Decoder';
+import type { IReader, IReaderResettable } from '@jsonjoy.com/buffers/lib';
 import type { BinaryJsonDecoder, PackValue } from '../types';
 export declare class CborDecoderBase<R extends IReader & IReaderResettable = IReader & IReaderResettable> implements BinaryJsonDecoder {
     reader: R;
@@ -10,6 +10,7 @@ export declare class CborDecoderBase<R extends IReader & IReaderResettable = IRe
     read(uint8: Uint8Array): PackValue;
     decode(uint8: Uint8Array): unknown;
     val(): unknown;
+    readAny(): unknown;
     readAnyRaw(octet: number): unknown;
     readMinorLen(minor: number): number;
     readUint(minor: number): number | bigint;

@@ -1,6 +1,6 @@
 {
   "name": "@angular/router",
-  "version": "20.0.3",
+  "version": "22.1.1",
   "description": "Angular - the routing library",
   "keywords": [
     "angular",
@@ -14,7 +14,7 @@
   "author": "angular",
   "license": "MIT",
   "engines": {
-    "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
+    "node": "^22.22.3 || ^24.15.0 || >=26.0.0"
   },
   "bugs": {
     "url": "https://github.com/angular/angular/issues"
@@ -23,10 +23,13 @@
   "dependencies": {
     "tslib": "^2.3.0"
   },
+  "devDependencies": {
+    "@types/dom-navigation": "^1.0.5"
+  },
   "peerDependencies": {
-    "@angular/core": "20.0.3",
-    "@angular/common": "20.0.3",
-    "@angular/platform-browser": "20.0.3",
+    "@angular/core": "22.1.1",
+    "@angular/common": "22.1.1",
+    "@angular/platform-browser": "22.1.1",
     "rxjs": "^6.5.3 || ^7.4.0"
   },
   "ng-update": {
@@ -51,22 +54,22 @@
   },
   "sideEffects": false,
   "module": "./fesm2022/router.mjs",
-  "typings": "./index.d.ts",
+  "typings": "./types/router.d.ts",
   "type": "module",
   "exports": {
     "./package.json": {
       "default": "./package.json"
     },
     ".": {
-      "types": "./index.d.ts",
+      "types": "./types/router.d.ts",
       "default": "./fesm2022/router.mjs"
     },
     "./testing": {
-      "types": "./testing/index.d.ts",
+      "types": "./types/testing.d.ts",
       "default": "./fesm2022/testing.mjs"
     },
     "./upgrade": {
-      "types": "./upgrade/index.d.ts",
+      "types": "./types/upgrade.d.ts",
       "default": "./fesm2022/upgrade.mjs"
     }
   }

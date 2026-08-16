@@ -60,6 +60,8 @@ export function decode(messagePack: Buffer | Uint8Array, options?: UnpackOptions
 export function addExtension(extension: Extension): void
 export function clearSource(): void
 export function roundFloat32(float32Number: number): number
+export function decodeIter(bufferIterator: Iterable<Buffer | Uint8Array> | Iterator<Buffer | Uint8Array> | AsyncIterable<Buffer | Uint8Array> | AsyncIterator<Buffer | Uint8Array>, options?: Options): AsyncGenerator<any>
+export function encodeIter(objectIterator: Iterable<Buffer | Uint8Array> | Iterator<Buffer | Uint8Array> | AsyncIterable<Buffer | Uint8Array> | AsyncIterator<Buffer | Uint8Array>, options?: Options): IterableIterator<Buffer> | Promise<AsyncIterableIterator<Buffer>>
 export const C1: {}
 export let isNativeAccelerationEnabled: boolean
 
@@ -88,3 +90,4 @@ export class UnpackrStream extends Transform {
 export class PackrStream extends Transform {
 	constructor(options?: Options | { highWaterMark: number, emitClose: boolean, allowHalfOpen: boolean })
 }
+export { PackrStream as EncoderStream, UnpackrStream as DecoderStream };

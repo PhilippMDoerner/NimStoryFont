@@ -12,6 +12,7 @@
 'use strict';
 
 const path = require('path');
+const nodeUtils = require('../src/utilities/node-version');
 
 // Error if the external CLI appears to be used inside a google3 context.
 if (process.cwd().split(path.sep).includes('google3')) {
@@ -42,26 +43,28 @@ if (rawCommandName === '--get-yargs-completions' || rawCommandName === 'completi
 // This node version check ensures that extremely old versions of node are not used.
 // These may not support ES2015 features such as const/let/async/await/etc.
 // These would then crash with a hard to diagnose error message.
-const [major, minor] = process.versions.node.split('.', 2).map((part) => Number(part));
+const [major] = process.versions.node.split('.', 1).map((part) => Number(part));
 
-if (major % 2 === 1) {
-  // Allow new odd numbered releases with a warning (currently v17+)
+if (major === 23 || major === 25) {
+  // Allow new odd numbered releases with a warning.
   console.warn(
     'Node.js version ' +
       process.version +
       ' detected.\n' +
-      'Odd numbered Node.js versions will not enter LTS status and should not be used for production.' +
+      'Prior to version 27, odd numbered Node.js versions will not enter LTS status and should not be used for production.' +
       ' For more information, please see https://nodejs.org/en/about/previous-releases/.',
   );
 
   require('./bootstrap');
-} else if (major < 20 || (major === 20 && minor < 19) || (major === 22 && minor < 12)) {
-  // Error and exit if less than 20.19 or 22.12
+} else if (!nodeUtils.isNodeVersionSupported()) {
+  // Error and exit if less than the supported versions.
   console.error(
     'Node.js version ' +
       process.version +
       ' detected.\n' +
-      'The Angular CLI requires a minimum Node.js version of v20.19 or v22.12.\n\n' +
+      'The Angular CLI requires a minimum Node.js version of ' +
+      nodeUtils.supportedNodeVersions.map((v) => 'v' + v).join(' or ') +
+      '.\n\n' +
       'Please update your Node.js version or visit https://nodejs.org/ for additional instructions.\n',
   );
 

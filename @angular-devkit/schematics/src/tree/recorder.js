@@ -6,13 +6,10 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.dev/license
  */
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UpdateRecorderBase = exports.IndexOutOfBoundException = void 0;
 const core_1 = require("@angular-devkit/core");
-const magic_string_1 = __importDefault(require("magic-string"));
+const magic_string_1 = require("magic-string");
 const exception_1 = require("../exception/exception");
 class IndexOutOfBoundException extends core_1.BaseException {
     constructor(index, min, max = Infinity) {
@@ -34,12 +31,12 @@ class UpdateRecorderBase {
         }
         catch (e) {
             if (e instanceof TypeError) {
-                throw new Error(`Failed to decode "${path}" as ${encoding} text.`);
+                throw new Error(`Failed to decode "${path}" as ${encoding} text.`, { cause: e });
             }
             throw e;
         }
         this._path = path;
-        this.content = new magic_string_1.default(text);
+        this.content = new magic_string_1.MagicString(text);
     }
     static createFromFileEntry(entry) {
         const c0 = entry.content.byteLength > 0 && entry.content.readUInt8(0);
@@ -91,3 +88,4 @@ class UpdateRecorderBase {
     }
 }
 exports.UpdateRecorderBase = UpdateRecorderBase;
+//# sourceMappingURL=recorder.js.map

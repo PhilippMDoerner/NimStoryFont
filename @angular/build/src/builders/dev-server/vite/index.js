@@ -1,0 +1,406 @@
+"use strict";
+/**
+ * @license
+ * Copyright Google LLC All Rights Reserved.
+ *
+ * Use of this source code is governed by an MIT-style license that can be
+ * found in the LICENSE file at https://angular.dev/license
+ */
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.serveWithVite = serveWithVite;
+const node_assert_1 = __importDefault(require("node:assert"));
+const node_path_1 = require("node:path");
+const plugins_1 = require("../../../tools/vite/plugins");
+const utils_1 = require("../../../tools/vite/utils");
+const utils_2 = require("../../../utils");
+const environment_options_1 = require("../../../utils/environment-options");
+const results_1 = require("../../application/results");
+const schema_1 = require("../../application/schema");
+const internal_1 = require("../internal");
+const hmr_1 = require("./hmr");
+const server_1 = require("./server");
+const utils_3 = require("./utils");
+/**
+ * Build options that are also present on the dev server but are only passed
+ * to the build.
+ */
+const CONVENIENCE_BUILD_OPTIONS = ['watch', 'poll', 'verbose', 'define'];
+// eslint-disable-next-line max-lines-per-function
+async function* serveWithVite(serverOptions, builderName, builderAction, context, transformers, extensions) {
+    // Get the browser configuration from the target name.
+    const rawBrowserOptions = await context.getTargetOptions(serverOptions.buildTarget);
+    // Deploy url is not used in the dev-server.
+    delete rawBrowserOptions.deployUrl;
+    // Copy convenience options to build
+    for (const optionName of CONVENIENCE_BUILD_OPTIONS) {
+        const optionValue = serverOptions[optionName];
+        if (optionValue !== undefined) {
+            if (optionName === 'define' && rawBrowserOptions[optionName]) {
+                // Define has merging behavior within the application
+                for (const [key, value] of Object.entries(optionValue)) {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    rawBrowserOptions[optionName][key] = value;
+                }
+            }
+            else {
+                rawBrowserOptions[optionName] = optionValue;
+            }
+        }
+    }
+    // TODO: Adjust architect to not force a JsonObject derived return type
+    const browserOptions = (await context.validateOptions(rawBrowserOptions, builderName));
+    if (browserOptions.prerender || (browserOptions.outputMode && browserOptions.server)) {
+        // Disable prerendering if enabled and force SSR.
+        // This is so instead of prerendering all the routes for every change, the page is "prerendered" when it is requested.
+        browserOptions.prerender = undefined;
+        browserOptions.ssr ||= true;
+    }
+    // Vite allowedHost syntax doesn't allow `*.` but `.` acts as `*.`
+    // Angular SSR supports `*.`.
+    const allowedHosts = Array.isArray(serverOptions.allowedHosts)
+        ? serverOptions.allowedHosts.map((host) => (host[0] === '.' ? '*' + host : host))
+        : serverOptions.allowedHosts === true
+            ? ['*']
+            : [];
+    // Always allow the dev server host
+    allowedHosts.push(serverOptions.host);
+    browserOptions.security = {
+        allowedHosts,
+        // Disable auto CSP.
+        autoCsp: false,
+    };
+    // Disable JSON build stats.
+    // These are not accessible with the dev server and can cause HMR fallbacks.
+    if (browserOptions.statsJson === true) {
+        context.logger.warn('Build JSON statistics output (`statsJson` option) has been disabled.' +
+            ' The development server does not support this option.');
+    }
+    browserOptions.statsJson = false;
+    // Set all packages as external to support Vite's prebundle caching
+    browserOptions.externalPackages = serverOptions.prebundle;
+    // Disable generating a full manifest with routes.
+    // This is done during runtime when using the dev-server.
+    browserOptions.partialSSRBuild = true;
+    // The development server currently only supports a single locale when localizing.
+    // This matches the behavior of the Webpack-based development server but could be expanded in the future.
+    if (browserOptions.localize === true ||
+        (Array.isArray(browserOptions.localize) && browserOptions.localize.length > 1)) {
+        context.logger.warn('Localization (`localize` option) has been disabled. The development server only supports localizing a single locale per build.');
+        browserOptions.localize = false;
+    }
+    else if (browserOptions.localize) {
+        // When localization is enabled with a single locale, force a flat path to maintain behavior with the existing Webpack-based dev server.
+        browserOptions.forceI18nFlatOutput = true;
+    }
+    const { vendor: thirdPartySourcemaps, scripts: scriptsSourcemaps } = (0, utils_2.normalizeSourceMaps)(browserOptions.sourceMap ?? false);
+    if (scriptsSourcemaps && browserOptions.server) {
+        // https://nodejs.org/api/process.html#processsetsourcemapsenabledval
+        process.setSourceMapsEnabled(true);
+    }
+    if (serverOptions.hmr &&
+        (browserOptions.outputHashing === schema_1.OutputHashing.All ||
+            browserOptions.outputHashing === schema_1.OutputHashing.Bundles)) {
+        serverOptions.hmr = false;
+        context.logger.warn(`Hot Module Replacement (HMR) is disabled because the 'outputHashing' option is set to '${browserOptions.outputHashing}'. ` +
+            'HMR is incompatible with this setting.');
+    }
+    const componentsHmrCanBeUsed = browserOptions.aot && serverOptions.liveReload && serverOptions.hmr;
+    // Enable to support link-based component style hot reloading (`NG_HMR_CSTYLES=1` can be used to enable)
+    browserOptions.externalRuntimeStyles = componentsHmrCanBeUsed && environment_options_1.useComponentStyleHmr;
+    // Enable to support component template hot replacement (`NG_HMR_TEMPLATE=0` can be used to disable selectively)
+    // This will also replace file-based/inline styles as code if external runtime styles are not enabled.
+    browserOptions.templateUpdates = componentsHmrCanBeUsed && environment_options_1.useComponentTemplateHmr;
+    browserOptions.incrementalResults = true;
+    // Setup the prebundling transformer that will be shared across Vite prebundling requests
+    const prebundleTransformer = new internal_1.JavaScriptTransformer(
+    // Always enable JIT linking to support applications built with and without AOT.
+    // In a development environment the additional scope information does not
+    // have a negative effect unlike production where final output size is relevant.
+    { sourcemap: true, jit: true, thirdPartySourcemaps }, 1);
+    // The index HTML path will be updated from the build results if provided by the builder
+    let htmlIndexPath = 'index.html';
+    const { createServer, normalizePath } = (await Promise.resolve(`${'vite'}`).then(s => __importStar(require(s))));
+    let server;
+    let serverUrl;
+    let hadError = false;
+    const generatedFiles = new Map();
+    const assetFiles = new Map();
+    const externalMetadata = {
+        implicitBrowser: [],
+        implicitServer: [],
+        explicitBrowser: [],
+        explicitServer: [],
+    };
+    const componentStyles = new Map();
+    const templateUpdates = new Map();
+    // Add cleanup logic via a builder teardown.
+    let deferred;
+    context.addTeardown(async () => {
+        await server?.close();
+        await prebundleTransformer.close();
+        deferred?.();
+    });
+    // TODO: Switch this to an architect schedule call when infrastructure settings are supported
+    for await (const result of builderAction(browserOptions, context, extensions?.buildPlugins)) {
+        if (result.kind === results_1.ResultKind.Failure) {
+            if (result.errors.length && server) {
+                hadError = true;
+                server.ws.send({
+                    type: 'error',
+                    err: {
+                        message: result.errors[0].text,
+                        stack: '',
+                        loc: result.errors[0].location ?? undefined,
+                    },
+                });
+            }
+            yield { baseUrl: '', success: false };
+            continue;
+        }
+        // Clear existing error overlay on successful result
+        if (hadError && server) {
+            hadError = false;
+            // Send an empty update to clear the error overlay
+            server.ws.send({
+                'type': 'update',
+                updates: [],
+            });
+        }
+        let needClientUpdate = true;
+        switch (result.kind) {
+            case results_1.ResultKind.Full:
+                if (result.detail?.['htmlIndexPath']) {
+                    htmlIndexPath = result.detail['htmlIndexPath'];
+                }
+                if (serverOptions.servePath === undefined && result.detail?.['htmlBaseHref']) {
+                    const baseHref = result.detail['htmlBaseHref'];
+                    // Remove trailing slash
+                    serverOptions.servePath =
+                        baseHref !== './' && baseHref.at(-1) === '/' ? baseHref.slice(0, -1) : baseHref;
+                }
+                assetFiles.clear();
+                componentStyles.clear();
+                generatedFiles.clear();
+                for (const [outputPath, file] of Object.entries(result.files)) {
+                    (0, utils_3.updateResultRecord)(outputPath, file, normalizePath, htmlIndexPath, generatedFiles, assetFiles, componentStyles, 
+                    // The initial build will not yet have a server setup
+                    !server);
+                }
+                // Clear stale template updates on code rebuilds
+                templateUpdates.clear();
+                break;
+            case results_1.ResultKind.Incremental:
+                (0, node_assert_1.default)(server, 'Builder must provide an initial full build before incremental results.');
+                // Background updates should only update server files/options
+                needClientUpdate = !result.background;
+                for (const removed of result.removed) {
+                    const filePath = '/' + normalizePath(removed.path);
+                    generatedFiles.delete(filePath);
+                    assetFiles.delete(filePath);
+                }
+                for (const modified of result.modified) {
+                    (0, utils_3.updateResultRecord)(modified, result.files[modified], normalizePath, htmlIndexPath, generatedFiles, assetFiles, componentStyles);
+                }
+                for (const added of result.added) {
+                    (0, utils_3.updateResultRecord)(added, result.files[added], normalizePath, htmlIndexPath, generatedFiles, assetFiles, componentStyles);
+                }
+                break;
+            case results_1.ResultKind.ComponentUpdate:
+                (0, node_assert_1.default)(serverOptions.hmr, 'Component updates are only supported with HMR enabled.');
+                (0, node_assert_1.default)(server, 'Builder must provide an initial full build before component update results.');
+                for (const componentUpdate of result.updates) {
+                    if (componentUpdate.type === 'template') {
+                        templateUpdates.set(componentUpdate.id, componentUpdate.content);
+                        server.ws.send('angular:component-update', {
+                            id: componentUpdate.id,
+                            timestamp: Date.now(),
+                        });
+                    }
+                }
+                context.logger.info('Component update sent to client(s).');
+                continue;
+            default:
+                context.logger.warn(`Unknown result kind [${result.kind}] provided by build.`);
+                continue;
+        }
+        // To avoid disconnecting the array objects from the option, these arrays need to be mutated instead of replaced.
+        (0, utils_1.updateExternalMetadata)(result, externalMetadata, browserOptions.externalDependencies);
+        if (server) {
+            // Update fs allow list to include any new assets from the build option.
+            server.config.server.fs.allow = [
+                ...new Set([
+                    ...server.config.server.fs.allow,
+                    ...[...assetFiles.values()].map(({ source }) => source),
+                ]),
+            ];
+            const updatedFiles = await (0, hmr_1.invalidateUpdatedFiles)(normalizePath, generatedFiles, assetFiles, server);
+            if (needClientUpdate) {
+                (0, hmr_1.handleUpdate)(server, serverOptions, context.logger, componentStyles, updatedFiles);
+            }
+        }
+        else {
+            const projectName = context.target?.project;
+            if (!projectName) {
+                throw new Error('The builder requires a target.');
+            }
+            context.logger.info('NOTE: Raw file sizes do not reflect development server per-request transformations.');
+            if (browserOptions.ssr && serverOptions.inspect) {
+                const { host, port } = serverOptions.inspect;
+                const { default: inspector } = await Promise.resolve().then(() => __importStar(require('node:inspector')));
+                inspector.open(port, host, true);
+                context.addTeardown(() => inspector.close());
+            }
+            const { root = '' } = await context.getProjectMetadata(projectName);
+            const projectRoot = (0, node_path_1.join)(context.workspaceRoot, root);
+            const browsers = (0, internal_1.getSupportedBrowsers)(projectRoot, context.logger);
+            // Needed for browser-esbuild as polyfills can be a string.
+            const polyfills = Array.isArray((browserOptions.polyfills ??= []))
+                ? browserOptions.polyfills
+                : [browserOptions.polyfills];
+            const target = (0, internal_1.transformSupportedBrowsersToTargets)(browsers);
+            if (!(0, internal_1.isZonelessApp)(polyfills)) {
+                // Rolldown doesn't have an option to support Zone.js/async-await, so we need to support es2016.
+                target.push('es2016');
+            }
+            let ssrMode = plugins_1.ServerSsrMode.NoSsr;
+            if (browserOptions.outputMode &&
+                typeof browserOptions.ssr === 'object' &&
+                browserOptions.ssr.entry) {
+                ssrMode = plugins_1.ServerSsrMode.ExternalSsrMiddleware;
+            }
+            else if (browserOptions.ssr) {
+                ssrMode = plugins_1.ServerSsrMode.InternalSsrMiddleware;
+            }
+            if (browserOptions.progress !== false && ssrMode !== plugins_1.ServerSsrMode.NoSsr) {
+                // This is a workaround for https://github.com/angular/angular-cli/issues/28336, which is caused by the interaction between `zone.js` and `listr2`.
+                process.once('SIGINT', () => {
+                    process.kill(process.pid);
+                });
+            }
+            // Copy the loader and modify the file extension to be asset
+            const loader = browserOptions.loader ? { ...browserOptions.loader } : undefined;
+            if (loader) {
+                for (const [key, value] of Object.entries(loader)) {
+                    if (value === 'file') {
+                        loader[key] = 'asset';
+                    }
+                }
+            }
+            // Setup server and start listening
+            const serverConfiguration = await (0, server_1.setupServer)(serverOptions, generatedFiles, assetFiles, browserOptions.preserveSymlinks, externalMetadata, ssrMode, prebundleTransformer, target, componentStyles, templateUpdates, loader, {
+                ...browserOptions.define,
+                'ngServerMode': 'false',
+                'ngJitMode': browserOptions.aot ? 'false' : 'true',
+                'ngHmrMode': browserOptions.templateUpdates ? 'true' : 'false',
+            }, extensions?.middleware, transformers?.indexHtml, thirdPartySourcemaps);
+            server = await createServer(serverConfiguration);
+            await server.listen();
+            // Setup builder context logging for browser clients
+            server.hot.on('angular:log', (data) => {
+                if (typeof data?.text !== 'string') {
+                    context.logger.warn('Development server client sent invalid internal log event.');
+                }
+                switch (data.kind) {
+                    case 'error':
+                        context.logger.error(`[CLIENT ERROR]: ${data.text}`);
+                        break;
+                    case 'warning':
+                        context.logger.warn(`[CLIENT WARNING]: ${data.text}`);
+                        break;
+                    default:
+                        context.logger.info(`[CLIENT INFO]: ${data.text}`);
+                        break;
+                }
+            });
+            // Setup component HMR invalidation
+            // Invalidation occurs when the runtime cannot update a component
+            server.hot.on('angular:invalidate', (data) => {
+                if (typeof data?.id !== 'string') {
+                    context.logger.warn('Development server client sent invalid internal invalidate event.');
+                }
+                // Clear invalid template update
+                templateUpdates.delete(data.id);
+                // Some cases are expected unsupported update scenarios but some may be errors.
+                // If an error occurred, log the error in addition to the invalidation.
+                if (data.error) {
+                    context.logger.error(`Component update failed${data.message ? `: ${data.message}` : '.'}` +
+                        '\nPlease consider reporting the error at https://github.com/angular/angular-cli/issues');
+                }
+                else {
+                    context.logger.warn(`Component update unsupported${data.message ? `: ${data.message}` : '.'}`);
+                }
+                server?.ws.send({
+                    type: 'full-reload',
+                    path: '*',
+                });
+                context.logger.info('Page reload sent to client(s).');
+            });
+            const urls = server.resolvedUrls;
+            if (urls && (urls.local.length || urls.network.length)) {
+                serverUrl = new URL(urls.local[0] ?? urls.network[0]);
+            }
+            // log connection information
+            server.printUrls();
+            server.bindCLIShortcuts({
+                print: true,
+                customShortcuts: [
+                    {
+                        key: 'r',
+                        description: 'force reload browser',
+                        action(server) {
+                            componentStyles.forEach((record) => record.used?.clear());
+                            server.ws.send({
+                                type: 'full-reload',
+                                path: '*',
+                            });
+                        },
+                    },
+                ],
+            });
+        }
+        // TODO: adjust output typings to reflect both development servers
+        yield {
+            success: true,
+            port: serverUrl?.port,
+            baseUrl: serverUrl?.href,
+        };
+    }
+    await new Promise((resolve) => (deferred = resolve));
+}
+//# sourceMappingURL=index.js.map

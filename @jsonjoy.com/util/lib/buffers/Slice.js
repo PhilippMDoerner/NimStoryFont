@@ -1,16 +1,5 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Slice = void 0;
-class Slice {
-    constructor(uint8, view, start, end) {
-        this.uint8 = uint8;
-        this.view = view;
-        this.start = start;
-        this.end = end;
-    }
-    subarray() {
-        return this.uint8.subarray(this.start, this.end);
-    }
-}
-exports.Slice = Slice;
+const tslib_1 = require("tslib");
+tslib_1.__exportStar(require("@jsonjoy.com/buffers/lib/Slice"), exports);
 //# sourceMappingURL=Slice.js.map

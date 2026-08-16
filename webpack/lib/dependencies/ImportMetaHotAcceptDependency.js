@@ -13,12 +13,14 @@ const ModuleDependencyTemplateAsId = require("./ModuleDependencyTemplateAsId");
 
 class ImportMetaHotAcceptDependency extends ModuleDependency {
 	/**
+	 * Creates an instance of ImportMetaHotAcceptDependency.
 	 * @param {string} request the request string
 	 * @param {Range} range location in source code
 	 */
 	constructor(request, range) {
 		super(request);
 		this.range = range;
+		/** @type {boolean} */
 		this.weak = true;
 	}
 

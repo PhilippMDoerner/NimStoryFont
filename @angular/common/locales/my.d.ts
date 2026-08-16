@@ -16,7 +16,6 @@ declare const _default: (string | number | number[] | (string | undefined)[] | t
     JPY: string[];
     MMK: string[];
     PAB: string[];
-    PHP: (string | undefined)[];
     THB: string[];
     TTD: string[];
     USD: string[];

@@ -1,10 +1,5 @@
-"use strict";
+import * as _t from '@babel/types';
 
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.default = optimiseCallExpression;
-var _t = require("@babel/types");
 const {
   callExpression,
   identifier,
@@ -30,4 +25,5 @@ function optimiseCallExpression(callee, thisNode, args, optional) {
   }
 }
 
+export { optimiseCallExpression as default };
 //# sourceMappingURL=index.js.map

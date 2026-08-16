@@ -1,6 +1,6 @@
 {
 	"name": "ansi-escapes",
-	"version": "4.3.2",
+	"version": "7.3.0",
 	"description": "ANSI escape codes for manipulating the terminal",
 	"license": "MIT",
 	"repository": "sindresorhus/ansi-escapes",
@@ -10,15 +10,24 @@
 		"email": "sindresorhus@gmail.com",
 		"url": "https://sindresorhus.com"
 	},
+	"type": "module",
+	"exports": {
+		"types": "./index.d.ts",
+		"default": "./index.js"
+	},
+	"sideEffects": false,
 	"engines": {
-		"node": ">=8"
+		"node": ">=18"
 	},
 	"scripts": {
-		"test": "xo && ava && tsd"
+		"test": "ava && tsd",
+		"//test": "xo && ava && tsd"
 	},
 	"files": [
 		"index.js",
-		"index.d.ts"
+		"index.d.ts",
+		"base.js",
+		"base.d.ts"
 	],
 	"keywords": [
 		"ansi",
@@ -43,15 +52,19 @@
 		"codes",
 		"cursor",
 		"iterm",
-		"iterm2"
+		"iterm2",
+		"clear",
+		"screen",
+		"erase",
+		"scrollback"
 	],
 	"dependencies": {
-		"type-fest": "^0.21.3"
+		"environment": "^1.0.0"
 	},
 	"devDependencies": {
-		"@types/node": "^13.7.7",
-		"ava": "^2.1.0",
-		"tsd": "^0.14.0",
-		"xo": "^0.25.3"
+		"@types/node": "20.12.8",
+		"ava": "^6.1.2",
+		"tsd": "0.31.0",
+		"xo": "^0.58.0"
 	}
 }

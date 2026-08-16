@@ -7,13 +7,13 @@
  */
 declare function plural(val: number): number;
 declare const _default: (string | number | number[] | (string | undefined)[] | typeof plural | (string[] | undefined)[] | {
-    DKK: never[];
-    HRK: never[];
-    ISK: never[];
-    NOK: never[];
+    DKK: (string | undefined)[];
+    HRK: (string | undefined)[];
+    ISK: (string | undefined)[];
+    NOK: (string | undefined)[];
     PHP: (string | undefined)[];
-    PLN: never[];
-    SEK: never[];
+    PLN: (string | undefined)[];
+    SEK: (string | undefined)[];
     THB: string[];
     TWD: string[];
     XXX: never[];

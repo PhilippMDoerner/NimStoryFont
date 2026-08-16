@@ -36,3 +36,4 @@ function parseJsonPointer(pointer) {
         .split(/\//)
         .map((str) => str.replace(/~1/g, '/').replace(/~0/g, '~'));
 }
+//# sourceMappingURL=pointer.js.map

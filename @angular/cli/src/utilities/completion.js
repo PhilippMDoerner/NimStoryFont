@@ -214,7 +214,7 @@ async function initializeAutocomplete() {
     }
     catch (err) {
         (0, error_1.assertIsError)(err);
-        throw new Error(`Failed to append autocompletion setup to \`${rcFile}\`:\n${err.message}`);
+        throw new Error(`Failed to append autocompletion setup to \`${rcFile}\`.`, { cause: err });
     }
     return rcFile;
 }
@@ -267,3 +267,4 @@ function hasGlobalCliInstall() {
         });
     });
 }
+//# sourceMappingURL=completion.js.map

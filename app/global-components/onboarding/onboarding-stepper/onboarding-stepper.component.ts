@@ -10,13 +10,13 @@ import {
   viewChild,
 } from '@angular/core';
 import { map } from 'rxjs';
-import { encodeKeyCombination } from 'src/app/_functions/keyMapper';
-import { HotkeyService } from 'src/app/_services/hotkey.service';
-import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
-import { ExternalLinkComponent } from 'src/app/design/atoms/external-link/external-link.component';
-import { SuccessAnimationComponent } from 'src/app/design/atoms/success-animation/success-animation.component';
-import { StepperComponent } from 'src/app/design/organisms/stepper/stepper.component';
-import { capitalize } from 'src/utils/string';
+import { capitalize } from '../../../../utils/string';
+import { encodeKeyCombination } from '../../../_functions/keyMapper';
+import { HotkeyService } from '../../../_services/hotkey.service';
+import { ButtonComponent } from '../../../design/atoms/button/button.component';
+import { ExternalLinkComponent } from '../../../design/atoms/external-link/external-link.component';
+import { SuccessAnimationComponent } from '../../../design/atoms/success-animation/success-animation.component';
+import { StepperComponent } from '../../../design/organisms/stepper/stepper.component';
 
 @Component({
   selector: 'app-onboarding-stepper',
@@ -33,19 +33,21 @@ import { capitalize } from 'src/utils/string';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class OnboardingStepperComponent {
-  hotkeyService = inject(HotkeyService);
+  readonly hotkeyService = inject(HotkeyService);
 
-  isCampaignAdmin = input<boolean>();
+  readonly isCampaignAdmin = input<boolean>();
 
-  selectionChange = output<CdkStep>();
-  finished = output<void>();
-  firstStep = viewChild.required<CdkStep>('firstStep');
+  readonly selectionChange = output<CdkStep>();
+  readonly finished = output<void>();
+  readonly firstStep = viewChild.required<CdkStep>('firstStep');
 
-  host = window ? capitalize(window.location.hostname) : 'Nimstoryfont';
-  openOnboardingKeys$ = this.hotkeyService
+  readonly host = window
+    ? capitalize(window.location.hostname)
+    : 'Nimstoryfont';
+  readonly openOnboardingKeys$ = this.hotkeyService
     .getKeySequence('show-onboarding')
     .pipe(map((keys) => encodeKeyCombination(keys)));
-  showHotkeyTooltipsKeys$ = this.hotkeyService
+  readonly showHotkeyTooltipsKeys$ = this.hotkeyService
     .getKeySequence('show-tooltips')
     .pipe(map((keys) => encodeKeyCombination(keys)));
 

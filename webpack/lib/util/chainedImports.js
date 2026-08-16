@@ -10,6 +10,8 @@
 /** @typedef {import("../ModuleGraph")} ModuleGraph */
 /** @typedef {import("../javascript/JavascriptParser").Range} Range */
 
+/** @typedef {Range[]} IdRanges */
+
 /**
  * @summary Get the subset of ids and their corresponding range in an id chain that should be re-rendered by webpack.
  * Only those in the chain that are actually referring to namespaces or imports should be re-rendered.
@@ -18,10 +20,10 @@
  * because minifiers treat quoted accessors differently.  e.g. import { a } from "./module"; a["b"] vs a.b
  * @param {string[]} untrimmedIds chained ids
  * @param {Range} untrimmedRange range encompassing allIds
- * @param {Range[] | undefined} ranges cumulative range of ids for each of allIds
+ * @param {IdRanges | undefined} ranges cumulative range of ids for each of allIds
  * @param {ModuleGraph} moduleGraph moduleGraph
  * @param {Dependency} dependency dependency
- * @returns {{trimmedIds: string[], trimmedRange: Range}} computed trimmed ids and cumulative range of those ids
+ * @returns {{ trimmedIds: string[], trimmedRange: Range }} computed trimmed ids and cumulative range of those ids
  */
 module.exports.getTrimmedIdsAndRange = (
 	untrimmedIds,
@@ -69,8 +71,8 @@ module.exports.getTrimmedIdsAndRange = (
  * @returns {string[]} trimmed ids
  */
 function trimIdsToThoseImported(ids, moduleGraph, dependency) {
-	/** @type {string[]} */
-	let trimmedIds = [];
+	/** @type {string[] | undefined} */
+	let trimmedIds;
 	let currentExportsInfo = moduleGraph.getExportsInfo(
 		/** @type {Module} */ (moduleGraph.getModule(dependency))
 	);
@@ -93,5 +95,5 @@ function trimIdsToThoseImported(ids, moduleGraph, dependency) {
 		currentExportsInfo = nestedInfo;
 	}
 	// Never trim to nothing.  This can happen for invalid imports (e.g. import { notThere } from "./module", or import { anything } from "./missingModule")
-	return trimmedIds.length ? trimmedIds : ids;
+	return trimmedIds !== undefined && trimmedIds.length ? trimmedIds : ids;
 }

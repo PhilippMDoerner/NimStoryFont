@@ -9,32 +9,32 @@ import {
   output,
 } from '@angular/core';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
-import { encodeKeyCombination } from 'src/app/_functions/keyMapper';
+import { componentId } from '../../../../utils/DOM';
+import { capitalize } from '../../../../utils/string';
+import { encodeKeyCombination } from '../../../_functions/keyMapper';
 import {
+  HotkeyAction,
+  HotkeyMapping,
   KeyCombination,
-  ShortcutAction,
-  ShortcutMapping,
-} from 'src/app/_models/hotkey';
-import { ScreenService } from 'src/app/_services/screen.service';
+} from '../../../_models/hotkey';
+import { ScreenService } from '../../../_services/screen.service';
+import { ButtonComponent } from '../../../design/atoms/button/button.component';
 import {
   ListComponent,
   ListEntry,
-} from 'src/app/design/molecule/list/list.component';
-import { EditShortcutDialogComponent } from 'src/app/general/components/edit-shortcut-dialog/edit-shortcut-dialog.component';
-import { componentId } from 'src/utils/DOM';
-import { capitalize } from 'src/utils/string';
-import { ButtonComponent } from '../../../design/atoms/button/button.component';
+} from '../../../design/molecules/list/list.component';
+import { EditHotkeyDialogComponent } from '../edit-hotkey-dialog/edit-hotkey-dialog.component';
 import { ProfileTabLayoutComponent } from '../profile-tab-layout/profile-tab-layout.component';
 
 type MappingEntry = ListEntry<{
   actionLabel: string;
-  action: ShortcutAction;
+  action: HotkeyAction;
   shortcut: string;
   modified: boolean;
   description: string;
 }>;
 
-const DESCRIPTIONS: Record<ShortcutAction, string> = {
+const DESCRIPTIONS: Record<HotkeyAction, string> = {
   delete:
     'Toggle delete confirmation button if given page has one. This still requires confirming the delete.',
   cancel: 'Cancels currently active actions',
@@ -68,29 +68,29 @@ const DESCRIPTIONS: Record<ShortcutAction, string> = {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class UserSettingsComponent {
-  modalService = inject(NgbModal);
+  readonly modalService = inject(NgbModal);
 
-  shortcutMap = input<ShortcutMapping>();
+  readonly shortcutMap = input<HotkeyMapping>();
 
-  shortcutMapChanged = output<{
-    action: ShortcutAction;
+  readonly shortcutMapChanged = output<{
+    action: HotkeyAction;
     keys: KeyCombination;
   }>();
-  shortcutResetRequested = output<ShortcutAction>();
+  readonly shortcutResetRequested = output<HotkeyAction>();
 
-  isMobile$ = inject(ScreenService).isMobile$;
+  readonly isMobile$ = inject(ScreenService).isMobile$;
 
-  mappingEntries = computed<MappingEntry[] | undefined>(() => {
+  readonly mappingEntries = computed<MappingEntry[] | undefined>(() => {
     const shortcutMapping = this.shortcutMap();
     if (!shortcutMapping) return;
 
     return Object.entries(shortcutMapping).map(([action, shortcut]) => {
       const entry = {
         actionLabel: capitalize(action).replaceAll('-', ' '),
-        action: action as ShortcutAction,
+        action: action as HotkeyAction,
         shortcut: encodeKeyCombination(shortcut.keys, true),
         modified: shortcut.modified,
-        description: DESCRIPTIONS[action as ShortcutAction],
+        description: DESCRIPTIONS[action as HotkeyAction],
       };
       return {
         trackId: entry.action,
@@ -103,36 +103,35 @@ export class UserSettingsComponent {
     });
   });
 
-  displayedColumns = ['index', 'action', 'shortcut', 'actions'];
-  shortcutsSectionLabelId = `shortcuts-${componentId()}`;
+  readonly displayedColumns = ['index', 'action', 'shortcut', 'actions'];
+  readonly shortcutsSectionLabelId = `shortcuts-${componentId()}`;
 
-  openEditShortcutDialog(action: ShortcutAction, modified: boolean) {
-    const modalRef = this.modalService.open(EditShortcutDialogComponent, {
+  openEditShortcutDialog(action: HotkeyAction, modified: boolean) {
+    const modalRef = this.modalService.open(EditHotkeyDialogComponent, {
       windowClass: 'edit-shortcut-dialog',
     });
-    const component: EditShortcutDialogComponent = modalRef.componentInstance;
+    const component: EditHotkeyDialogComponent = modalRef.componentInstance;
     component.action.set(action);
     component.modified.set(modified);
-    component.shortcutEdited.subscribe(({ action, shortcut }) =>
+    component.hotkeyEdited.subscribe(({ action, hotkey: shortcut }) =>
       this.emitShortcutEdited(action, shortcut),
     );
-    component.shortcutReset.subscribe((action) =>
-      this.emitShortcutReset(action),
-    );
+    component.hotkeyReset.subscribe((action) => this.emitShortcutReset(action));
   }
 
-  emitShortcutEdited(action: ShortcutAction, keys: KeyCombination) {
+  emitShortcutEdited(action: HotkeyAction, keys: KeyCombination) {
     this.modalService.dismissAll();
     this.shortcutMapChanged.emit({ action, keys });
   }
 
-  emitShortcutReset(action: ShortcutAction) {
+  emitShortcutReset(action: HotkeyAction) {
     this.modalService.dismissAll();
     this.shortcutResetRequested.emit(action);
   }
 
   onEditButtonClicked(entry: MappingEntry['data'], event: Event) {
     event.stopPropagation();
+    event.preventDefault();
     this.openEditShortcutDialog(entry.action, entry.modified);
   }
 }

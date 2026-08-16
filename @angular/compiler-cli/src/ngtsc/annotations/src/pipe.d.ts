@@ -18,7 +18,7 @@ import { InjectableClassRegistry } from '../common';
 export interface PipeHandlerData {
     meta: R3PipeMetadata;
     classMetadata: R3ClassMetadata | null;
-    pipeNameExpr: ts.Expression;
+    pipeNameExpr: ts.Expression | null;
     decorator: ts.Decorator | null;
 }
 /**
@@ -47,6 +47,7 @@ export declare class PipeDecoratorHandler implements DecoratorHandler<Decorator,
     readonly precedence = HandlerPrecedence.PRIMARY;
     readonly name = "PipeDecoratorHandler";
     detect(node: ClassDeclaration, decorators: Decorator[] | null): DetectResult<Decorator> | undefined;
+    isStandalone(decorator: Readonly<Decorator>): boolean;
     analyze(clazz: ClassDeclaration, decorator: Readonly<Decorator>): AnalysisOutput<PipeHandlerData>;
     symbol(node: ClassDeclaration, analysis: Readonly<PipeHandlerData>): PipeSymbol;
     register(node: ClassDeclaration, analysis: Readonly<PipeHandlerData>): void;

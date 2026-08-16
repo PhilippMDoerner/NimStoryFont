@@ -15,8 +15,8 @@ import {
   FormlyModule,
 } from '@ngx-formly/core';
 import { Observable, combineLatest, map } from 'rxjs';
-import { DisabledFunction } from 'src/app/_models/formly';
-import { InfoCircleTooltipComponent } from 'src/app/design/atoms/info-circle-tooltip/info-circle-tooltip.component';
+import { DisabledFunction } from '../../../_models/formly';
+import { InfoCircleTooltipComponent } from '../../atoms/info-circle-tooltip/info-circle-tooltip.component';
 
 interface CanDisableOption {
   enabled: boolean;
@@ -42,11 +42,11 @@ export class FormlySelectDisableFieldComponent
   extends FieldType<FieldTypeConfig>
   implements OnInit, OnChanges
 {
-  public static EMPTY_OPTION_LABEL = '------';
-  public static EMPTY_OPTION_VALUE = null;
+  public static readonly EMPTY_OPTION_LABEL = '------';
+  public static readonly EMPTY_OPTION_VALUE = null;
 
   selectOptions$!: Observable<CanDisableOption[]>;
-  modelValue = signal<any>(undefined);
+  readonly modelValue = signal<any>(undefined);
 
   ngOnInit(): void {
     const templateOptions: Pick<FormlyFieldConfig, 'props'> = {

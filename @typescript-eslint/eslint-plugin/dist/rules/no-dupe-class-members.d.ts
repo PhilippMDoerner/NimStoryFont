@@ -8,6 +8,7 @@ declare const baseRule: import("@typescript-eslint/utils/ts-eslint").RuleModule<
 }>;
 export type Options = InferOptionsTypeFromRule<typeof baseRule>;
 export type MessageIds = InferMessageIdsTypeFromRule<typeof baseRule>;
-declare const _default: import("@typescript-eslint/utils/ts-eslint").RuleModule<"unexpected", [], import("../../rules").ESLintPluginDocs, import("@typescript-eslint/utils/ts-eslint").RuleListener>;
+declare const _default: import("@typescript-eslint/utils/ts-eslint").RuleModule<"unexpected", [], import("../../rules").ESLintPluginDocs, import("@typescript-eslint/utils/ts-eslint").RuleListener> & {
+    name: string;
+};
 export default _default;
-//# sourceMappingURL=no-dupe-class-members.d.ts.map

@@ -5,10 +5,9 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.dev/license
  */
-import type { PluginObj } from '@babel/core';
+import type { PluginObject } from '@babel/core';
 /**
  * A babel plugin factory function for adding the PURE annotation to top-level new and call expressions.
- *
  * @returns A babel plugin object instance.
  */
-export default function (): PluginObj;
+export default function (): PluginObject;

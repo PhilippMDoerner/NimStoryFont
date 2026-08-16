@@ -43,10 +43,12 @@ class HostSink extends sink_1.SimpleSinkBase {
         return this._host.exists(p);
     }
     _overwriteFile(path, content) {
+        // TODO: `as unknown` was necessary during TS 5.9 update. Figure out a long-term solution.
         this._filesToUpdate.set(path, content);
         return rxjs_1.EMPTY;
     }
     _createFile(path, content) {
+        // TODO: `as unknown` was necessary during TS 5.9 update. Figure out a long-term solution.
         this._filesToCreate.set(path, content);
         return rxjs_1.EMPTY;
     }
@@ -70,3 +72,4 @@ class HostSink extends sink_1.SimpleSinkBase {
     }
 }
 exports.HostSink = HostSink;
+//# sourceMappingURL=host.js.map

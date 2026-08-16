@@ -1,0 +1,56 @@
+@import './variables.less';
+@import './functions.less';
+
+.ql-snow {
+  .@{namespace}-select-box {
+    .setCssVar(select-box-color-bg-hover, rgb(245, 245, 245));
+    .setCssVar(select-box-color-bg-active, rgb(224, 242, 254));
+    .setCssVar(select-box-custom-color-text, rgb(13, 13, 13));
+    .setCssVar(select-box-custom-color-bg, transparent);
+    .setCssVar(select-box-custom-color-bg-hover, rgb(235, 235, 235));
+  }
+}
+.@{namespace}-select-box {
+  .setCssVar(select-box-color-border, #e5e7eb);
+  .setCssVar(select-box-border,  1px solid .getCssVar(select-box-color-border) []);
+  .setCssVar(select-box-color-active, rgb(14, 165, 233));
+  .setCssVar(select-box-color-bg-hover, rgb(245, 245, 245));
+  .setCssVar(select-box-color-bg-active, transparent);
+  .setCssVar(select-box-custom-color-text, rgb(245, 245, 245));
+  .setCssVar(select-box-custom-color-bg, transparent);
+  .setCssVar(select-box-custom-color-bg-hover, rgb(44, 44, 44));
+
+  display: block;
+
+  &__block {
+    display: inline-flex;
+    width: 160px;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+  }
+  &__item {
+    display: inline-block;
+    margin: 2px;
+    height: 16px;
+    width: 16px;
+    border: .getCssVar(select-box-border) [];
+    cursor: pointer;
+    &.active {
+      border-color: .getCssVar(select-box-color-active) [];
+      background-color: .getCssVar(select-box-color-bg-active) [];
+    }
+  }
+  &__custom {
+    display: block;
+    padding: 8px;
+    color: .getCssVar(select-box-custom-color-text) [];
+    background-color: .getCssVar(select-box-custom-color-bg) [];
+    font-size: 16px;
+    text-align: center;
+    cursor: pointer;
+    &:hover {
+      background-color: .getCssVar(select-box-custom-color-bg-hover) [];
+    }
+  }
+}

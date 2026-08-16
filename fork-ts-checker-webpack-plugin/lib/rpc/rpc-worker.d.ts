@@ -7,7 +7,7 @@ interface RpcWorkerBase {
     readonly connected: boolean;
     readonly process: ChildProcess | undefined;
 }
-declare type RpcWorker<T extends RpcMethod = RpcMethod> = RpcWorkerBase & RpcRemoteMethod<T>;
+type RpcWorker<T extends RpcMethod = RpcMethod> = RpcWorkerBase & RpcRemoteMethod<T>;
 declare function createRpcWorker<T extends RpcMethod>(modulePath: string, data: unknown, memoryLimit?: number): RpcWorker<T>;
 declare function getRpcWorkerData(): unknown;
 export { createRpcWorker, getRpcWorkerData, RpcWorker };

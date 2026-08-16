@@ -10,13 +10,13 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
-import { HeadingDirective } from 'src/app/_directives/heading.directive';
-import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
-import { IconComponent } from 'src/app/design/atoms/icon/icon.component';
-import { withViewTransition } from 'src/utils/animation';
-import { componentId } from 'src/utils/DOM';
+import { componentId } from '../../../../utils/DOM';
+import { withViewTransition } from '../../../../utils/animation';
+import { HeadingDirective } from '../../../_directives/heading.directive';
+import { HotkeyDirective } from '../../../_directives/hotkey.directive';
 import { ElementKind } from '../../atoms/_models/button';
 import { HeadingLevel } from '../../atoms/_models/heading';
+import { IconComponent } from '../../atoms/icon/icon.component';
 import {
   EditorComponent,
   TextFieldState,
@@ -37,18 +37,18 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class EditableTextComponent {
-  text = input.required<string>();
-  placeholder = input.required<string>();
-  canUpdate = input.required<boolean>();
-  ariaLevel = input.required<HeadingLevel>();
-  serverModel = input<string>();
-  heading = input<string>();
-  submitButtonKind = input<ElementKind>('PRIMARY');
-  cancelButtonKind = input<ElementKind>('SECONDARY');
-  update = output<string>();
+  readonly text = input.required<string>();
+  readonly placeholder = input.required<string>();
+  readonly canUpdate = input.required<boolean>();
+  readonly ariaLevel = input.required<HeadingLevel>();
+  readonly serverModel = input<string>();
+  readonly heading = input<string>();
+  readonly submitButtonKind = input<ElementKind>('PRIMARY');
+  readonly cancelButtonKind = input<ElementKind>('SECONDARY');
+  readonly update = output<string>();
 
-  state = signal<TextFieldState>('DISPLAY');
-  editButtonText = computed(() => {
+  readonly state = signal<TextFieldState>('DISPLAY');
+  readonly editButtonText = computed(() => {
     switch (this.state()) {
       case 'DISPLAY':
         return 'edit';
@@ -58,8 +58,8 @@ export class EditableTextComponent {
     }
   });
 
-  editorField = viewChild.required<EditorComponent>('editor');
-  editorId = componentId();
+  readonly editorField = viewChild.required<EditorComponent>('editor');
+  readonly editorId = componentId();
 
   constructor() {
     effect(() => {

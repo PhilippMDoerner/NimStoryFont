@@ -9,7 +9,7 @@ import type { BuilderContext } from '@angular-devkit/architect';
 import type { Plugin } from 'esbuild';
 import { I18nOptions } from '../../utils/i18n-options';
 import { IndexHtmlTransform } from '../../utils/index-file/index-html-generator';
-import { Schema as ApplicationBuilderOptions, ExperimentalPlatform, I18NTranslation, OutputMode, OutputPathClass } from './schema';
+import { Schema as ApplicationBuilderOptions, I18NTranslation, OutputMode, OutputPathClass, Platform } from './schema';
 /**
  * The filename for the client-side rendered HTML template.
  * This template is used for client-side rendering (CSR) in a web application.
@@ -85,6 +85,10 @@ interface InternalOptions {
      * Used exclusively for tests and shouldn't be used for other kinds of builds.
      */
     instrumentForCoverage?: (filename: string) => boolean;
+    /**
+     * Suppress build summary and stats table.
+     */
+    quiet?: boolean;
 }
 /** Full set of options for `application` builder. */
 export type ApplicationBuilderInternalOptions = Omit<ApplicationBuilderOptions & InternalOptions, 'browser'> & {
@@ -135,7 +139,7 @@ export declare function normalizeOptions(context: BuilderContext, projectName: s
         platform?: undefined;
     } | {
         entry: string | undefined;
-        platform: ExperimentalPlatform;
+        platform: Platform;
     } | undefined;
     verbose: boolean | undefined;
     watch: boolean | undefined;
@@ -177,7 +181,10 @@ export declare function normalizeOptions(context: BuilderContext, projectName: s
         file: string;
         package: string;
     } | undefined;
-    postcssConfiguration: import("../../utils/postcss-configuration").PostcssConfiguration | undefined;
+    postcssConfiguration: {
+        configPath: string;
+        config: import("../../utils/postcss-configuration").PostcssConfiguration;
+    } | undefined;
     i18nOptions: I18nOptions & {
         duplicateTranslationBehavior?: I18NTranslation;
         missingTranslationBehavior?: I18NTranslation;
@@ -186,8 +193,9 @@ export declare function normalizeOptions(context: BuilderContext, projectName: s
     budgets: import("./schema").Budget[] | undefined;
     publicPath: string | undefined;
     plugins: Plugin[] | undefined;
-    loaderExtensions: Record<string, "file" | "binary" | "text"> | undefined;
+    loaderExtensions: Record<string, "base64" | "binary" | "text" | "file" | "dataurl"> | undefined;
     jsonLogs: boolean;
+    quiet: boolean | undefined;
     colors: boolean;
     clearScreen: boolean | undefined;
     define: {
@@ -197,6 +205,7 @@ export declare function normalizeOptions(context: BuilderContext, projectName: s
     externalRuntimeStyles: boolean | undefined;
     instrumentForCoverage: ((filename: string) => boolean) | undefined;
     security: {
+        allowedHosts: string[];
         autoCsp: {
             unsafeEval: boolean;
         } | undefined;

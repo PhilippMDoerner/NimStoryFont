@@ -14,7 +14,7 @@ declare const _default: (string | number | number[] | (string | undefined)[] | t
     CYP: string[];
     EGP: (string | undefined)[];
     FRF: string[];
-    GEL: never[];
+    GEL: (string | undefined)[];
     HKD: string[];
     IEP: string[];
     ILP: string[];

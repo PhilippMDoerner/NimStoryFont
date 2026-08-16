@@ -1,6 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.isUtf8 = void 0;
+const tslib_1 = require("tslib");
+tslib_1.__exportStar(require("@jsonjoy.com/buffers/lib/utf8/isUtf8"), exports);
 const isUtf8 = (buf, from, length) => {
     const to = from + length;
     while (from < to) {

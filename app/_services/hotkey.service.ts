@@ -16,13 +16,14 @@ import {
   take,
   timeout,
 } from 'rxjs';
-import { debugLog } from 'src/utils/rxjs-operators';
+import { debugLog } from '../../utils/rxjs-operators';
 import {
-  ACTIONS,
   equals,
+  HOTKEY_ACTIONS,
+  HOTKEY_IGNORE_ATTR,
+  HotkeyAction,
   Key,
   MODIFIER_KEYS,
-  ShortcutAction,
 } from '../_models/hotkey';
 import { UserPreferencesStore } from '../user-preferences.store';
 
@@ -37,17 +38,17 @@ export interface WatchOptions {
   providedIn: 'root',
 })
 export class HotkeyService {
-  private modalService = inject(NgbModal);
-  private preferencesStore = inject(UserPreferencesStore);
+  private readonly modalService = inject(NgbModal);
+  private readonly preferencesStore = inject(UserPreferencesStore);
 
-  private hotkeyMap = this.preferencesStore.shortcutMappings;
-  private hotkeyMap$ = toObservable(this.hotkeyMap);
+  private readonly hotkeyMap = this.preferencesStore.hotkeyMappings;
+  private readonly hotkeyMap$ = toObservable(this.hotkeyMap);
 
-  private globalActions$: Observable<ShortcutAction> =
+  private readonly globalActions$: Observable<HotkeyAction> =
     this.createActionListener(document.body);
 
   public watchAction(
-    action: ShortcutAction,
+    action: HotkeyAction,
     options: WatchOptions = {},
   ): Observable<void> {
     const actions$ = options.eventSource
@@ -84,7 +85,7 @@ export class HotkeyService {
     );
   }
 
-  public getKeySequence(action: ShortcutAction): Observable<Key[]> {
+  public getKeySequence(action: HotkeyAction): Observable<Key[]> {
     return this.hotkeyMap$.pipe(map((hotkeyMap) => hotkeyMap[action].keys));
   }
 
@@ -96,7 +97,7 @@ export class HotkeyService {
 
     return this.hotkeyMap$.pipe(
       map((hotkeyMap) => {
-        const sequences = ACTIONS.map((action) => ({
+        const sequences = HOTKEY_ACTIONS.map((action) => ({
           sequence: hotkeyMap[action].keys.map((key) => ({
             ...key,
             key: key.key.toLowerCase(),
@@ -143,10 +144,13 @@ export class HotkeyService {
     return fromEvent<KeyboardEvent>(eventSource, keyEventType).pipe(
       filter((event) => {
         // Ignore keyup events from text inputs, we don't want the user typing to count as invoking hotkeys
+        const isInHotkeyIgnoreRegion = !!(event.target as HTMLElement).closest(
+          `[${HOTKEY_IGNORE_ATTR}]`,
+        );
         const isFromTextInput =
           event.target instanceof HTMLInputElement ||
           event.target instanceof HTMLTextAreaElement;
-        if (isFromTextInput) return false;
+        if (isFromTextInput || isInHotkeyIgnoreRegion) return false;
 
         // Ignore keyup events from modifier keys. We only care about "real" keys
         return !MODIFIER_KEYS.has(event.key);

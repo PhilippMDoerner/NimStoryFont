@@ -202,3 +202,4 @@ function generateTableText(bundleInfo, colors) {
     }
     return outputTable.join('\n');
 }
+//# sourceMappingURL=stats-table.js.map

@@ -20,13 +20,15 @@ class EntryPlugin {
 	 * @param {EntryOptions | string=} options entry options (passing a string is deprecated)
 	 */
 	constructor(context, entry, options) {
+		/** @type {string} */
 		this.context = context;
+		/** @type {string} */
 		this.entry = entry;
 		this.options = options || "";
 	}
 
 	/**
-	 * Apply the plugin
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Compiler} compiler the compiler instance
 	 * @returns {void}
 	 */
@@ -45,13 +47,14 @@ class EntryPlugin {
 		const dep = EntryPlugin.createDependency(entry, options);
 
 		compiler.hooks.make.tapAsync(PLUGIN_NAME, (compilation, callback) => {
-			compilation.addEntry(context, dep, options, err => {
+			compilation.addEntry(context, dep, options, (err) => {
 				callback(err);
 			});
 		});
 	}
 
 	/**
+	 * Creates a dependency.
 	 * @param {string} entry entry request
 	 * @param {EntryOptions | string} options entry options (passing string is deprecated)
 	 * @returns {EntryDependency} the dependency

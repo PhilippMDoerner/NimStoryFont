@@ -14,6 +14,10 @@ exports.createLoggerJob = createLoggerJob;
 const core_1 = require("@angular-devkit/core");
 const rxjs_1 = require("rxjs");
 const api_1 = require("./api");
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function isPromise(obj) {
+    return !!obj && typeof obj.then === 'function';
+}
 class ChannelAlreadyExistException extends core_1.BaseException {
     constructor(name) {
         super(`Channel ${JSON.stringify(name)} already exist.`);
@@ -106,7 +110,7 @@ function createJobHandler(fn, options = {}) {
             subject.next({ kind: api_1.JobOutboundMessageKind.Start, description });
             let result = fn(argument, newContext);
             // If the result is a promise, simply wait for it to complete before reporting the result.
-            if ((0, core_1.isPromise)(result)) {
+            if (isPromise(result)) {
                 result = (0, rxjs_1.from)(result);
             }
             else if (!(0, rxjs_1.isObservable)(result)) {
@@ -143,3 +147,4 @@ function createLoggerJob(job, logger) {
     };
     return Object.assign(handler, job);
 }
+//# sourceMappingURL=create-job-handler.js.map

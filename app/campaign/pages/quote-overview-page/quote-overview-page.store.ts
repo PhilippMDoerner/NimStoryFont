@@ -9,19 +9,19 @@ import {
   withState,
 } from '@ngrx/signals';
 import { shareReplay, switchMap, take } from 'rxjs';
-import { Quote, QuoteConnection, QuoteRaw } from 'src/app/_models/quote';
-import { httpErrorToast } from 'src/app/_models/toast';
-import { CharacterService } from 'src/app/_services/article/character.service';
-import { EncounterService } from 'src/app/_services/article/encounter.service';
-import { QuoteConnectionService } from 'src/app/_services/article/quote-connection.service';
-import { QuoteService } from 'src/app/_services/article/quote.service';
-import { SessionService } from 'src/app/_services/article/session.service';
-import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
-import { GlobalStore } from 'src/app/global.store';
-import { replaceItem } from 'src/utils/array';
-import { filterNil } from 'src/utils/rxjs-operators';
-import { RequestState } from 'src/utils/store/factory-types';
-import { withQueries } from 'src/utils/store/withQueries';
+import { replaceItem } from '../../../../utils/array';
+import { filterNil } from '../../../../utils/rxjs-operators';
+import { RequestState } from '../../../../utils/store/factory-types';
+import { withQueries } from '../../../../utils/store/withQueries';
+import { Quote, QuoteConnection, QuoteRaw } from '../../../_models/quote';
+import { httpErrorToast } from '../../../_models/toast';
+import { CharacterService } from '../../../_services/article/character.service';
+import { EncounterService } from '../../../_services/article/encounter.service';
+import { QuoteConnectionService } from '../../../_services/article/quote-connection.service';
+import { QuoteService } from '../../../_services/article/quote.service';
+import { SessionService } from '../../../_services/article/session.service';
+import { ToastService } from '../../../design/organisms/toast-overlay/toast.service';
+import { GlobalStore } from '../../../global.store';
 
 interface QuoteOverviewState {
   updateQuoteState: RequestState;

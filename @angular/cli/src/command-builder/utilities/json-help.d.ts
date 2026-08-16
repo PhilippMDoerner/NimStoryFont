@@ -5,6 +5,7 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.dev/license
  */
+import { Argv } from 'yargs';
 interface JsonHelpOption {
     name: string;
     type?: string;
@@ -32,5 +33,5 @@ export interface JsonHelp extends JsonHelpDescription {
     options: JsonHelpOption[];
     subcommands?: JsonHelpSubcommand[];
 }
-export declare function jsonHelpUsage(): string;
+export declare function jsonHelpUsage(localYargs: Argv): string;
 export {};

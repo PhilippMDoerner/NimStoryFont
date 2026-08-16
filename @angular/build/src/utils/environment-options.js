@@ -7,21 +7,44 @@
  * found in the LICENSE file at https://angular.dev/license
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.usePartialSsrBuild = exports.useComponentTemplateHmr = exports.useComponentStyleHmr = exports.shouldOptimizeChunks = exports.useJSONBuildLogs = exports.useTypeChecking = exports.shouldWatchRoot = exports.debugPerformance = exports.useParallelTs = exports.maxWorkers = exports.allowMinify = exports.shouldBeautify = exports.allowMangle = void 0;
+exports.persistentCacheStoreSetting = exports.bazelEsbuildPluginPath = exports.usePartialSsrBuild = exports.useComponentTemplateHmr = exports.useComponentStyleHmr = exports.optimizeChunksThreshold = exports.useJSONBuildLogs = exports.useTypeChecking = exports.shouldWatchRoot = exports.debugPerformance = exports.useParallelTs = exports.maxWorkers = exports.useRolldownChunks = exports.allowMinify = exports.shouldBeautify = exports.allowMangle = void 0;
 const node_os_1 = require("node:os");
-function isDisabled(variable) {
-    return variable === '0' || variable.toLowerCase() === 'false';
-}
-function isEnabled(variable) {
-    return variable === '1' || variable.toLowerCase() === 'true';
-}
+/** A set of strings that are considered "truthy" when parsing environment variables. */
+const TRUTHY_VALUES = new Set(['1', 'true']);
+/** A set of strings that are considered "falsy" when parsing environment variables. */
+const FALSY_VALUES = new Set(['0', 'false']);
+/**
+ * Checks if an environment variable is present and has a non-empty value.
+ * @param variable The environment variable to check.
+ * @returns `true` if the variable is a non-empty string.
+ */
 function isPresent(variable) {
     return typeof variable === 'string' && variable !== '';
+}
+/**
+ * Parses an environment variable into a boolean or undefined.
+ * @returns `true` if the variable is truthy ('1', 'true').
+ * @returns `false` if the variable is falsy ('0', 'false').
+ * @returns `undefined` if the variable is not present or has an unknown value.
+ */
+function parseTristate(variable) {
+    if (!isPresent(variable)) {
+        return undefined;
+    }
+    const value = variable.toLowerCase();
+    if (TRUTHY_VALUES.has(value)) {
+        return true;
+    }
+    if (FALSY_VALUES.has(value)) {
+        return false;
+    }
+    // TODO: Consider whether a warning is useful in this case of a malformed value
+    return undefined;
 }
 // Optimization and mangling
 const debugOptimizeVariable = process.env['NG_BUILD_DEBUG_OPTIMIZE'];
 const debugOptimize = (() => {
-    if (!isPresent(debugOptimizeVariable) || isDisabled(debugOptimizeVariable)) {
+    if (!isPresent(debugOptimizeVariable) || parseTristate(debugOptimizeVariable) === false) {
         return {
             mangle: true,
             minify: true,
@@ -33,7 +56,7 @@ const debugOptimize = (() => {
         minify: false,
         beautify: true,
     };
-    if (isEnabled(debugOptimizeVariable)) {
+    if (parseTristate(debugOptimizeVariable) === true) {
         return debugValue;
     }
     for (const part of debugOptimizeVariable.split(',')) {
@@ -51,12 +74,26 @@ const debugOptimize = (() => {
     }
     return debugValue;
 })();
-const mangleVariable = process.env['NG_BUILD_MANGLE'];
-exports.allowMangle = isPresent(mangleVariable)
-    ? !isDisabled(mangleVariable)
-    : debugOptimize.mangle;
+/**
+ * Allows disabling of code mangling when the `NG_BUILD_MANGLE` environment variable is set to `0` or `false`.
+ * This is useful for debugging build output.
+ */
+exports.allowMangle = parseTristate(process.env['NG_BUILD_MANGLE']) ?? debugOptimize.mangle;
+/**
+ * Allows beautification of build output when the `NG_BUILD_DEBUG_OPTIMIZE` environment variable is enabled.
+ * This is useful for debugging build output.
+ */
 exports.shouldBeautify = debugOptimize.beautify;
+/**
+ * Allows disabling of code minification when the `NG_BUILD_DEBUG_OPTIMIZE` environment variable is enabled.
+ * This is useful for debugging build output.
+ */
 exports.allowMinify = debugOptimize.minify;
+/**
+ * Allows using Rolldown for chunk optimization instead of Rollup.
+ * This is useful for debugging and testing scenarios.
+ */
+exports.useRolldownChunks = parseTristate(process.env['NG_BUILD_CHUNKS_ROLLDOWN']) ?? true;
 /**
  * Some environments, like CircleCI which use Docker report a number of CPUs by the host and not the count of available.
  * This cause `Error: Call retries were exceeded` errors when trying to use them.
@@ -67,24 +104,87 @@ exports.allowMinify = debugOptimize.minify;
  *
  */
 const maxWorkersVariable = process.env['NG_BUILD_MAX_WORKERS'];
+/**
+ * The maximum number of workers to use for parallel processing.
+ * This can be controlled by the `NG_BUILD_MAX_WORKERS` environment variable.
+ */
 exports.maxWorkers = isPresent(maxWorkersVariable)
     ? +maxWorkersVariable
     : Math.min(4, Math.max((0, node_os_1.availableParallelism)() - 1, 1));
-const parallelTsVariable = process.env['NG_BUILD_PARALLEL_TS'];
-exports.useParallelTs = !isPresent(parallelTsVariable) || !isDisabled(parallelTsVariable);
-const debugPerfVariable = process.env['NG_BUILD_DEBUG_PERF'];
-exports.debugPerformance = isPresent(debugPerfVariable) && isEnabled(debugPerfVariable);
-const watchRootVariable = process.env['NG_BUILD_WATCH_ROOT'];
-exports.shouldWatchRoot = isPresent(watchRootVariable) && isEnabled(watchRootVariable);
-const typeCheckingVariable = process.env['NG_BUILD_TYPE_CHECK'];
-exports.useTypeChecking = !isPresent(typeCheckingVariable) || !isDisabled(typeCheckingVariable);
-const buildLogsJsonVariable = process.env['NG_BUILD_LOGS_JSON'];
-exports.useJSONBuildLogs = isPresent(buildLogsJsonVariable) && isEnabled(buildLogsJsonVariable);
-const optimizeChunksVariable = process.env['NG_BUILD_OPTIMIZE_CHUNKS'];
-exports.shouldOptimizeChunks = isPresent(optimizeChunksVariable) && isEnabled(optimizeChunksVariable);
-const hmrComponentStylesVariable = process.env['NG_HMR_CSTYLES'];
-exports.useComponentStyleHmr = isPresent(hmrComponentStylesVariable) && isEnabled(hmrComponentStylesVariable);
-const hmrComponentTemplateVariable = process.env['NG_HMR_TEMPLATES'];
-exports.useComponentTemplateHmr = !isPresent(hmrComponentTemplateVariable) || !isDisabled(hmrComponentTemplateVariable);
-const partialSsrBuildVariable = process.env['NG_BUILD_PARTIAL_SSR'];
-exports.usePartialSsrBuild = isPresent(partialSsrBuildVariable) && isEnabled(partialSsrBuildVariable);
+/**
+ * When `NG_BUILD_PARALLEL_TS` is set to `0` or `false`, parallel TypeScript compilation is disabled.
+ */
+exports.useParallelTs = parseTristate(process.env['NG_BUILD_PARALLEL_TS']) !== false;
+/**
+ * When `NG_BUILD_DEBUG_PERF` is enabled, performance debugging information is printed.
+ */
+exports.debugPerformance = parseTristate(process.env['NG_BUILD_DEBUG_PERF']) === true;
+/**
+ * When `NG_BUILD_WATCH_ROOT` is enabled, the build will watch the root directory for changes.
+ */
+exports.shouldWatchRoot = parseTristate(process.env['NG_BUILD_WATCH_ROOT']) === true;
+/**
+ * When `NG_BUILD_TYPE_CHECK` is set to `0` or `false`, type checking is disabled.
+ */
+exports.useTypeChecking = parseTristate(process.env['NG_BUILD_TYPE_CHECK']) !== false;
+/**
+ * When `NG_BUILD_LOGS_JSON` is enabled, build logs will be output in JSON format.
+ */
+exports.useJSONBuildLogs = parseTristate(process.env['NG_BUILD_LOGS_JSON']) === true;
+/**
+ * When `NG_BUILD_OPTIMIZE_CHUNKS` is enabled, the build will optimize chunks.
+ */
+/**
+ * The threshold of lazy chunks required to enable the chunk optimization pass.
+ * Can be configured via the `NG_BUILD_OPTIMIZE_CHUNKS` environment variable.
+ * - `false` or `0` disables the feature.
+ * - `true` or `1` forces the feature on (threshold 0).
+ * - A number sets the specific threshold.
+ * - Default is 3.
+ */
+const optimizeChunksEnv = process.env['NG_BUILD_OPTIMIZE_CHUNKS'];
+exports.optimizeChunksThreshold = (() => {
+    if (optimizeChunksEnv === undefined) {
+        return 3;
+    }
+    if (optimizeChunksEnv === 'false' || optimizeChunksEnv === '0') {
+        return Infinity;
+    }
+    if (optimizeChunksEnv === 'true' || optimizeChunksEnv === '1') {
+        return 0;
+    }
+    const num = Number.parseInt(optimizeChunksEnv, 10);
+    return Number.isNaN(num) || num < 0 ? 3 : num;
+})();
+/**
+ * When `NG_HMR_CSTYLES` is enabled, component styles will be hot-reloaded.
+ */
+exports.useComponentStyleHmr = parseTristate(process.env['NG_HMR_CSTYLES']) === true;
+/**
+ * When `NG_HMR_TEMPLATES` is set to `0` or `false`, component templates will not be hot-reloaded.
+ */
+exports.useComponentTemplateHmr = parseTristate(process.env['NG_HMR_TEMPLATES']) !== false;
+/**
+ * When `NG_BUILD_PARTIAL_SSR` is enabled, a partial server-side rendering build will be performed.
+ */
+exports.usePartialSsrBuild = parseTristate(process.env['NG_BUILD_PARTIAL_SSR']) === true;
+const bazelBinDirectory = process.env['BAZEL_BINDIR'];
+const bazelExecRoot = process.env['JS_BINARY__EXECROOT'];
+exports.bazelEsbuildPluginPath = bazelBinDirectory && bazelExecRoot
+    ? process.env['NG_INTERNAL_ESBUILD_PLUGINS_DO_NOT_USE']
+    : undefined;
+/**
+ * The persistent cache store configuration to use.
+ * Managed by the `NG_BUILD_CACHE_STORE` environment variable.
+ * - 'lmdb': Forces the use of LMDB.
+ * - 'sqlite': Forces the use of SQLite.
+ * - undefined / 'auto' / other: Automatically uses LMDB and falls back to SQLite.
+ */
+exports.persistentCacheStoreSetting = (() => {
+    const env = process.env['NG_BUILD_CACHE_STORE']?.trim().toLowerCase();
+    if (env === 'lmdb' || env === 'sqlite') {
+        return env;
+    }
+    return undefined;
+})();
+//# sourceMappingURL=environment-options.js.map

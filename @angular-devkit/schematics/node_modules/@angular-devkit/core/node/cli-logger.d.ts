@@ -11,5 +11,7 @@ export interface ProcessOutput {
 }
 /**
  * A Logger that sends information to STDOUT and STDERR.
+ *
+ * @deprecated Use a custom logger implementation instead.
  */
 export declare function createConsoleLogger(verbose?: boolean, stdout?: ProcessOutput, stderr?: ProcessOutput, colors?: Partial<Record<logging.LogLevel, (s: string) => string>>): logging.Logger;

@@ -9,31 +9,27 @@ import {
   signal,
   viewChildren,
 } from '@angular/core';
-import { PlayerClass } from 'src/app/_models/playerclass';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
+import { ActivatedRoute } from '@angular/router';
+import { map, take } from 'rxjs';
+import { withViewTransition } from '../../../../utils/animation';
+import { getPseudoRandomId } from '../../../../utils/math';
+import { filterNil } from '../../../../utils/rxjs-operators';
+import { HotkeyDirective } from '../../../_directives/hotkey.directive';
+import { PlayerClass } from '../../../_models/playerclass';
 import {
   Spell,
   SpellPlayerClassConnection,
   SpellRaw,
-} from 'src/app/_models/spell';
+} from '../../../_models/spell';
 import {
   slideOutFromBottom,
   slideUpFromBottom,
-} from 'src/app/design/animations/slideDown';
-
-import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
-import { ActivatedRoute } from '@angular/router';
-import { map, take } from 'rxjs';
-import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
-import { BadgeComponent } from 'src/app/design/atoms/badge/badge.component';
-import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
-import { SpinnerComponent } from 'src/app/design/atoms/spinner/spinner.component';
-import {
-  BadgeListEntry,
-  CollapsiblePanelComponent,
-} from 'src/app/design/molecules';
-import { withViewTransition } from 'src/utils/animation';
-import { getPseudoRandomId } from 'src/utils/math';
-import { filterNil } from 'src/utils/rxjs-operators';
+} from '../../animations/slideDown';
+import { BadgeComponent } from '../../atoms/badge/badge.component';
+import { ButtonComponent } from '../../atoms/button/button.component';
+import { SpinnerComponent } from '../../atoms/spinner/spinner.component';
+import { BadgeListEntry, CollapsiblePanelComponent } from '../../molecules';
 import {
   FocusItem,
   FocusListComponent,
@@ -65,14 +61,14 @@ interface SpellCard {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SpellsComponent {
-  DEFAULT_TITLE = 'New Article Item';
-  campaignId = input.required<number>();
-  spells = input.required<Spell[]>();
-  playerClasses = input.required<PlayerClass[]>();
-  canUpdate = input.required<boolean>();
-  canDelete = input.required<boolean>();
-  canCreate = input.required<boolean>();
-  serverModel = input.required<Spell | undefined>();
+  readonly DEFAULT_TITLE = 'New Article Item';
+  readonly campaignId = input.required<number>();
+  readonly spells = input.required<Spell[]>();
+  readonly playerClasses = input.required<PlayerClass[]>();
+  readonly canUpdate = input.required<boolean>();
+  readonly canDelete = input.required<boolean>();
+  readonly canCreate = input.required<boolean>();
+  readonly serverModel = input.required<Spell | undefined>();
 
   readonly spellDelete = output<Spell>();
   readonly spellUpdate = output<Spell>();
@@ -81,13 +77,13 @@ export class SpellsComponent {
   readonly connectionCreate = output<SpellPlayerClassConnection>();
   readonly spellClassClick = output<PlayerClass>();
 
-  spellElements = viewChildren<ElementRef<HTMLDivElement>>('spell');
-  isCreatingSpell = signal(false);
-  createSpellData = computed(
+  readonly spellElements = viewChildren<ElementRef<HTMLDivElement>>('spell');
+  readonly isCreatingSpell = signal(false);
+  readonly createSpellData = computed(
     () => ({ name: this.DEFAULT_TITLE, campaign: this.campaignId() }) as Spell,
   );
 
-  spellCards = computed<FocusItem<SpellCard>[]>(() => {
+  readonly spellCards = computed<FocusItem<SpellCard>[]>(() => {
     const spells = this.spells().map((spell) => ({
       id: spell.pk ?? getPseudoRandomId(),
       data: {

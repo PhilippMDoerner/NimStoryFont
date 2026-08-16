@@ -7,18 +7,18 @@
 
 const { UsageState } = require("../ExportsInfo");
 
+/** @typedef {import("../Dependency").RawReferencedExports} RawReferencedExports */
 /** @typedef {import("../ExportsInfo").ExportInfo} ExportInfo */
 /** @typedef {import("../util/runtime").RuntimeSpec} RuntimeSpec */
 
-/** @typedef {string[][]} ReferencedExports */
-
 /**
+ * Process export info.
  * @param {RuntimeSpec} runtime the runtime
- * @param {ReferencedExports} referencedExports list of referenced exports, will be added to
+ * @param {RawReferencedExports} referencedExports list of referenced exports, will be added to
  * @param {string[]} prefix export prefix
  * @param {ExportInfo=} exportInfo the export info
  * @param {boolean} defaultPointsToSelf when true, using default will reference itself
- * @param {Set<ExportInfo>} alreadyVisited already visited export info (to handle circular reexports)
+ * @param {Set<ExportInfo>=} alreadyVisited already visited export info (to handle circular reexports)
  */
 const processExportInfo = (
 	runtime,
@@ -26,7 +26,7 @@ const processExportInfo = (
 	prefix,
 	exportInfo,
 	defaultPointsToSelf = false,
-	alreadyVisited = new Set()
+	alreadyVisited = undefined
 ) => {
 	if (!exportInfo) {
 		referencedExports.push(prefix);
@@ -34,34 +34,37 @@ const processExportInfo = (
 	}
 	const used = exportInfo.getUsed(runtime);
 	if (used === UsageState.Unused) return;
-	if (alreadyVisited.has(exportInfo)) {
+	if (alreadyVisited !== undefined && alreadyVisited.has(exportInfo)) {
 		referencedExports.push(prefix);
 		return;
 	}
-	alreadyVisited.add(exportInfo);
+	// Terminal case: not recursing, so no need to track visited here
 	if (
 		used !== UsageState.OnlyPropertiesUsed ||
 		!exportInfo.exportsInfo ||
 		exportInfo.exportsInfo.otherExportsInfo.getUsed(runtime) !==
 			UsageState.Unused
 	) {
-		alreadyVisited.delete(exportInfo);
 		referencedExports.push(prefix);
 		return;
 	}
+	// Only the recursive path needs the visited set; allocate it lazily
+	const visited = alreadyVisited !== undefined ? alreadyVisited : new Set();
+	visited.add(exportInfo);
 	const exportsInfo = exportInfo.exportsInfo;
-	for (const exportInfo of exportsInfo.orderedExports) {
+	for (const childExportInfo of exportsInfo.orderedExports) {
 		processExportInfo(
 			runtime,
 			referencedExports,
-			defaultPointsToSelf && exportInfo.name === "default"
+			defaultPointsToSelf && childExportInfo.name === "default"
 				? prefix
-				: prefix.concat(exportInfo.name),
-			exportInfo,
+				: [...prefix, childExportInfo.name],
+			childExportInfo,
 			false,
-			alreadyVisited
+			visited
 		);
 	}
-	alreadyVisited.delete(exportInfo);
+	visited.delete(exportInfo);
 };
+
 module.exports = processExportInfo;

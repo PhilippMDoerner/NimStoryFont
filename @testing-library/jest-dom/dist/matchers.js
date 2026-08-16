@@ -1,16 +1,17 @@
 'use strict';
 
-var matchers = require('./matchers-7fb38cd4.js');
+var matchers = require('./matchers-98b869c1.js');
 require('redent');
 require('@adobe/css-tools');
 require('dom-accessibility-api');
 require('aria-query');
-require('chalk');
-require('lodash/isEqualWith.js');
+require('picocolors');
 require('css.escape');
 
 
 
+exports.toAppearAfter = matchers.toAppearAfter;
+exports.toAppearBefore = matchers.toAppearBefore;
 exports.toBeChecked = matchers.toBeChecked;
 exports.toBeDisabled = matchers.toBeDisabled;
 exports.toBeEmpty = matchers.toBeEmpty;
@@ -20,6 +21,8 @@ exports.toBeInTheDOM = matchers.toBeInTheDOM;
 exports.toBeInTheDocument = matchers.toBeInTheDocument;
 exports.toBeInvalid = matchers.toBeInvalid;
 exports.toBePartiallyChecked = matchers.toBePartiallyChecked;
+exports.toBePartiallyPressed = matchers.toBePartiallyPressed;
+exports.toBePressed = matchers.toBePressed;
 exports.toBeRequired = matchers.toBeRequired;
 exports.toBeValid = matchers.toBeValid;
 exports.toBeVisible = matchers.toBeVisible;

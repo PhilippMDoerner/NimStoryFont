@@ -1,2 +1,1 @@
-/// <reference types="node" />
-export declare const bufferToUint8Array: (buf: Buffer) => Uint8Array;
+export * from '@jsonjoy.com/buffers/lib/bufferToUint8Array';

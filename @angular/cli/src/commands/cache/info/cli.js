@@ -41,10 +41,10 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CacheInfoCommandModule = void 0;
-const core_1 = require("@angular-devkit/core");
 const fs = __importStar(require("node:fs/promises"));
 const node_path_1 = require("node:path");
 const command_module_1 = require("../../../command-builder/command-module");
+const color_1 = require("../../../utilities/color");
 const environment_options_1 = require("../../../utilities/environment-options");
 const utilities_1 = require("../utilities");
 class CacheInfoCommandModule extends command_module_1.CommandModule {
@@ -56,14 +56,38 @@ class CacheInfoCommandModule extends command_module_1.CommandModule {
         return localYargs.strict();
     }
     async run() {
-        const { path, environment, enabled } = (0, utilities_1.getCacheConfig)(this.context.workspace);
-        this.context.logger.info(core_1.tags.stripIndents `
-      Enabled: ${enabled ? 'yes' : 'no'}
-      Environment: ${environment}
-      Path: ${path}
-      Size on disk: ${await this.getSizeOfDirectory(path)}
-      Effective status on current machine: ${this.effectiveEnabledStatus() ? 'enabled' : 'disabled'}
-    `);
+        const cacheConfig = (0, utilities_1.getCacheConfig)(this.context.workspace);
+        const { path, environment, enabled } = cacheConfig;
+        const effectiveStatus = this.effectiveEnabledStatus(cacheConfig);
+        const sizeOnDisk = await this.getSizeOfDirectory(path);
+        const info = [
+            {
+                label: 'Enabled',
+                value: enabled ? color_1.colors.green('Yes') : color_1.colors.red('No'),
+            },
+            {
+                label: 'Environment',
+                value: color_1.colors.cyan(environment),
+            },
+            {
+                label: 'Path',
+                value: color_1.colors.cyan(path),
+            },
+            {
+                label: 'Size on disk',
+                value: color_1.colors.cyan(sizeOnDisk),
+            },
+            {
+                label: 'Effective Status',
+                value: (effectiveStatus ? color_1.colors.green('Enabled') : color_1.colors.red('Disabled')) +
+                    ' (current machine)',
+            },
+        ];
+        const maxLabelLength = Math.max(...info.map((l) => l.label.length));
+        const output = info
+            .map(({ label, value }) => color_1.colors.bold(label.padEnd(maxLabelLength + 2)) + `: ${value}`)
+            .join('\n');
+        this.context.logger.info(`\n${color_1.colors.bold('Cache Information')}\n\n${output}\n`);
     }
     async getSizeOfDirectory(path) {
         const directoriesStack = [path];
@@ -98,8 +122,8 @@ class CacheInfoCommandModule extends command_module_1.CommandModule {
         const fractionDigits = index === 0 ? 0 : 2;
         return `${roundedSize.toFixed(fractionDigits)} ${abbreviations[index]}`;
     }
-    effectiveEnabledStatus() {
-        const { enabled, environment } = (0, utilities_1.getCacheConfig)(this.context.workspace);
+    effectiveEnabledStatus(cacheConfig) {
+        const { enabled, environment } = cacheConfig;
         if (enabled) {
             switch (environment) {
                 case 'ci':
@@ -112,3 +136,4 @@ class CacheInfoCommandModule extends command_module_1.CommandModule {
     }
 }
 exports.CacheInfoCommandModule = CacheInfoCommandModule;
+//# sourceMappingURL=cli.js.map

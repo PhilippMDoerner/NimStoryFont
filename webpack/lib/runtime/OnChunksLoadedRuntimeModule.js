@@ -16,13 +16,14 @@ class OnChunksLoadedRuntimeModule extends RuntimeModule {
 	}
 
 	/**
+	 * Generates runtime code for this runtime module.
 	 * @returns {string | null} runtime code
 	 */
 	generate() {
 		const compilation = /** @type {Compilation} */ (this.compilation);
 		const { runtimeTemplate } = compilation;
 		return Template.asString([
-			"var deferred = [];",
+			`${runtimeTemplate.renderConst()} deferred = [];`,
 			`${RuntimeGlobals.onChunksLoaded} = ${runtimeTemplate.basicFunction(
 				"result, chunkIds, fn, priority",
 				[
@@ -34,14 +35,14 @@ class OnChunksLoadedRuntimeModule extends RuntimeModule {
 						"return;"
 					]),
 					"}",
-					"var notFulfilled = Infinity;",
+					`${runtimeTemplate.renderLet()} notFulfilled = Infinity;`,
 					"for (var i = 0; i < deferred.length; i++) {",
 					Template.indent([
 						runtimeTemplate.destructureArray(
 							["chunkIds", "fn", "priority"],
 							"deferred[i]"
 						),
-						"var fulfilled = true;",
+						`${runtimeTemplate.renderLet()} fulfilled = true;`,
 						"for (var j = 0; j < chunkIds.length; j++) {",
 						Template.indent([
 							`if ((priority & 1 === 0 || notFulfilled >= priority) && Object.keys(${
@@ -62,7 +63,7 @@ class OnChunksLoadedRuntimeModule extends RuntimeModule {
 						"if(fulfilled) {",
 						Template.indent([
 							"deferred.splice(i--, 1)",
-							"var r = fn();",
+							`${runtimeTemplate.renderConst()} r = fn();`,
 							"if (r !== undefined) result = r;"
 						]),
 						"}"

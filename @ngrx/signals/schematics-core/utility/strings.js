@@ -16,11 +16,11 @@ exports.featurePath = featurePath;
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.io/license
  */
-var STRING_DASHERIZE_REGEXP = /[ _]/g;
-var STRING_DECAMELIZE_REGEXP = /([a-z\d])([A-Z])/g;
-var STRING_CAMELIZE_REGEXP = /(-|_|\.|\s)+(.)?/g;
-var STRING_UNDERSCORE_REGEXP_1 = /([a-z\d])([A-Z]+)/g;
-var STRING_UNDERSCORE_REGEXP_2 = /-|\s+/g;
+const STRING_DASHERIZE_REGEXP = /[ _]/g;
+const STRING_DECAMELIZE_REGEXP = /([a-z\d])([A-Z])/g;
+const STRING_CAMELIZE_REGEXP = /(-|_|\.|\s)+(.)?/g;
+const STRING_UNDERSCORE_REGEXP_1 = /([a-z\d])([A-Z]+)/g;
+const STRING_UNDERSCORE_REGEXP_2 = /-|\s+/g;
 /**
  * Converts a camelized string into all lower case separated by underscores.
  *
@@ -60,10 +60,10 @@ function dasherize(str) {
  */
 function camelize(str) {
     return str
-        .replace(STRING_CAMELIZE_REGEXP, function (_match, _separator, chr) {
+        .replace(STRING_CAMELIZE_REGEXP, (_match, _separator, chr) => {
         return chr ? chr.toUpperCase() : '';
     })
-        .replace(/^([A-Z])/, function (match) { return match.toLowerCase(); });
+        .replace(/^([A-Z])/, (match) => match.toLowerCase());
 }
 /**
  Returns the UpperCamelCase form of a string.
@@ -78,7 +78,7 @@ function camelize(str) {
 function classify(str) {
     return str
         .split('.')
-        .map(function (part) { return capitalize(camelize(part)); })
+        .map((part) => capitalize(camelize(part)))
         .join('.');
 }
 /**
@@ -123,15 +123,15 @@ function capitalize(str) {
  ```
  */
 function pluralize(str) {
-    return camelize([/([^aeiou])y$/, /()fe?$/, /([^aeiou]o|[sxz]|[cs]h)$/].map(function (c, i) { return (str = str.replace(c, "$1".concat('iv'[i] || '', "e"))); }) && str + 's');
+    return camelize([/([^aeiou])y$/, /()fe?$/, /([^aeiou]o|[sxz]|[cs]h)$/].map((c, i) => (str = str.replace(c, `$1${'iv'[i] || ''}e`))) && str + 's');
 }
 function group(name, group) {
-    return group ? "".concat(group, "/").concat(name) : name;
+    return group ? `${group}/${name}` : name;
 }
 function featurePath(group, flat, path, name) {
     if (group && !flat) {
-        return "../../".concat(path, "/").concat(name, "/");
+        return `../../${path}/${name}/`;
     }
-    return group ? "../".concat(path, "/") : './';
+    return group ? `../${path}/` : './';
 }
 //# sourceMappingURL=strings.js.map

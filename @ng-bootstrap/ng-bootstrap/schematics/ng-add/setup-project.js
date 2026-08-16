@@ -4,14 +4,9 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 var schematics = require('@angular-devkit/schematics');
 var path = require('path');
-var messages = require('../messages-Coq8X1sU.js');
+var messages = require('../messages-BL7pjewd.js');
 var core = require('@angular-devkit/core');
 var utility = require('@schematics/angular/utility');
-var ngAstUtils = require('@schematics/angular/utility/ng-ast-utils');
-var astUtils = require('@schematics/angular/utility/ast-utils');
-var change = require('@schematics/angular/utility/change');
-var ts = require('@schematics/angular/third_party/github.com/Microsoft/TypeScript/lib/typescript');
-var util = require('@schematics/angular/utility/standalone/util');
 
 function _interopNamespaceDefault(e) {
     var n = Object.create(null);
@@ -31,7 +26,6 @@ function _interopNamespaceDefault(e) {
 }
 
 var path__namespace = /*#__PURE__*/_interopNamespaceDefault(path);
-var ts__namespace = /*#__PURE__*/_interopNamespaceDefault(ts);
 
 // Regular expression that matches all possible Angular CLI default style files
 const defaultStyleFileRegex = /styles\.(c|le|sc|sa)ss/;
@@ -149,59 +143,9 @@ const NG_BOOTSTRAP_MODULE_NAME = 'NgbModule';
 const NG_BOOTSTRAP_PACKAGE_NAME = '@ng-bootstrap/ng-bootstrap';
 /**
  * Patches main application module by adding 'NgbModule' import.
- *
- * Relevant 'angular.json' structure is:
- *
- * {
- *   "projects" : {
- *     "projectName": {
- *       "architect": {
- *         "build": {
- *           "options": {
- *            "main": "src/main.ts"
- *           }
- *         }
- *       }
- *     }
- *   },
- *   "defaultProject": "projectName"
- * }
- *
  */
 function addNgbModuleToAppModule(options) {
-    return async (host) => {
-        const workspace = await utility.readWorkspace(host);
-        const projectName = options.project || workspace.extensions.defaultProject;
-        // 1. getting project by name
-        const project = workspace.projects.get(projectName);
-        if (!project) {
-            throw new schematics.SchematicsException(messages.noProject(projectName));
-        }
-        // 2. getting main file for project
-        const mainFilePath = await util.getMainFilePath(host, projectName);
-        if (!mainFilePath || !host.read(mainFilePath)) {
-            throw new schematics.SchematicsException(messages.noMainFile(projectName));
-        }
-        // we're not patching standalone apps
-        if (!ngAstUtils.isStandaloneApp(host, mainFilePath)) {
-            // 3. getting main app module file
-            const appModuleFilePath = ngAstUtils.getAppModulePath(host, mainFilePath);
-            const appModuleFileText = host.read(appModuleFilePath);
-            if (appModuleFileText === null) {
-                throw new schematics.SchematicsException(messages.noModuleFile(appModuleFilePath));
-            }
-            // 4. adding `NgbModule` to the app module
-            const appModuleSource = ts__namespace.createSourceFile(appModuleFilePath, appModuleFileText.toString('utf-8'), ts__namespace.ScriptTarget.Latest, true);
-            const changes = astUtils.addImportToModule(appModuleSource, appModuleFilePath, NG_BOOTSTRAP_MODULE_NAME, NG_BOOTSTRAP_PACKAGE_NAME);
-            const recorder = host.beginUpdate(appModuleFilePath);
-            for (const change$1 of changes) {
-                if (change$1 instanceof change.InsertChange) {
-                    recorder.insertLeft(change$1.pos, change$1.toAdd);
-                }
-            }
-            host.commitUpdate(recorder);
-        }
-    };
+    return utility.addRootImport(options.project, ({ code, external }) => code `${external(NG_BOOTSTRAP_MODULE_NAME, NG_BOOTSTRAP_PACKAGE_NAME)}`);
 }
 
 /**

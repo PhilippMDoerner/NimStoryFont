@@ -67,7 +67,6 @@ export declare enum Environment {
  */
 export declare enum PackageManager {
     Bun = "bun",
-    Cnpm = "cnpm",
     Npm = "npm",
     Pnpm = "pnpm",
     Yarn = "yarn"
@@ -107,14 +106,21 @@ export type SchematicOptions = {
  */
 export type AngularApplicationOptionsSchema = {
     /**
-     * Include the styles for the root component directly within the `app.component.ts` file.
-     * Only CSS styles can be included inline. By default, a separate stylesheet file (e.g.,
-     * `app.component.css`) is created.
+     * The file naming convention to use for generated files. The '2025' style guide (default)
+     * uses a concise format (e.g., `app.ts` for the root component), while the '2016' style
+     * guide includes the type in the file name (e.g., `app.component.ts`). For more
+     * information, see the Angular Style Guide (https://angular.dev/style-guide).
+     */
+    fileNameStyleGuide?: FileNameStyleGuide;
+    /**
+     * Include the styles for the root component directly within the `app.ts` file. Only CSS
+     * styles can be included inline. By default, a separate stylesheet file (e.g., `app.css`)
+     * is created.
      */
     inlineStyle?: boolean;
     /**
-     * Include the HTML template for the root component directly within the `app.component.ts`
-     * file. By default, a separate template file (e.g., `app.component.html`) is created.
+     * Include the HTML template for the root component directly within the `app.ts` file. By
+     * default, a separate template file (e.g., `app.html`) is created.
      */
     inlineTemplate?: boolean;
     /**
@@ -178,6 +184,10 @@ export type AngularApplicationOptionsSchema = {
      */
     style?: SchematicsAngularApplicationStyle;
     /**
+     * The unit testing runner to use.
+     */
+    testRunner?: TestRunner;
+    /**
      * Sets the view encapsulation mode for the application's components. This determines how
      * component styles are scoped and applied.
      */
@@ -188,6 +198,16 @@ export type AngularApplicationOptionsSchema = {
     zoneless?: boolean;
 };
 /**
+ * The file naming convention to use for generated files. The '2025' style guide (default)
+ * uses a concise format (e.g., `app.ts` for the root component), while the '2016' style
+ * guide includes the type in the file name (e.g., `app.component.ts`). For more
+ * information, see the Angular Style Guide (https://angular.dev/style-guide).
+ */
+export declare enum FileNameStyleGuide {
+    The2016 = "2016",
+    The2025 = "2025"
+}
+/**
  * The type of stylesheet files to be created for components in the application.
  *
  * The type of stylesheet files to be created for components in the initial project.
@@ -196,7 +216,15 @@ export declare enum SchematicsAngularApplicationStyle {
     Css = "css",
     Less = "less",
     Sass = "sass",
-    Scss = "scss"
+    Scss = "scss",
+    Tailwind = "tailwind"
+}
+/**
+ * The unit testing runner to use.
+ */
+export declare enum TestRunner {
+    Karma = "karma",
+    Vitest = "vitest"
 }
 /**
  * Sets the view encapsulation mode for the application's components. This determines how
@@ -254,6 +282,11 @@ export type AngularClassOptionsSchema = {
  */
 export type AngularComponentOptionsSchema = {
     /**
+     * When true, the 'type' option will be appended to the generated class name. When false,
+     * only the file name will include the type.
+     */
+    addTypeToClassName?: boolean;
+    /**
      * Configures the change detection strategy for the component.
      */
     changeDetection?: ChangeDetection;
@@ -278,12 +311,12 @@ export type AngularComponentOptionsSchema = {
     flat?: boolean;
     /**
      * Include the component's styles directly in the `component.ts` file. By default, a
-     * separate stylesheet file (e.g., `my-component.component.css`) is created.
+     * separate stylesheet file (e.g., `my-component.css`) is created.
      */
     inlineStyle?: boolean;
     /**
      * Include the component's HTML template directly in the `component.ts` file. By default, a
-     * separate template file (e.g., `my-component.component.html`) is created.
+     * separate template file (e.g., `my-component.html`) is created.
      */
     inlineTemplate?: boolean;
     /**
@@ -294,8 +327,7 @@ export type AngularComponentOptionsSchema = {
     /**
      * The name for the new component. This will be used to create the component's class,
      * template, and stylesheet files. For example, if you provide `my-component`, the files
-     * will be named `my-component.component.ts`, `my-component.component.html`, and
-     * `my-component.component.css`.
+     * will be named `my-component.ts`, `my-component.html`, and `my-component.css`.
      */
     name: string;
     /**
@@ -361,7 +393,7 @@ export type AngularComponentOptionsSchema = {
  * Configures the change detection strategy for the component.
  */
 export declare enum ChangeDetection {
-    Default = "Default",
+    Eager = "Eager",
     OnPush = "OnPush"
 }
 /**
@@ -382,6 +414,11 @@ export declare enum SchematicsAngularComponentStyle {
  * and boilerplate code for a new directive.
  */
 export type AngularDirectiveOptionsSchema = {
+    /**
+     * When true, the 'type' option will be appended to the generated class name. When false,
+     * only the file name will include the type.
+     */
+    addTypeToClassName?: boolean;
     /**
      * Automatically export the directive from the specified NgModule, making it accessible to
      * other modules in the application.
@@ -491,7 +528,7 @@ export type AngularGuardOptionsSchema = {
      * routes), `CanDeactivate` (asks for confirmation before leaving a route), `CanMatch`
      * (determines if a route can be matched).
      */
-    implements?: Implement[];
+    implements?: [Implement, ...Implement[]];
     /**
      * The name for the new route guard. This will be used to create the guard's class and spec
      * files (e.g., `my-guard.guard.ts` and `my-guard.guard.spec.ts`).
@@ -665,6 +702,10 @@ export type LibraryOptionsSchema = {
      * This can simplify the structure of your library and its usage in applications.
      */
     standalone?: boolean;
+    /**
+     * The unit testing runner to use.
+     */
+    testRunner?: TestRunner;
 };
 /**
  * Creates a new Angular workspace and an initial project. This schematic sets up the
@@ -673,6 +714,11 @@ export type LibraryOptionsSchema = {
  * the initial project, such as routing, styling, and testing.
  */
 export type AngularNgNewOptionsSchema = {
+    /**
+     * Specifies which AI tools to generate configuration files for. These file are used to
+     * improve the outputs of AI tools by following the best practices.
+     */
+    aiConfig?: AiConfig[];
     /**
      * Configure the initial Git commit for the new repository.
      */
@@ -689,15 +735,20 @@ export type AngularNgNewOptionsSchema = {
      */
     directory?: string;
     /**
+     * The file naming convention to use for generated files. The '2025' style guide (default)
+     * uses a concise format (e.g., `app.ts` for the root component), while the '2016' style
+     * guide includes the type in the file name (e.g., `app.component.ts`). For more
+     * information, see the Angular Style Guide (https://angular.dev/style-guide).
+     */
+    fileNameStyleGuide?: FileNameStyleGuide;
+    /**
      * Include the styles for the initial application's root component directly within the
-     * `app.component.ts` file. By default, a separate stylesheet file (e.g.,
-     * `app.component.css`) is created.
+     * `app.ts` file. By default, a separate stylesheet file (e.g., `app.css`) is created.
      */
     inlineStyle?: boolean;
     /**
      * Include the HTML template for the initial application's root component directly within
-     * the `app.component.ts` file. By default, a separate template file (e.g.,
-     * `app.component.html`) is created.
+     * the `app.ts` file. By default, a separate template file (e.g., `app.html`) is created.
      */
     inlineTemplate?: boolean;
     /**
@@ -764,6 +815,10 @@ export type AngularNgNewOptionsSchema = {
      */
     style?: SchematicsAngularApplicationStyle;
     /**
+     * The unit testing runner to use.
+     */
+    testRunner?: TestRunner;
+    /**
      * The version of the Angular CLI to use.
      */
     version: string;
@@ -779,6 +834,14 @@ export type AngularNgNewOptionsSchema = {
      */
     zoneless?: boolean;
 };
+export declare enum AiConfig {
+    ClaudeCode = "claude-code",
+    Cursor = "cursor",
+    GeminiCli = "gemini-cli",
+    None = "none",
+    OpenAiCodex = "open-ai-codex",
+    Vscode = "vscode"
+}
 /**
  * Configure the initial Git commit for the new repository.
  */
@@ -895,10 +958,19 @@ export type AngularResolverOptionsSchema = {
  */
 export type AngularServiceOptionsSchema = {
     /**
+     * When true, the 'type' option will be appended to the generated class name. When false,
+     * only the file name will include the type.
+     */
+    addTypeToClassName?: boolean;
+    /**
      * Creates files at the top level of the project or the given path. If set to false, a new
      * folder with the service's name will be created to contain the files.
      */
     flat?: boolean;
+    /**
+     * When true, generates an `@Injectable` instead of `@Service`.
+     */
+    injectable?: boolean;
     /**
      * The name for the new service. This will be used to create the service's class and spec
      * files (e.g., `my-service.service.ts` and `my-service.service.spec.ts`).

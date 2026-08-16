@@ -1,6 +1,6 @@
 {
   "name": "@ng-bootstrap/ng-bootstrap",
-  "version": "19.0.0",
+  "version": "21.0.0",
   "description": "Angular powered Bootstrap",
   "keywords": [
     "angular",
@@ -19,6 +19,7 @@
     "popover",
     "progressbar",
     "rating",
+    "scrollspy",
     "table",
     "tabset",
     "timepicker",
@@ -40,24 +41,101 @@
     "tslib": "^2.3.0"
   },
   "peerDependencies": {
-    "@angular/common": "^20.0.0",
-    "@angular/core": "^20.0.0",
-    "@angular/forms": "^20.0.0",
-    "@angular/localize": "^20.0.0",
+    "@angular/common": "^22.0.0",
+    "@angular/core": "^22.0.0",
+    "@angular/forms": "^22.0.0",
+    "@angular/localize": "^22.0.0",
     "@popperjs/core": "^2.11.8",
     "rxjs": "^6.5.3 || ^7.4.0"
   },
   "schematics": "./schematics/collection.json",
   "module": "fesm2022/ng-bootstrap.mjs",
-  "typings": "index.d.ts",
+  "typings": "types/ng-bootstrap.d.ts",
   "exports": {
     "./package.json": {
       "default": "./package.json"
     },
     ".": {
-      "types": "./index.d.ts",
+      "types": "./types/ng-bootstrap.d.ts",
       "default": "./fesm2022/ng-bootstrap.mjs"
+    },
+    "./accordion": {
+      "types": "./types/ng-bootstrap-ng-bootstrap-accordion.d.ts",
+      "default": "./fesm2022/ng-bootstrap-ng-bootstrap-accordion.mjs"
+    },
+    "./alert": {
+      "types": "./types/ng-bootstrap-ng-bootstrap-alert.d.ts",
+      "default": "./fesm2022/ng-bootstrap-ng-bootstrap-alert.mjs"
+    },
+    "./carousel": {
+      "types": "./types/ng-bootstrap-ng-bootstrap-carousel.d.ts",
+      "default": "./fesm2022/ng-bootstrap-ng-bootstrap-carousel.mjs"
+    },
+    "./collapse": {
+      "types": "./types/ng-bootstrap-ng-bootstrap-collapse.d.ts",
+      "default": "./fesm2022/ng-bootstrap-ng-bootstrap-collapse.mjs"
+    },
+    "./config": {
+      "types": "./types/ng-bootstrap-ng-bootstrap-config.d.ts",
+      "default": "./fesm2022/ng-bootstrap-ng-bootstrap-config.mjs"
+    },
+    "./datepicker": {
+      "types": "./types/ng-bootstrap-ng-bootstrap-datepicker.d.ts",
+      "default": "./fesm2022/ng-bootstrap-ng-bootstrap-datepicker.mjs"
+    },
+    "./dropdown": {
+      "types": "./types/ng-bootstrap-ng-bootstrap-dropdown.d.ts",
+      "default": "./fesm2022/ng-bootstrap-ng-bootstrap-dropdown.mjs"
+    },
+    "./modal": {
+      "types": "./types/ng-bootstrap-ng-bootstrap-modal.d.ts",
+      "default": "./fesm2022/ng-bootstrap-ng-bootstrap-modal.mjs"
+    },
+    "./nav": {
+      "types": "./types/ng-bootstrap-ng-bootstrap-nav.d.ts",
+      "default": "./fesm2022/ng-bootstrap-ng-bootstrap-nav.mjs"
+    },
+    "./offcanvas": {
+      "types": "./types/ng-bootstrap-ng-bootstrap-offcanvas.d.ts",
+      "default": "./fesm2022/ng-bootstrap-ng-bootstrap-offcanvas.mjs"
+    },
+    "./pagination": {
+      "types": "./types/ng-bootstrap-ng-bootstrap-pagination.d.ts",
+      "default": "./fesm2022/ng-bootstrap-ng-bootstrap-pagination.mjs"
+    },
+    "./popover": {
+      "types": "./types/ng-bootstrap-ng-bootstrap-popover.d.ts",
+      "default": "./fesm2022/ng-bootstrap-ng-bootstrap-popover.mjs"
+    },
+    "./progressbar": {
+      "types": "./types/ng-bootstrap-ng-bootstrap-progressbar.d.ts",
+      "default": "./fesm2022/ng-bootstrap-ng-bootstrap-progressbar.mjs"
+    },
+    "./rating": {
+      "types": "./types/ng-bootstrap-ng-bootstrap-rating.d.ts",
+      "default": "./fesm2022/ng-bootstrap-ng-bootstrap-rating.mjs"
+    },
+    "./scrollspy": {
+      "types": "./types/ng-bootstrap-ng-bootstrap-scrollspy.d.ts",
+      "default": "./fesm2022/ng-bootstrap-ng-bootstrap-scrollspy.mjs"
+    },
+    "./timepicker": {
+      "types": "./types/ng-bootstrap-ng-bootstrap-timepicker.d.ts",
+      "default": "./fesm2022/ng-bootstrap-ng-bootstrap-timepicker.mjs"
+    },
+    "./toast": {
+      "types": "./types/ng-bootstrap-ng-bootstrap-toast.d.ts",
+      "default": "./fesm2022/ng-bootstrap-ng-bootstrap-toast.mjs"
+    },
+    "./tooltip": {
+      "types": "./types/ng-bootstrap-ng-bootstrap-tooltip.d.ts",
+      "default": "./fesm2022/ng-bootstrap-ng-bootstrap-tooltip.mjs"
+    },
+    "./typeahead": {
+      "types": "./types/ng-bootstrap-ng-bootstrap-typeahead.d.ts",
+      "default": "./fesm2022/ng-bootstrap-ng-bootstrap-typeahead.mjs"
     }
   },
-  "sideEffects": false
+  "sideEffects": false,
+  "type": "module"
 }

@@ -61,7 +61,7 @@ exports.default = (0, util_1.createRule)({
          */
         function isNumber(node, value) {
             const evaluated = (0, util_1.getStaticValue)(node, globalScope);
-            return evaluated != null && evaluated.value === value;
+            return evaluated?.value === value;
         }
         /**
          * Check if a given node is a `Literal` node that is a character.
@@ -206,7 +206,8 @@ exports.default = (0, util_1.createRule)({
             }
             const { flags, source } = evaluated.value;
             const isStartsWith = source.startsWith('^');
-            const isEndsWith = source.endsWith('$');
+            // ends with a $ preceded by an even number of backslashes (or zero)
+            const isEndsWith = /[^\\](\\\\)*\$$/.test(source);
             if (isStartsWith === isEndsWith ||
                 flags.includes('i') ||
                 flags.includes('m')) {
@@ -260,9 +261,9 @@ exports.default = (0, util_1.createRule)({
             yield fixer.removeRange([callNode.range[1], node.range[1]]);
         }
         function getParent(node) {
-            return (0, util_1.nullThrows)(node.parent?.type === utils_1.AST_NODE_TYPES.ChainExpression
+            return node.parent.type === utils_1.AST_NODE_TYPES.ChainExpression
                 ? node.parent.parent
-                : node.parent, util_1.NullThrowsReasons.MissingParent);
+                : node.parent;
         }
         return {
             // foo[0] === "a"

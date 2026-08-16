@@ -1,40 +1,12 @@
-"use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.HttpsProxyAgent = void 0;
-const net = __importStar(require("net"));
-const tls = __importStar(require("tls"));
-const assert_1 = __importDefault(require("assert"));
-const debug_1 = __importDefault(require("debug"));
-const agent_base_1 = require("agent-base");
-const url_1 = require("url");
-const parse_proxy_response_1 = require("./parse-proxy-response");
-const debug = (0, debug_1.default)('https-proxy-agent');
+import * as net from 'net';
+import * as tls from 'tls';
+import assert from 'assert';
+import createDebug from 'debug';
+import { Agent } from 'agent-base';
+import { URL } from 'url';
+import { parseProxyResponse } from './parse-proxy-response.js';
+import { createNegotiateAuth, } from 'proxy-agent-negotiate';
+const debug = createDebug('https-proxy-agent');
 const setServernameFromNonIpHost = (options) => {
     if (options.servername === undefined &&
         options.host &&
@@ -58,13 +30,19 @@ const setServernameFromNonIpHost = (options) => {
  * `https:` requests have their socket connection upgraded to TLS once
  * the connection to the proxy server has been established.
  */
-class HttpsProxyAgent extends agent_base_1.Agent {
+export class HttpsProxyAgent extends Agent {
     constructor(proxy, opts) {
         super(opts);
         this.options = { path: undefined };
-        this.proxy = typeof proxy === 'string' ? new url_1.URL(proxy) : proxy;
+        this.proxy = typeof proxy === 'string' ? new URL(proxy) : proxy;
         this.proxyHeaders = opts?.headers ?? {};
         debug('Creating new HttpsProxyAgent instance: %o', this.proxy.href);
+        if (opts?.negotiate) {
+            this.onProxyAuth = createNegotiateAuth();
+        }
+        else if (opts?.onProxyAuth) {
+            this.onProxyAuth = opts.onProxyAuth;
+        }
         // Trim off the brackets from IPv6 addresses
         const host = (this.proxy.hostname || this.proxy.host).replace(/^\[|\]$/g, '');
         const port = this.proxy.port
@@ -75,7 +53,9 @@ class HttpsProxyAgent extends agent_base_1.Agent {
         this.connectOpts = {
             // Attempt to negotiate http/1.1 for proxy servers that support http/2
             ALPNProtocols: ['http/1.1'],
-            ...(opts ? omit(opts, 'headers') : null),
+            ...(opts
+                ? omit(opts, 'headers', 'onProxyAuth', 'negotiate')
+                : null),
             host,
             port,
         };
@@ -118,11 +98,12 @@ class HttpsProxyAgent extends agent_base_1.Agent {
         for (const name of Object.keys(headers)) {
             payload += `${name}: ${headers[name]}\r\n`;
         }
-        const proxyResponsePromise = (0, parse_proxy_response_1.parseProxyResponse)(socket);
+        const proxyResponsePromise = parseProxyResponse(socket);
         socket.write(`${payload}\r\n`);
         const { connect, buffered } = await proxyResponsePromise;
         req.emit('proxyConnect', connect);
         this.emit('proxyConnect', connect, req);
+        req.emit('proxy', { proxy: this.proxy.href, socket });
         if (connect.statusCode === 200) {
             req.once('socket', resume);
             if (opts.secureEndpoint) {
@@ -135,6 +116,21 @@ class HttpsProxyAgent extends agent_base_1.Agent {
                 });
             }
             return socket;
+        }
+        // Handle 407 Proxy Authentication Required
+        if (connect.statusCode === 407 && this.onProxyAuth) {
+            debug('Got 407 response, invoking onProxyAuth callback');
+            socket.destroy();
+            const proxyAuthenticate = connect.headers['proxy-authenticate'] || '';
+            const scheme = Array.isArray(proxyAuthenticate)
+                ? proxyAuthenticate[0].split(/\s/)[0]
+                : proxyAuthenticate.split(/\s/)[0];
+            const authResponse = await this.onProxyAuth({
+                response: connect,
+                scheme,
+            });
+            // Retry with the auth headers
+            return this._connectWithAuth(req, opts, authResponse.headers);
         }
         // Some other status code that's not 200... need to re-play the HTTP
         // header "data" events onto the socket once the HTTP machinery is
@@ -152,7 +148,7 @@ class HttpsProxyAgent extends agent_base_1.Agent {
         // Need to wait for the "socket" event to re-play the "data" events.
         req.once('socket', (s) => {
             debug('Replaying proxy buffer for failed request');
-            (0, assert_1.default)(s.listenerCount('data') > 0);
+            assert(s.listenerCount('data') > 0);
             // Replay the "buffered" Buffer onto the fake `socket`, since at
             // this point the HTTP module machinery has been hooked up for
             // the user.
@@ -161,11 +157,69 @@ class HttpsProxyAgent extends agent_base_1.Agent {
         });
         return fakeSocket;
     }
+    /**
+     * Retry a CONNECT request with additional auth headers.
+     */
+    async _connectWithAuth(req, opts, authHeaders) {
+        const { proxy } = this;
+        let socket;
+        if (proxy.protocol === 'https:') {
+            socket = tls.connect(setServernameFromNonIpHost(this.connectOpts));
+        }
+        else {
+            socket = net.connect(this.connectOpts);
+        }
+        const headers = typeof this.proxyHeaders === 'function'
+            ? this.proxyHeaders()
+            : { ...this.proxyHeaders };
+        const host = net.isIPv6(opts.host) ? `[${opts.host}]` : opts.host;
+        let payload = `CONNECT ${host}:${opts.port} HTTP/1.1\r\n`;
+        if (proxy.username || proxy.password) {
+            const auth = `${decodeURIComponent(proxy.username)}:${decodeURIComponent(proxy.password)}`;
+            headers['Proxy-Authorization'] = `Basic ${Buffer.from(auth).toString('base64')}`;
+        }
+        // Merge auth headers (overrides existing)
+        Object.assign(headers, authHeaders);
+        headers.Host = `${host}:${opts.port}`;
+        if (!headers['Proxy-Connection']) {
+            headers['Proxy-Connection'] = this.keepAlive
+                ? 'Keep-Alive'
+                : 'close';
+        }
+        for (const name of Object.keys(headers)) {
+            payload += `${name}: ${headers[name]}\r\n`;
+        }
+        const proxyResponsePromise = parseProxyResponse(socket);
+        socket.write(`${payload}\r\n`);
+        const { connect } = await proxyResponsePromise;
+        req.emit('proxyConnect', connect);
+        this.emit('proxyConnect', connect, req);
+        if (connect.statusCode === 200) {
+            req.once('socket', resume);
+            if (opts.secureEndpoint) {
+                debug('Upgrading socket connection to TLS');
+                return tls.connect({
+                    ...omit(setServernameFromNonIpHost(opts), 'host', 'path', 'port'),
+                    socket,
+                });
+            }
+            return socket;
+        }
+        // If still not 200, throw
+        socket.destroy();
+        throw new Error(`Proxy authentication failed with status ${connect.statusCode} after retry`);
+    }
 }
 HttpsProxyAgent.protocols = ['http', 'https'];
-exports.HttpsProxyAgent = HttpsProxyAgent;
 function resume(socket) {
-    socket.resume();
+    // Defer the resume so that all 'socket' event handlers have a chance
+    // to attach their listeners (e.g. the HTTP client's 'data' handler)
+    // before data starts flowing. Without this, buffered proxy-response
+    // data can be emitted synchronously before listeners are ready.
+    // See: https://github.com/nicolo-ribaudo/tc39-proposal-await-dictionary/issues/7
+    setImmediate(() => {
+        socket.resume();
+    });
 }
 function omit(obj, ...keys) {
     const ret = {};

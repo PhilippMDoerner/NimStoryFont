@@ -1,15 +1,11 @@
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterTestingModule } from '@angular/router/testing';
-import { action } from 'storybook/actions';
 import { Meta, StoryFn, moduleMetadata } from '@storybook/angular';
-import { Spell } from 'src/app/_models/spell';
-import { FORMLY_MODULE } from 'src/app/_modules/formly_constants';
-import { dummyClasses } from 'src/app/_services/article/player-class.service.mock';
-import * as all from 'tinymce/tinymce';
+import { action } from 'storybook/actions';
+import { Spell } from '../../../_models/spell';
+import { FORMLY_MODULE } from '../../../_modules/formly_constants';
+import { dummyClasses } from '../../../_services/article/player-class.service.mock';
 import { SpellsComponent } from './spells.component';
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const x = all;
 
 const dummySpell: Spell = {
   getAbsoluteRouterUrl: () => '/spells/1',

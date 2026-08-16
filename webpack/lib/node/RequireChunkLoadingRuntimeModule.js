@@ -8,6 +8,9 @@ const RuntimeGlobals = require("../RuntimeGlobals");
 const RuntimeModule = require("../RuntimeModule");
 const Template = require("../Template");
 const {
+	generateJavascriptHMR
+} = require("../hmr/JavascriptHotModuleReplacementHelper");
+const {
 	chunkHasJs,
 	getChunkFilenameTemplate
 } = require("../javascript/JavascriptModulesPlugin");
@@ -18,30 +21,35 @@ const { getUndoPath } = require("../util/identifier");
 /** @typedef {import("../Chunk")} Chunk */
 /** @typedef {import("../ChunkGraph")} ChunkGraph */
 /** @typedef {import("../Compilation")} Compilation */
+/** @typedef {import("../RuntimeTemplate")} RuntimeTemplate */
 /** @typedef {import("../Module").ReadOnlyRuntimeRequirements} ReadOnlyRuntimeRequirements */
 
 class RequireChunkLoadingRuntimeModule extends RuntimeModule {
 	/**
+	 * Creates an instance of RequireChunkLoadingRuntimeModule.
 	 * @param {ReadOnlyRuntimeRequirements} runtimeRequirements runtime requirements
 	 */
 	constructor(runtimeRequirements) {
 		super("require chunk loading", RuntimeModule.STAGE_ATTACH);
+		/** @type {ReadOnlyRuntimeRequirements} */
 		this.runtimeRequirements = runtimeRequirements;
 	}
 
 	/**
+	 * Returns generated code.
 	 * @private
 	 * @param {Chunk} chunk chunk
 	 * @param {string} rootOutputDir root output directory
+	 * @param {RuntimeTemplate} runtimeTemplate the runtime template
 	 * @returns {string} generated code
 	 */
-	_generateBaseUri(chunk, rootOutputDir) {
+	_generateBaseUri(chunk, rootOutputDir, runtimeTemplate) {
 		const options = chunk.getEntryOptions();
 		if (options && options.baseUri) {
 			return `${RuntimeGlobals.baseURI} = ${JSON.stringify(options.baseUri)};`;
 		}
 
-		return `${RuntimeGlobals.baseURI} = require("url").pathToFileURL(${
+		return `${RuntimeGlobals.baseURI} = require(${runtimeTemplate.renderNodePrefixForCoreModule("url")}).pathToFileURL(${
 			rootOutputDir !== "./"
 				? `__dirname + ${JSON.stringify(`/${rootOutputDir}`)}`
 				: "__filename"
@@ -49,6 +57,7 @@ class RequireChunkLoadingRuntimeModule extends RuntimeModule {
 	}
 
 	/**
+	 * Generates runtime code for this runtime module.
 	 * @returns {string | null} runtime code
 	 */
 	generate() {
@@ -86,7 +95,7 @@ class RequireChunkLoadingRuntimeModule extends RuntimeModule {
 		);
 		const rootOutputDir = getUndoPath(
 			outputName,
-			/** @type {string} */ (compilation.outputOptions.path),
+			compilation.outputOptions.path,
 			true
 		);
 
@@ -94,22 +103,24 @@ class RequireChunkLoadingRuntimeModule extends RuntimeModule {
 			? `${RuntimeGlobals.hmrRuntimeStatePrefix}_require`
 			: undefined;
 
+		const cst = runtimeTemplate.renderConst();
+		const installedChunksObject = `{\n${Template.indent(
+			Array.from(initialChunkIds, (id) => `${JSON.stringify(id)}: 1`).join(
+				",\n"
+			)
+		)}\n}`;
 		return Template.asString([
 			withBaseURI
-				? this._generateBaseUri(chunk, rootOutputDir)
+				? this._generateBaseUri(chunk, rootOutputDir, runtimeTemplate)
 				: "// no baseURI",
 			"",
 			"// object to store loaded chunks",
 			'// "1" means "loaded", otherwise not loaded yet',
-			`var installedChunks = ${
-				stateExpression ? `${stateExpression} = ${stateExpression} || ` : ""
-			}{`,
-			Template.indent(
-				Array.from(initialChunkIds, id => `${JSON.stringify(id)}: 1`).join(
-					",\n"
-				)
-			),
-			"};",
+			`${cst} installedChunks = ${
+				stateExpression
+					? runtimeTemplate.assignOr(stateExpression, installedChunksObject)
+					: installedChunksObject
+			};`,
 			"",
 			withOnChunkLoad
 				? `${
@@ -121,8 +132,8 @@ class RequireChunkLoadingRuntimeModule extends RuntimeModule {
 				: "// no on chunks loaded",
 			"",
 			withLoading || withExternalInstallChunk
-				? `var installChunk = ${runtimeTemplate.basicFunction("chunk", [
-						"var moreModules = chunk.modules, chunkIds = chunk.ids, runtime = chunk.runtime;",
+				? `${cst} installChunk = ${runtimeTemplate.basicFunction("chunk", [
+						`${cst} moreModules = chunk.modules, chunkIds = chunk.ids, runtime = chunk.runtime;`,
 						"for(var moduleId in moreModules) {",
 						Template.indent([
 							`if(${RuntimeGlobals.hasOwnProperty}(moreModules, moduleId)) {`,
@@ -153,11 +164,16 @@ class RequireChunkLoadingRuntimeModule extends RuntimeModule {
 												? "if(true) { // all chunks have JS"
 												: `if(${hasJsMatcher("chunkId")}) {`,
 											Template.indent([
-												`installChunk(require(${JSON.stringify(
+												// The require function loads and runs a chunk. When the chunk is being run,
+												// it can call __webpack_require__.C to directly complete installed.
+												`${cst} installedChunk = require(${JSON.stringify(
 													rootOutputDir
 												)} + ${
 													RuntimeGlobals.getChunkScriptFilename
-												}(chunkId)));`
+												}(chunkId));`,
+												"if (!installedChunks[chunkId]) {",
+												Template.indent(["installChunk(installedChunk);"]),
+												"}"
 											]),
 											"} else installedChunks[chunkId] = 1;",
 											""
@@ -180,17 +196,17 @@ class RequireChunkLoadingRuntimeModule extends RuntimeModule {
 				? Template.asString([
 						"function loadUpdateChunk(chunkId, updatedModulesList) {",
 						Template.indent([
-							`var update = require(${JSON.stringify(rootOutputDir)} + ${
+							`${cst} update = require(${JSON.stringify(rootOutputDir)} + ${
 								RuntimeGlobals.getChunkUpdateScriptFilename
 							}(chunkId));`,
-							"var updatedModules = update.modules;",
-							"var runtime = update.runtime;",
+							`${cst} updatedModules = update.modules;`,
+							`${cst} runtime = update.runtime;`,
 							"for(var moduleId in updatedModules) {",
 							Template.indent([
 								`if(${RuntimeGlobals.hasOwnProperty}(updatedModules, moduleId)) {`,
 								Template.indent([
 									"currentUpdate[moduleId] = updatedModules[moduleId];",
-									"if(updatedModulesList) updatedModulesList.push(moduleId);"
+									`${runtimeTemplate.optionalChaining("updatedModulesList", "push(moduleId)")};`
 								]),
 								"}"
 							]),
@@ -199,28 +215,7 @@ class RequireChunkLoadingRuntimeModule extends RuntimeModule {
 						]),
 						"}",
 						"",
-						Template.getFunctionContent(
-							require("../hmr/JavascriptHotModuleReplacement.runtime.js")
-						)
-							.replace(/\$key\$/g, "require")
-							.replace(/\$installedChunks\$/g, "installedChunks")
-							.replace(/\$loadUpdateChunk\$/g, "loadUpdateChunk")
-							.replace(/\$moduleCache\$/g, RuntimeGlobals.moduleCache)
-							.replace(/\$moduleFactories\$/g, RuntimeGlobals.moduleFactories)
-							.replace(
-								/\$ensureChunkHandlers\$/g,
-								RuntimeGlobals.ensureChunkHandlers
-							)
-							.replace(/\$hasOwnProperty\$/g, RuntimeGlobals.hasOwnProperty)
-							.replace(/\$hmrModuleData\$/g, RuntimeGlobals.hmrModuleData)
-							.replace(
-								/\$hmrDownloadUpdateHandlers\$/g,
-								RuntimeGlobals.hmrDownloadUpdateHandlers
-							)
-							.replace(
-								/\$hmrInvalidateModuleHandlers\$/g,
-								RuntimeGlobals.hmrInvalidateModuleHandlers
-							)
+						generateJavascriptHMR("require")
 					])
 				: "// no HMR",
 			"",
@@ -234,7 +229,10 @@ class RequireChunkLoadingRuntimeModule extends RuntimeModule {
 									RuntimeGlobals.getUpdateManifestFilename
 								}());`
 							]),
-							"})['catch'](function(err) { if(err.code !== 'MODULE_NOT_FOUND') throw err; });"
+							`}).catch(${runtimeTemplate.basicFunction("err", [
+								"if(['MODULE_NOT_FOUND', 'ENOENT'].includes(err.code)) return;",
+								"throw err;"
+							])});`
 						]),
 						"}"
 					])

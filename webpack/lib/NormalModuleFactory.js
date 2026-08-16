@@ -5,14 +5,13 @@
 
 "use strict";
 
-const { getContext } = require("loader-runner");
 const asyncLib = require("neo-async");
 const {
 	AsyncSeriesBailHook,
-	SyncWaterfallHook,
+	HookMap,
 	SyncBailHook,
 	SyncHook,
-	HookMap
+	SyncWaterfallHook
 } = require("tapable");
 const ChunkGraph = require("./ChunkGraph");
 const Module = require("./Module");
@@ -20,6 +19,8 @@ const ModuleFactory = require("./ModuleFactory");
 const ModuleGraph = require("./ModuleGraph");
 const { JAVASCRIPT_MODULE_TYPE_AUTO } = require("./ModuleTypeConstants");
 const NormalModule = require("./NormalModule");
+const { ImportPhaseUtils } = require("./dependencies/ImportPhase");
+const { getContext } = require("./loaders/LoaderRunner");
 const BasicEffectRulePlugin = require("./rules/BasicEffectRulePlugin");
 const BasicMatcherRulePlugin = require("./rules/BasicMatcherRulePlugin");
 const ObjectMatcherRulePlugin = require("./rules/ObjectMatcherRulePlugin");
@@ -30,12 +31,16 @@ const { getScheme } = require("./util/URLAbsoluteSpecifier");
 const { cachedCleverMerge, cachedSetProperty } = require("./util/cleverMerge");
 const { join } = require("./util/fs");
 const {
+	escapeHashInPathRequest,
 	parseResource,
 	parseResourceWithoutFragment
 } = require("./util/identifier");
 
+/** @typedef {import("enhanced-resolve").ResolveContext} ResolveContext */
+/** @typedef {import("enhanced-resolve").ResolveRequest} ResolveRequest */
 /** @typedef {import("../declarations/WebpackOptions").ModuleOptionsNormalized} ModuleOptions */
 /** @typedef {import("../declarations/WebpackOptions").RuleSetRule} RuleSetRule */
+/** @typedef {import("./Compilation").FileSystemDependencies} FileSystemDependencies */
 /** @typedef {import("./Generator")} Generator */
 /** @typedef {import("./ModuleFactory").ModuleFactoryCallback} ModuleFactoryCallback */
 /** @typedef {import("./ModuleFactory").ModuleFactoryCreateData} ModuleFactoryCreateData */
@@ -47,36 +52,46 @@ const {
 /** @typedef {import("./NormalModule").ParserOptions} ParserOptions */
 /** @typedef {import("./Parser")} Parser */
 /** @typedef {import("./ResolverFactory")} ResolverFactory */
-/** @typedef {import("./ResolverFactory").ResolveContext} ResolveContext */
-/** @typedef {import("./ResolverFactory").ResolveRequest} ResolveRequest */
 /** @typedef {import("./ResolverFactory").ResolverWithOptions} ResolverWithOptions */
 /** @typedef {import("./dependencies/ModuleDependency")} ModuleDependency */
+/** @typedef {import("./dependencies/ImportPhase").ImportPhaseType} ImportPhaseType */
+/** @typedef {import("./dependencies/ImportPhase").ImportPhaseName} ImportPhaseName */
 /** @typedef {import("./javascript/JavascriptParser").ImportAttributes} ImportAttributes */
 /** @typedef {import("./rules/RuleSetCompiler").RuleSetRules} RuleSetRules */
+/** @typedef {import("./rules/RuleSetCompiler").RuleSet} RuleSet */
 /** @typedef {import("./util/fs").InputFileSystem} InputFileSystem */
 /** @typedef {import("./util/identifier").AssociatedObjectForCache} AssociatedObjectForCache */
 
-/** @typedef {Pick<RuleSetRule, 'type' | 'sideEffects' | 'parser' | 'generator' | 'resolve' | 'layer'>} ModuleSettings */
-/** @typedef {Partial<NormalModuleCreateData & { settings: ModuleSettings }>} CreateData */
+/**
+ * Defines the callback type used by this module.
+ * @template T
+ * @typedef {import("./Compiler").Callback<T>} Callback
+ */
+
+/** @typedef {Pick<RuleSetRule, "type" | "sideEffects" | "parser" | "generator" | "resolve" | "layer" | "extractSourceMap">} ModuleSettings */
+/** @typedef {NormalModuleCreateData & { settings: ModuleSettings }} CreateData */
 
 /**
+ * Defines the resolve data type used by this module.
  * @typedef {object} ResolveData
  * @property {ModuleFactoryCreateData["contextInfo"]} contextInfo
  * @property {ModuleFactoryCreateData["resolveOptions"]} resolveOptions
  * @property {string} context
  * @property {string} request
- * @property {ImportAttributes | undefined} assertions
+ * @property {ImportPhaseName=} phase
+ * @property {ImportAttributes=} attributes
  * @property {ModuleDependency[]} dependencies
  * @property {string} dependencyType
- * @property {CreateData} createData
- * @property {LazySet<string>} fileDependencies
- * @property {LazySet<string>} missingDependencies
- * @property {LazySet<string>} contextDependencies
+ * @property {Partial<CreateData>} createData
+ * @property {FileSystemDependencies} fileDependencies
+ * @property {FileSystemDependencies} missingDependencies
+ * @property {FileSystemDependencies} contextDependencies
  * @property {Module=} ignoredModule
  * @property {boolean} cacheable allow to use the unsafe cache
  */
 
 /**
+ * Defines the resource data type used by this module.
  * @typedef {object} ResourceData
  * @property {string} resource
  * @property {string=} path
@@ -86,6 +101,7 @@ const {
  */
 
 /**
+ * Defines the resource scheme data type used by this module.
  * @typedef {object} ResourceSchemeData
  * @property {string=} mimetype mime type of the resource
  * @property {string=} parameters additional parameters for the resource
@@ -96,18 +112,44 @@ const {
 /** @typedef {ResourceData & { data: ResourceSchemeData & Partial<ResolveRequest> }} ResourceDataWithData */
 
 /**
+ * Defines the parsed loader request type used by this module.
  * @typedef {object} ParsedLoaderRequest
  * @property {string} loader loader
- * @property {string|undefined} options options
+ * @property {string | undefined} options options
  */
 
 /**
- * @template T
- * @callback Callback
- * @param {(Error | null)=} err
- * @param {T=} stats
- * @returns {void}
+ * Dependencies captured while resolving a loader.
+ * @typedef {object} ResolveDependencies
+ * @property {LazySet<string>} fileDependencies file dependencies of the resolve
+ * @property {LazySet<string>} contextDependencies context dependencies of the resolve
+ * @property {LazySet<string>} missingDependencies missing dependencies of the resolve
  */
+
+/**
+ * Memoized result of resolving a loader for a given (context, request).
+ * @typedef {ResolveDependencies & { loader: string, query: string | undefined, type: string | undefined }} LoaderResolveCacheEntry
+ */
+
+/** @typedef {import("./ModuleTypeConstants").JAVASCRIPT_MODULE_TYPE_AUTO} JAVASCRIPT_MODULE_TYPE_AUTO */
+/** @typedef {import("./ModuleTypeConstants").JAVASCRIPT_MODULE_TYPE_DYNAMIC} JAVASCRIPT_MODULE_TYPE_DYNAMIC */
+/** @typedef {import("./ModuleTypeConstants").JAVASCRIPT_MODULE_TYPE_ESM} JAVASCRIPT_MODULE_TYPE_ESM */
+/** @typedef {import("./ModuleTypeConstants").JSON_MODULE_TYPE} JSON_MODULE_TYPE */
+/** @typedef {import("./ModuleTypeConstants").ASSET_MODULE_TYPE} ASSET_MODULE_TYPE */
+/** @typedef {import("./ModuleTypeConstants").ASSET_MODULE_TYPE_INLINE} ASSET_MODULE_TYPE_INLINE */
+/** @typedef {import("./ModuleTypeConstants").ASSET_MODULE_TYPE_RESOURCE} ASSET_MODULE_TYPE_RESOURCE */
+/** @typedef {import("./ModuleTypeConstants").ASSET_MODULE_TYPE_SOURCE} ASSET_MODULE_TYPE_SOURCE */
+/** @typedef {import("./ModuleTypeConstants").ASSET_MODULE_TYPE_BYTES} ASSET_MODULE_TYPE_BYTES */
+/** @typedef {import("./ModuleTypeConstants").WEBASSEMBLY_MODULE_TYPE_ASYNC} WEBASSEMBLY_MODULE_TYPE_ASYNC */
+/** @typedef {import("./ModuleTypeConstants").WEBASSEMBLY_MODULE_TYPE_SYNC} WEBASSEMBLY_MODULE_TYPE_SYNC */
+/** @typedef {import("./ModuleTypeConstants").CSS_MODULE_TYPE} CSS_MODULE_TYPE */
+/** @typedef {import("./ModuleTypeConstants").CSS_MODULE_TYPE_GLOBAL} CSS_MODULE_TYPE_GLOBAL */
+/** @typedef {import("./ModuleTypeConstants").CSS_MODULE_TYPE_MODULE} CSS_MODULE_TYPE_MODULE */
+/** @typedef {import("./ModuleTypeConstants").CSS_MODULE_TYPE_AUTO} CSS_MODULE_TYPE_AUTO */
+/** @typedef {import("./ModuleTypeConstants").HTML_MODULE_TYPE} HTML_MODULE_TYPE */
+
+/** @typedef {JAVASCRIPT_MODULE_TYPE_AUTO | JAVASCRIPT_MODULE_TYPE_DYNAMIC | JAVASCRIPT_MODULE_TYPE_ESM | JSON_MODULE_TYPE | ASSET_MODULE_TYPE | ASSET_MODULE_TYPE_INLINE | ASSET_MODULE_TYPE_RESOURCE | ASSET_MODULE_TYPE_SOURCE | WEBASSEMBLY_MODULE_TYPE_ASYNC | WEBASSEMBLY_MODULE_TYPE_SYNC | CSS_MODULE_TYPE | CSS_MODULE_TYPE_GLOBAL | CSS_MODULE_TYPE_MODULE | CSS_MODULE_TYPE_AUTO | HTML_MODULE_TYPE} KnownNormalModuleTypes */
+/** @typedef {KnownNormalModuleTypes | string} NormalModuleTypes */
 
 const EMPTY_RESOLVE_OPTIONS = {};
 /** @type {ParserOptions} */
@@ -121,10 +163,30 @@ const MATCH_RESOURCE_REGEX = /^([^!]+)!=!/;
 const LEADING_DOT_EXTENSION_REGEX = /^[^.]/;
 
 /**
+ * Replays the file/context/missing dependencies captured by a loader resolve
+ * into a resolve context, so memoized loaders still record everything needed
+ * for watch invalidation.
+ * @param {ResolveContext} resolveContext resolve context to add dependencies to
+ * @param {ResolveDependencies} source captured resolve dependencies
+ * @returns {void}
+ */
+const replayResolveDependencies = (resolveContext, source) => {
+	// On this path resolveContext always carries the three LazySet dependency
+	// sets built in the `resolve` hook, so they are safe to treat as LazySet.
+	/** @type {LazySet<string>} */
+	(resolveContext.fileDependencies).addAll(source.fileDependencies);
+	/** @type {LazySet<string>} */
+	(resolveContext.contextDependencies).addAll(source.contextDependencies);
+	/** @type {LazySet<string>} */
+	(resolveContext.missingDependencies).addAll(source.missingDependencies);
+};
+
+/**
+ * Returns ident.
  * @param {LoaderItem} data data
  * @returns {string} ident
  */
-const loaderToIdent = data => {
+const loaderToIdent = (data) => {
 	if (!data.options) {
 		return data.loader;
 	}
@@ -141,6 +203,7 @@ const loaderToIdent = data => {
 };
 
 /**
+ * Stringify loaders and resource.
  * @param {LoaderItem[]} loaders loaders
  * @param {string} resource resource
  * @returns {string} stringified loaders and resource
@@ -154,11 +217,12 @@ const stringifyLoadersAndResource = (loaders, resource) => {
 };
 
 /**
+ * Checks whether it needs calls.
  * @param {number} times times
  * @param {(err?: null | Error) => void} callback callback
  * @returns {(err?: null | Error) => void} callback
  */
-const needCalls = (times, callback) => err => {
+const needCalls = (times, callback) => (err) => {
 	if (--times === 0) {
 		return callback(err);
 	}
@@ -169,6 +233,7 @@ const needCalls = (times, callback) => err => {
 };
 
 /**
+ * Merges global options.
  * @template T
  * @template O
  * @param {T} globalOptions global options
@@ -178,6 +243,7 @@ const needCalls = (times, callback) => err => {
  */
 const mergeGlobalOptions = (globalOptions, type, localOptions) => {
 	const parts = type.split("/");
+	/** @type {undefined | T} */
 	let result;
 	let current = "";
 	for (const part of parts) {
@@ -198,13 +264,14 @@ const mergeGlobalOptions = (globalOptions, type, localOptions) => {
 
 // TODO webpack 6 remove
 /**
+ * Deprecation changed hook message.
  * @template {import("tapable").Hook<EXPECTED_ANY, EXPECTED_ANY>} T
  * @param {string} name name
  * @param {T} hook hook
  * @returns {string} result
  */
 const deprecationChangedHookMessage = (name, hook) => {
-	const names = hook.taps.map(tapped => tapped.name).join(", ");
+	const names = hook.taps.map((tapped) => tapped.name).join(", ");
 
 	return (
 		`NormalModuleFactory.${name} (${names}) is no longer a waterfall hook, but a bailing hook instead. ` +
@@ -227,7 +294,8 @@ const ruleSetCompiler = new RuleSetCompiler([
 	new BasicMatcherRulePlugin("issuer"),
 	new BasicMatcherRulePlugin("compiler"),
 	new BasicMatcherRulePlugin("issuerLayer"),
-	new ObjectMatcherRulePlugin("assert", "assertions", value => {
+	new BasicMatcherRulePlugin("phase"),
+	new ObjectMatcherRulePlugin("assert", "attributes", (value) => {
 		if (value) {
 			return (
 				/** @type {ImportAttributes} */ (value)._isLegacyAssert !== undefined
@@ -236,7 +304,7 @@ const ruleSetCompiler = new RuleSetCompiler([
 
 		return false;
 	}),
-	new ObjectMatcherRulePlugin("with", "assertions", value => {
+	new ObjectMatcherRulePlugin("with", "attributes", (value) => {
 		if (value) {
 			return !(/** @type {ImportAttributes} */ (value)._isLegacyAssert);
 		}
@@ -249,26 +317,115 @@ const ruleSetCompiler = new RuleSetCompiler([
 	new BasicEffectRulePlugin("resolve"),
 	new BasicEffectRulePlugin("generator"),
 	new BasicEffectRulePlugin("layer"),
+	new BasicEffectRulePlugin("extractSourceMap"),
 	new UseEffectRulePlugin()
 ]);
 
+/** @typedef {import("./javascript/JavascriptParser")} JavascriptParser */
+/** @typedef {import("../declarations/WebpackOptions").JavascriptParserOptions} JavascriptParserOptions */
+/** @typedef {import("./javascript/JavascriptGenerator")} JavascriptGenerator */
+/** @typedef {import("../declarations/WebpackOptions").EmptyGeneratorOptions} EmptyGeneratorOptions */
+
+/** @typedef {import("./json/JsonParser")} JsonParser */
+/** @typedef {import("../declarations/WebpackOptions").JsonParserOptions} JsonParserOptions */
+/** @typedef {import("./json/JsonGenerator")} JsonGenerator */
+/** @typedef {import("../declarations/WebpackOptions").JsonGeneratorOptions} JsonGeneratorOptions */
+
+/** @typedef {import("./asset/AssetParser")} AssetParser */
+/** @typedef {import("./asset/AssetSourceParser")} AssetSourceParser */
+/** @typedef {import("./asset/AssetBytesParser")} AssetBytesParser */
+/** @typedef {import("../declarations/WebpackOptions").AssetParserOptions} AssetParserOptions */
+/** @typedef {import("../declarations/WebpackOptions").EmptyParserOptions} EmptyParserOptions */
+/** @typedef {import("./asset/AssetGenerator")} AssetGenerator */
+/** @typedef {import("../declarations/WebpackOptions").AssetGeneratorOptions} AssetGeneratorOptions */
+/** @typedef {import("../declarations/WebpackOptions").AssetInlineGeneratorOptions} AssetInlineGeneratorOptions */
+/** @typedef {import("../declarations/WebpackOptions").AssetResourceGeneratorOptions} AssetResourceGeneratorOptions */
+/** @typedef {import("./asset/AssetSourceGenerator")} AssetSourceGenerator */
+/** @typedef {import("./asset/AssetBytesGenerator")} AssetBytesGenerator */
+
+/** @typedef {import("./wasm-async/AsyncWebAssemblyParser")} AsyncWebAssemblyParser */
+/** @typedef {import("./wasm-sync/WebAssemblyParser")} WebAssemblyParser */
+
+/** @typedef {import("./css/CssParser")} CssParser */
+/** @typedef {import("../declarations/WebpackOptions").CssParserOptions} CssParserOptions */
+/** @typedef {import("../declarations/WebpackOptions").CssModuleParserOptions} CssModuleParserOptions */
+/** @typedef {import("./css/CssGenerator")} CssGenerator */
+/** @typedef {import("../declarations/WebpackOptions").CssGeneratorOptions} CssGeneratorOptions */
+/** @typedef {import("../declarations/WebpackOptions").CssModuleGeneratorOptions} CssModuleGeneratorOptions */
+
+/** @typedef {import("./html/HtmlParser")} HtmlParser */
+/** @typedef {import("../declarations/WebpackOptions").EmptyParserOptions} HtmlParserOptions */
+/** @typedef {import("./html/HtmlGenerator")} HtmlGenerator */
+/** @typedef {import("../declarations/WebpackOptions").HtmlGeneratorOptions} HtmlGeneratorOptions */
+
+/* eslint-disable jsdoc/type-formatting */
+/**
+ * Defines the shared type used by this module.
+ * @typedef {[
+ * [JAVASCRIPT_MODULE_TYPE_AUTO, JavascriptParser, JavascriptParserOptions, JavascriptGenerator, EmptyGeneratorOptions],
+ * [JAVASCRIPT_MODULE_TYPE_DYNAMIC, JavascriptParser, JavascriptParserOptions, JavascriptGenerator, EmptyGeneratorOptions],
+ * [JAVASCRIPT_MODULE_TYPE_ESM, JavascriptParser, JavascriptParserOptions, JavascriptGenerator, EmptyGeneratorOptions],
+ * [JSON_MODULE_TYPE, JsonParser, JsonParserOptions, JsonGenerator, JsonGeneratorOptions],
+ * [ASSET_MODULE_TYPE, AssetParser, AssetParserOptions, AssetGenerator, AssetGeneratorOptions],
+ * [ASSET_MODULE_TYPE_INLINE, AssetParser, EmptyParserOptions, AssetGenerator, AssetGeneratorOptions],
+ * [ASSET_MODULE_TYPE_RESOURCE, AssetParser, EmptyParserOptions, AssetGenerator, AssetGeneratorOptions],
+ * [ASSET_MODULE_TYPE_SOURCE, AssetSourceParser, EmptyParserOptions, AssetSourceGenerator, EmptyGeneratorOptions],
+ * [ASSET_MODULE_TYPE_BYTES, AssetBytesParser, EmptyParserOptions, AssetBytesGenerator, EmptyGeneratorOptions],
+ * [WEBASSEMBLY_MODULE_TYPE_ASYNC, AsyncWebAssemblyParser, EmptyParserOptions, Generator, EmptyGeneratorOptions],
+ * [WEBASSEMBLY_MODULE_TYPE_SYNC, WebAssemblyParser, EmptyParserOptions, Generator, EmptyGeneratorOptions],
+ * [CSS_MODULE_TYPE, CssParser, CssParserOptions, CssGenerator, CssGeneratorOptions],
+ * [CSS_MODULE_TYPE_AUTO, CssParser, CssModuleParserOptions, CssGenerator, CssModuleGeneratorOptions],
+ * [CSS_MODULE_TYPE_MODULE, CssParser, CssModuleParserOptions, CssGenerator, CssModuleGeneratorOptions],
+ * [CSS_MODULE_TYPE_GLOBAL, CssParser, CssModuleParserOptions, CssGenerator, CssModuleGeneratorOptions],
+ * [HTML_MODULE_TYPE, HtmlParser, HtmlParserOptions, HtmlGenerator, HtmlGeneratorOptions],
+ * [string, Parser, ParserOptions, Generator, GeneratorOptions],
+ * ]} ParsersAndGeneratorsByTypes
+ */
+/* eslint-enable jsdoc/type-formatting */
+
+/**
+ * Defines the extract tuple elements type used by this module.
+ * @template {unknown[]} T
+ * @template {number[]} I
+ * @typedef {{ [K in keyof I]: K extends keyof I ? I[K] extends keyof T ? T[I[K]] : never : never }} ExtractTupleElements
+ */
+
+/**
+ * Represents the normal module factory runtime component.
+ * @template {unknown[]} T
+ * @template {number[]} A
+ * @template [R=void]
+ * @typedef {T extends [infer Head extends [string, ...unknown[]], ...infer Tail extends [string, ...unknown[]][]] ? Record<Head[0], SyncBailHook<ExtractTupleElements<Head, A>, R extends number ? Head[R] : R>> & RecordFactoryFromTuple<Tail, A, R> : unknown } RecordFactoryFromTuple
+ */
+
+/**
+ * Maps each tuple in `T` to a record from its `[0]` key to its `[I]` value.
+ * @template {unknown[]} T
+ * @template {number} I
+ * @typedef {T extends [infer Head extends [string, ...unknown[]], ...infer Tail extends [string, ...unknown[]][]] ? Record<Head[0], I extends keyof Head ? Head[I] : never> & TupleToTypeMap<Tail, I> : unknown } TupleToTypeMap
+ */
+
+/** @typedef {TupleToTypeMap<ParsersAndGeneratorsByTypes, 1>} ParserByType */
+/** @typedef {TupleToTypeMap<ParsersAndGeneratorsByTypes, 2>} ParserOptionsByType */
+/** @typedef {TupleToTypeMap<ParsersAndGeneratorsByTypes, 3>} GeneratorByType */
+/** @typedef {TupleToTypeMap<ParsersAndGeneratorsByTypes, 4>} GeneratorOptionsByType */
+
 class NormalModuleFactory extends ModuleFactory {
 	/**
+	 * Creates an instance of NormalModuleFactory.
 	 * @param {object} param params
 	 * @param {string=} param.context context
 	 * @param {InputFileSystem} param.fs file system
 	 * @param {ResolverFactory} param.resolverFactory resolverFactory
 	 * @param {ModuleOptions} param.options options
 	 * @param {AssociatedObjectForCache} param.associatedObjectForCache an object to which the cache will be attached
-	 * @param {boolean=} param.layers enable layers
 	 */
 	constructor({
 		context,
 		fs,
 		resolverFactory,
 		options,
-		associatedObjectForCache,
-		layers = false
+		associatedObjectForCache
 	}) {
 		super();
 		this.hooks = Object.freeze({
@@ -278,7 +435,10 @@ class NormalModuleFactory extends ModuleFactory {
 			resolveForScheme: new HookMap(
 				() => new AsyncSeriesBailHook(["resourceData", "resolveData"])
 			),
-			/** @type {HookMap<AsyncSeriesBailHook<[ResourceDataWithData, ResolveData], true | void>>} */
+			/**
+			 * @type {HookMap<AsyncSeriesBailHook<[ResourceDataWithData, ResolveData], true | void>>}
+			 * @since 5.49.0
+			 */
 			resolveInScheme: new HookMap(
 				() => new AsyncSeriesBailHook(["resourceData", "resolveData"])
 			),
@@ -292,24 +452,29 @@ class NormalModuleFactory extends ModuleFactory {
 			createModule: new AsyncSeriesBailHook(["createData", "resolveData"]),
 			/** @type {SyncWaterfallHook<[Module, CreateData, ResolveData]>} */
 			module: new SyncWaterfallHook(["module", "createData", "resolveData"]),
-			/** @type {HookMap<SyncBailHook<[ParserOptions], Parser | void>>} */
+			/** @type {import("tapable").TypedHookMap<RecordFactoryFromTuple<ParsersAndGeneratorsByTypes, [2], 1>>} */
 			createParser: new HookMap(() => new SyncBailHook(["parserOptions"])),
-			/** @type {HookMap<SyncBailHook<[TODO, ParserOptions], void>>} */
+			/** @type {import("tapable").TypedHookMap<RecordFactoryFromTuple<ParsersAndGeneratorsByTypes, [1, 2]>>} */
 			parser: new HookMap(() => new SyncHook(["parser", "parserOptions"])),
-			/** @type {HookMap<SyncBailHook<[GeneratorOptions], Generator | void>>} */
+			/** @type {import("tapable").TypedHookMap<RecordFactoryFromTuple<ParsersAndGeneratorsByTypes, [4], 3>>} */
 			createGenerator: new HookMap(
 				() => new SyncBailHook(["generatorOptions"])
 			),
-			/** @type {HookMap<SyncBailHook<[TODO, GeneratorOptions], void>>} */
+			/** @type {import("tapable").TypedHookMap<RecordFactoryFromTuple<ParsersAndGeneratorsByTypes, [3, 4]>>} */
 			generator: new HookMap(
 				() => new SyncHook(["generator", "generatorOptions"])
 			),
-			/** @type {HookMap<SyncBailHook<[TODO, ResolveData], Module | void>>} */
+			/**
+			 * @type {HookMap<SyncBailHook<[CreateData, ResolveData], Module | void>>}
+			 * @since 5.81.0
+			 */
 			createModuleClass: new HookMap(
 				() => new SyncBailHook(["createData", "resolveData"])
 			)
 		});
+		/** @type {ResolverFactory} */
 		this.resolverFactory = resolverFactory;
+		/** @type {RuleSet} */
 		this.ruleSet = ruleSetCompiler.compile([
 			{
 				rules: /** @type {RuleSetRules} */ (options.defaultRules)
@@ -318,7 +483,9 @@ class NormalModuleFactory extends ModuleFactory {
 				rules: /** @type {RuleSetRules} */ (options.rules)
 			}
 		]);
+		/** @type {string} */
 		this.context = context || "";
+		/** @type {InputFileSystem} */
 		this.fs = fs;
 		this._globalParserOptions = options.parser;
 		this._globalGeneratorOptions = options.generator;
@@ -328,6 +495,8 @@ class NormalModuleFactory extends ModuleFactory {
 		this.generatorCache = new Map();
 		/** @type {Set<Module>} */
 		this._restoredUnsafeCacheEntries = new Set();
+		/** @type {Map<string, LoaderResolveCacheEntry>} */
+		this._loaderResolveCache = new Map();
 
 		/** @type {(resource: string) => import("./util/identifier").ParsedResource} */
 		const cacheParseResource = parseResource.bindCache(
@@ -352,29 +521,33 @@ class NormalModuleFactory extends ModuleFactory {
 					// direct module
 					if (result instanceof Module) return callback(null, result);
 
-					if (typeof result === "object")
+					if (typeof result === "object") {
 						throw new Error(
 							`${deprecationChangedHookMessage(
 								"resolve",
 								this.hooks.resolve
 							)} Returning a Module object will result in this module used as result.`
 						);
+					}
 
 					this.hooks.afterResolve.callAsync(resolveData, (err, result) => {
 						if (err) return callback(err);
 
-						if (typeof result === "object")
+						if (typeof result === "object") {
 							throw new Error(
 								deprecationChangedHookMessage(
 									"afterResolve",
 									this.hooks.afterResolve
 								)
 							);
+						}
 
 						// Ignored
 						if (result === false) return callback();
 
-						const createData = resolveData.createData;
+						const createData =
+							/** @type {CreateData} */
+							(resolveData.createData);
 
 						this.hooks.createModule.callAsync(
 							createData,
@@ -387,18 +560,12 @@ class NormalModuleFactory extends ModuleFactory {
 
 									// TODO webpack 6 make it required and move javascript/wasm/asset properties to own module
 									createdModule = this.hooks.createModuleClass
-										.for(
-											/** @type {ModuleSettings} */
-											(createData.settings).type
-										)
+										.for(createData.settings.type)
 										.call(createData, resolveData);
 
 									if (!createdModule) {
 										createdModule = /** @type {Module} */ (
-											new NormalModule(
-												/** @type {NormalModuleCreateData} */
-												(createData)
-											)
+											new NormalModule(createData)
 										);
 									}
 								}
@@ -428,7 +595,8 @@ class NormalModuleFactory extends ModuleFactory {
 					dependencies,
 					dependencyType,
 					request,
-					assertions,
+					phase,
+					attributes,
 					resolveOptions,
 					fileDependencies,
 					missingDependencies,
@@ -496,7 +664,7 @@ class NormalModuleFactory extends ModuleFactory {
 							)
 							.split(/!+/);
 						unresolvedResource = /** @type {string} */ (rawElements.pop());
-						elements = rawElements.map(el => {
+						elements = rawElements.map((el) => {
 							const { path, query } = cachedParseResourceWithoutFragment(el);
 							return {
 								loader: path,
@@ -526,7 +694,7 @@ class NormalModuleFactory extends ModuleFactory {
 				/** @type {undefined | LoaderItem[]} */
 				let loaders;
 
-				const continueCallback = needCalls(2, err => {
+				const continueCallback = needCalls(2, (err) => {
 					if (err) return callback(err);
 
 					// translate option idents
@@ -570,12 +738,17 @@ class NormalModuleFactory extends ModuleFactory {
 
 					/** @type {ModuleSettings} */
 					const settings = {};
+					/** @type {LoaderItem[]} */
 					const useLoadersPost = [];
+					/** @type {LoaderItem[]} */
 					const useLoaders = [];
+					/** @type {LoaderItem[]} */
 					const useLoadersPre = [];
 
 					// handle .webpack[] suffix
+					/** @type {string} */
 					let resource;
+					/** @type {RegExpExecArray | null} */
 					let match;
 					if (
 						matchResourceData &&
@@ -590,13 +763,15 @@ class NormalModuleFactory extends ModuleFactory {
 					} else {
 						settings.type = JAVASCRIPT_MODULE_TYPE_AUTO;
 						const resourceDataForRules = matchResourceData || resourceData;
+
 						const result = this.ruleSet.exec({
 							resource: resourceDataForRules.path,
 							realResource: resourceData.path,
 							resourceQuery: resourceDataForRules.query,
 							resourceFragment: resourceDataForRules.fragment,
 							scheme,
-							assertions,
+							phase,
+							attributes,
 							mimetype: matchResourceData
 								? ""
 								: resourceData.data.mimetype || "",
@@ -630,17 +805,16 @@ class NormalModuleFactory extends ModuleFactory {
 								typeof r.value === "object" &&
 								r.value !== null &&
 								typeof settings[
-									/** @type {keyof ModuleSettings} */ (r.type)
+									/** @type {keyof ModuleSettings} */
+									(r.type)
 								] === "object" &&
 								settings[/** @type {keyof ModuleSettings} */ (r.type)] !== null
 							) {
 								const type = /** @type {keyof ModuleSettings} */ (r.type);
-								/** @type {TODO} */
-								(settings)[type] = cachedCleverMerge(settings[type], r.value);
+								settings[type] = cachedCleverMerge(settings[type], r.value);
 							} else {
 								const type = /** @type {keyof ModuleSettings} */ (r.type);
-								/** @type {TODO} */
-								(settings)[type] = r.value;
+								settings[type] = r.value;
 							}
 						}
 					}
@@ -652,34 +826,37 @@ class NormalModuleFactory extends ModuleFactory {
 					/** @type {undefined | LoaderItem[]} */
 					let preLoaders;
 
-					const continueCallback = needCalls(3, err => {
+					const continueCallback = needCalls(3, (err) => {
 						if (err) {
 							return callback(err);
 						}
 						const allLoaders = /** @type {LoaderItem[]} */ (postLoaders);
 						if (matchResourceData === undefined) {
-							for (const loader of /** @type {LoaderItem[]} */ (loaders))
+							for (const loader of /** @type {LoaderItem[]} */ (loaders)) {
 								allLoaders.push(loader);
-							for (const loader of /** @type {LoaderItem[]} */ (normalLoaders))
+							}
+							for (const loader of /** @type {LoaderItem[]} */ (
+								normalLoaders
+							)) {
 								allLoaders.push(loader);
+							}
 						} else {
-							for (const loader of /** @type {LoaderItem[]} */ (normalLoaders))
+							for (const loader of /** @type {LoaderItem[]} */ (
+								normalLoaders
+							)) {
 								allLoaders.push(loader);
-							for (const loader of /** @type {LoaderItem[]} */ (loaders))
+							}
+							for (const loader of /** @type {LoaderItem[]} */ (loaders)) {
 								allLoaders.push(loader);
+							}
 						}
-						for (const loader of /** @type {LoaderItem[]} */ (preLoaders))
+						for (const loader of /** @type {LoaderItem[]} */ (preLoaders)) {
 							allLoaders.push(loader);
-						const type = /** @type {string} */ (settings.type);
+						}
+						const type = /** @type {NormalModuleTypes} */ (settings.type);
 						const resolveOptions = settings.resolve;
 						const layer = settings.layer;
-						if (layer !== undefined && !layers) {
-							return callback(
-								new Error(
-									"'Rule.layer' is only allowed when 'experiments.layers' is enabled"
-								)
-							);
-						}
+
 						try {
 							Object.assign(data.createData, {
 								layer:
@@ -704,7 +881,8 @@ class NormalModuleFactory extends ModuleFactory {
 								parserOptions: settings.parser,
 								generator: this.getGenerator(type, settings.generator),
 								generatorOptions: settings.generator,
-								resolveOptions
+								resolveOptions,
+								extractSourceMap: settings.extractSourceMap || false
 							});
 						} catch (createDataErr) {
 							return callback(/** @type {Error} */ (createDataErr));
@@ -760,10 +938,11 @@ class NormalModuleFactory extends ModuleFactory {
 				);
 
 				/**
+				 * Processes the provided string.
 				 * @param {string} context context
 				 */
-				const defaultResolve = context => {
-					if (/^($|\?)/.test(unresolvedResource)) {
+				const defaultResolve = (context) => {
+					if (/^(?:$|\?)/.test(unresolvedResource)) {
 						resourceData = {
 							...cacheParseResource(unresolvedResource),
 							resource: unresolvedResource,
@@ -787,7 +966,7 @@ class NormalModuleFactory extends ModuleFactory {
 						this.resolveResource(
 							contextInfo,
 							context,
-							unresolvedResource,
+							escapeHashInPathRequest(unresolvedResource),
 							normalResolver,
 							resolveContext,
 							(err, _resolvedResource, resolvedResourceResolveData) => {
@@ -822,7 +1001,7 @@ class NormalModuleFactory extends ModuleFactory {
 					};
 					this.hooks.resolveForScheme
 						.for(scheme)
-						.callAsync(resourceData, data, err => {
+						.callAsync(resourceData, data, (err) => {
 							if (err) return continueCallback(err);
 							continueCallback();
 						});
@@ -848,7 +1027,9 @@ class NormalModuleFactory extends ModuleFactory {
 				}
 
 				// resource without scheme and without path
-				else defaultResolve(context);
+				else {
+					defaultResolve(context);
+				}
 			}
 		);
 	}
@@ -862,6 +1043,7 @@ class NormalModuleFactory extends ModuleFactory {
 	}
 
 	/**
+	 * Processes the provided data.
 	 * @param {ModuleFactoryCreateData} data data object
 	 * @param {ModuleFactoryCallback} callback callback
 	 * @returns {void}
@@ -872,11 +1054,26 @@ class NormalModuleFactory extends ModuleFactory {
 		const resolveOptions = data.resolveOptions || EMPTY_RESOLVE_OPTIONS;
 		const dependency = dependencies[0];
 		const request = dependency.request;
-		const assertions = dependency.assertions;
+		const attributes =
+			/** @type {ModuleDependency & { attributes: ImportAttributes }} */
+			(dependency).attributes;
+		const phase =
+			typeof (
+				/** @type {ModuleDependency & { phase?: ImportPhaseType }} */
+				(dependency).phase
+			) === "number"
+				? ImportPhaseUtils.stringify(
+						/** @type {ModuleDependency & { phase?: ImportPhaseType }} */
+						(dependency).phase
+					)
+				: "evaluation";
 		const dependencyType = dependency.category || "";
 		const contextInfo = data.contextInfo;
+		/** @type {FileSystemDependencies} */
 		const fileDependencies = new LazySet();
+		/** @type {FileSystemDependencies} */
 		const missingDependencies = new LazySet();
+		/** @type {FileSystemDependencies} */
 		const contextDependencies = new LazySet();
 		/** @type {ResolveData} */
 		const resolveData = {
@@ -884,7 +1081,8 @@ class NormalModuleFactory extends ModuleFactory {
 			resolveOptions,
 			context,
 			request,
-			assertions,
+			phase,
+			attributes,
 			dependencies,
 			dependencyType,
 			fileDependencies,
@@ -920,13 +1118,14 @@ class NormalModuleFactory extends ModuleFactory {
 				return callback(null, factoryResult);
 			}
 
-			if (typeof result === "object")
+			if (typeof result === "object") {
 				throw new Error(
 					deprecationChangedHookMessage(
 						"beforeResolve",
 						this.hooks.beforeResolve
 					)
 				);
+			}
 
 			this.hooks.factorize.callAsync(resolveData, (err, module) => {
 				if (err) {
@@ -953,6 +1152,7 @@ class NormalModuleFactory extends ModuleFactory {
 	}
 
 	/**
+	 * Processes the provided context info.
 	 * @param {ModuleFactoryCreateDataContextInfo} contextInfo context info
 	 * @param {string} context context
 	 * @param {string} unresolvedResource unresolved resource
@@ -999,16 +1199,16 @@ ${hints.join("\n\n")}`;
 
 							// Check if the extension is missing a leading dot (e.g. "js" instead of ".js")
 							let appendResolveExtensionsHint = false;
-							const specifiedExtensions = Array.from(
-								resolver.options.extensions
-							);
-							const expectedExtensions = specifiedExtensions.map(extension => {
-								if (LEADING_DOT_EXTENSION_REGEX.test(extension)) {
-									appendResolveExtensionsHint = true;
-									return `.${extension}`;
+							const specifiedExtensions = [...resolver.options.extensions];
+							const expectedExtensions = specifiedExtensions.map(
+								(extension) => {
+									if (LEADING_DOT_EXTENSION_REGEX.test(extension)) {
+										appendResolveExtensionsHint = true;
+										return `.${extension}`;
+									}
+									return extension;
 								}
-								return extension;
-							});
+							);
 							if (appendResolveExtensionsHint) {
 								err.message += `\nDid you miss the leading dot in 'resolve.extensions'? Did you mean '${JSON.stringify(
 									expectedExtensions
@@ -1025,6 +1225,7 @@ ${hints.join("\n\n")}`;
 	}
 
 	/**
+	 * Resolve resource error hints.
 	 * @param {Error} error error
 	 * @param {ModuleFactoryCreateDataContextInfo} contextInfo context info
 	 * @param {string} context context
@@ -1045,7 +1246,7 @@ ${hints.join("\n\n")}`;
 	) {
 		asyncLib.parallel(
 			[
-				callback => {
+				(callback) => {
 					if (!resolver.options.fullySpecified) return callback();
 					resolver
 						.withOptions({
@@ -1075,7 +1276,7 @@ Add the extension to the request.`
 							}
 						);
 				},
-				callback => {
+				(callback) => {
 					if (!resolver.options.enforceExtension) return callback();
 					resolver
 						.withOptions({
@@ -1090,7 +1291,7 @@ Add the extension to the request.`
 							(err, resolvedResource) => {
 								if (!err && resolvedResource) {
 									let hint = "";
-									const match = /(\.[^.]+)(\?|$)/.exec(unresolvedResource);
+									const match = /\.[^.]+(?:\?|$)/.exec(unresolvedResource);
 									if (match) {
 										const fixedRequest = unresolvedResource.replace(
 											/(\.[^.]+)(\?|$)/,
@@ -1114,7 +1315,7 @@ Including the extension in the request is no longer possible. Did you mean to en
 							}
 						);
 				},
-				callback => {
+				(callback) => {
 					if (
 						/^\.\.?\//.test(unresolvedResource) ||
 						resolver.options.preferRelative
@@ -1129,7 +1330,7 @@ Including the extension in the request is no longer possible. Did you mean to en
 						(err, resolvedResource) => {
 							if (err || !resolvedResource) return callback();
 							const moduleDirectories = resolver.options.modules
-								.map(m => (Array.isArray(m) ? m.join(", ") : m))
+								.map((m) => (Array.isArray(m) ? m.join(", ") : m))
 								.join(", ");
 							callback(
 								null,
@@ -1150,6 +1351,7 @@ If changing the source code is not an option there is also a resolve options cal
 	}
 
 	/**
+	 * Resolves request array.
 	 * @param {ModuleFactoryCreateDataContextInfo} contextInfo context info
 	 * @param {string} context context
 	 * @param {LoaderItem[]} array array
@@ -1170,13 +1372,48 @@ If changing the source code is not an option there is also a resolve options cal
 		if (array.length === 0) return callback(null, array);
 		asyncLib.map(
 			array,
+			/**
+			 * Handles the callback logic for this hook.
+			 * @param {LoaderItem} item item
+			 * @param {Callback<LoaderItem>} callback callback
+			 * @returns {void}
+			 */
 			(item, callback) => {
+				// Loaders resolve identically for a given (context, request), so memoize
+				// the result and the resolve's dependencies to skip repeated resolves.
+				const cacheKey = `${context}\n${item.loader}`;
+				const cached = this._loaderResolveCache.get(cacheKey);
+				if (cached !== undefined) {
+					replayResolveDependencies(resolveContext, cached);
+					return callback(null, {
+						loader: cached.loader,
+						type: cached.type,
+						options:
+							item.options === undefined
+								? cached.query
+									? cached.query.slice(1)
+									: undefined
+								: item.options,
+						ident: item.options === undefined ? undefined : item.ident
+					});
+				}
+				// Capture this resolve's dependencies in dedicated sets so a future hit
+				// can replay them; also feed them back into the caller's resolveContext.
+				const captureContext = {
+					...resolveContext,
+					fileDependencies: new LazySet(),
+					contextDependencies: new LazySet(),
+					missingDependencies: new LazySet()
+				};
 				resolver.resolve(
 					contextInfo,
 					context,
 					item.loader,
-					resolveContext,
+					captureContext,
 					(err, result, resolveRequest) => {
+						// Merge the captured dependencies back so a failed or successful
+						// resolve records them for watch invalidation just like before.
+						replayResolveDependencies(resolveContext, captureContext);
 						if (
 							err &&
 							/^[^/]*$/.test(item.loader) &&
@@ -1187,7 +1424,7 @@ If changing the source code is not an option there is also a resolve options cal
 								context,
 								`${item.loader}-loader`,
 								resolveContext,
-								err2 => {
+								(err2) => {
 									if (!err2) {
 										err.message =
 											`${err.message}\n` +
@@ -1202,7 +1439,8 @@ If changing the source code is not an option there is also a resolve options cal
 						if (err) return callback(err);
 
 						const parsedResult = this._parseResourceWithoutFragment(
-							/** @type {string} */ (result)
+							/** @type {string} */
+							(result)
 						);
 
 						const type = /\.mjs$/i.test(parsedResult.path)
@@ -1212,8 +1450,22 @@ If changing the source code is not an option there is also a resolve options cal
 								: /** @type {ResolveRequest} */
 									(resolveRequest).descriptionFileData === undefined
 									? undefined
-									: /** @type {ResolveRequest} */
-										(resolveRequest).descriptionFileData.type;
+									: /** @type {string} */
+										(
+											/** @type {ResolveRequest} */
+											(resolveRequest).descriptionFileData.type
+										);
+
+						this._loaderResolveCache.set(cacheKey, {
+							loader: parsedResult.path,
+							query: parsedResult.query,
+							type,
+							fileDependencies: captureContext.fileDependencies,
+							contextDependencies: captureContext.contextDependencies,
+							missingDependencies: captureContext.missingDependencies
+						});
+
+						/** @type {LoaderItem} */
 						const resolved = {
 							loader: parsedResult.path,
 							type,
@@ -1223,24 +1475,28 @@ If changing the source code is not an option there is also a resolve options cal
 										? parsedResult.query.slice(1)
 										: undefined
 									: item.options,
-							ident:
-								item.options === undefined
-									? undefined
-									: /** @type {string} */ (item.ident)
+							ident: item.options === undefined ? undefined : item.ident
 						};
 
-						return callback(null, /** @type {LoaderItem} */ (resolved));
+						return callback(null, resolved);
 					}
 				);
 			},
-			/** @type {Callback<(LoaderItem | undefined)[]>} */ (callback)
+			(err, value) => {
+				callback(
+					/** @type {Error | null} */ (err),
+					/** @type {(LoaderItem)[]} */ (value)
+				);
+			}
 		);
 	}
 
 	/**
-	 * @param {string} type type
+	 * Returns parser.
+	 * @template {string} T
+	 * @param {T} type type
 	 * @param {ParserOptions} parserOptions parser options
-	 * @returns {Parser} parser
+	 * @returns {ParserByType[T]} parser
 	 */
 	getParser(type, parserOptions = EMPTY_PARSER_OPTIONS) {
 		let cache = this.parserCache.get(type);
@@ -1257,13 +1513,15 @@ If changing the source code is not an option there is also a resolve options cal
 			cache.set(parserOptions, parser);
 		}
 
-		return parser;
+		return /** @type {ParserByType[T]} */ (parser);
 	}
 
 	/**
-	 * @param {string} type type
+	 * Creates a parser from the provided type.
+	 * @template {string} T
+	 * @param {T} type type
 	 * @param {ParserOptions} parserOptions parser options
-	 * @returns {Parser} parser
+	 * @returns {ParserByType[T]} parser
 	 */
 	createParser(type, parserOptions = {}) {
 		parserOptions = mergeGlobalOptions(
@@ -1276,13 +1534,15 @@ If changing the source code is not an option there is also a resolve options cal
 			throw new Error(`No parser registered for ${type}`);
 		}
 		this.hooks.parser.for(type).call(parser, parserOptions);
-		return parser;
+		return /** @type {ParserByType[T]} */ (parser);
 	}
 
 	/**
-	 * @param {string} type type of generator
+	 * Returns generator.
+	 * @template {string} T
+	 * @param {T} type type of generator
 	 * @param {GeneratorOptions} generatorOptions generator options
-	 * @returns {Generator} generator
+	 * @returns {GeneratorByType[T]} generator
 	 */
 	getGenerator(type, generatorOptions = EMPTY_GENERATOR_OPTIONS) {
 		let cache = this.generatorCache.get(type);
@@ -1299,13 +1559,15 @@ If changing the source code is not an option there is also a resolve options cal
 			cache.set(generatorOptions, generator);
 		}
 
-		return generator;
+		return /** @type {GeneratorByType[T]} */ (generator);
 	}
 
 	/**
-	 * @param {string} type type of generator
+	 * Creates a generator.
+	 * @template {string} T
+	 * @param {T} type type of generator
 	 * @param {GeneratorOptions} generatorOptions generator options
-	 * @returns {Generator} generator
+	 * @returns {GeneratorByType[T]} generator
 	 */
 	createGenerator(type, generatorOptions = {}) {
 		generatorOptions = mergeGlobalOptions(
@@ -1320,10 +1582,11 @@ If changing the source code is not an option there is also a resolve options cal
 			throw new Error(`No generator registered for ${type}`);
 		}
 		this.hooks.generator.for(type).call(generator, generatorOptions);
-		return generator;
+		return /** @type {GeneratorByType[T]} */ (generator);
 	}
 
 	/**
+	 * Returns the resolver.
 	 * @param {Parameters<ResolverFactory["get"]>[0]} type type of resolver
 	 * @param {Parameters<ResolverFactory["get"]>[1]=} resolveOptions options
 	 * @returns {ReturnType<ResolverFactory["get"]>} the resolver

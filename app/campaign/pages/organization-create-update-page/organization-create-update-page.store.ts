@@ -3,17 +3,17 @@ import { inject } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { patchState, signalStore, withMethods, withState } from '@ngrx/signals';
 import { shareReplay, switchMap, take } from 'rxjs';
-import { Organization, OrganizationRaw } from 'src/app/_models/organization';
-import { CharacterService } from 'src/app/_services/article/character.service';
-import { LocationService } from 'src/app/_services/article/location.service';
-import { OrganizationService } from 'src/app/_services/article/organization.service';
-import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
-import { GlobalStore } from 'src/app/global.store';
-import { filterNil } from 'src/utils/rxjs-operators';
-import { RequestState } from 'src/utils/store/factory-types';
-import { handleError } from 'src/utils/store/toServerModel';
-import { withQueries } from 'src/utils/store/withQueries';
-import { withUpdates } from 'src/utils/store/withUpdates';
+import { filterNil } from '../../../../utils/rxjs-operators';
+import { RequestState } from '../../../../utils/store/factory-types';
+import { handleError } from '../../../../utils/store/toServerModel';
+import { withQueries } from '../../../../utils/store/withQueries';
+import { withUpdates } from '../../../../utils/store/withUpdates';
+import { Organization, OrganizationRaw } from '../../../_models/organization';
+import { CharacterService } from '../../../_services/article/character.service';
+import { LocationService } from '../../../_services/article/location.service';
+import { OrganizationService } from '../../../_services/article/organization.service';
+import { ToastService } from '../../../design/organisms/toast-overlay/toast.service';
+import { GlobalStore } from '../../../global.store';
 
 interface OrganizationCreateUpdatePageState {
   createState: RequestState;

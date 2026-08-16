@@ -26,3 +26,4 @@ function validateClassName(className) {
         throw new schematics_1.SchematicsException(`Class name "${className}" is invalid.`);
     }
 }
+//# sourceMappingURL=validation.js.map

@@ -4,4 +4,3 @@ export class DevNullStream extends Writable {
         cb();
     }
 }
-//# sourceMappingURL=dev-null-stream.js.map

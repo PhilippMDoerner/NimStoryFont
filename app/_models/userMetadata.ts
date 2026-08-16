@@ -11,7 +11,7 @@ export type MetaDataEntry<T = string> = MetaDataEntryRaw<T> & {
   user_id: number;
 };
 
-const META_DATA_KINDS = ['general', 'shortcut'] as const;
+const META_DATA_KINDS = ['general', 'shortcut', 'editor-shortcuts'] as const;
 export const metaDataKinds = new Set<string>(META_DATA_KINDS);
 export type MetaDataKind = (typeof META_DATA_KINDS)[number];
 

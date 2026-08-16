@@ -1,29 +1,26 @@
 'use strict';
 /**
- * @license Angular v20.0.3
- * (c) 2010-2025 Google LLC. https://angular.io/
+ * @license Angular v22.1.1
+ * (c) 2010-2026 Google LLC. https://angular.dev/
  * License: MIT
  */
 'use strict';
 
-var migrate_ts_type_references = require('./migrate_ts_type_references-DSqmdRpG.cjs');
+var migrate_ts_type_references = require('./migrate_ts_type_references-y9gtOKjH.cjs');
 var ts = require('typescript');
-require('os');
-var checker = require('./checker-Bu1Wu4f7.cjs');
-var index$1 = require('./index-CCX_cTPD.cjs');
-require('path');
-var project_paths = require('./project_paths-BjQra9mv.cjs');
-var index = require('./index-CAM7Xiu7.cjs');
+require('@angular/compiler-cli');
+var migrations = require('@angular/compiler-cli/private/migrations');
+require('node:path');
+var project_paths = require('./project_paths-LBcwW5BF.cjs');
+var index = require('./index-CYvBVnIF.cjs');
 var assert = require('assert');
-var apply_import_manager = require('./apply_import_manager-DT15wSJs.cjs');
+var apply_import_manager = require('./apply_import_manager-BsCkDgPj.cjs');
 require('@angular-devkit/core');
 require('node:path/posix');
-require('./leading_space-D9nQ8UQC.cjs');
-require('fs');
-require('module');
-require('url');
+require('./leading_space-BTPRV0wu.cjs');
 require('@angular-devkit/schematics');
-require('./project_tsconfig_paths-CDVxT6Ov.cjs');
+require('./project_tsconfig_paths-BejwmdOG.cjs');
+require('@angular/compiler');
 
 /**
  * Class that holds information about a given directive and its input fields.
@@ -274,9 +271,9 @@ function prepareAnalysisInfo(userProgram, compiler, programAbsoluteRootPaths) {
         state.templateTypeChecker.generateAllTypeCheckBlocks();
     }
     const typeChecker = userProgram.getTypeChecker();
-    const reflector = new checker.TypeScriptReflectionHost(typeChecker);
-    const evaluator = new index$1.PartialEvaluator(reflector, typeChecker, null);
-    const dtsMetadataReader = new index$1.DtsMetadataReader(typeChecker, reflector);
+    const reflector = new migrations.TypeScriptReflectionHost(typeChecker);
+    const evaluator = new migrations.PartialEvaluator(reflector, typeChecker, null);
+    const dtsMetadataReader = new migrations.DtsMetadataReader(typeChecker, reflector);
     return {
         metaRegistry: metaReader,
         dtsMetadataReader,
@@ -337,7 +334,7 @@ function extractDtsInput(node, metadataReader) {
     // in the `.d.ts` aren't resolvable. This seems to be unexpected and shouldn't
     // result in the entire migration to be failing.
     try {
-        directiveMetadata = metadataReader.getDirectiveMetadata(new checker.Reference(node.parent));
+        directiveMetadata = metadataReader.getDirectiveMetadata(new migrations.Reference(node.parent));
     }
     catch (e) {
         console.error('Unexpected error. Gracefully ignoring.');
@@ -373,7 +370,7 @@ function extractSourceCodeInput(node, host, reflector, evaluator) {
     if (decorators === null) {
         return null;
     }
-    const ngDecorators = checker.getAngularDecorators(decorators, ['Input'], host.isMigratingCore);
+    const ngDecorators = migrations.getAngularDecorators(decorators, ['Input'], host.isMigratingCore);
     if (ngDecorators.length === 0) {
         return null;
     }
@@ -396,7 +393,15 @@ function extractSourceCodeInput(node, host, reflector, evaluator) {
                 isRequired = !!evaluatedInputOpts.get('required');
             }
             if (evaluatedInputOpts.has('transform') && evaluatedInputOpts.get('transform') != null) {
-                transformResult = parseTransformOfInput(evaluatedInputOpts, node, reflector);
+                const result = parseTransformOfInput(evaluatedInputOpts, node, reflector);
+                if (result === 'parsingError') {
+                    if (!host.config.bestEffortMode) {
+                        return null;
+                    }
+                }
+                else {
+                    transformResult = result;
+                }
             }
         }
     }
@@ -417,32 +422,33 @@ function extractSourceCodeInput(node, host, reflector, evaluator) {
  */
 function parseTransformOfInput(evaluatedInputOpts, node, reflector) {
     const transformValue = evaluatedInputOpts.get('transform');
-    if (!(transformValue instanceof checker.DynamicValue) && !(transformValue instanceof checker.Reference)) {
+    if (!(transformValue instanceof migrations.DynamicValue) && !(transformValue instanceof migrations.Reference)) {
         return null;
     }
     // For parsing the transform, we don't need a real reference emitter, as
     // the emitter is only used for verifying that the transform type could be
     // copied into e.g. an `ngInputAccept` class member.
-    const noopRefEmitter = new checker.ReferenceEmitter([
+    const noopRefEmitter = new migrations.ReferenceEmitter([
         {
             emit: () => ({
-                kind: checker.ReferenceEmitKind.Success,
+                kind: migrations.ReferenceEmitKind.Success,
                 expression: migrate_ts_type_references.NULL_EXPR,
                 importedFile: null,
             }),
         },
     ]);
     try {
-        return checker.parseDecoratorInputTransformFunction(node.parent, node.name.text, transformValue, reflector, noopRefEmitter, checker.CompilationMode.FULL);
+        return migrations.parseDecoratorInputTransformFunction(node.parent, node.name.text, transformValue, reflector, noopRefEmitter, migrations.CompilationMode.FULL, 
+        /* emitDeclarationOnly */ false);
     }
     catch (e) {
-        if (!(e instanceof checker.FatalDiagnosticError)) {
+        if (!(e instanceof migrations.FatalDiagnosticError)) {
             throw e;
         }
         // TODO: implement error handling.
         // See failing case: e.g. inherit_definition_feature_spec.ts
         console.error(`${e.node.getSourceFile().fileName}: ${e.toString()}`);
-        return null;
+        return 'parsingError';
     }
 }
 
@@ -644,10 +650,10 @@ function pass1__IdentifySourceFileAndDeclarationInputs(sf, host, checker, reflec
  * In addition, spying onto an input may be problematic- so we skip migrating
  * such.
  */
-function pass3__checkIncompatiblePatterns(host, inheritanceGraph, checker$1, groupedTsAstVisitor, knownInputs) {
-    migrate_ts_type_references.checkIncompatiblePatterns(inheritanceGraph, checker$1, groupedTsAstVisitor, knownInputs, () => knownInputs.getAllInputContainingClasses());
+function pass3__checkIncompatiblePatterns(host, inheritanceGraph, checker, groupedTsAstVisitor, knownInputs) {
+    migrate_ts_type_references.checkIncompatiblePatterns(inheritanceGraph, checker, groupedTsAstVisitor, knownInputs, () => knownInputs.getAllInputContainingClasses());
     for (const input of knownInputs.knownInputIds.values()) {
-        const hostBindingDecorators = checker.getAngularDecorators(input.metadata.fieldDecorators, ['HostBinding'], host.isMigratingCore);
+        const hostBindingDecorators = migrations.getAngularDecorators(input.metadata.fieldDecorators, ['HostBinding'], host.isMigratingCore);
         if (hostBindingDecorators.length > 0) {
             knownInputs.markFieldIncompatible(input.descriptor, {
                 context: hostBindingDecorators[0].node,
@@ -685,7 +691,7 @@ function executeAnalysisPhase(host, knownInputs, result, { sourceFiles, fullProg
     fullProgramSourceFiles.forEach((sf) => 
     // Shim shim files. Those are unnecessary and might cause unexpected slowness.
     // e.g. `ngtypecheck` files.
-    !checker.isShim(sf) &&
+    !migrations.isShim(sf) &&
         pass1__IdentifySourceFileAndDeclarationInputs(sf, host, typeChecker, reflector, dtsMetadataReader, evaluator, knownInputs, result));
     const fieldNamesToConsiderForReferenceLookup = new Set();
     for (const input of knownInputs.knownInputIds.values()) {
@@ -960,6 +966,12 @@ function populateKnownInputsFromGlobalData(knownInputs, globalData) {
  * @returns Replacements for converting the input.
  */
 function convertToSignalInput(node, { resolvedMetadata: metadata, resolvedType, preferShorthandIfPossible, originalInputDecorator, initialValue, leadingTodoText, }, info, checker, importManager, result) {
+    // Check for 'this' references in initializer before doing anything else
+    if (node.initializer &&
+        (ts.isArrowFunction(node.initializer) || ts.isFunctionExpression(node.initializer)) &&
+        containsThisReferences(node.initializer)) {
+        return []; // Skip migration for this input by returning empty replacements
+    }
     let optionsLiteral = null;
     // We need an options array for the input because:
     //   - the input is either aliased,
@@ -1029,7 +1041,23 @@ function convertToSignalInput(node, { resolvedMetadata: metadata, resolvedType, 
     if (!modifiersWithoutInputDecorator?.some((s) => s.kind === ts.SyntaxKind.ReadonlyKeyword)) {
         modifiersWithoutInputDecorator.push(ts.factory.createModifier(ts.SyntaxKind.ReadonlyKeyword));
     }
-    const newNode = ts.factory.createPropertyDeclaration(modifiersWithoutInputDecorator, node.name, undefined, undefined, inputInitializer);
+    // Skip migration if the input is a function that references class members via 'this'
+    if (inputInitializer &&
+        (ts.isArrowFunction(inputInitializer) || ts.isFunctionExpression(inputInitializer))) {
+        if (containsThisReferences(inputInitializer)) {
+            return []; // Skip migration for this input by returning empty replacements
+        }
+    }
+    let finalInitializer = inputInitializer;
+    if (inputInitializer === undefined) {
+        if (preferShorthandIfPossible === null) {
+            finalInitializer = ts.factory.createIdentifier('undefined');
+        }
+        else {
+            resolvedType = preferShorthandIfPossible.originalType;
+        }
+    }
+    const newNode = ts.factory.createPropertyDeclaration(modifiersWithoutInputDecorator, node.name, undefined, undefined, finalInitializer);
     const newPropertyText = result.printer.printNode(ts.EmitHint.Unspecified, newNode, node.getSourceFile());
     const replacements = [];
     if (leadingTodoText !== null) {
@@ -1072,6 +1100,43 @@ function extractTransformOfInput(transform, resolvedType, checker) {
         node: ts.factory.createPropertyAssignment('transform', transformFn),
         leadingTodoText,
     };
+}
+/**
+ * Checks if a function node contains any references to 'this'.
+ * This is used to skip migration for functions that reference class members.
+ */
+function containsThisReferences(node) {
+    let hasThis = false;
+    const visit = (node) => {
+        if (hasThis)
+            return;
+        if (node.kind === ts.SyntaxKind.ThisKeyword) {
+            hasThis = true;
+            return;
+        }
+        if (ts.isPropertyAccessExpression(node)) {
+            const expr = node.expression;
+            if (ts.isIdentifier(expr) && expr.text === 'this') {
+                hasThis = true;
+                return;
+            }
+        }
+        ts.forEachChild(node, visit);
+    };
+    if (ts.isArrowFunction(node) || ts.isFunctionExpression(node)) {
+        if (node.body) {
+            if (node.body.kind === ts.SyntaxKind.Block) {
+                node.body.statements.forEach(visit);
+            }
+            else {
+                visit(node.body);
+            }
+        }
+    }
+    else {
+        ts.forEachChild(node, visit);
+    }
+    return hasThis;
 }
 
 /**
@@ -1143,8 +1208,9 @@ function pass7__migrateTemplateReferences(host, references) {
         if (!host.shouldMigrateReferencesToField(reference.target)) {
             continue;
         }
+        const readEndPos = reference.from.read.sourceSpan.end;
         // Skip duplicate references. E.g. if a template is shared.
-        const fileReferenceId = `${reference.from.templateFile.id}:${reference.from.read.sourceSpan.end}`;
+        const fileReferenceId = `${reference.from.templateFile.id}:${readEndPos}`;
         if (seenFileReferences.has(fileReferenceId)) {
             continue;
         }
@@ -1154,8 +1220,8 @@ function pass7__migrateTemplateReferences(host, references) {
             ? `: ${reference.from.read.name}()`
             : `()`;
         host.replacements.push(new project_paths.Replacement(reference.from.templateFile, new project_paths.TextUpdate({
-            position: reference.from.read.sourceSpan.end,
-            end: reference.from.read.sourceSpan.end,
+            position: readEndPos,
+            end: readEndPos,
             toInsert: appendText,
         })));
     }
@@ -1218,7 +1284,7 @@ function pass9__migrateTypeScriptTypeReferences(host, references, importManager,
  */
 function executeMigrationPhase(host, knownInputs, result, info) {
     const { typeChecker, sourceFiles } = info;
-    const importManager = new checker.ImportManager({
+    const importManager = new migrations.ImportManager({
         // For the purpose of this migration, we always use `input` and don't alias
         // it to e.g. `input_1`.
         generateUniqueIdentifier: () => null,

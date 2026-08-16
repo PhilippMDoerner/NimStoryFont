@@ -1,3 +1,4 @@
+"use strict";
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
@@ -16,7 +17,7 @@ var __copyProps = (to, from, except, desc) => {
 };
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
-// bazel-out/darwin_arm64-fastbuild/bin/packages/localize/schematics/ng-add/index.js
+// packages/localize/schematics/ng-add/index.ts
 var ng_add_exports = {};
 __export(ng_add_exports, {
   default: () => ng_add_default
@@ -78,19 +79,30 @@ function addTypeScriptConfigTypes(projectName) {
         case import_utility.AngularBuilder.BrowserEsbuild:
         case import_utility.AngularBuilder.Browser:
         case import_utility.AngularBuilder.Application:
-        case import_utility.AngularBuilder.BuildApplication:
+        case import_utility.AngularBuilder.BuildKarma:
+        case import_utility.AngularBuilder.BuildApplication: {
           const value = target.options?.["tsConfig"];
           if (typeof value === "string") {
             tsConfigFiles.add(value);
           }
           break;
+        }
+        case import_utility.AngularBuilder.BuildUnitTest: {
+          const value = target.options?.["tsConfig"];
+          if (typeof value === "string") {
+            tsConfigFiles.add(value);
+          } else {
+            tsConfigFiles.add((project.root || ".") + "/tsconfig.spec.json");
+          }
+          break;
+        }
       }
       if (target.builder === import_utility.AngularBuilder.Browser || target.builder === import_utility.AngularBuilder.BrowserEsbuild) {
         const value = target.options?.["main"];
         if (typeof value === "string") {
           addTripleSlashType(host, value);
         }
-      } else if (target.builder === import_utility.AngularBuilder.Application) {
+      } else if (target.builder === import_utility.AngularBuilder.Application || target.builder === import_utility.AngularBuilder.BuildApplication) {
         const value = target.options?.["browser"];
         if (typeof value === "string") {
           addTripleSlashType(host, value);
@@ -105,9 +117,13 @@ function addTypeScriptConfigTypes(projectName) {
       const json = new import_json_file.JSONFile(host, path);
       const types = json.get(typesJsonPath) ?? [];
       if (!Array.isArray(types)) {
-        throw new import_schematics.SchematicsException(`TypeScript configuration file '${path}' has an invalid 'types' property. It must be an array.`);
+        throw new import_schematics.SchematicsException(
+          `TypeScript configuration file '${path}' has an invalid 'types' property. It must be an array.`
+        );
       }
-      const hasLocalizeType = types.some((t) => t === localizeType || t === "@angular/localize/init");
+      const hasLocalizeType = types.some(
+        (t) => t === localizeType || t === "@angular/localize/init"
+      );
       if (hasLocalizeType) {
         continue;
       }
@@ -126,7 +142,7 @@ function moveToDependencies(host) {
     return;
   }
   (0, import_dependencies.removePackageJsonDependency)(host, "@angular/localize");
-  return (0, import_utility.addDependency)("@angular/localize", `~20.0.3`);
+  return (0, import_utility.addDependency)("@angular/localize", `~22.1.1`);
 }
 function ng_add_default(options) {
   const projectName = options.project;
@@ -136,11 +152,11 @@ function ng_add_default(options) {
   return (0, import_schematics.chain)([
     addTypeScriptConfigTypes(projectName),
     addPolyfillToConfig(projectName),
+    // If `$localize` will be used at runtime then must install `@angular/localize`
+    // into `dependencies`, rather than the default of `devDependencies`.
     options.useAtRuntime ? moveToDependencies : (0, import_schematics.noop)()
   ]);
 }
-// Annotate the CommonJS export names for ESM import in node:
-0 && (module.exports = {});
 /**
  * @license
  * Copyright Google LLC All Rights Reserved.

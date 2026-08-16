@@ -20,8 +20,8 @@ const node_crypto_1 = require("node:crypto");
 const node_path_1 = require("node:path");
 const schema_1 = require("../../builders/application/schema");
 const environment_options_1 = require("../../utils/environment-options");
+const path_1 = require("../../utils/path");
 const manifest_1 = require("../../utils/server-rendering/manifest");
-const compilation_1 = require("../angular/compilation");
 const compiler_plugin_1 = require("./angular/compiler-plugin");
 const angular_localize_init_warning_plugin_1 = require("./angular-localize-init-warning-plugin");
 const compiler_plugin_options_1 = require("./compiler-plugin-options");
@@ -34,7 +34,7 @@ const sourcemap_ignorelist_plugin_1 = require("./sourcemap-ignorelist-plugin");
 const utils_1 = require("./utils");
 const virtual_module_plugin_1 = require("./virtual-module-plugin");
 const wasm_plugin_1 = require("./wasm-plugin");
-function createBrowserCodeBundleOptions(options, target, sourceFileCache, stylesheetBundler, angularCompilation, templateUpdates) {
+function createBrowserCodeBundleOptions(options, target, sourceFileCache, stylesheetBundler, angularCompilationContext, templateUpdates) {
     return (loadCache) => {
         const { entryPoints, outputNames, polyfills } = options;
         const zoneless = (0, utils_1.isZonelessApp)(polyfills);
@@ -50,12 +50,12 @@ function createBrowserCodeBundleOptions(options, target, sourceFileCache, styles
             entryNames: outputNames.bundles,
             entryPoints,
             target,
-            supported: (0, utils_1.getFeatureSupport)(target, zoneless),
+            supported: (0, utils_1.getFeatureSupport)(zoneless),
         };
         buildOptions.plugins ??= [];
         buildOptions.plugins.push((0, wasm_plugin_1.createWasmPlugin)({ allowAsync: zoneless, cache: loadCache }), (0, angular_localize_init_warning_plugin_1.createAngularLocalizeInitWarningPlugin)(), (0, compiler_plugin_1.createCompilerPlugin)(
         // JS/TS options
-        pluginOptions, angularCompilation, 
+        pluginOptions, angularCompilationContext, 
         // Component stylesheet bundler
         stylesheetBundler));
         if (options.plugins) {
@@ -64,7 +64,7 @@ function createBrowserCodeBundleOptions(options, target, sourceFileCache, styles
         return buildOptions;
     };
 }
-function createBrowserPolyfillBundleOptions(options, target, sourceFileCache, stylesheetBundler) {
+function createBrowserPolyfillBundleOptions(options, target, sourceFileCache, stylesheetBundler, angularCompilationContext) {
     const namespace = 'angular:polyfills';
     const polyfillBundleOptions = getEsBuildCommonPolyfillsOptions(options, namespace, true, sourceFileCache.loadResultCache);
     if (!polyfillBundleOptions) {
@@ -92,9 +92,7 @@ function createBrowserPolyfillBundleOptions(options, target, sourceFileCache, st
         const pluginOptions = (0, compiler_plugin_options_1.createCompilerPluginOptions)(options, sourceFileCache);
         buildOptions.plugins.push((0, compiler_plugin_1.createCompilerPlugin)(
         // JS/TS options
-        pluginOptions, 
-        // Browser compilation handles the actual Angular code compilation
-        new compilation_1.NoopCompilation(), 
+        pluginOptions, angularCompilationContext, 
         // Component stylesheet options are unused for polyfills but required by the plugin
         stylesheetBundler));
     }
@@ -106,7 +104,7 @@ function createBrowserPolyfillBundleOptions(options, target, sourceFileCache, st
 function createServerPolyfillBundleOptions(options, target, loadResultCache) {
     const serverPolyfills = [];
     const polyfillsFromConfig = new Set(options.polyfills);
-    const isNodePlatform = options.ssrOptions?.platform !== schema_1.ExperimentalPlatform.Neutral;
+    const isNodePlatform = options.ssrOptions?.platform !== schema_1.Platform.Neutral;
     if (!(0, utils_1.isZonelessApp)(options.polyfills)) {
         serverPolyfills.push(isNodePlatform ? 'zone.js/node' : 'zone.js');
     }
@@ -130,7 +128,12 @@ function createServerPolyfillBundleOptions(options, target, loadResultCache) {
     if (isNodePlatform) {
         // Note: Needed as esbuild does not provide require shims / proxy from ESModules.
         // See: https://github.com/evanw/esbuild/issues/1921.
-        jsBanner.push(`import { createRequire } from 'node:module';`, `globalThis['require'] ??= createRequire(import.meta.url);`);
+        // Use an alias to avoid colliding with any `createRequire` import that may
+        // already exist in the bundled user code. ESBuild processes banner content
+        // as raw text outside of its module graph, so it cannot deduplicate or
+        // rename banner imports the way it does for user imports. Without the alias,
+        // a duplicate `import { createRequire }` binding would cause a runtime error.
+        jsBanner.push(`import { createRequire as __ngCreateRequire } from 'node:module';`, `globalThis['require'] ??= __ngCreateRequire(import.meta.url);`);
     }
     const buildOptions = {
         ...polyfillBundleOptions,
@@ -154,7 +157,7 @@ function createServerPolyfillBundleOptions(options, target, loadResultCache) {
     buildOptions.plugins.push((0, server_bundle_metadata_plugin_1.createServerBundleMetadata)());
     return () => buildOptions;
 }
-function createServerMainCodeBundleOptions(options, target, sourceFileCache, stylesheetBundler) {
+function createServerMainCodeBundleOptions(options, target, sourceFileCache, stylesheetBundler, angularCompilationContext) {
     const { serverEntryPoint: mainServerEntryPoint, workspaceRoot, outputMode, externalPackages, ssrOptions, polyfills, } = options;
     (0, node_assert_1.default)(mainServerEntryPoint, 'createServerCodeBundleOptions should not be called without a defined serverEntryPoint.');
     return (loadResultCache) => {
@@ -179,22 +182,20 @@ function createServerMainCodeBundleOptions(options, target, sourceFileCache, sty
                 js: `import './polyfills.server.mjs';`,
             },
             entryPoints,
-            supported: (0, utils_1.getFeatureSupport)(target, zoneless),
+            supported: (0, utils_1.getFeatureSupport)(zoneless),
         };
         buildOptions.plugins ??= [];
         buildOptions.plugins.push((0, wasm_plugin_1.createWasmPlugin)({ allowAsync: zoneless, cache: loadResultCache }), (0, angular_localize_init_warning_plugin_1.createAngularLocalizeInitWarningPlugin)(), (0, compiler_plugin_1.createCompilerPlugin)(
         // JS/TS options
-        pluginOptions, 
-        // Browser compilation handles the actual Angular code compilation
-        new compilation_1.NoopCompilation(), 
+        pluginOptions, angularCompilationContext, 
         // Component stylesheet bundler
         stylesheetBundler));
         if (!externalPackages) {
             buildOptions.plugins.push((0, rxjs_esm_resolution_plugin_1.createRxjsEsmResolutionPlugin)());
         }
         // Mark manifest and polyfills file as external as these are generated by a different bundle step.
-        (buildOptions.external ??= []).push(...utils_1.SERVER_GENERATED_EXTERNALS);
-        const isNodePlatform = options.ssrOptions?.platform !== schema_1.ExperimentalPlatform.Neutral;
+        (buildOptions.external ??= []).push(...manifest_1.SERVER_GENERATED_EXTERNALS);
+        const isNodePlatform = options.ssrOptions?.platform !== schema_1.Platform.Neutral;
         if (!isNodePlatform) {
             // `@angular/platform-server` lazily depends on `xhr2` for XHR usage with the HTTP client.
             // Since `xhr2` has Node.js dependencies, it cannot be used when targeting non-Node.js platforms.
@@ -251,7 +252,7 @@ function createServerMainCodeBundleOptions(options, target, sourceFileCache, sty
         return buildOptions;
     };
 }
-function createSsrEntryCodeBundleOptions(options, target, sourceFileCache, stylesheetBundler) {
+function createSsrEntryCodeBundleOptions(options, target, sourceFileCache, stylesheetBundler, angularCompilationContext) {
     const { workspaceRoot, ssrOptions, externalPackages } = options;
     const serverEntryPoint = ssrOptions?.entry;
     (0, node_assert_1.default)(serverEntryPoint, 'createSsrEntryCodeBundleOptions should not be called without a defined serverEntryPoint.');
@@ -259,7 +260,7 @@ function createSsrEntryCodeBundleOptions(options, target, sourceFileCache, style
         const pluginOptions = (0, compiler_plugin_options_1.createCompilerPluginOptions)(options, sourceFileCache, loadResultCache);
         const ssrEntryNamespace = 'angular:ssr-entry';
         const ssrInjectManifestNamespace = 'angular:ssr-entry-inject-manifest';
-        const isNodePlatform = options.ssrOptions?.platform !== schema_1.ExperimentalPlatform.Neutral;
+        const isNodePlatform = options.ssrOptions?.platform !== schema_1.Platform.Neutral;
         const jsBanner = [];
         if (options.externalDependencies?.length) {
             jsBanner.push(`globalThis['ngServerMode'] = true;`);
@@ -267,7 +268,12 @@ function createSsrEntryCodeBundleOptions(options, target, sourceFileCache, style
         if (isNodePlatform) {
             // Note: Needed as esbuild does not provide require shims / proxy from ESModules.
             // See: https://github.com/evanw/esbuild/issues/1921.
-            jsBanner.push(`import { createRequire } from 'node:module';`, `globalThis['require'] ??= createRequire(import.meta.url);`);
+            // Use an alias to avoid colliding with any `createRequire` import that may
+            // already exist in the bundled user code. ESBuild processes banner content
+            // as raw text outside of its module graph, so it cannot deduplicate or
+            // rename banner imports the way it does for user imports. Without the alias,
+            // a duplicate `import { createRequire }` binding would cause a runtime error.
+            jsBanner.push(`import { createRequire as __ngCreateRequire } from 'node:module';`, `globalThis['require'] ??= __ngCreateRequire(import.meta.url);`);
         }
         const buildOptions = {
             ...getEsBuildServerCommonOptions(options),
@@ -278,21 +284,19 @@ function createSsrEntryCodeBundleOptions(options, target, sourceFileCache, style
             entryPoints: {
                 'server': ssrEntryNamespace,
             },
-            supported: (0, utils_1.getFeatureSupport)(target, true),
+            supported: (0, utils_1.getFeatureSupport)(true),
         };
         buildOptions.plugins ??= [];
         buildOptions.plugins.push((0, angular_localize_init_warning_plugin_1.createAngularLocalizeInitWarningPlugin)(), (0, compiler_plugin_1.createCompilerPlugin)(
         // JS/TS options
-        pluginOptions, 
-        // Browser compilation handles the actual Angular code compilation
-        new compilation_1.NoopCompilation(), 
+        pluginOptions, angularCompilationContext, 
         // Component stylesheet bundler
         stylesheetBundler));
         if (!externalPackages) {
             buildOptions.plugins.push((0, rxjs_esm_resolution_plugin_1.createRxjsEsmResolutionPlugin)());
         }
         // Mark manifest file as external. As this will be generated later on.
-        (buildOptions.external ??= []).push('*/main.server.mjs', ...utils_1.SERVER_GENERATED_EXTERNALS);
+        (buildOptions.external ??= []).push('*/main.server.mjs', ...manifest_1.SERVER_GENERATED_EXTERNALS);
         if (!isNodePlatform) {
             // `@angular/platform-server` lazily depends on `xhr2` for XHR usage with the HTTP client.
             // Since `xhr2` has Node.js dependencies, it cannot be used when targeting non-Node.js platforms.
@@ -348,7 +352,7 @@ function createSsrEntryCodeBundleOptions(options, target, sourceFileCache, style
     };
 }
 function getEsBuildServerCommonOptions(options) {
-    const isNodePlatform = options.ssrOptions?.platform !== schema_1.ExperimentalPlatform.Neutral;
+    const isNodePlatform = options.ssrOptions?.platform !== schema_1.Platform.Neutral;
     const commonOptions = getEsBuildCommonOptions(options);
     commonOptions.define ??= {};
     commonOptions.define['ngServerMode'] = 'true';
@@ -426,7 +430,11 @@ function getEsBuildCommonOptions(options) {
         conditions,
         resolveExtensions: ['.ts', '.tsx', '.mjs', '.js', '.cjs'],
         metafile: true,
-        legalComments: options.extractLicenses ? 'none' : 'eof',
+        legalComments: options.extractLicenses
+            ? 'none'
+            : optimizationOptions.scripts
+                ? 'eof'
+                : 'inline',
         logLevel: options.verbose && !jsonLogs ? 'debug' : 'silent',
         minifyIdentifiers: optimizationOptions.scripts && environment_options_1.allowMangle,
         minifySyntax: optimizationOptions.scripts,
@@ -458,11 +466,16 @@ function getEsBuildCommonOptions(options) {
     };
 }
 function getEsBuildCommonPolyfillsOptions(options, namespace, tryToResolvePolyfillsAsRelative, loadResultCache) {
-    const { jit, workspaceRoot, i18nOptions } = options;
-    const buildOptions = getEsBuildCommonOptions(options);
+    const { jit, workspaceRoot, i18nOptions, externalPackages } = options;
+    let polyfills = options.polyfills ? [...options.polyfills] : [];
+    const buildOptions = getEsBuildCommonOptions({
+        ...options,
+        // If any polyfills are local files, disable external packages for the polyfills build.
+        // This ensures that local files are properly bundled.
+        externalPackages: polyfills.some(isLocalFile) ? false : externalPackages,
+    });
     buildOptions.splitting = false;
     buildOptions.plugins ??= [];
-    let polyfills = options.polyfills ? [...options.polyfills] : [];
     // Angular JIT mode requires the runtime compiler
     if (jit) {
         polyfills.unshift('@angular/compiler');
@@ -471,7 +484,7 @@ function getEsBuildCommonPolyfillsOptions(options, namespace, tryToResolvePolyfi
     // Locale data should go first so that project provided polyfill code can augment if needed.
     let needLocaleDataPlugin = false;
     if (i18nOptions.shouldInline) {
-        // Remove localize polyfill as this is not needed for build time i18n.
+        // Remove localize polyfill when i18n inline transformation have been applied to all the packages.
         polyfills = polyfills.filter((path) => !path.startsWith('@angular/localize'));
         // Add locale data for all active locales
         // TODO: Inject each individually within the inlining process itself
@@ -486,7 +499,7 @@ function getEsBuildCommonPolyfillsOptions(options, namespace, tryToResolvePolyfi
         needLocaleDataPlugin = true;
     }
     if (needLocaleDataPlugin) {
-        buildOptions.plugins.push((0, i18n_locale_plugin_1.createAngularLocaleDataPlugin)());
+        buildOptions.plugins.unshift((0, i18n_locale_plugin_1.createAngularLocaleDataPlugin)());
     }
     if (polyfills.length === 0) {
         return;
@@ -496,7 +509,6 @@ function getEsBuildCommonPolyfillsOptions(options, namespace, tryToResolvePolyfi
         cache: loadResultCache,
         loadContent: async (_, build) => {
             let polyfillPaths = polyfills;
-            let warnings;
             if (tryToResolvePolyfillsAsRelative) {
                 polyfillPaths = await Promise.all(polyfills.map(async (path) => {
                     if (path.startsWith('zone.js') || !(0, node_path_1.extname)(path)) {
@@ -511,9 +523,7 @@ function getEsBuildCommonPolyfillsOptions(options, namespace, tryToResolvePolyfi
                 }));
             }
             // Generate module contents with an import statement per defined polyfill
-            let contents = polyfillPaths
-                .map((file) => `import '${file.replace(/\\/g, '/')}';`)
-                .join('\n');
+            let contents = polyfillPaths.map((file) => `import '${(0, path_1.toPosixPath)(file)}';`).join('\n');
             // The below should be done after loading `$localize` as otherwise the locale will be overridden.
             if (i18nOptions.shouldInline) {
                 // When inlining, a placeholder is used to allow the post-processing step to inject the $localize locale identifier.
@@ -526,7 +536,6 @@ function getEsBuildCommonPolyfillsOptions(options, namespace, tryToResolvePolyfi
             return {
                 contents,
                 loader: 'js',
-                warnings,
                 resolveDir: workspaceRoot,
             };
         },
@@ -534,8 +543,19 @@ function getEsBuildCommonPolyfillsOptions(options, namespace, tryToResolvePolyfi
     return buildOptions;
 }
 function entryFileToWorkspaceRelative(workspaceRoot, entryFile) {
-    return ('./' +
-        (0, node_path_1.relative)(workspaceRoot, entryFile)
-            .replace(/.[mc]?ts$/, '')
-            .replace(/\\/g, '/'));
+    return './' + (0, path_1.toPosixPath)((0, node_path_1.relative)(workspaceRoot, entryFile).replace(/.[mc]?ts$/, ''));
 }
+/**
+ * Determines if a polyfill path is a local file.
+ * A local file is defined as a path starting with a `.` or having a TypeScript/JavaScript extension.
+ * `zone.js` and its subpaths are specifically excluded and treated as packages.
+ * @param path The polyfill path to check.
+ * @returns true if the path is a local file; false otherwise.
+ */
+function isLocalFile(path) {
+    if (path.startsWith('zone.js')) {
+        return false;
+    }
+    return path[0] === '.' || /\.[mc]?[jt]sx?$/.test(path);
+}
+//# sourceMappingURL=application-code-bundle.js.map

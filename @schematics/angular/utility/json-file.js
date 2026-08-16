@@ -80,3 +80,4 @@ class JSONFile {
     }
 }
 exports.JSONFile = JSONFile;
+//# sourceMappingURL=json-file.js.map

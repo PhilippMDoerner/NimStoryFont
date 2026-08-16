@@ -32,7 +32,7 @@ export declare function getCurrentProcessPriority(): number
  */
 export declare function nice(incr?: number | undefined | null): number
 
-export declare const enum WindowsThreadPriority {
+export declare enum WindowsThreadPriority {
   ThreadModeBackgroundBegin = 65536,
   ThreadModeBackgroundEnd = 131072,
   ThreadPriorityAboveNormal = 1,
@@ -43,4 +43,3 @@ export declare const enum WindowsThreadPriority {
   ThreadPriorityNormal = 0,
   ThreadPriorityTimeCritical = 15
 }
-

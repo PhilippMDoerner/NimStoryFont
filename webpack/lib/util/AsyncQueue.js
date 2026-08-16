@@ -5,9 +5,9 @@
 
 "use strict";
 
-const { SyncHook, AsyncSeriesHook } = require("tapable");
-const { makeWebpackError } = require("../HookWebpackError");
-const WebpackError = require("../WebpackError");
+const { AsyncSeriesHook, SyncHook } = require("tapable");
+const { makeWebpackError } = require("../errors/HookWebpackError");
+const WebpackError = require("../errors/WebpackError");
 const ArrayQueue = require("./ArrayQueue");
 
 const QUEUED_STATE = 0;
@@ -17,23 +17,28 @@ const DONE_STATE = 2;
 let inHandleResult = 0;
 
 /**
+ * Defines the callback callback.
  * @template T
  * @callback Callback
  * @param {(WebpackError | null)=} err
  * @param {(T | null)=} result
+ * @returns {void}
  */
 
 /**
+ * Represents AsyncQueueEntry.
  * @template T
  * @template K
  * @template R
  */
 class AsyncQueueEntry {
 	/**
+	 * Creates an instance of AsyncQueueEntry.
 	 * @param {T} item the item
 	 * @param {Callback<R>} callback the callback
 	 */
 	constructor(item, callback) {
+		/** @type {T} */
 		this.item = item;
 		/** @type {typeof QUEUED_STATE | typeof PROCESSING_STATE | typeof DONE_STATE} */
 		this.state = QUEUED_STATE;
@@ -49,22 +54,26 @@ class AsyncQueueEntry {
 }
 
 /**
+ * Defines the get key type used by this module.
  * @template T, K
  * @typedef {(item: T) => K} getKey
  */
 
 /**
+ * Defines the processor type used by this module.
  * @template T, R
  * @typedef {(item: T, callback: Callback<R>) => void} Processor
  */
 
 /**
+ * Represents AsyncQueue.
  * @template T
  * @template K
  * @template R
  */
 class AsyncQueue {
 	/**
+	 * Creates an instance of AsyncQueue.
 	 * @param {object} options options object
 	 * @param {string=} options.name name of the queue
 	 * @param {number=} options.parallelism how many items should be processed at once
@@ -74,22 +83,31 @@ class AsyncQueue {
 	 * @param {Processor<T, R>} options.processor async function to process items
 	 */
 	constructor({ name, context, parallelism, parent, processor, getKey }) {
+		/** @type {string | undefined} */
 		this._name = name;
+		/** @type {string} */
 		this._context = context || "normal";
+		/** @type {number} */
 		this._parallelism = parallelism || 1;
+		/** @type {Processor<T, R>} */
 		this._processor = processor;
+		/** @type {getKey<T, K>} */
 		this._getKey =
 			getKey ||
-			/** @type {getKey<T, K>} */ (item => /** @type {T & K} */ (item));
+			/** @type {getKey<T, K>} */ ((item) => /** @type {T & K} */ (item));
 		/** @type {Map<K, AsyncQueueEntry<T, K, R>>} */
 		this._entries = new Map();
 		/** @type {ArrayQueue<AsyncQueueEntry<T, K, R>>} */
 		this._queued = new ArrayQueue();
 		/** @type {AsyncQueue<T, K, R>[] | undefined} */
 		this._children = undefined;
+		/** @type {number} */
 		this._activeTasks = 0;
+		/** @type {boolean} */
 		this._willEnsureProcessing = false;
+		/** @type {boolean} */
 		this._needProcessing = false;
+		/** @type {boolean} */
 		this._stopped = false;
 		/** @type {AsyncQueue<T, K, R>} */
 		this._root = parent ? parent._root : this;
@@ -118,6 +136,7 @@ class AsyncQueue {
 	}
 
 	/**
+	 * Returns context of execution.
 	 * @returns {string} context of execution
 	 */
 	getContext() {
@@ -125,6 +144,7 @@ class AsyncQueue {
 	}
 
 	/**
+	 * Updates context using the provided value.
 	 * @param {string} value context of execution
 	 */
 	setContext(value) {
@@ -132,58 +152,75 @@ class AsyncQueue {
 	}
 
 	/**
+	 * Processes the provided item.
 	 * @param {T} item an item
 	 * @param {Callback<R>} callback callback function
 	 * @returns {void}
 	 */
 	add(item, callback) {
 		if (this._stopped) return callback(new WebpackError("Queue was stopped"));
-		this.hooks.beforeAdd.callAsync(item, err => {
+		// skip async hook dispatch when unused — this runs per module × queue
+		if (!this.hooks.beforeAdd.isUsed()) {
+			this._add(item, callback);
+			return;
+		}
+		this.hooks.beforeAdd.callAsync(item, (err) => {
 			if (err) {
 				callback(
 					makeWebpackError(err, `AsyncQueue(${this._name}).hooks.beforeAdd`)
 				);
 				return;
 			}
-			const key = this._getKey(item);
-			const entry = this._entries.get(key);
-			if (entry !== undefined) {
-				if (entry.state === DONE_STATE) {
-					if (inHandleResult++ > 3) {
-						process.nextTick(() => callback(entry.error, entry.result));
-					} else {
-						callback(entry.error, entry.result);
-					}
-					inHandleResult--;
-				} else if (entry.callbacks === undefined) {
-					entry.callbacks = [callback];
-				} else {
-					entry.callbacks.push(callback);
-				}
-				return;
-			}
-			const newEntry = new AsyncQueueEntry(item, callback);
-			if (this._stopped) {
-				this.hooks.added.call(item);
-				this._root._activeTasks++;
-				process.nextTick(() =>
-					this._handleResult(newEntry, new WebpackError("Queue was stopped"))
-				);
-			} else {
-				this._entries.set(key, newEntry);
-				this._queued.enqueue(newEntry);
-				const root = this._root;
-				root._needProcessing = true;
-				if (root._willEnsureProcessing === false) {
-					root._willEnsureProcessing = true;
-					setImmediate(root._ensureProcessing);
-				}
-				this.hooks.added.call(item);
-			}
+			this._add(item, callback);
 		});
 	}
 
 	/**
+	 * Processes the provided item, after the beforeAdd hook.
+	 * @param {T} item an item
+	 * @param {Callback<R>} callback callback function
+	 * @returns {void}
+	 */
+	_add(item, callback) {
+		const key = this._getKey(item);
+		const entry = this._entries.get(key);
+		if (entry !== undefined) {
+			if (entry.state === DONE_STATE) {
+				if (inHandleResult++ > 3) {
+					process.nextTick(() => callback(entry.error, entry.result));
+				} else {
+					callback(entry.error, entry.result);
+				}
+				inHandleResult--;
+			} else if (entry.callbacks === undefined) {
+				entry.callbacks = [callback];
+			} else {
+				entry.callbacks.push(callback);
+			}
+			return;
+		}
+		const newEntry = new AsyncQueueEntry(item, callback);
+		if (this._stopped) {
+			this.hooks.added.call(item);
+			this._root._activeTasks++;
+			process.nextTick(() =>
+				this._handleResult(newEntry, new WebpackError("Queue was stopped"))
+			);
+		} else {
+			this._entries.set(key, newEntry);
+			this._queued.enqueue(newEntry);
+			const root = this._root;
+			root._needProcessing = true;
+			if (root._willEnsureProcessing === false) {
+				root._willEnsureProcessing = true;
+				setImmediate(root._ensureProcessing);
+			}
+			this.hooks.added.call(item);
+		}
+	}
+
+	/**
+	 * Processes the provided item.
 	 * @param {T} item an item
 	 * @returns {void}
 	 */
@@ -224,6 +261,7 @@ class AsyncQueue {
 	}
 
 	/**
+	 * Describes how this stop operation behaves.
 	 * @returns {void}
 	 */
 	stop() {
@@ -244,6 +282,7 @@ class AsyncQueue {
 	}
 
 	/**
+	 * Increase parallelism.
 	 * @returns {void}
 	 */
 	increaseParallelism() {
@@ -257,6 +296,7 @@ class AsyncQueue {
 	}
 
 	/**
+	 * Decrease parallelism.
 	 * @returns {void}
 	 */
 	decreaseParallelism() {
@@ -265,6 +305,7 @@ class AsyncQueue {
 	}
 
 	/**
+	 * Checks whether this async queue is processing.
 	 * @param {T} item an item
 	 * @returns {boolean} true, if the item is currently being processed
 	 */
@@ -275,6 +316,7 @@ class AsyncQueue {
 	}
 
 	/**
+	 * Checks whether this async queue is queued.
 	 * @param {T} item an item
 	 * @returns {boolean} true, if the item is currently queued
 	 */
@@ -285,6 +327,7 @@ class AsyncQueue {
 	}
 
 	/**
+	 * Checks whether this async queue is done.
 	 * @param {T} item an item
 	 * @returns {boolean} true, if the item is currently queued
 	 */
@@ -295,6 +338,7 @@ class AsyncQueue {
 	}
 
 	/**
+	 * Describes how this ensure processing operation behaves.
 	 * @returns {void}
 	 */
 	_ensureProcessing() {
@@ -323,11 +367,17 @@ class AsyncQueue {
 	}
 
 	/**
+	 * Processes the provided entry.
 	 * @param {AsyncQueueEntry<T, K, R>} entry the entry
 	 * @returns {void}
 	 */
 	_startProcessing(entry) {
-		this.hooks.beforeStart.callAsync(entry.item, err => {
+		// skip async hook dispatch when unused — this runs per module × queue
+		if (!this.hooks.beforeStart.isUsed()) {
+			this._startProcessing2(entry);
+			return;
+		}
+		this.hooks.beforeStart.callAsync(entry.item, (err) => {
 			if (err) {
 				this._handleResult(
 					entry,
@@ -335,66 +385,97 @@ class AsyncQueue {
 				);
 				return;
 			}
-			let inCallback = false;
-			try {
-				this._processor(entry.item, (e, r) => {
-					inCallback = true;
-					this._handleResult(entry, e, r);
-				});
-			} catch (err) {
-				if (inCallback) throw err;
-				this._handleResult(entry, /** @type {WebpackError} */ (err), null);
-			}
-			this.hooks.started.call(entry.item);
+			this._startProcessing2(entry);
 		});
 	}
 
 	/**
+	 * Processes the provided entry, after the beforeStart hook.
+	 * @param {AsyncQueueEntry<T, K, R>} entry the entry
+	 * @returns {void}
+	 */
+	_startProcessing2(entry) {
+		let inCallback = false;
+		try {
+			this._processor(entry.item, (e, r) => {
+				inCallback = true;
+				this._handleResult(entry, e, r);
+			});
+		} catch (err) {
+			if (inCallback) throw err;
+			this._handleResult(entry, /** @type {WebpackError} */ (err), null);
+		}
+		this.hooks.started.call(entry.item);
+	}
+
+	/**
+	 * Processes the provided entry.
 	 * @param {AsyncQueueEntry<T, K, R>} entry the entry
 	 * @param {(WebpackError | null)=} err error, if any
 	 * @param {(R | null)=} result result, if any
 	 * @returns {void}
 	 */
 	_handleResult(entry, err, result) {
-		this.hooks.result.callAsync(entry.item, err, result, hookError => {
-			const error = hookError
-				? makeWebpackError(hookError, `AsyncQueue(${this._name}).hooks.result`)
-				: err;
+		// skip async hook dispatch when unused — this runs per module × queue
+		if (!this.hooks.result.isUsed()) {
+			this._handleResult2(entry, err, result);
+			return;
+		}
+		this.hooks.result.callAsync(entry.item, err, result, (hookError) => {
+			this._handleResult2(
+				entry,
+				hookError
+					? makeWebpackError(
+							hookError,
+							`AsyncQueue(${this._name}).hooks.result`
+						)
+					: err,
+				result
+			);
+		});
+	}
 
-			const callback = /** @type {Callback<R>} */ (entry.callback);
-			const callbacks = entry.callbacks;
-			entry.state = DONE_STATE;
-			entry.callback = undefined;
-			entry.callbacks = undefined;
-			entry.result = result;
-			entry.error = error;
+	/**
+	 * Finalizes the provided entry, after the result hook.
+	 * @param {AsyncQueueEntry<T, K, R>} entry the entry
+	 * @param {(WebpackError | null)=} error error, if any
+	 * @param {(R | null)=} result result, if any
+	 * @returns {void}
+	 */
+	_handleResult2(entry, error, result) {
+		const callback = /** @type {Callback<R>} */ (entry.callback);
+		const callbacks = entry.callbacks;
+		entry.state = DONE_STATE;
+		entry.callback = undefined;
+		entry.callbacks = undefined;
+		entry.result = result;
+		entry.error = error;
 
-			const root = this._root;
-			root._activeTasks--;
-			if (root._willEnsureProcessing === false && root._needProcessing) {
-				root._willEnsureProcessing = true;
-				setImmediate(root._ensureProcessing);
-			}
+		const root = this._root;
+		root._activeTasks--;
+		if (root._willEnsureProcessing === false && root._needProcessing) {
+			root._willEnsureProcessing = true;
+			setImmediate(root._ensureProcessing);
+		}
 
-			if (inHandleResult++ > 3) {
-				process.nextTick(() => {
-					callback(error, result);
-					if (callbacks !== undefined) {
-						for (const callback of callbacks) {
-							callback(error, result);
-						}
-					}
-				});
-			} else {
+		if (inHandleResult++ > 3) {
+			process.nextTick(() => {
 				callback(error, result);
 				if (callbacks !== undefined) {
 					for (const callback of callbacks) {
 						callback(error, result);
 					}
 				}
+			});
+		} else {
+			callback(error, result);
+			if (callbacks !== undefined) {
+				for (const callback of callbacks) {
+					callback(error, result);
+				}
 			}
-			inHandleResult--;
-		});
+		}
+		inHandleResult--;
 	}
 
 	clear() {

@@ -25,3 +25,4 @@ class FallbackRegistry {
     }
 }
 exports.FallbackRegistry = FallbackRegistry;
+//# sourceMappingURL=fallback-registry.js.map

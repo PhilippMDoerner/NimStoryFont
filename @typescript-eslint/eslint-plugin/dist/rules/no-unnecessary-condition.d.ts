@@ -7,7 +7,8 @@ export type Options = [
         checkTypePredicates?: boolean;
     }
 ];
-export type MessageId = 'alwaysFalsy' | 'alwaysFalsyFunc' | 'alwaysNullish' | 'alwaysTruthy' | 'alwaysTruthyFunc' | 'comparisonBetweenLiteralTypes' | 'never' | 'neverNullish' | 'neverOptionalChain' | 'noOverlapBooleanExpression' | 'noStrictNullCheck' | 'typeGuardAlreadyIsType';
-declare const _default: import("@typescript-eslint/utils/ts-eslint").RuleModule<MessageId, Options, import("../../rules").ESLintPluginDocs, import("@typescript-eslint/utils/ts-eslint").RuleListener>;
+export type MessageId = 'alwaysFalsy' | 'alwaysFalsyFunc' | 'alwaysNullish' | 'alwaysTruthy' | 'alwaysTruthyFunc' | 'comparisonBetweenLiteralTypes' | 'never' | 'neverNullish' | 'neverOptionalChain' | 'noOverlapBooleanExpression' | 'noStrictNullCheck' | 'suggestRemoveOptionalChain' | 'typeGuardAlreadyIsType';
+declare const _default: import("@typescript-eslint/utils/ts-eslint").RuleModule<MessageId, Options, import("../../rules").ESLintPluginDocs, import("@typescript-eslint/utils/ts-eslint").RuleListener> & {
+    name: string;
+};
 export default _default;
-//# sourceMappingURL=no-unnecessary-condition.d.ts.map

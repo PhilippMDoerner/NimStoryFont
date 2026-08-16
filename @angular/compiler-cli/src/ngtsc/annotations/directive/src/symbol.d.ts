@@ -5,8 +5,9 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.dev/license
  */
+import { ClassPropertyMapping } from '@angular/compiler';
 import { SemanticSymbol, SemanticTypeParameter } from '../../../incremental/semantic_graph';
-import { ClassPropertyMapping, DirectiveTypeCheckMeta, InputMapping } from '../../../metadata';
+import { DirectiveTypeCheckMeta, InputMapping } from '../../../metadata';
 import { ClassDeclaration } from '../../../reflection';
 /**
  * Represents an Angular directive. Components are represented by `ComponentSymbol`, which inherits

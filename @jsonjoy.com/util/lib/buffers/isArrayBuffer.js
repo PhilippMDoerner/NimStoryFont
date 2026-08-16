@@ -1,8 +1,5 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.isArrayBuffer = void 0;
-const isArrayBuffer = (value) => {
-    return value instanceof ArrayBuffer || toString.call(value) === '[object ArrayBuffer]';
-};
-exports.isArrayBuffer = isArrayBuffer;
+const tslib_1 = require("tslib");
+tslib_1.__exportStar(require("@jsonjoy.com/buffers/lib/isArrayBuffer"), exports);
 //# sourceMappingURL=isArrayBuffer.js.map

@@ -10,13 +10,16 @@ exports.default = (0, util_1.createRule)({
             description: 'Enforce using a particular method signature syntax',
         },
         fixable: 'code',
+        hasSuggestions: true,
         messages: {
+            convertToMethodSignature: 'Convert to a method signature. This removes the `readonly` modifier, allowing the member to be reassigned.',
             errorMethod: 'Shorthand method signature is forbidden. Use a function property instead.',
             errorProperty: 'Function property signature is forbidden. Use a method shorthand instead.',
         },
         schema: [
             {
                 type: 'string',
+                description: 'The method signature style to enforce using.',
                 enum: ['property', 'method'],
             },
         ],
@@ -30,9 +33,6 @@ exports.default = (0, util_1.createRule)({
             }
             if (node.optional) {
                 key = `${key}?`;
-            }
-            if (node.readonly) {
-                key = `readonly ${key}`;
             }
             return key;
         }
@@ -82,6 +82,7 @@ exports.default = (0, util_1.createRule)({
                     if (methodNode.kind !== 'method') {
                         return;
                     }
+                    const skipFix = returnTypeReferencesThisType(methodNode.returnType);
                     const parent = methodNode.parent;
                     const members = parent.type === utils_1.AST_NODE_TYPES.TSInterfaceBody
                         ? parent.body
@@ -101,32 +102,34 @@ exports.default = (0, util_1.createRule)({
                             context.report({
                                 node: methodNode,
                                 messageId: 'errorMethod',
-                                *fix(fixer) {
-                                    const methodNodes = [
-                                        methodNode,
-                                        ...duplicatedKeyMethodNodes,
-                                    ].sort((a, b) => (a.range[0] < b.range[0] ? -1 : 1));
-                                    const typeString = methodNodes
-                                        .map(node => {
-                                        const params = getMethodParams(node);
-                                        const returnType = getMethodReturnType(node);
-                                        return `(${params} => ${returnType})`;
-                                    })
-                                        .join(' & ');
-                                    const key = getMethodKey(methodNode);
-                                    const delimiter = getDelimiter(methodNode);
-                                    yield fixer.replaceText(methodNode, `${key}: ${typeString}${delimiter}`);
-                                    for (const node of duplicatedKeyMethodNodes) {
-                                        const lastToken = context.sourceCode.getLastToken(node);
-                                        if (lastToken) {
-                                            const nextToken = context.sourceCode.getTokenAfter(lastToken);
-                                            if (nextToken) {
-                                                yield fixer.remove(node);
-                                                yield fixer.replaceTextRange([lastToken.range[1], nextToken.range[0]], '');
+                                fix: skipFix
+                                    ? undefined
+                                    : function* fix(fixer) {
+                                        const methodNodes = [
+                                            methodNode,
+                                            ...duplicatedKeyMethodNodes,
+                                        ].sort((a, b) => (a.range[0] < b.range[0] ? -1 : 1));
+                                        const typeString = methodNodes
+                                            .map(node => {
+                                            const params = getMethodParams(node);
+                                            const returnType = getMethodReturnType(node);
+                                            return `(${params} => ${returnType})`;
+                                        })
+                                            .join(' & ');
+                                        const key = getMethodKey(methodNode);
+                                        const delimiter = getDelimiter(methodNode);
+                                        yield fixer.replaceText(methodNode, `${key}: ${typeString}${delimiter}`);
+                                        for (const node of duplicatedKeyMethodNodes) {
+                                            const lastToken = context.sourceCode.getLastToken(node);
+                                            if (lastToken) {
+                                                const nextToken = context.sourceCode.getTokenAfter(lastToken);
+                                                if (nextToken) {
+                                                    yield fixer.remove(node);
+                                                    yield fixer.replaceTextRange([lastToken.range[1], nextToken.range[0]], '');
+                                                }
                                             }
                                         }
-                                    }
-                                },
+                                    },
                             });
                         }
                         return;
@@ -141,13 +144,15 @@ exports.default = (0, util_1.createRule)({
                         context.report({
                             node: methodNode,
                             messageId: 'errorMethod',
-                            fix: fixer => {
-                                const key = getMethodKey(methodNode);
-                                const params = getMethodParams(methodNode);
-                                const returnType = getMethodReturnType(methodNode);
-                                const delimiter = getDelimiter(methodNode);
-                                return fixer.replaceText(methodNode, `${key}: ${params} => ${returnType}${delimiter}`);
-                            },
+                            fix: skipFix
+                                ? undefined
+                                : fixer => {
+                                    const key = getMethodKey(methodNode);
+                                    const params = getMethodParams(methodNode);
+                                    const returnType = getMethodReturnType(methodNode);
+                                    const delimiter = getDelimiter(methodNode);
+                                    return fixer.replaceText(methodNode, `${key}: ${params} => ${returnType}${delimiter}`);
+                                },
                         });
                     }
                 },
@@ -158,19 +163,37 @@ exports.default = (0, util_1.createRule)({
                     if (typeNode?.type !== utils_1.AST_NODE_TYPES.TSFunctionType) {
                         return;
                     }
+                    const fix = fixer => {
+                        const key = getMethodKey(propertyNode);
+                        const params = getMethodParams(typeNode);
+                        const returnType = getMethodReturnType(typeNode);
+                        const delimiter = getDelimiter(propertyNode);
+                        return fixer.replaceText(propertyNode, `${key}${params}: ${returnType}${delimiter}`);
+                    };
+                    // There is no syntax for a `readonly` method signature, so converting
+                    // a `readonly` function-typed property drops the `readonly` modifier.
+                    // That is a behavioral change (a method may be reassigned, a
+                    // `readonly` property may not), so it is offered as a suggestion
+                    // rather than applied as an autofix.
+                    if (propertyNode.readonly) {
+                        context.report({
+                            node: propertyNode,
+                            messageId: 'errorProperty',
+                            suggest: [{ messageId: 'convertToMethodSignature', fix }],
+                        });
+                        return;
+                    }
                     context.report({
                         node: propertyNode,
                         messageId: 'errorProperty',
-                        fix: fixer => {
-                            const key = getMethodKey(propertyNode);
-                            const params = getMethodParams(typeNode);
-                            const returnType = getMethodReturnType(typeNode);
-                            const delimiter = getDelimiter(propertyNode);
-                            return fixer.replaceText(propertyNode, `${key}${params}: ${returnType}${delimiter}`);
-                        },
+                        fix,
                     });
                 },
             }),
         };
     },
 });
+function returnTypeReferencesThisType(node) {
+    return (node &&
+        (0, util_1.forEachChildESTree)(node.typeAnnotation, child => child.type === utils_1.AST_NODE_TYPES.TSThisType));
+}

@@ -6,8 +6,6 @@ See the accompanying LICENSE file for terms.
 
 'use strict';
 
-var randomBytes = require('randombytes');
-
 // Generate an internal UID to make the regexp pattern harder to guess.
 var UID_LENGTH          = 16;
 var UID                 = generateUID();
@@ -17,6 +15,9 @@ var IS_NATIVE_CODE_REGEXP = /\{\s*\[native code\]\s*\}/g;
 var IS_PURE_FUNCTION = /function.*?\(/;
 var IS_ARROW_FUNCTION = /.*?=>.*?/;
 var UNSAFE_CHARS_REGEXP   = /[<>\/\u2028\u2029]/g;
+// Regex to match </script> and variations (case-insensitive) for XSS protection
+// Matches </script followed by optional whitespace/attributes and >
+var SCRIPT_CLOSE_REGEXP = /<\/script[^>]*>/gi;
 
 var RESERVED_SYMBOLS = ['*', 'async'];
 
@@ -34,8 +35,23 @@ function escapeUnsafeChars(unsafeChar) {
     return ESCAPED_CHARS[unsafeChar];
 }
 
+// Escape function body for XSS protection while preserving arrow function syntax
+function escapeFunctionBody(str) {
+    // Escape </script> sequences and variations (case-insensitive) - the main XSS risk
+    // Matches </script followed by optional whitespace/attributes and >
+    // This must be done first before other replacements
+    str = str.replace(SCRIPT_CLOSE_REGEXP, function(match) {
+        // Escape all <, /, and > characters in the closing script tag
+        return match.replace(/</g, '\\u003C').replace(/\//g, '\\u002F').replace(/>/g, '\\u003E');
+    });
+    // Escape line terminators (these are always unsafe)
+    str = str.replace(/\u2028/g, '\\u2028');
+    str = str.replace(/\u2029/g, '\\u2029');
+    return str;
+}
+
 function generateUID() {
-    var bytes = randomBytes(UID_LENGTH);
+    var bytes = crypto.getRandomValues(new Uint8Array(UID_LENGTH));
     var result = '';
     for(var i=0; i<UID_LENGTH; ++i) {
         result += bytes[i].toString(16);
@@ -109,8 +125,8 @@ module.exports = function serialize(obj, options) {
                 return '@__S-' + UID + '-' + (sets.push(origValue) - 1) + '__@';
             }
 
-            if(origValue instanceof Array) {
-                var isSparse = origValue.filter(function(){return true}).length !== origValue.length;
+            if(Array.isArray(origValue)) {
+                var isSparse = Object.keys(origValue).length !== origValue.length;
                 if (isSparse) {
                     return '@__A-' + UID + '-' + (arrays.push(origValue) - 1) + '__@';
                 }
@@ -140,10 +156,16 @@ module.exports = function serialize(obj, options) {
         return value;
     }
 
-    function serializeFunc(fn) {
+    function serializeFunc(fn, options) {
       var serializedFn = fn.toString();
       if (IS_NATIVE_CODE_REGEXP.test(serializedFn)) {
           throw new TypeError('Serializing native function: ' + fn.name);
+      }
+
+      // Escape unsafe HTML characters in function body for XSS protection
+      // This must preserve arrow function syntax (=>) while escaping </script>
+      if (options && options.unsafe !== true) {
+          serializedFn = escapeFunctionBody(serializedFn);
       }
 
       // pure functions, example: {key: function() {}}
@@ -226,11 +248,22 @@ module.exports = function serialize(obj, options) {
         }
 
         if (type === 'D') {
-            return "new Date(\"" + dates[valueIndex].toISOString() + "\")";
+            // Validate ISO string format to prevent code injection via spoofed toISOString()
+            var isoStr = String(dates[valueIndex].toISOString());
+            if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$/.test(isoStr)) {
+                throw new TypeError('Invalid Date ISO string');
+            }
+            return "new Date(\"" + isoStr + "\")";
         }
 
         if (type === 'R') {
-            return "new RegExp(" + serialize(regexps[valueIndex].source) + ", \"" + regexps[valueIndex].flags + "\")";
+            // Sanitize flags to prevent code injection (only allow valid RegExp flag characters)
+            var flags = String(regexps[valueIndex].flags).replace(/[^gimsuydv]/g, '');
+            var regexpSource = regexps[valueIndex].source;
+            if (typeof regexpSource !== 'string') {
+                throw new TypeError('RegExp.source must be a string');
+            }
+            return "new RegExp(" + serialize(regexpSource) + ", \"" + flags + "\")";
         }
 
         if (type === 'M') {
@@ -258,11 +291,15 @@ module.exports = function serialize(obj, options) {
         }
 
         if (type === 'L') {
-            return "new URL(" + serialize(urls[valueIndex].toString(), options) + ")";
+            var urlStr = urls[valueIndex].toString();
+            if (typeof urlStr !== 'string') {
+                throw new TypeError('URL.toString() must return a string');
+            }
+            return "new URL(" + serialize(urlStr, options) + ")";
         }
 
         var fn = functions[valueIndex];
 
-        return serializeFunc(fn);
+        return serializeFunc(fn, options);
     });
 }

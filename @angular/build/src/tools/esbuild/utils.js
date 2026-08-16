@@ -7,7 +7,6 @@
  * found in the LICENSE file at https://angular.dev/license
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.SERVER_GENERATED_EXTERNALS = void 0;
 exports.logBuildStats = logBuildStats;
 exports.getChunkNameFromMetafile = getChunkNameFromMetafile;
 exports.calculateEstimatedTransferSizes = calculateEstimatedTransferSizes;
@@ -15,8 +14,6 @@ exports.withSpinner = withSpinner;
 exports.withNoProgress = withNoProgress;
 exports.getFeatureSupport = getFeatureSupport;
 exports.emitFilesToDisk = emitFilesToDisk;
-exports.createOutputFile = createOutputFile;
-exports.convertOutputFile = convertOutputFile;
 exports.transformSupportedBrowsersToTargets = transformSupportedBrowsersToTargets;
 exports.getSupportedNodeTargets = getSupportedNodeTargets;
 exports.createJsonBuildManifest = createJsonBuildManifest;
@@ -25,15 +22,13 @@ exports.isZonelessApp = isZonelessApp;
 exports.getEntryPointName = getEntryPointName;
 const esbuild_1 = require("esbuild");
 const listr2_1 = require("listr2");
-const node_crypto_1 = require("node:crypto");
 const node_path_1 = require("node:path");
 const node_url_1 = require("node:url");
 const node_zlib_1 = require("node:zlib");
 const semver_1 = require("semver");
 const schema_1 = require("../../builders/application/schema");
-const manifest_1 = require("../../utils/server-rendering/manifest");
 const stats_table_1 = require("../../utils/stats-table");
-const bundler_context_1 = require("./bundler-context");
+const bundler_files_1 = require("./bundler-files");
 function logBuildStats(metafile, outputFiles, initial, budgetFailures, colors, changedFiles, estimatedTransferSizes, ssrOutputEnabled, verbose) {
     // Remove the i18n subpath in case the build is using i18n.
     // en-US/main.js -> main.js
@@ -52,7 +47,7 @@ function logBuildStats(metafile, outputFiles, initial, budgetFailures, colors, c
             ++unchangedCount;
             continue;
         }
-        const isPlatformServer = type === bundler_context_1.BuildOutputFileType.ServerApplication || type === bundler_context_1.BuildOutputFileType.ServerRoot;
+        const isPlatformServer = type === bundler_files_1.BuildOutputFileType.ServerApplication || type === bundler_files_1.BuildOutputFileType.ServerRoot;
         if (isPlatformServer && !ssrOutputEnabled) {
             // Only log server build stats when SSR is enabled.
             continue;
@@ -151,17 +146,19 @@ async function withNoProgress(text, action) {
     return action();
 }
 /**
- * Generates a syntax feature object map for Angular applications based on a list of targets.
+ * Generates a syntax feature object map for Angular applications.
  * A full set of feature names can be found here: https://esbuild.github.io/api/#supported
- * @param target An array of browser/engine targets in the format accepted by the esbuild `target` option.
  * @param nativeAsyncAwait Indicate whether to support native async/await.
  * @returns An object that can be used with the esbuild build `supported` option.
  */
-function getFeatureSupport(target, nativeAsyncAwait) {
+function getFeatureSupport(nativeAsyncAwait) {
     return {
         // Native async/await is not supported with Zone.js. Disabling support here will cause
         // esbuild to downlevel async/await, async generators, and for await...of to a Zone.js supported form.
         'async-await': nativeAsyncAwait,
+        // Workaround for an esbuild minification bug when async-await is disabled and the target is es2019+.
+        // The catch binding for downleveled for-await will be incorrectly removed in this specific situation.
+        ...(!nativeAsyncAwait ? { 'optional-catch-binding': false } : {}),
         // V8 currently has a performance defect involving object spread operations that can cause signficant
         // degradation in runtime performance. By not supporting the language feature here, a downlevel form
         // will be used instead which provides a workaround for the performance issue.
@@ -180,97 +177,6 @@ async function emitFilesToDisk(files, writeFileCallback) {
         }
         await Promise.all(actions);
     }
-}
-function createOutputFile(path, data, type) {
-    if (typeof data === 'string') {
-        let cachedContents = null;
-        let cachedText = data;
-        let cachedHash = null;
-        return {
-            path,
-            type,
-            get contents() {
-                cachedContents ??= new TextEncoder().encode(data);
-                return cachedContents;
-            },
-            set contents(value) {
-                cachedContents = value;
-                cachedText = null;
-            },
-            get text() {
-                cachedText ??= new TextDecoder('utf-8').decode(this.contents);
-                return cachedText;
-            },
-            get size() {
-                return this.contents.byteLength;
-            },
-            get hash() {
-                cachedHash ??= (0, node_crypto_1.createHash)('sha256')
-                    .update(cachedText ?? this.contents)
-                    .digest('hex');
-                return cachedHash;
-            },
-            clone() {
-                return createOutputFile(this.path, cachedText ?? this.contents, this.type);
-            },
-        };
-    }
-    else {
-        let cachedContents = data;
-        let cachedText = null;
-        let cachedHash = null;
-        return {
-            get contents() {
-                return cachedContents;
-            },
-            set contents(value) {
-                cachedContents = value;
-                cachedText = null;
-            },
-            path,
-            type,
-            get size() {
-                return this.contents.byteLength;
-            },
-            get text() {
-                cachedText ??= new TextDecoder('utf-8').decode(this.contents);
-                return cachedText;
-            },
-            get hash() {
-                cachedHash ??= (0, node_crypto_1.createHash)('sha256').update(this.contents).digest('hex');
-                return cachedHash;
-            },
-            clone() {
-                return createOutputFile(this.path, this.contents, this.type);
-            },
-        };
-    }
-}
-function convertOutputFile(file, type) {
-    let { contents: cachedContents } = file;
-    let cachedText = null;
-    return {
-        get contents() {
-            return cachedContents;
-        },
-        set contents(value) {
-            cachedContents = value;
-            cachedText = null;
-        },
-        hash: file.hash,
-        path: file.path,
-        type,
-        get size() {
-            return this.contents.byteLength;
-        },
-        get text() {
-            cachedText ??= new TextDecoder('utf-8').decode(this.contents);
-            return cachedText;
-        },
-        clone() {
-            return convertOutputFile(this, this.type);
-        },
-    };
 }
 /**
  * Transform browserlists result to esbuild target.
@@ -315,7 +221,7 @@ function transformSupportedBrowsersToTargets(supportedBrowsers) {
     }
     return transformed;
 }
-const SUPPORTED_NODE_VERSIONS = '^20.19.0 || ^22.12.0 || >=24.0.0';
+const SUPPORTED_NODE_VERSIONS = '^22.22.3 || ^24.15.0 || >=26.0.0';
 /**
  * Transform supported Node.js versions to esbuild target.
  * @see https://esbuild.github.io/api/#target
@@ -375,16 +281,4 @@ function getEntryPointName(entryPoint) {
         .replace(/\.[cm]?[jt]s$/, '')
         .replace(/[\\/.]/g, '-');
 }
-/**
- * A set of server-generated dependencies that are treated as external.
- *
- * These dependencies are marked as external because they are produced by a
- * separate bundling process and are not included in the primary bundle. This
- * ensures that these generated files are resolved from an external source rather
- * than being part of the main bundle.
- */
-exports.SERVER_GENERATED_EXTERNALS = new Set([
-    './polyfills.server.mjs',
-    './' + manifest_1.SERVER_APP_MANIFEST_FILENAME,
-    './' + manifest_1.SERVER_APP_ENGINE_MANIFEST_FILENAME,
-]);
+//# sourceMappingURL=utils.js.map

@@ -2,9 +2,9 @@ import { inject } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { CanActivateFn } from '@angular/router';
 import { combineLatest, map } from 'rxjs';
-import { FeatureService } from 'src/app/_services/utils/feature.service';
-import { AuthStore } from 'src/app/auth.store';
-import { filterNil } from 'src/utils/rxjs-operators';
+import { filterNil } from '../../../../utils/rxjs-operators';
+import { FeatureService } from '../../../_services/utils/feature.service';
+import { AuthStore } from '../../../auth.store';
 
 export const campaignCreationGuard: CanActivateFn = () => {
   const featureService = inject(FeatureService);

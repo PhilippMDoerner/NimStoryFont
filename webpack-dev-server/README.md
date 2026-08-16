@@ -99,7 +99,7 @@ Options:
   -o, --output-path <value>                           The output directory as **absolute path** (required).
   --stats [value]                                     Stats options object or preset name.
   --no-stats                                          Negative 'stats' option.
-  -t, --target <value...>                             Environment to build for. Environment to build for. An array of environments to build for all of them when possible.
+  -t, --target <value...>                             Specific environment, runtime, or syntax. Environment to build for. An array of environments to build for all of them when possible.
   --no-target                                         Negative 'target' option.
   --watch-options-stdin                               Stop watching when stdin stream has ended.
   --no-watch-options-stdin                            Negative 'watch-options-stdin' option.
@@ -229,7 +229,7 @@ If you use TypeScript in the webpack config, you'll need to properly type `devSe
 
 ```ts
 /// <reference path="node_modules/webpack-dev-server/types/lib/Server.d.ts"/>
-import type { Configuration } from "webpack";
+import { type Configuration } from "webpack";
 
 // Your logic
 ```
@@ -237,8 +237,8 @@ import type { Configuration } from "webpack";
 Or you can import the type from `webpack-dev-server`, i.e.
 
 ```ts
-import type { Configuration as DevServerConfiguration } from "webpack-dev-server";
-import type { Configuration } from "webpack";
+import { type Configuration } from "webpack";
+import { type Configuration as DevServerConfiguration } from "webpack-dev-server";
 
 const devServer: DevServerConfiguration = {};
 const config: Configuration = { devServer };
@@ -311,7 +311,7 @@ This project is heavily inspired by [peerigon/nof5](https://github.com/peerigon/
 [node-url]: https://nodejs.org
 [tests]: https://github.com/webpack/webpack-dev-server/workflows/webpack-dev-server/badge.svg
 [tests-url]: https://github.com/webpack/webpack-dev-server/actions?query=workflow%3Awebpack-dev-server
-[cover]: https://codecov.io/gh/webpack/webpack-dev-server/branch/master/graph/badge.svg
+[cover]: https://codecov.io/gh/webpack/webpack-dev-server/graph/badge.svg
 [cover-url]: https://codecov.io/gh/webpack/webpack-dev-server
 [discussion]: https://img.shields.io/github/discussions/webpack/webpack
 [discussion-url]: https://github.com/webpack/webpack/discussions

@@ -5,7 +5,7 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.dev/license
  */
-import { AST, LiteralPrimitive, ParseSourceSpan, PropertyRead, SafePropertyRead, TemplateEntity, TmplAstElement, TmplAstHostElement, TmplAstNode, TmplAstTemplate, TmplAstTextAttribute } from '@angular/compiler';
+import { AST, BoundTarget, ForeignComponentMeta, LiteralPrimitive, ParseSourceSpan, PropertyRead, ReferenceTarget, SafePropertyRead, TemplateEntity, TmplAstBoundAttribute, TmplAstBoundEvent, TmplAstComponent, TmplAstDirective, TmplAstElement, TmplAstHostElement, TmplAstNode, TmplAstReference, TmplAstTemplate, TmplAstTextAttribute, TypeCheckingConfig } from '@angular/compiler';
 import ts from 'typescript';
 import { ErrorCode } from '../../diagnostics';
 import { AbsoluteFsPath } from '../../file_system';
@@ -16,9 +16,34 @@ import { PerfRecorder } from '../../perf';
 import { ProgramDriver } from '../../program_driver';
 import { ClassDeclaration, ReflectionHost } from '../../reflection';
 import { ComponentScopeReader, TypeCheckScopeRegistry } from '../../scope';
-import { ElementSymbol, FullSourceMapping, GlobalCompletion, NgTemplateDiagnostic, OptimizeFor, PotentialDirective, PotentialImport, PotentialImportMode, PotentialPipe, ProgramTypeCheckAdapter, TcbLocation, TemplateSymbol, TemplateTypeChecker, TypeCheckableDirectiveMeta, TypeCheckingConfig } from '../api';
+import { BindingSymbol, ClassSymbol, ElementSymbol, FullSourceMapping, GetPotentialAngularMetaOptions, GlobalCompletion, NgTemplateDiagnostic, OptimizeFor, PotentialDirective, PotentialDirectiveModuleSpecifierResolver, PotentialImport, PotentialImportMode, PotentialPipe, ProgramTypeCheckAdapter, SelectorlessComponentSymbol, SelectorlessDirectiveSymbol, Symbol, SymbolReference, TcbLocation, TemplateSymbol, TemplateTypeChecker, TsCompletionEntryInfo, TypeCheckableDirectiveMeta } from '../api';
 import { ShimTypeCheckingData } from './context';
 import { DirectiveSourceManager } from './source';
+import { SymbolDirectiveMeta, SymbolBoundTarget } from './template_symbol_builder';
+export declare class TypeCheckableDirectiveMetaAdapter implements SymbolDirectiveMeta {
+    private meta;
+    private componentScopeReader;
+    constructor(meta: TypeCheckableDirectiveMeta, componentScopeReader: ComponentScopeReader);
+    getSymbolReference(): SymbolReference;
+    getNgModule(): ClassDeclaration | null;
+    getReferenceTargetNode(): ts.ClassDeclaration | null;
+    get selector(): string | null;
+    get isComponent(): boolean;
+    get inputs(): import("@angular/compiler").ClassPropertyMapping<import("../../metadata").InputMapping>;
+    get outputs(): import("@angular/compiler").ClassPropertyMapping<import("@angular/compiler").InputOrOutput>;
+    get isStructural(): boolean;
+    get hostDirectives(): import("../../metadata").HostDirectiveMeta[] | null;
+    get matchSource(): import("@angular/compiler").MatchSource;
+}
+export declare class BoundTargetAdapter implements SymbolBoundTarget {
+    private delegate;
+    private componentScopeReader;
+    constructor(delegate: BoundTarget<TypeCheckableDirectiveMeta>, componentScopeReader: ComponentScopeReader);
+    getDirectivesOfNode(node: TmplAstNode): SymbolDirectiveMeta[] | null;
+    getReferenceTarget(ref: TmplAstReference): ReferenceTarget<SymbolDirectiveMeta> | null;
+    getConsumerOfBinding(binding: TmplAstBoundAttribute | TmplAstBoundEvent | TmplAstTextAttribute): SymbolDirectiveMeta | TmplAstElement | TmplAstTemplate | null;
+    getExpressionTarget(expr: AST): TemplateEntity | null;
+}
 /**
  * Primary template type-checking engine, which performs type-checking using a
  * `TypeCheckingProgramStrategy` for type-checking program maintenance, and the
@@ -73,11 +98,17 @@ export declare class TemplateTypeCheckerImpl implements TemplateTypeChecker {
      * destroyed and replaced.
      */
     private elementTagCache;
+    private generatedRangeCache;
     private isComplete;
     private priorResultsAdopted;
-    constructor(originalProgram: ts.Program, programDriver: ProgramDriver, typeCheckAdapter: ProgramTypeCheckAdapter, config: TypeCheckingConfig, refEmitter: ReferenceEmitter, reflector: ReflectionHost, compilerHost: Pick<ts.CompilerHost, 'getCanonicalFileName'>, priorBuild: IncrementalBuild<unknown, FileTypeCheckingData>, metaReader: MetadataReader, localMetaReader: MetadataReaderWithIndex, ngModuleIndex: NgModuleIndex, componentScopeReader: ComponentScopeReader, typeCheckScopeRegistry: TypeCheckScopeRegistry, perf: PerfRecorder);
+    constructor(originalProgram: ts.Program, programDriver: ProgramDriver, typeCheckAdapter: ProgramTypeCheckAdapter, config: TypeCheckingConfig, refEmitter: ReferenceEmitter, reflector: ReflectionHost, compilerHost: Pick<ts.CompilerHost, 'getCanonicalFileName' | 'getSourceFile'>, priorBuild: IncrementalBuild<unknown, FileTypeCheckingData>, metaReader: MetadataReader, localMetaReader: MetadataReaderWithIndex, ngModuleIndex: NgModuleIndex, componentScopeReader: ComponentScopeReader, typeCheckScopeRegistry: TypeCheckScopeRegistry, perf: PerfRecorder);
+    getTypeOfSymbol(symbol: Symbol | BindingSymbol | ClassSymbol): ts.Type | null;
+    getTsSymbolOfSymbol(symbol: Symbol | BindingSymbol | ClassSymbol): ts.Symbol | null;
+    private getTsSymbolOfReference;
     getTemplate(component: ts.ClassDeclaration, optimizeFor?: OptimizeFor): TmplAstNode[] | null;
     getHostElement(directive: ts.ClassDeclaration, optimizeFor?: OptimizeFor): TmplAstHostElement | null;
+    getDirectivesOfNode(component: ts.ClassDeclaration, node: TmplAstElement | TmplAstTemplate): TypeCheckableDirectiveMeta[] | null;
+    getForeignComponent(component: ts.ClassDeclaration, element: TmplAstElement): ForeignComponentMeta | null;
     getUsedDirectives(component: ts.ClassDeclaration): TypeCheckableDirectiveMeta[] | null;
     getUsedPipes(component: ts.ClassDeclaration): string[] | null;
     private getLatestComponentState;
@@ -86,12 +117,16 @@ export declare class TemplateTypeCheckerImpl implements TemplateTypeChecker {
     private getFileAndShimRecordsForPath;
     getSourceMappingAtTcbLocation(tcbLocation: TcbLocation): FullSourceMapping | null;
     generateAllTypeCheckBlocks(): void;
+    private getGeneratedCodeRanges;
+    private filterShimDiagnostics;
     /**
      * Retrieve type-checking and template parse diagnostics from the given `ts.SourceFile` using the
      * most recent type-checking program.
      */
     getDiagnosticsForFile(sf: ts.SourceFile, optimizeFor: OptimizeFor): ts.Diagnostic[];
+    getSuggestionDiagnosticsForFile(sf: ts.SourceFile, tsLs: ts.LanguageService, optimizeFor: OptimizeFor): ts.DiagnosticWithLocation[];
     getDiagnosticsForComponent(component: ts.ClassDeclaration): ts.Diagnostic[];
+    getSuggestionDiagnosticsForComponent(component: ts.ClassDeclaration, tsLs: ts.LanguageService): ts.DiagnosticWithLocation[];
     getTypeCheckBlock(component: ts.ClassDeclaration): ts.Node | null;
     getGlobalCompletions(context: TmplAstTemplate | null, component: ts.ClassDeclaration, node: AST | TmplAstNode): GlobalCompletion | null;
     getExpressionCompletionLocation(ast: PropertyRead | SafePropertyRead, component: ts.ClassDeclaration): TcbLocation | null;
@@ -121,13 +156,25 @@ export declare class TemplateTypeCheckerImpl implements TemplateTypeChecker {
     getFileData(path: AbsoluteFsPath): FileTypeCheckingData;
     getSymbolOfNode(node: TmplAstTemplate, component: ts.ClassDeclaration): TemplateSymbol | null;
     getSymbolOfNode(node: TmplAstElement, component: ts.ClassDeclaration): ElementSymbol | null;
+    getSymbolOfNode(node: TmplAstComponent, component: ts.ClassDeclaration): SelectorlessComponentSymbol | null;
+    getSymbolOfNode(node: TmplAstDirective, component: ts.ClassDeclaration): SelectorlessDirectiveSymbol | null;
     private getOrCreateSymbolBuilder;
-    getPotentialTemplateDirectives(component: ts.ClassDeclaration): PotentialDirective[];
+    getGlobalTsContext(component: ts.ClassDeclaration): TcbLocation | null;
+    private getRefKey;
+    getPotentialTemplateDirectives(component: ts.ClassDeclaration, tsLs: ts.LanguageService, options: GetPotentialAngularMetaOptions): PotentialDirective[];
     getPotentialPipes(component: ts.ClassDeclaration): PotentialPipe[];
     getDirectiveMetadata(dir: ts.ClassDeclaration): TypeCheckableDirectiveMeta | null;
     getNgModuleMetadata(module: ts.ClassDeclaration): NgModuleMeta | null;
     getPipeMetadata(pipe: ts.ClassDeclaration): PipeMeta | null;
-    getPotentialElementTags(component: ts.ClassDeclaration): Map<string, PotentialDirective | null>;
+    getTemplateDirectiveInScope(component: ts.ClassDeclaration): PotentialDirective[];
+    getDirectiveScopeData(component: ts.ClassDeclaration, isInScope: boolean, tsCompletionEntryInfo: TsCompletionEntryInfo | null): PotentialDirective | null;
+    getElementsInFileScope(component: ts.ClassDeclaration): Map<string, PotentialDirective | null>;
+    getElementsInGlobal(component: ts.ClassDeclaration, tsLs: ts.LanguageService, options: GetPotentialAngularMetaOptions): PotentialDirective[];
+    /**
+     * If the NgModule exports a new module, we need to recursively get its directives.
+     */
+    private getDirectiveDeclsForNgModule;
+    getPotentialElementTags(component: ts.ClassDeclaration, tsLs: ts.LanguageService, options: GetPotentialAngularMetaOptions): Map<string, PotentialDirective | null>;
     getPotentialDomBindings(tagName: string): {
         attribute: string;
         property: string;
@@ -136,7 +183,8 @@ export declare class TemplateTypeCheckerImpl implements TemplateTypeChecker {
     getPrimaryAngularDecorator(target: ts.ClassDeclaration): ts.Decorator | null;
     getOwningNgModule(component: ts.ClassDeclaration): ts.ClassDeclaration | null;
     private emit;
-    getPotentialImportsFor(toImport: Reference<ClassDeclaration>, inContext: ts.Node, importMode: PotentialImportMode): ReadonlyArray<PotentialImport>;
+    getPotentialImportsFor(toImport: Reference<ClassDeclaration>, inContext: ts.Node, importMode: PotentialImportMode, potentialDirectiveModuleSpecifierResolver?: PotentialDirectiveModuleSpecifierResolver): ReadonlyArray<PotentialImport>;
+    private getComponentScope;
     private getScopeData;
     private scopeDataOfDirectiveMeta;
     private scopeDataOfPipeMeta;

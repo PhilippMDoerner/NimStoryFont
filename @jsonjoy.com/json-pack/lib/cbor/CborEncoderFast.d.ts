@@ -1,6 +1,6 @@
-import type { IWriter, IWriterGrowable } from '@jsonjoy.com/util/lib/buffers';
+import type { IWriter, IWriterGrowable } from '@jsonjoy.com/buffers/lib';
 import type { BinaryJsonEncoder, StreamingBinaryJsonEncoder, TlvBinaryJsonEncoder } from '../types';
-import type { Slice } from '@jsonjoy.com/util/lib/buffers/Slice';
+import type { Slice } from '@jsonjoy.com/buffers/lib/Slice';
 export declare class CborEncoderFast<W extends IWriter & IWriterGrowable = IWriter & IWriterGrowable> implements BinaryJsonEncoder, StreamingBinaryJsonEncoder, TlvBinaryJsonEncoder {
     readonly writer: W;
     constructor(writer?: W);

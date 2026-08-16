@@ -1,1 +1,3 @@
-export declare function getTarget(req: any, config: any): Promise<any>;
+import type * as http from 'node:http';
+import type { Options } from './index.js';
+export declare function getTarget<TReq extends http.IncomingMessage = http.IncomingMessage, TRes extends http.ServerResponse = http.ServerResponse>(req: TReq, res: TRes | undefined, config: Options<TReq, TRes>): Promise<import("httpxy").ProxyTarget | undefined>;

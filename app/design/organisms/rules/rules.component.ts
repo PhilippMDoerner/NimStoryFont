@@ -12,17 +12,17 @@ import {
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { map, take } from 'rxjs';
-import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
-import { Rule, RuleRaw } from 'src/app/_models/rule';
+import { getPseudoRandomId } from '../../../../utils/math';
+import { filterNil } from '../../../../utils/rxjs-operators';
+import { HotkeyDirective } from '../../../_directives/hotkey.directive';
+import { Rule, RuleRaw } from '../../../_models/rule';
 import {
   slideOutFromBottom,
   slideUpFromBottom,
-} from 'src/app/design/animations/slideDown';
-import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
-import { SpinnerComponent } from 'src/app/design/atoms/spinner/spinner.component';
-import { CollapsiblePanelComponent } from 'src/app/design/molecules';
-import { getPseudoRandomId } from 'src/utils/math';
-import { filterNil } from 'src/utils/rxjs-operators';
+} from '../../animations/slideDown';
+import { ButtonComponent } from '../../atoms/button/button.component';
+import { SpinnerComponent } from '../../atoms/spinner/spinner.component';
+import { CollapsiblePanelComponent } from '../../molecules';
 import {
   FocusItem,
   FocusListComponent,
@@ -52,22 +52,22 @@ interface RuleCard {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RulesComponent {
-  DEFAULT_TITLE = 'New Rule';
+  readonly DEFAULT_TITLE = 'New Rule';
 
-  campaignId = input.required<number>();
-  rules = input.required<Rule[]>();
-  canUpdate = input.required<boolean>();
-  canDelete = input.required<boolean>();
-  canCreate = input.required<boolean>();
-  serverModel = input.required<Rule | undefined>();
+  readonly campaignId = input.required<number>();
+  readonly rules = input.required<Rule[]>();
+  readonly canUpdate = input.required<boolean>();
+  readonly canDelete = input.required<boolean>();
+  readonly canCreate = input.required<boolean>();
+  readonly serverModel = input.required<Rule | undefined>();
 
   readonly ruleDelete = output<Rule>();
   readonly ruleUpdate = output<Rule>();
   readonly ruleCreate = output<RuleRaw>();
 
-  ruleElements = viewChildren<ElementRef<HTMLDivElement>>('rule');
-  isCreatingRule = signal(false);
-  createRuleData = computed(
+  readonly ruleElements = viewChildren<ElementRef<HTMLDivElement>>('rule');
+  readonly isCreatingRule = signal(false);
+  readonly createRuleData = computed(
     () =>
       ({
         name: this.DEFAULT_TITLE,
@@ -75,7 +75,7 @@ export class RulesComponent {
       }) as Rule,
   );
 
-  ruleCards = computed<FocusItem<RuleCard>[]>(() =>
+  readonly ruleCards = computed<FocusItem<RuleCard>[]>(() =>
     this.rules().map((rule) => ({
       id: rule.pk ?? getPseudoRandomId(),
       data: { rule: rule, isOpen: false },

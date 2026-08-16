@@ -66,7 +66,7 @@ async function askQuestion(message, choices, defaultResponseIndex, noTTYResponse
     const answer = await select({
         message,
         choices,
-        default: defaultResponseIndex,
+        default: choices[defaultResponseIndex].value,
         theme: {
             prefix: '',
         },
@@ -87,3 +87,4 @@ async function askChoices(message, choices, noTTYResponse) {
     });
     return answers;
 }
+//# sourceMappingURL=prompt.js.map

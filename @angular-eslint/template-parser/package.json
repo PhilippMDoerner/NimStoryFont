@@ -1,6 +1,6 @@
 {
   "name": "@angular-eslint/template-parser",
-  "version": "20.1.1",
+  "version": "22.1.0",
   "description": "Angular Template parser for ESLint",
   "license": "MIT",
   "main": "dist/index.js",
@@ -10,6 +10,7 @@
     "url": "https://github.com/angular-eslint/angular-eslint.git",
     "directory": "packages/template-parser"
   },
+  "bugs": "https://github.com/angular-eslint/angular-eslint/issues",
   "files": [
     "dist",
     "!**/*.tsbuildinfo",
@@ -18,11 +19,11 @@
     "LICENSE"
   ],
   "dependencies": {
-    "eslint-scope": "^8.0.2",
-    "@angular-eslint/bundled-angular-compiler": "20.1.1"
+    "eslint-scope": "9.1.2",
+    "@angular-eslint/bundled-angular-compiler": "22.1.0"
   },
   "peerDependencies": {
-    "eslint": "^8.57.0 || ^9.0.0",
+    "eslint": "^9.0.0 || ^10.0.0",
     "typescript": "*"
   },
   "gitHead": "e2006e5e9c99e5a943d1a999e0efa5247d29ec24"

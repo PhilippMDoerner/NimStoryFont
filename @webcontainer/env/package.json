@@ -1,0 +1,32 @@
+{
+  "name": "@webcontainer/env",
+  "description": "Set of environment utilities for WebContainers",
+  "version": "1.1.1",
+  "author": "StackBlitz Inc.",
+  "license": "MIT",
+  "types": "dist/index.d.ts",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "ts-node -T scripts/build.ts && tsc --project tsconfig.build.json --emitDeclarationOnly",
+    "test": "jest",
+    "prepack": "npm run test && npm run build"
+  },
+  "exports": {
+    "require": "./dist/index.js",
+    "import": "./dist/index.js"
+  },
+  "devDependencies": {
+    "esbuild": "^0.19.5"
+  },
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "stackblitz",
+    "webcontainer",
+    "nodejs"
+  ],
+  "bugs": "https://github.com/stackblitz/webcontainer-core/issues",
+  "homepage": "https://github.com/stackblitz/webcontainer-core",
+  "repository": "stackblitz/webcontainer-core"
+}

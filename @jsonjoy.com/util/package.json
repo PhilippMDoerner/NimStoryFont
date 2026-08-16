@@ -4,7 +4,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "version": "1.8.0",
+  "version": "1.9.0",
   "description": "Various helper utilities",
   "author": {
     "name": "streamich",
@@ -57,7 +57,10 @@
   "peerDependencies": {
     "tslib": "2"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@jsonjoy.com/buffers": "^1.0.0",
+    "@jsonjoy.com/codegen": "^1.0.0"
+  },
   "devDependencies": {
     "@types/benchmark": "^2.1.2",
     "@types/jest": "^29.5.12",

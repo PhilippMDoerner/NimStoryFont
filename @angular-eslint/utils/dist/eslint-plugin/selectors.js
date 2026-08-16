@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.OUTPUT_PROPERTY_OR_GETTER = exports.OUTPUT_ALIAS = exports.OUTPUTS_METADATA_PROPERTY_LITERAL = exports.INPUT_PROPERTY_OR_SETTER = exports.INPUT_ALIAS = exports.INPUTS_METADATA_PROPERTY_LITERAL = exports.COMPONENT_OR_DIRECTIVE_SELECTOR_LITERAL = exports.DIRECTIVE_SELECTOR_LITERAL = exports.COMPONENT_SELECTOR_LITERAL = exports.ALIAS_PROPERTY_VALUE = exports.LITERAL_OR_TEMPLATE_ELEMENT = exports.OUTPUT_DECORATOR = exports.INPUT_DECORATOR = exports.MODULE_CLASS_DECORATOR = exports.INJECTABLE_CLASS_DECORATOR = exports.PIPE_CLASS_DECORATOR = exports.DIRECTIVE_CLASS_DECORATOR = exports.COMPONENT_CLASS_DECORATOR = exports.COMPONENT_OR_DIRECTIVE_CLASS_DECORATOR = void 0;
+exports.OUTPUT_PROPERTY_OR_GETTER = exports.OUTPUT_ALIAS = exports.OUTPUTS_METADATA_PROPERTY_LITERAL = exports.INPUT_PROPERTY_OR_SETTER = exports.INPUT_ALIAS = exports.INPUTS_METADATA_PROPERTY_LITERAL = exports.COMPONENT_OR_DIRECTIVE_SELECTOR_LITERAL = exports.DIRECTIVE_SELECTOR_LITERAL = exports.COMPONENT_SELECTOR_LITERAL = exports.ALIAS_PROPERTY_VALUE = exports.LITERAL_OR_TEMPLATE_ELEMENT = exports.HOST_LISTENER_DECORATOR = exports.HOST_BINDING_DECORATOR = exports.OUTPUT_DECORATOR = exports.INPUT_DECORATOR = exports.MODULE_CLASS_DECORATOR = exports.SERVICE_CLASS_DECORATOR = exports.INJECTABLE_CLASS_DECORATOR = exports.PIPE_CLASS_DECORATOR = exports.DIRECTIVE_CLASS_DECORATOR = exports.COMPONENT_CLASS_DECORATOR = exports.COMPONENT_OR_DIRECTIVE_CLASS_DECORATOR = void 0;
 exports.decoratorDefinition = decoratorDefinition;
 exports.metadataProperty = metadataProperty;
 exports.methodDefinition = methodDefinition;
@@ -9,9 +9,12 @@ exports.COMPONENT_CLASS_DECORATOR = 'ClassDeclaration > Decorator[expression.cal
 exports.DIRECTIVE_CLASS_DECORATOR = 'ClassDeclaration > Decorator[expression.callee.name="Directive"]';
 exports.PIPE_CLASS_DECORATOR = 'ClassDeclaration > Decorator[expression.callee.name="Pipe"]';
 exports.INJECTABLE_CLASS_DECORATOR = 'ClassDeclaration > Decorator[expression.callee.name="Injectable"]';
+exports.SERVICE_CLASS_DECORATOR = 'ClassDeclaration > Decorator[expression.callee.name="Service"]';
 exports.MODULE_CLASS_DECORATOR = 'ClassDeclaration > Decorator[expression.callee.name="NgModule"]';
 exports.INPUT_DECORATOR = 'Decorator[expression.callee.name="Input"]';
 exports.OUTPUT_DECORATOR = 'Decorator[expression.callee.name="Output"]';
+exports.HOST_BINDING_DECORATOR = 'Decorator[expression.callee.name="HostBinding"]';
+exports.HOST_LISTENER_DECORATOR = 'Decorator[expression.callee.name="HostListener"]';
 exports.LITERAL_OR_TEMPLATE_ELEMENT = ':matches(Literal, TemplateElement)';
 exports.ALIAS_PROPERTY_VALUE = `ObjectExpression > Property[key.name='alias'] ${exports.LITERAL_OR_TEMPLATE_ELEMENT}`;
 function decoratorDefinition(decoratorName) {

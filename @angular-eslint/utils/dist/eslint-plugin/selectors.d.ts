@@ -3,9 +3,12 @@ export declare const COMPONENT_CLASS_DECORATOR = "ClassDeclaration > Decorator[e
 export declare const DIRECTIVE_CLASS_DECORATOR = "ClassDeclaration > Decorator[expression.callee.name=\"Directive\"]";
 export declare const PIPE_CLASS_DECORATOR = "ClassDeclaration > Decorator[expression.callee.name=\"Pipe\"]";
 export declare const INJECTABLE_CLASS_DECORATOR = "ClassDeclaration > Decorator[expression.callee.name=\"Injectable\"]";
+export declare const SERVICE_CLASS_DECORATOR = "ClassDeclaration > Decorator[expression.callee.name=\"Service\"]";
 export declare const MODULE_CLASS_DECORATOR = "ClassDeclaration > Decorator[expression.callee.name=\"NgModule\"]";
 export declare const INPUT_DECORATOR = "Decorator[expression.callee.name=\"Input\"]";
 export declare const OUTPUT_DECORATOR = "Decorator[expression.callee.name=\"Output\"]";
+export declare const HOST_BINDING_DECORATOR = "Decorator[expression.callee.name=\"HostBinding\"]";
+export declare const HOST_LISTENER_DECORATOR = "Decorator[expression.callee.name=\"HostListener\"]";
 export declare const LITERAL_OR_TEMPLATE_ELEMENT = ":matches(Literal, TemplateElement)";
 export declare const ALIAS_PROPERTY_VALUE = "ObjectExpression > Property[key.name='alias'] :matches(Literal, TemplateElement)";
 export declare function decoratorDefinition(decoratorName: RegExp): string;

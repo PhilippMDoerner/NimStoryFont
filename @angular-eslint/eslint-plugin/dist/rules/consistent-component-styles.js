@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RULE_NAME = void 0;
+exports.RULE_DOCS_EXTENSION = exports.RULE_NAME = void 0;
 const utils_1 = require("@angular-eslint/utils");
 const create_eslint_rule_1 = require("../utils/create-eslint-rule");
 exports.RULE_NAME = 'consistent-component-styles';
@@ -51,9 +51,7 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
                         fix: (fixer) => {
                             return fixer.replaceText(node, utils_1.ASTUtils.isStringLiteral(node.value)
                                 ? `styleUrls: [${node.value.raw}]`
-                                : `styleUrls: [${context
-                                    .getSourceCode()
-                                    .getText(node.value)}]`);
+                                : `styleUrls: [${context.sourceCode.getText(node.value)}]`);
                         },
                     });
                 },
@@ -94,3 +92,6 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
         }
     },
 });
+exports.RULE_DOCS_EXTENSION = {
+    rationale: "Consistency in how styles are declared makes codebases easier to navigate and maintain. When some components use styleUrl while others use styleUrls, or when styles are sometimes arrays and sometimes strings, it becomes harder for developers to predict what they'll find when opening a component. This rule enforces a consistent pattern across your codebase. Angular 17+ introduced the singular styleUrl property alongside the existing styleUrls array for common cases where components have only one stylesheet. Choosing one approach and sticking with it reduces cognitive load and makes the codebase feel more cohesive.",
+};

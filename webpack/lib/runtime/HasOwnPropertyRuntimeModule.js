@@ -17,6 +17,7 @@ class HasOwnPropertyRuntimeModule extends RuntimeModule {
 	}
 
 	/**
+	 * Generates runtime code for this runtime module.
 	 * @returns {string | null} runtime code
 	 */
 	generate() {
@@ -25,7 +26,7 @@ class HasOwnPropertyRuntimeModule extends RuntimeModule {
 
 		return Template.asString([
 			`${RuntimeGlobals.hasOwnProperty} = ${runtimeTemplate.returningFunction(
-				"Object.prototype.hasOwnProperty.call(obj, prop)",
+				runtimeTemplate.objectHasOwn("obj", "prop"),
 				"obj, prop"
 			)}`
 		]);

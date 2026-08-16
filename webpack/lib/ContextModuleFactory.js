@@ -14,16 +14,27 @@ const LazySet = require("./util/LazySet");
 const { cachedSetProperty } = require("./util/cleverMerge");
 const { createFakeHook } = require("./util/deprecation");
 const { join } = require("./util/fs");
+const {
+	globPatternBaseReachesDir,
+	globUserRequest,
+	isNonExhaustiveImportMetaGlobSkippedDir,
+	resolveContextModuleGlobPattern
+} = require("./util/globUtils");
 
+/** @typedef {import("./util/globUtils").ResolvedContextModuleGlobPattern} ResolvedContextModuleGlobPattern */
+/** @typedef {(context: string, subResource: string, callback: () => void, resolvedGlobPatterns?: ResolvedContextModuleGlobPattern[]) => void} AddSubDirectoryFn */
+/** @typedef {import("enhanced-resolve").ResolveRequest} ResolveRequest */
+/** @typedef {import("./Compilation").FileSystemDependencies} FileSystemDependencies */
 /** @typedef {import("./ContextModule").ContextModuleOptions} ContextModuleOptions */
 /** @typedef {import("./ContextModule").ResolveDependenciesCallback} ResolveDependenciesCallback */
-/** @typedef {import("./Module")} Module */
 /** @typedef {import("./ModuleFactory").ModuleFactoryCreateData} ModuleFactoryCreateData */
 /** @typedef {import("./ModuleFactory").ModuleFactoryCallback} ModuleFactoryCallback */
 /** @typedef {import("./ResolverFactory")} ResolverFactory */
 /** @typedef {import("./dependencies/ContextDependency")} ContextDependency */
-/** @typedef {import("enhanced-resolve").ResolveRequest} ResolveRequest */
+/** @typedef {import("./dependencies/ContextDependency").ContextOptions} ContextOptions */
+
 /**
+ * Defines the shared type used by this module.
  * @template T
  * @typedef {import("./util/deprecation").FakeHook<T>} FakeHook<T>
  */
@@ -31,10 +42,26 @@ const { join } = require("./util/fs");
 /** @typedef {import("./util/fs").InputFileSystem} InputFileSystem */
 /** @typedef {{ context: string, request: string }} ContextAlternativeRequest */
 
+/**
+ * Defines the context resolve data type used by this module.
+ * @typedef {object} ContextResolveData
+ * @property {string} context
+ * @property {string} request
+ * @property {ModuleFactoryCreateData["resolveOptions"]} resolveOptions
+ * @property {FileSystemDependencies} fileDependencies
+ * @property {FileSystemDependencies} missingDependencies
+ * @property {FileSystemDependencies} contextDependencies
+ * @property {ContextDependency[]} dependencies
+ */
+
+/** @typedef {ContextResolveData & ContextOptions} BeforeContextResolveData */
+/** @typedef {BeforeContextResolveData & { resource: string | string[], resourceQuery: string | undefined, resourceFragment: string | undefined, resolveDependencies: ContextModuleFactory["resolveDependencies"] }} AfterContextResolveData */
+
 const EMPTY_RESOLVE_OPTIONS = {};
 
-module.exports = class ContextModuleFactory extends ModuleFactory {
+class ContextModuleFactory extends ModuleFactory {
 	/**
+	 * Creates an instance of ContextModuleFactory.
 	 * @param {ResolverFactory} resolverFactory resolverFactory
 	 */
 	constructor(resolverFactory) {
@@ -45,9 +72,9 @@ module.exports = class ContextModuleFactory extends ModuleFactory {
 			"options"
 		]);
 		this.hooks = Object.freeze({
-			/** @type {AsyncSeriesWaterfallHook<[TODO]>} */
+			/** @type {AsyncSeriesWaterfallHook<[BeforeContextResolveData], BeforeContextResolveData | false | void>} */
 			beforeResolve: new AsyncSeriesWaterfallHook(["data"]),
-			/** @type {AsyncSeriesWaterfallHook<[TODO]>} */
+			/** @type {AsyncSeriesWaterfallHook<[AfterContextResolveData], AfterContextResolveData | false | void>} */
 			afterResolve: new AsyncSeriesWaterfallHook(["data"]),
 			/** @type {SyncWaterfallHook<[string[]]>} */
 			contextModuleFiles: new SyncWaterfallHook(["files"]),
@@ -56,7 +83,7 @@ module.exports = class ContextModuleFactory extends ModuleFactory {
 				{
 					name: "alternatives",
 					/** @type {AsyncSeriesWaterfallHook<[ContextAlternativeRequest[]]>["intercept"]} */
-					intercept: interceptor => {
+					intercept: (interceptor) => {
 						throw new Error(
 							"Intercepting fake hook ContextModuleFactory.hooks.alternatives is not possible, use ContextModuleFactory.hooks.alternativeRequests instead"
 						);
@@ -81,21 +108,26 @@ module.exports = class ContextModuleFactory extends ModuleFactory {
 			),
 			alternativeRequests
 		});
+		/** @type {ResolverFactory} */
 		this.resolverFactory = resolverFactory;
 	}
 
 	/**
+	 * Processes the provided data.
 	 * @param {ModuleFactoryCreateData} data data object
 	 * @param {ModuleFactoryCallback} callback callback
 	 * @returns {void}
 	 */
 	create(data, callback) {
 		const context = data.context;
-		const dependencies = data.dependencies;
+		const dependencies = /** @type {ContextDependency[]} */ (data.dependencies);
 		const resolveOptions = data.resolveOptions;
-		const dependency = /** @type {ContextDependency} */ (dependencies[0]);
+		const dependency = dependencies[0];
+		/** @type {FileSystemDependencies} */
 		const fileDependencies = new LazySet();
+		/** @type {FileSystemDependencies} */
 		const missingDependencies = new LazySet();
+		/** @type {FileSystemDependencies} */
 		const contextDependencies = new LazySet();
 		this.hooks.beforeResolve.callAsync(
 			{
@@ -130,12 +162,15 @@ module.exports = class ContextModuleFactory extends ModuleFactory {
 				const request = beforeResolveResult.request;
 				const resolveOptions = beforeResolveResult.resolveOptions;
 
+				/** @type {undefined | string[]} */
 				let loaders;
+				/** @type {undefined | string} */
 				let resource;
 				let loadersPrefix = "";
 				const idx = request.lastIndexOf("!");
 				if (idx >= 0) {
 					let loadersRequest = request.slice(0, idx + 1);
+					/** @type {number} */
 					let i;
 					for (
 						i = 0;
@@ -147,7 +182,7 @@ module.exports = class ContextModuleFactory extends ModuleFactory {
 					loadersRequest = loadersRequest
 						.slice(i)
 						.replace(/!+$/, "")
-						.replace(/!!+/g, "!");
+						.replace(/!{2,}/g, "!");
 					loaders = loadersRequest === "" ? [] : loadersRequest.split("!");
 					resource = request.slice(idx + 1);
 				} else {
@@ -169,13 +204,14 @@ module.exports = class ContextModuleFactory extends ModuleFactory {
 
 				asyncLib.parallel(
 					[
-						callback => {
-							const results = /** @type ResolveRequest[] */ ([]);
+						(callback) => {
+							const results = /** @type {ResolveRequest[]} */ ([]);
 							/**
+							 * Processes the provided obj.
 							 * @param {ResolveRequest} obj obj
 							 * @returns {void}
 							 */
-							const yield_ = obj => {
+							const yield_ = (obj) => {
 								results.push(obj);
 							};
 
@@ -189,13 +225,13 @@ module.exports = class ContextModuleFactory extends ModuleFactory {
 									contextDependencies,
 									yield: yield_
 								},
-								err => {
+								(err) => {
 									if (err) return callback(err);
 									callback(null, results);
 								}
 							);
 						},
-						callback => {
+						(callback) => {
 							asyncLib.map(
 								loaders,
 								(loader, callback) => {
@@ -210,7 +246,7 @@ module.exports = class ContextModuleFactory extends ModuleFactory {
 										},
 										(err, result) => {
 											if (err) return callback(err);
-											callback(null, /** @type {string} */ (result));
+											callback(null, result);
 										}
 									);
 								},
@@ -230,7 +266,7 @@ module.exports = class ContextModuleFactory extends ModuleFactory {
 							/** @type {[ResolveRequest[], string[]]} */ (result);
 						if (contextResult.length > 1) {
 							const first = contextResult[0];
-							contextResult = contextResult.filter(r => r.path);
+							contextResult = contextResult.filter((r) => r.path);
 							if (contextResult.length === 0) contextResult.push(first);
 						}
 						this.hooks.afterResolve.callAsync(
@@ -241,8 +277,8 @@ module.exports = class ContextModuleFactory extends ModuleFactory {
 									(loaderResult.length > 0 ? "!" : ""),
 								resource:
 									contextResult.length > 1
-										? contextResult.map(r => r.path)
-										: contextResult[0].path,
+										? /** @type {string[]} */ (contextResult.map((r) => r.path))
+										: /** @type {string} */ (contextResult[0].path),
 								resolveDependencies: this.resolveDependencies.bind(this),
 								resourceQuery: contextResult[0].query,
 								resourceFragment: contextResult[0].fragment,
@@ -281,6 +317,7 @@ module.exports = class ContextModuleFactory extends ModuleFactory {
 	}
 
 	/**
+	 * Resolves dependencies.
 	 * @param {InputFileSystem} fs file system
 	 * @param {ContextModuleOptions} options options
 	 * @param {ResolveDependenciesCallback} callback callback function
@@ -294,6 +331,10 @@ module.exports = class ContextModuleFactory extends ModuleFactory {
 			resourceFragment,
 			recursive,
 			regExp,
+			patterns,
+			requestContext,
+			exhaustive,
+			caseSensitive,
 			include,
 			exclude,
 			referencedExports,
@@ -301,15 +342,24 @@ module.exports = class ContextModuleFactory extends ModuleFactory {
 			typePrefix,
 			attributes
 		} = options;
-		if (!regExp || !resource) return callback(null, []);
+		const isImportMetaGlob = Boolean(patterns && requestContext);
+		if ((!regExp && !isImportMetaGlob) || !resource) return callback(null, []);
 
 		/**
+		 * Adds directory checked.
 		 * @param {string} ctx context
 		 * @param {string} directory directory
 		 * @param {Set<string>} visited visited
 		 * @param {ResolveDependenciesCallback} callback callback
+		 * @param {ResolvedContextModuleGlobPattern[] | undefined} resolvedGlobPatterns resolved glob patterns
 		 */
-		const addDirectoryChecked = (ctx, directory, visited, callback) => {
+		const addDirectoryChecked = (
+			ctx,
+			directory,
+			visited,
+			callback,
+			resolvedGlobPatterns
+		) => {
 			/** @type {NonNullable<InputFileSystem["realpath"]>} */
 			(fs.realpath)(directory, (err, _realPath) => {
 				if (err) return callback(err);
@@ -325,33 +375,58 @@ module.exports = class ContextModuleFactory extends ModuleFactory {
 							recursionStack = new Set(visited);
 							recursionStack.add(realPath);
 						}
-						addDirectoryChecked(ctx, dir, recursionStack, callback);
+						addDirectoryChecked(
+							ctx,
+							dir,
+							recursionStack,
+							callback,
+							resolvedGlobPatterns
+						);
 					},
-					callback
+					callback,
+					resolvedGlobPatterns
 				);
 			});
 		};
 
 		/**
+		 * Adds the provided ctx to the context module factory.
 		 * @param {string} ctx context
 		 * @param {string} directory directory
-		 * @param {(context: string, subResource: string, callback: () => void) => void} addSubDirectory addSubDirectoryFn
+		 * @param {AddSubDirectoryFn} addSubDirectory addSubDirectoryFn
 		 * @param {ResolveDependenciesCallback} callback callback
+		 * @param {ResolvedContextModuleGlobPattern[] | undefined} resolvedGlobPatterns resolved glob patterns
+		 * @returns {void}
 		 */
-		const addDirectory = (ctx, directory, addSubDirectory, callback) => {
+		const addDirectory = (
+			ctx,
+			directory,
+			addSubDirectory,
+			callback,
+			resolvedGlobPatterns
+		) => {
 			fs.readdir(directory, (err, files) => {
 				if (err) return callback(err);
 				const processedFiles = cmf.hooks.contextModuleFiles.call(
-					/** @type {string[]} */ (files).map(file => file.normalize("NFC"))
+					/** @type {string[]} */ (files).map((file) => file.normalize("NFC"))
 				);
-				if (!processedFiles || processedFiles.length === 0)
+				if (!processedFiles || processedFiles.length === 0) {
 					return callback(null, []);
+				}
+				/** @type {ContextAlternativeRequest[]} */
+				const fileObjs = [];
+				/** @type {ContextElementDependency[]} */
+				const globDeps = [];
+				/** @type {Set<string>} */
+				const globUserRequests = new Set();
 				asyncLib.map(
-					processedFiles.filter(p => p.indexOf(".") !== 0),
+					isImportMetaGlob
+						? processedFiles
+						: processedFiles.filter((p) => p.indexOf(".") !== 0),
 					(segment, callback) => {
 						const subResource = join(fs, directory, segment);
 
-						if (!exclude || !subResource.match(exclude)) {
+						if (!exclude || !exclude.test(subResource)) {
 							fs.stat(subResource, (err, _stat) => {
 								if (err) {
 									if (err.code === "ENOENT") {
@@ -366,46 +441,75 @@ module.exports = class ContextModuleFactory extends ModuleFactory {
 
 								if (stat.isDirectory()) {
 									if (!recursive) return callback();
-									addSubDirectory(ctx, subResource, callback);
+									if (
+										isImportMetaGlob &&
+										!exhaustive &&
+										isNonExhaustiveImportMetaGlobSkippedDir(segment) &&
+										!(
+											resolvedGlobPatterns &&
+											globPatternBaseReachesDir(
+												resolvedGlobPatterns,
+												subResource
+											)
+										)
+									) {
+										return callback();
+									}
+									addSubDirectory(
+										ctx,
+										subResource,
+										callback,
+										resolvedGlobPatterns
+									);
 								} else if (
 									stat.isFile() &&
-									(!include || subResource.match(include))
+									(!include || include.test(subResource))
 								) {
-									/** @type {{ context: string, request: string }} */
-									const obj = {
+									if (
+										isImportMetaGlob &&
+										patterns &&
+										requestContext &&
+										resolvedGlobPatterns
+									) {
+										const relativePath = `.${subResource
+											.slice(ctx.length)
+											.replace(/\\/g, "/")}`;
+										const exposedUserRequest = globUserRequest(
+											resolvedGlobPatterns,
+											subResource,
+											exhaustive === true,
+											caseSensitive !== false
+										);
+										if (
+											exposedUserRequest &&
+											!globUserRequests.has(exposedUserRequest)
+										) {
+											globUserRequests.add(exposedUserRequest);
+											const dep = new ContextElementDependency(
+												`${relativePath}${resourceQuery}${resourceFragment}`,
+												exposedUserRequest,
+												typePrefix,
+												/** @type {string} */
+												(category),
+												referencedExports,
+												ctx,
+												attributes
+											);
+											dep.optional = true;
+											globDeps.push(dep);
+										}
+										return callback();
+									}
+									// Collect for a single batched alternativeRequests call
+									// per directory below. Calling the hook once per file
+									// would pay per-call overhead (closure, resolverFactory
+									// lookup, array allocations) for every file in the
+									// context — which is the bulk of work on rebuilds.
+									fileObjs.push({
 										context: ctx,
 										request: `.${subResource.slice(ctx.length).replace(/\\/g, "/")}`
-									};
-
-									this.hooks.alternativeRequests.callAsync(
-										[obj],
-										options,
-										(err, alternatives) => {
-											if (err) return callback(err);
-											callback(
-												null,
-												/** @type {ContextAlternativeRequest[]} */
-												(alternatives)
-													.filter(obj =>
-														regExp.test(/** @type {string} */ (obj.request))
-													)
-													.map(obj => {
-														const dep = new ContextElementDependency(
-															`${obj.request}${resourceQuery}${resourceFragment}`,
-															obj.request,
-															typePrefix,
-															/** @type {string} */
-															(category),
-															referencedExports,
-															obj.context,
-															attributes
-														);
-														dep.optional = true;
-														return dep;
-													})
-											);
-										}
-									);
+									});
+									callback();
 								} else {
 									callback();
 								}
@@ -417,38 +521,108 @@ module.exports = class ContextModuleFactory extends ModuleFactory {
 					(err, result) => {
 						if (err) return callback(err);
 
-						if (!result) return callback(null, []);
-
+						/** @type {ContextElementDependency[]} */
 						const flattenedResult = [];
 
-						for (const item of result) {
-							if (item) flattenedResult.push(...item);
+						if (result) {
+							for (const item of result) {
+								if (item) flattenedResult.push(...item);
+							}
 						}
 
-						callback(null, flattenedResult);
+						if (isImportMetaGlob) {
+							/** @type {Set<string>} */
+							const mergedUserRequests = new Set();
+							/** @type {ContextElementDependency[]} */
+							const merged = [];
+							for (const dep of [...flattenedResult, ...globDeps]) {
+								if (mergedUserRequests.has(dep.userRequest)) continue;
+								mergedUserRequests.add(dep.userRequest);
+								merged.push(dep);
+							}
+							return callback(null, merged);
+						}
+
+						if (fileObjs.length === 0) {
+							return callback(null, flattenedResult);
+						}
+
+						this.hooks.alternativeRequests.callAsync(
+							fileObjs,
+							options,
+							(err, alternatives) => {
+								if (err) return callback(err);
+								for (const alt of /** @type {ContextAlternativeRequest[]} */ (
+									alternatives
+								)) {
+									if (
+										!(regExp instanceof RegExp) ||
+										!regExp.test(/** @type {string} */ (alt.request))
+									) {
+										continue;
+									}
+									const dep = new ContextElementDependency(
+										`${alt.request}${resourceQuery}${resourceFragment}`,
+										alt.request,
+										typePrefix,
+										/** @type {string} */
+										(category),
+										referencedExports,
+										alt.context,
+										attributes
+									);
+									dep.optional = true;
+									flattenedResult.push(dep);
+								}
+								callback(null, flattenedResult);
+							}
+						);
 					}
 				);
 			});
 		};
 
 		/**
+		 * Adds sub directory.
 		 * @param {string} ctx context
 		 * @param {string} dir dir
 		 * @param {ResolveDependenciesCallback} callback callback
+		 * @param {ResolvedContextModuleGlobPattern[] | undefined} resolvedGlobPatterns resolved glob patterns
 		 * @returns {void}
 		 */
-		const addSubDirectory = (ctx, dir, callback) =>
-			addDirectory(ctx, dir, addSubDirectory, callback);
+		const addSubDirectory = (ctx, dir, callback, resolvedGlobPatterns) =>
+			addDirectory(ctx, dir, addSubDirectory, callback, resolvedGlobPatterns);
 
 		/**
+		 * Processes the provided resource.
 		 * @param {string} resource resource
 		 * @param {ResolveDependenciesCallback} callback callback
 		 */
 		const visitResource = (resource, callback) => {
+			/** @type {ResolvedContextModuleGlobPattern[] | undefined} */
+			const resolvedGlobPatterns =
+				isImportMetaGlob && patterns && requestContext
+					? patterns.map((pattern) =>
+							resolveContextModuleGlobPattern(pattern, requestContext, resource)
+						)
+					: undefined;
 			if (typeof fs.realpath === "function") {
-				addDirectoryChecked(resource, resource, new Set(), callback);
+				addDirectoryChecked(
+					resource,
+					resource,
+					/** @type {Set<string>} */
+					new Set(),
+					callback,
+					resolvedGlobPatterns
+				);
 			} else {
-				addDirectory(resource, resource, addSubDirectory, callback);
+				addDirectory(
+					resource,
+					resource,
+					addSubDirectory,
+					callback,
+					resolvedGlobPatterns
+				);
 			}
 		};
 
@@ -477,4 +651,6 @@ module.exports = class ContextModuleFactory extends ModuleFactory {
 			});
 		}
 	}
-};
+}
+
+module.exports = ContextModuleFactory;

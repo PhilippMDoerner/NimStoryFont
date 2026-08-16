@@ -1,5 +1,3 @@
-const url = require('url')
-
 const lastIndexOfBefore = (str, char, beforeChar) => {
   const startPosition = str.indexOf(beforeChar)
   return str.lastIndexOf(char, startPosition > -1 ? startPosition : Infinity)
@@ -7,7 +5,7 @@ const lastIndexOfBefore = (str, char, beforeChar) => {
 
 const safeUrl = (u) => {
   try {
-    return new url.URL(u)
+    return new URL(u)
   } catch {
     // this fn should never throw
   }
@@ -21,20 +19,23 @@ const correctProtocol = (arg, protocols) => {
     return arg
   }
 
+  if (arg.substr(firstColon, 3) === '://') {
+    // If arg is given as <foo>://<bar>, then this is already a valid URL.
+    return arg
+  }
+
   const firstAt = arg.indexOf('@')
   if (firstAt > -1) {
     if (firstAt > firstColon) {
+      // URL has the form of <foo>:<bar>@<baz>. Assume this is a git+ssh URL.
       return `git+ssh://${arg}`
     } else {
+      // URL has the form 'git@github.com:npm/hosted-git-info.git'.
       return arg
     }
   }
 
-  const doubleSlash = arg.indexOf('//')
-  if (doubleSlash === firstColon + 1) {
-    return arg
-  }
-
+  // Correct <foo>:<bar> to <foo>://<bar>
   return `${arg.slice(0, firstColon + 1)}//${arg.slice(firstColon + 1)}`
 }
 

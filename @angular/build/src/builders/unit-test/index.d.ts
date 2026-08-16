@@ -6,7 +6,7 @@
  * found in the LICENSE file at https://angular.dev/license
  */
 import { type Builder } from '@angular-devkit/architect';
-import { type UnitTestOptions, execute } from './builder';
-export { type UnitTestOptions, execute };
-declare const builder: Builder<UnitTestOptions>;
+import { type UnitTestBuilderOptions, execute } from './builder';
+export { type UnitTestBuilderOptions, execute };
+declare const builder: Builder<UnitTestBuilderOptions>;
 export default builder;

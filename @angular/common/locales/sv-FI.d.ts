@@ -19,7 +19,7 @@ declare const _default: (string | number | number[] | (string | undefined)[] | t
     DOP: string[];
     EEK: string[];
     EGP: string[];
-    ESP: never[];
+    ESP: (string | undefined)[];
     GBP: (string | undefined)[];
     HKD: (string | undefined)[];
     IEP: string[];

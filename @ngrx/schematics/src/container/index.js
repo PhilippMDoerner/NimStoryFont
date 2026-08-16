@@ -42,9 +42,19 @@ function addStateToComponent(options) {
             (options.flat ? '' : schematics_core_1.stringUtils.dasherize(options.name) + '/') +
             schematics_core_1.stringUtils.dasherize(options.name) +
             '.component.ts';
+        if (!host.exists(componentPath)) {
+            componentPath =
+                "/".concat(options.path, "/") +
+                    (options.flat ? '' : schematics_core_1.stringUtils.dasherize(options.name) + '/') +
+                    schematics_core_1.stringUtils.dasherize(options.name) +
+                    '.ts';
+            if (!host.exists(componentPath)) {
+                throw new schematics_1.SchematicsException("File ".concat(componentPath, " does not exist."));
+            }
+        }
         var text = host.read(componentPath);
         if (text === null) {
-            throw new schematics_1.SchematicsException("File ".concat(componentPath, " does not exist."));
+            throw new schematics_1.SchematicsException("File content ".concat(componentPath, " does not exist."));
         }
         var sourceText = text.toString('utf-8');
         var source = ts.createSourceFile(componentPath, sourceText, ts.ScriptTarget.Latest, true);

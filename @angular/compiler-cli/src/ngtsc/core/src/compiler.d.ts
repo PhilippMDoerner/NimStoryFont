@@ -10,7 +10,7 @@ import { DocEntry } from '../../docs';
 import { AbsoluteFsPath } from '../../file_system';
 import { IncrementalBuildStrategy, IncrementalCompilation, IncrementalState } from '../../incremental';
 import { IndexedComponent } from '../../indexer';
-import { DirectiveResources, DirectiveMeta, PipeMeta } from '../../metadata';
+import { DirectiveMeta, DirectiveResources, PipeMeta } from '../../metadata';
 import { ActivePerfRecorder } from '../../perf';
 import { ProgramDriver } from '../../program_driver';
 import { DeclarationNode } from '../../reflection';
@@ -136,6 +136,7 @@ export declare class NgCompiler {
     private readonly enableHmr;
     private readonly implicitStandaloneValue;
     private readonly enableSelectorless;
+    private readonly emitDeclarationOnly;
     /**
      * `NgCompiler` can be reused for multiple compilations (for resource-only changes), and each
      * new compilation uses a fresh `PerfRecorder`. Thus, classes created with a lifespan of the
@@ -176,7 +177,7 @@ export declare class NgCompiler {
      */
     getDiagnosticsForComponent(component: ts.ClassDeclaration): ts.Diagnostic[];
     /**
-     * Add Angular.io error guide links to diagnostics for this compilation.
+     * Add https://angular.dev/errors error guide links to diagnostics for this compilation.
      */
     private addMessageTextDetails;
     /**
@@ -262,7 +263,11 @@ export declare class NgCompiler {
     private ensureAnalyzed;
     private analyzeSync;
     private resolveCompilation;
-    private get fullTemplateTypeCheck();
+    /**
+     * strictTemplate is `true` by default.
+     * Explicit opt-out is required to disable strictness
+     */
+    private get strictTemplates();
     private getTypeCheckingConfig;
     private getTemplateDiagnostics;
     private getTemplateDiagnosticsForFile;

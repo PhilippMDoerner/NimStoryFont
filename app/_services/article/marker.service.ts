@@ -2,8 +2,8 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable, map } from 'rxjs';
-import { MapMarker, MapMarkerRaw } from 'src/app/_models/mapMarker';
-import { OverviewItem } from 'src/app/_models/overview';
+import { MapMarker, MapMarkerRaw } from '../../_models/mapMarker';
+import { OverviewItem } from '../../_models/overview';
 import { BaseService } from '../base.service';
 import { RoutingService } from '../routing.service';
 

@@ -1,7 +1,7 @@
 import { CborDecoderBase } from './CborDecoderBase';
 import { JsonPackValue } from '../JsonPackValue';
-import type { Path } from '../json-pointer';
-import type { IReader, IReaderResettable } from '@jsonjoy.com/util/lib/buffers';
+import type { Path } from '@jsonjoy.com/json-pointer';
+import type { IReader, IReaderResettable } from '@jsonjoy.com/buffers/lib';
 export declare class CborDecoder<R extends IReader & IReaderResettable = IReader & IReaderResettable> extends CborDecoderBase<R> {
     readAsMap(): Map<unknown, unknown>;
     readMap(minor: number): Map<unknown, unknown>;

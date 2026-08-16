@@ -1,11 +1,11 @@
 {
   "name": "@angular/core",
-  "version": "20.0.3",
+  "version": "22.1.1",
   "description": "Angular - the core framework",
   "author": "angular",
   "license": "MIT",
   "engines": {
-    "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
+    "node": "^22.22.3 || ^24.15.0 || >=26.0.0"
   },
   "exports": {
     "./schematics/*": {
@@ -18,37 +18,41 @@
       "default": "./package.json"
     },
     ".": {
-      "types": "./index.d.ts",
+      "types": "./types/core.d.ts",
       "default": "./fesm2022/core.mjs"
     },
     "./primitives/di": {
-      "types": "./primitives/di/index.d.ts",
-      "default": "./fesm2022/primitives/di.mjs"
+      "types": "./types/primitives-di.d.ts",
+      "default": "./fesm2022/primitives-di.mjs"
     },
     "./primitives/event-dispatch": {
-      "types": "./primitives/event-dispatch/index.d.ts",
-      "default": "./fesm2022/primitives/event-dispatch.mjs"
+      "types": "./types/primitives-event-dispatch.d.ts",
+      "default": "./fesm2022/primitives-event-dispatch.mjs"
     },
     "./primitives/signals": {
-      "types": "./primitives/signals/index.d.ts",
-      "default": "./fesm2022/primitives/signals.mjs"
+      "types": "./types/primitives-signals.d.ts",
+      "default": "./fesm2022/primitives-signals.mjs"
     },
     "./rxjs-interop": {
-      "types": "./rxjs-interop/index.d.ts",
+      "types": "./types/rxjs-interop.d.ts",
       "default": "./fesm2022/rxjs-interop.mjs"
     },
     "./testing": {
-      "types": "./testing/index.d.ts",
+      "types": "./types/testing.d.ts",
       "default": "./fesm2022/testing.mjs"
     }
   },
   "dependencies": {
     "tslib": "^2.3.0"
   },
+  "devDependencies": {
+    "@mcp-b/webmcp-polyfill": "^4.0.0",
+    "@mcp-b/webmcp-types": "^4.0.0"
+  },
   "peerDependencies": {
-    "@angular/compiler": "20.0.3",
+    "@angular/compiler": "22.1.1",
     "rxjs": "^6.5.3 || ^7.4.0",
-    "zone.js": "~0.15.0"
+    "zone.js": "~0.15.0 || ~0.16.0"
   },
   "peerDependenciesMeta": {
     "@angular/compiler": {
@@ -84,9 +88,15 @@
       "@angular/service-worker"
     ]
   },
+  "angular": {
+    "bestPractices": {
+      "format": "markdown",
+      "path": "./resources/best-practices.md"
+    }
+  },
   "schematics": "./schematics/collection.json",
   "sideEffects": false,
   "module": "./fesm2022/core.mjs",
-  "typings": "./index.d.ts",
+  "typings": "./types/core.d.ts",
   "type": "module"
 }

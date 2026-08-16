@@ -8,9 +8,14 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createAngularAssetsMiddleware = createAngularAssetsMiddleware;
+exports.createBuildAssetsMiddleware = createBuildAssetsMiddleware;
 const mrmime_1 = require("mrmime");
+const node_crypto_1 = require("node:crypto");
+const node_fs_1 = require("node:fs");
 const node_path_1 = require("node:path");
 const utils_1 = require("../utils");
+const CSS_PREPROCESSOR_REGEXP = /\.(?:s[ac]ss|less|css)$/;
+const JS_TS_REGEXP = /\.[cm]?[tj]sx?$/;
 function createAngularAssetsMiddleware(server, assets, outputFiles, componentStyles, encapsulateStyle) {
     return function angularAssetsMiddleware(req, res, next) {
         if (req.url === undefined || res.writableEnded) {
@@ -20,18 +25,31 @@ function createAngularAssetsMiddleware(server, assets, outputFiles, componentSty
         // The base of the URL is unused but required to parse the URL.
         const pathname = (0, utils_1.pathnameWithoutBasePath)(req.url, server.config.base);
         const extension = (0, node_path_1.extname)(pathname);
-        const pathnameHasTrailingSlash = pathname[pathname.length - 1] === '/';
+        const pathnameHasTrailingSlash = pathname.at(-1) === '/';
         // Rewrite all build assets to a vite raw fs URL
         const asset = assets.get(pathname);
         if (asset) {
-            // Workaround to disable Vite transformer middleware.
-            // See: https://github.com/vitejs/vite/blob/746a1daab0395f98f0afbdee8f364cb6cf2f3b3f/packages/vite/src/node/server/middlewares/transform.ts#L201 and
-            // https://github.com/vitejs/vite/blob/746a1daab0395f98f0afbdee8f364cb6cf2f3b3f/packages/vite/src/node/server/transformRequest.ts#L204-L206
-            req.headers.accept = 'text/html';
-            // The encoding needs to match what happens in the vite static middleware.
-            // ref: https://github.com/vitejs/vite/blob/d4f13bd81468961c8c926438e815ab6b1c82735e/packages/vite/src/node/server/middlewares/static.ts#L163
-            req.url = `${server.config.base}@fs/${encodeURI(asset.source)}`;
-            next();
+            // This is a workaround to serve extensionless, CSS, JS and TS files without Vite transformations.
+            if (!extension || JS_TS_REGEXP.test(extension) || CSS_PREPROCESSOR_REGEXP.test(extension)) {
+                const contents = (0, node_fs_1.readFileSync)(asset.source);
+                const etag = `W/${(0, node_crypto_1.createHash)('sha256').update(contents).digest('hex')}`;
+                if (checkAndHandleEtag(req, res, etag)) {
+                    return;
+                }
+                const mimeType = (0, mrmime_1.lookup)(extension);
+                if (mimeType) {
+                    res.setHeader('Content-Type', mimeType);
+                }
+                res.setHeader('ETag', etag);
+                res.setHeader('Cache-Control', 'no-cache');
+                res.end(contents);
+            }
+            else {
+                // The encoding needs to match what happens in the vite static middleware.
+                // ref: https://github.com/vitejs/vite/blob/d4f13bd81468961c8c926438e815ab6b1c82735e/packages/vite/src/node/server/middlewares/static.ts#L163
+                req.url = `${server.config.base}@fs/${encodeURI(asset.source)}`;
+                next();
+            }
             return;
         }
         // HTML fallbacking
@@ -78,11 +96,8 @@ function createAngularAssetsMiddleware(server, assets, outputFiles, componentSty
                         else {
                             componentStyle.used.add(componentId);
                         }
-                        // Report if there are no changes to avoid reprocessing
                         const etag = `W/"${outputFile.contents.byteLength}-${outputFile.hash}-${componentId}"`;
-                        if (req.headers['if-none-match'] === etag) {
-                            res.statusCode = 304;
-                            res.end();
+                        if (checkAndHandleEtag(req, res, etag)) {
                             return;
                         }
                         // Shim the stylesheet if a component ID is provided
@@ -105,11 +120,8 @@ function createAngularAssetsMiddleware(server, assets, outputFiles, componentSty
                         return;
                     }
                 }
-                // Avoid resending the content if it has not changed since last request
                 const etag = `W/"${outputFile.contents.byteLength}-${outputFile.hash}"`;
-                if (req.headers['if-none-match'] === etag) {
-                    res.statusCode = 304;
-                    res.end();
+                if (checkAndHandleEtag(req, res, etag)) {
                     return;
                 }
                 const mimeType = (0, mrmime_1.lookup)(extension);
@@ -152,3 +164,42 @@ function createAngularAssetsMiddleware(server, assets, outputFiles, componentSty
         next();
     };
 }
+function checkAndHandleEtag(req, res, etag) {
+    if (req.headers['if-none-match'] === etag) {
+        res.statusCode = 304;
+        res.end();
+        return true;
+    }
+    return false;
+}
+function createBuildAssetsMiddleware(basePath, buildResultFiles, readHandler = node_fs_1.readFileSync) {
+    return function buildAssetsMiddleware(req, res, next) {
+        if (req.url === undefined || res.writableEnded) {
+            return;
+        }
+        // Parse the incoming request.
+        // The base of the URL is unused but required to parse the URL.
+        const pathname = (0, utils_1.pathnameWithoutBasePath)(req.url, basePath);
+        const extension = (0, node_path_1.extname)(pathname);
+        if (extension && !/\.[mc]?[jt]s(?:\.map)?$/.test(extension)) {
+            const outputFile = buildResultFiles.get(pathname.slice(1));
+            if (outputFile) {
+                const contents = outputFile.origin === 'memory' ? outputFile.contents : readHandler(outputFile.inputPath);
+                const etag = `W/${(0, node_crypto_1.createHash)('sha256').update(contents).digest('hex')}`;
+                if (checkAndHandleEtag(req, res, etag)) {
+                    return;
+                }
+                const mimeType = (0, mrmime_1.lookup)(extension);
+                if (mimeType) {
+                    res.setHeader('Content-Type', mimeType);
+                }
+                res.setHeader('ETag', etag);
+                res.setHeader('Cache-Control', 'no-cache');
+                res.end(contents);
+                return;
+            }
+        }
+        next();
+    };
+}
+//# sourceMappingURL=assets-middleware.js.map

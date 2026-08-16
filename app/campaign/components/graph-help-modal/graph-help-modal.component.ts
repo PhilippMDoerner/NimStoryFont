@@ -5,10 +5,10 @@ import {
   TemplateRef,
 } from '@angular/core';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
-import { toGroupLabel } from 'src/app/_models/graph';
-import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
-import { IconComponent } from 'src/app/design/atoms/icon/icon.component';
-import { SeparatorComponent } from 'src/app/design/atoms/separator/separator.component';
+import { toGroupLabel } from '../../../_models/graph';
+import { ButtonComponent } from '../../../design/atoms/button/button.component';
+import { IconComponent } from '../../../design/atoms/icon/icon.component';
+import { SeparatorComponent } from '../../../design/atoms/separator/separator.component';
 
 const GRAPH_INFO_RULES = [
   {
@@ -93,10 +93,10 @@ const GRAPH_INTERACTIONS = [
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class GraphHelpModalComponent {
-  modalService = inject(NgbModal);
+  readonly modalService = inject(NgbModal);
 
-  infoRules = GRAPH_INFO_RULES;
-  infoInteractions = GRAPH_INTERACTIONS;
+  readonly infoRules = GRAPH_INFO_RULES;
+  readonly infoInteractions = GRAPH_INTERACTIONS;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   openModal(content: TemplateRef<any>) {

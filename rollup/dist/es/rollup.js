@@ -1,13 +1,13 @@
 /*
   @license
-	Rollup.js v4.40.2
-	Tue, 06 May 2025 07:26:21 GMT - commit 02da7efedcf373f0f819b78e3acbe50de05d9a5b
+	Rollup.js v4.62.4
+	Sat, 01 Aug 2026 05:20:25 GMT - commit ddc4ffab628944e45dbb8d66d58aae818015440f
 
 	https://github.com/rollup/rollup
 
 	Released under the MIT License.
 */
-export { version as VERSION, defineConfig, rollup, watch } from './shared/node-entry.js';
+export { VERSION, defineConfig, rollup, watch } from './shared/node-entry.js';
 import './shared/parseAst.js';
 import '../native.js';
 import 'node:path';

@@ -3,19 +3,19 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { OverviewItem } from 'src/app/_models/overview';
-import { SearchableArticleKind } from 'src/app/_models/search';
-import { environment } from 'src/environments/environment';
+import { environment } from '../../../environments/environment';
+import { OverviewItem } from '../../_models/overview';
+import { SearchableArticleKind } from '../../_models/search';
 import { RoutingService } from '../routing.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class ArticleService {
-  apiUrl: string = environment.apiUrl;
+  readonly apiUrl: string = environment.apiUrl;
 
-  recentlyUpdatedUrl = `${this.apiUrl}/recentupdates`;
-  searchUrl = `${this.apiUrl}/search`;
+  readonly recentlyUpdatedUrl = `${this.apiUrl}/recentupdates`;
+  readonly searchUrl = `${this.apiUrl}/search`;
 
   constructor(
     private routingService: RoutingService,

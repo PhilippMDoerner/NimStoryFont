@@ -71,3 +71,4 @@ function isJobHandler(value) {
     const job = value;
     return (typeof job == 'function' && typeof job.jobDescription == 'object' && job.jobDescription !== null);
 }
+//# sourceMappingURL=api.js.map

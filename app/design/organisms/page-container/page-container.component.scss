@@ -23,6 +23,7 @@
     color: white;
 
     @include screen.media-breakpoint-up(md) {
+      padding: var(--spacer-3) var(--spacer-3) var(--spacer-5) var(--spacer-3);
       border-radius: var(--bs-border-radius);
     }
 

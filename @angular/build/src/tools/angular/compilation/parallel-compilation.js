@@ -11,6 +11,7 @@ exports.ParallelCompilation = void 0;
 const node_module_1 = require("node:module");
 const node_worker_threads_1 = require("node:worker_threads");
 const worker_pool_1 = require("../../../utils/worker-pool");
+const profiling_1 = require("../../esbuild/profiling");
 const angular_compilation_1 = require("./angular-compilation");
 /**
  * An Angular compilation which uses a Node.js Worker thread to load and execute
@@ -102,8 +103,12 @@ class ParallelCompilation extends angular_compilation_1.AngularCompilation {
     collectDiagnostics() {
         throw new Error('Not implemented in ParallelCompilation.');
     }
-    diagnoseFiles(modes = angular_compilation_1.DiagnosticModes.All) {
-        return this.#worker.run(modes, { name: 'diagnose' });
+    async diagnoseFiles(modes = angular_compilation_1.DiagnosticModes.All) {
+        const { timings, ...result } = await this.#worker.run(modes, { name: 'diagnose' });
+        if (timings) {
+            (0, profiling_1.mergeCumulativeDurations)(timings);
+        }
+        return result;
     }
     emitAffectedFiles() {
         return this.#worker.run(undefined, { name: 'emit' });
@@ -116,3 +121,4 @@ class ParallelCompilation extends angular_compilation_1.AngularCompilation {
     }
 }
 exports.ParallelCompilation = ParallelCompilation;
+//# sourceMappingURL=parallel-compilation.js.map

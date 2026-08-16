@@ -13,10 +13,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.resolveAssets = resolveAssets;
 const node_path_1 = __importDefault(require("node:path"));
 const tinyglobby_1 = require("tinyglobby");
+const path_1 = require("./path");
 async function resolveAssets(entries, root) {
     const defaultIgnore = ['.gitkeep', '**/.DS_Store', '**/Thumbs.db'];
     const outputFiles = [];
     for (const entry of entries) {
+        if (!(0, path_1.isSubDirectory)(root, entry.input)) {
+            throw new Error(`The ${entry.input} asset path must be within the workspace root.`);
+        }
         const cwd = node_path_1.default.resolve(root, entry.input);
         const files = await (0, tinyglobby_1.glob)(entry.glob, {
             cwd,
@@ -32,3 +36,4 @@ async function resolveAssets(entries, root) {
     }
     return outputFiles;
 }
+//# sourceMappingURL=resolve-assets.js.map

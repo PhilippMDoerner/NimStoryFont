@@ -10,7 +10,7 @@ const { WEBPACK_MODULE_TYPE_RUNTIME } = require("./ModuleTypeConstants");
 const RuntimeGlobals = require("./RuntimeGlobals");
 
 /** @typedef {import("webpack-sources").Source} Source */
-/** @typedef {import("../declarations/WebpackOptions").Output} OutputOptions */
+/** @typedef {import("./config/defaults").OutputNormalizedWithDefaults} OutputOptions */
 /** @typedef {import("./Chunk")} Chunk */
 /** @typedef {import("./ChunkGraph")} ChunkGraph */
 /** @typedef {import("./ChunkGraph").ModuleId} ModuleId */
@@ -34,22 +34,43 @@ const NUMBER_OF_IDENTIFIER_START_CHARS = DELTA_A_TO_Z * 2 + 2; // a-z A-Z _ $
 const NUMBER_OF_IDENTIFIER_CONTINUATION_CHARS =
 	NUMBER_OF_IDENTIFIER_START_CHARS + 10; // a-z A-Z _ $ 0-9
 const FUNCTION_CONTENT_REGEX = /^function\s?\(\)\s?\{\r?\n?|\r?\n?\}$/g;
+// JSDoc type annotations exist only to type the runtime template; strip them so
+// they are never emitted into the bundle. Whole-line blocks drop the line too.
+const JSDOC_LINE_REGEX = /^[ \t]*\/\*\*(?:[^*]|\*(?!\/))*\*\/[ \t]*\r?\n/gm;
+const JSDOC_INLINE_REGEX = /\/\*\*(?:[^*]|\*(?!\/))*\*\/[ \t]*/g;
 const INDENT_MULTILINE_REGEX = /^\t/gm;
 const LINE_SEPARATOR_REGEX = /\r?\n/g;
-const IDENTIFIER_NAME_REPLACE_REGEX = /^([^a-zA-Z$_])/;
-const IDENTIFIER_ALPHA_NUMERIC_NAME_REPLACE_REGEX = /[^a-zA-Z0-9$]+/g;
+const IDENTIFIER_NAME_REPLACE_REGEX = /^([^a-z$_])/i;
+const IDENTIFIER_ALPHA_NUMERIC_NAME_REPLACE_REGEX = /[^a-z0-9$]+/gi;
 const COMMENT_END_REGEX = /\*\//g;
-const PATH_NAME_NORMALIZE_REPLACE_REGEX = /[^a-zA-Z0-9_!§$()=\-^°]+/g;
+const PATH_NAME_NORMALIZE_REPLACE_REGEX = /[^a-z0-9_!§$()=\-^°]+/gi;
 const MATCH_PADDED_HYPHENS_REPLACE_REGEX = /^-|-$/g;
 
 /**
+ * Decimal digit count of a non-negative integer, without allocating a string.
+ * @param {number} n non-negative integer
+ * @returns {number} number of decimal digits
+ */
+const numberLength = (n) => {
+	if (n < 10) return 1;
+	if (n < 100) return 2;
+	if (n < 1000) return 3;
+	if (n < 10000) return 4;
+	if (n < 100000) return 5;
+	if (n < 1000000) return 6;
+	if (n < 10000000) return 7;
+	return String(n).length;
+};
+
+/**
+ * Defines the render manifest options type used by this module.
  * @typedef {object} RenderManifestOptions
  * @property {Chunk} chunk the chunk used to render
  * @property {string} hash
  * @property {string} fullHash
  * @property {OutputOptions} outputOptions
  * @property {CodeGenerationResults} codeGenerationResults
- * @property {{javascript: ModuleTemplate}} moduleTemplates
+ * @property {{ javascript: ModuleTemplate }} moduleTemplates
  * @property {DependencyTemplates} dependencyTemplates
  * @property {RuntimeTemplate} runtimeTemplate
  * @property {ModuleGraph} moduleGraph
@@ -59,9 +80,10 @@ const MATCH_PADDED_HYPHENS_REPLACE_REGEX = /^-|-$/g;
 /** @typedef {RenderManifestEntryTemplated | RenderManifestEntryStatic} RenderManifestEntry */
 
 /**
+ * Defines the render manifest entry templated type used by this module.
  * @typedef {object} RenderManifestEntryTemplated
  * @property {() => Source} render
- * @property {TemplatePath} filenameTemplate
+ * @property {string | import("./TemplatedPathPlugin").TemplatePathFn<EXPECTED_ANY>} filenameTemplate
  * @property {PathData=} pathOptions
  * @property {AssetInfo=} info
  * @property {string} identifier
@@ -70,6 +92,7 @@ const MATCH_PADDED_HYPHENS_REPLACE_REGEX = /^-|-$/g;
  */
 
 /**
+ * Defines the render manifest entry static type used by this module.
  * @typedef {object} RenderManifestEntryStatic
  * @property {() => Source} render
  * @property {string} filename
@@ -80,29 +103,34 @@ const MATCH_PADDED_HYPHENS_REPLACE_REGEX = /^-|-$/g;
  */
 
 /**
- * @typedef {object} HasId
- * @property {number | string} id
+ * Defines the module filter predicate type used by this module.
+ * @typedef {(module: Module) => boolean} ModuleFilterPredicate
  */
 
 /**
- * @typedef {(module: Module) => boolean} ModuleFilterPredicate
+ * Represents the template runtime component.
+ * @typedef {object} Stringable
+ * @property {() => string} toString
  */
 
 class Template {
 	/**
-	 * @template {EXPECTED_FUNCTION} T
-	 * @param {T} fn a runtime function (.runtime.js) "template"
+	 * Gets function content.
+	 * @param {Stringable} fn a runtime function (.runtime.js) "template"
 	 * @returns {string} the updated and normalized function string
 	 */
 	static getFunctionContent(fn) {
 		return fn
 			.toString()
+			.replace(JSDOC_LINE_REGEX, "")
+			.replace(JSDOC_INLINE_REGEX, "")
 			.replace(FUNCTION_CONTENT_REGEX, "")
 			.replace(INDENT_MULTILINE_REGEX, "")
 			.replace(LINE_SEPARATOR_REGEX, "\n");
 	}
 
 	/**
+	 * Returns created identifier.
 	 * @param {string} str the string converted to identifier
 	 * @returns {string} created identifier
 	 */
@@ -114,24 +142,27 @@ class Template {
 	}
 
 	/**
+	 * Returns a commented version of string.
 	 * @param {string} str string to be converted to commented in bundle code
 	 * @returns {string} returns a commented version of string
 	 */
 	static toComment(str) {
 		if (!str) return "";
-		return `/*! ${str.replace(COMMENT_END_REGEX, "* /")} */`;
+		return `/*! ${str.includes("*/") ? str.replace(COMMENT_END_REGEX, "* /") : str} */`;
 	}
 
 	/**
+	 * Returns a commented version of string.
 	 * @param {string} str string to be converted to "normal comment"
 	 * @returns {string} returns a commented version of string
 	 */
 	static toNormalComment(str) {
 		if (!str) return "";
-		return `/* ${str.replace(COMMENT_END_REGEX, "* /")} */`;
+		return `/* ${str.includes("*/") ? str.replace(COMMENT_END_REGEX, "* /") : str} */`;
 	}
 
 	/**
+	 * Returns normalized bundle-safe path.
 	 * @param {string} str string path to be normalized
 	 * @returns {string} normalized bundle-safe path
 	 */
@@ -144,6 +175,7 @@ class Template {
 
 	// map number to a single character a-z, A-Z or multiple characters if number is too big
 	/**
+	 * Number to identifier.
 	 * @param {number} n number to convert to ident
 	 * @returns {string} returns single character ident
 	 */
@@ -174,6 +206,7 @@ class Template {
 	}
 
 	/**
+	 * Number to identifier continuation.
 	 * @param {number} n number to convert to ident
 	 * @returns {string} returns single character ident
 	 */
@@ -212,6 +245,7 @@ class Template {
 	}
 
 	/**
+	 * Returns converted identity.
 	 * @param {string | string[]} s string to convert to identity
 	 * @returns {string} converted identity
 	 */
@@ -226,7 +260,8 @@ class Template {
 	}
 
 	/**
-	 * @param {string|string[]} s string to create prefix for
+	 * Returns new prefix string.
+	 * @param {string | string[]} s string to create prefix for
 	 * @param {string} prefix prefix to compose
 	 * @returns {string} returns new prefix string
 	 */
@@ -238,7 +273,8 @@ class Template {
 	}
 
 	/**
-	 * @param {string|string[]} str string or string collection
+	 * Returns a single string from array.
+	 * @param {string | string[]} str string or string collection
 	 * @returns {string} returns a single string from array
 	 */
 	static asString(str) {
@@ -249,11 +285,13 @@ class Template {
 	}
 
 	/**
+	 * Defines the with id type used by this module.
 	 * @typedef {object} WithId
 	 * @property {string | number} id
 	 */
 
 	/**
+	 * Gets modules array bounds.
 	 * @param {WithId[]} modules a collection of modules to get array bounds for
 	 * @returns {[number, number] | false} returns the upper and lower array bounds
 	 * or false if not every module has a number based id
@@ -274,18 +312,23 @@ class Template {
 		// start with -1 because the first module needs no comma
 		let objectOverhead = -1;
 		for (const module of modules) {
-			// module id + colon + comma
-			objectOverhead += `${module.id}`.length + 2;
+			// module id digits + colon + comma; ids are non-negative integers here
+			// (non-number ids already returned false above), so count digits
+			// arithmetically instead of allocating a string per module.
+			const id = /** @type {number} */ (module.id);
+			objectOverhead += numberLength(id) + 2;
 		}
 		// number of commas, or when starting non-zero the length of Array(minId).concat()
-		const arrayOverhead = minId === 0 ? maxId : 16 + `${minId}`.length + maxId;
+		const arrayOverhead =
+			minId === 0 ? maxId : 16 + numberLength(minId) + maxId;
 		return arrayOverhead < objectOverhead ? [minId, maxId] : false;
 	}
 
 	/**
+	 * Renders chunk modules.
 	 * @param {ChunkRenderContext} renderContext render context
 	 * @param {Module[]} modules modules to render (should be ordered by identifier)
-	 * @param {(module: Module) => Source | null} renderModule function to render a module
+	 * @param {(module: Module, renderInArray?: boolean) => Source | null} renderModule function to render a module
 	 * @param {string=} prefix applying prefix strings
 	 * @returns {Source | null} rendered chunk modules in a Source object or null if no modules
 	 */
@@ -295,12 +338,20 @@ class Template {
 		if (modules.length === 0) {
 			return null;
 		}
-		/** @type {{id: string|number, source: Source|string}[]} */
-		const allModules = modules.map(module => ({
-			id: /** @type {ModuleId} */ (chunkGraph.getModuleId(module)),
-			source: renderModule(module) || "false"
+		/** @type {{ id: ModuleId, module: Module }[]} */
+		const modulesWithId = modules.map((m) => ({
+			id: /** @type {ModuleId} */ (chunkGraph.getModuleId(m)),
+			module: m
 		}));
-		const bounds = Template.getModulesArrayBounds(allModules);
+		const bounds = Template.getModulesArrayBounds(modulesWithId);
+		const renderInObject = bounds === false;
+
+		/** @type {{ id: ModuleId, source: Source | "false" }[]} */
+		const allModules = modulesWithId.map(({ id, module }) => ({
+			id,
+			source: renderModule(module, renderInObject) || "false"
+		}));
+
 		if (bounds) {
 			// Render a spare array
 			const minId = bounds[0];
@@ -309,7 +360,7 @@ class Template {
 				source.add(`Array(${minId}).concat(`);
 			}
 			source.add("[\n");
-			/** @type {Map<string|number, {id: string|number, source: Source|string}>} */
+			/** @type {Map<ModuleId, { id: ModuleId, source: Source | "false" }>} */
 			const modules = new Map();
 			for (const module of allModules) {
 				modules.set(module.id, module);
@@ -337,7 +388,9 @@ class Template {
 				if (i !== 0) {
 					source.add(",\n");
 				}
-				source.add(`\n/***/ ${JSON.stringify(module.id)}:\n`);
+				source.add(
+					`\n/***/ ${JSON.stringify(module.id)}${renderContext.runtimeTemplate.supportsMethodShorthand() && module.source !== "false" ? "" : ":"}\n`
+				);
 				source.add(module.source);
 			}
 			source.add(`\n\n${prefix}}`);
@@ -346,6 +399,7 @@ class Template {
 	}
 
 	/**
+	 * Renders runtime modules.
 	 * @param {RuntimeModule[]} runtimeModules array of runtime modules in order
 	 * @param {RenderContext & { codeGenerationResults?: CodeGenerationResults }} renderContext render context
 	 * @returns {Source} rendered runtime modules in a Source object
@@ -354,6 +408,7 @@ class Template {
 		const source = new ConcatSource();
 		for (const module of runtimeModules) {
 			const codeGenerationResults = renderContext.codeGenerationResults;
+			/** @type {undefined | Source} */
 			let runtimeSource;
 			if (codeGenerationResults) {
 				runtimeSource = codeGenerationResults.getSource(
@@ -368,6 +423,7 @@ class Template {
 					moduleGraph: renderContext.moduleGraph,
 					runtimeTemplate: renderContext.runtimeTemplate,
 					runtime: renderContext.chunk.runtime,
+					runtimes: [renderContext.chunk.runtime],
 					codeGenerationResults
 				});
 				if (!codeGenResult) continue;
@@ -393,6 +449,7 @@ class Template {
 	}
 
 	/**
+	 * Renders chunk runtime modules.
 	 * @param {RuntimeModule[]} runtimeModules array of runtime modules in order
 	 * @param {RenderContext} renderContext render context
 	 * @returns {Source} rendered chunk runtime modules in a Source object
@@ -410,7 +467,7 @@ class Template {
 }
 
 module.exports = Template;
-module.exports.NUMBER_OF_IDENTIFIER_START_CHARS =
-	NUMBER_OF_IDENTIFIER_START_CHARS;
 module.exports.NUMBER_OF_IDENTIFIER_CONTINUATION_CHARS =
 	NUMBER_OF_IDENTIFIER_CONTINUATION_CHARS;
+module.exports.NUMBER_OF_IDENTIFIER_START_CHARS =
+	NUMBER_OF_IDENTIFIER_START_CHARS;

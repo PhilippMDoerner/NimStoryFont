@@ -1,7 +1,7 @@
 /*
   @license
-	Rollup.js v4.40.2
-	Tue, 06 May 2025 07:26:21 GMT - commit 02da7efedcf373f0f819b78e3acbe50de05d9a5b
+	Rollup.js v4.62.4
+	Sat, 01 Aug 2026 05:20:25 GMT - commit ddc4ffab628944e45dbb8d66d58aae818015440f
 
 	https://github.com/rollup/rollup
 
@@ -11,7 +11,7 @@ const getLogFilter = filters => {
     if (filters.length === 0)
         return () => true;
     const normalizedFilters = filters.map(filter => filter.split('&').map(subFilter => {
-        const inverted = subFilter.startsWith('!');
+        const inverted = subFilter[0] === '!';
         if (inverted)
             subFilter = subFilter.slice(1);
         const [key, ...value] = subFilter.split(':');
@@ -49,6 +49,7 @@ const testFilter = (log, key, parts) => {
     if (!value.startsWith(parts[0])) {
         return false;
     }
+    value = value.slice(parts[0].length);
     const lastPartIndex = parts.length - 1;
     for (let index = 1; index < lastPartIndex; index++) {
         const part = parts[index];

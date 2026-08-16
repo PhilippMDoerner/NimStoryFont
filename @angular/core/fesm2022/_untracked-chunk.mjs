@@ -1,0 +1,102 @@
+/**
+ * @license Angular v22.1.1
+ * (c) 2010-2026 Google LLC. https://angular.dev/
+ * License: MIT
+ */
+
+import { SIGNAL, runPostProducerCreatedFn, producerUpdateValueVersion, signalSetFn, producerMarkClean, ERRORED, signalUpdateFn, producerAccessed, defaultEquals, UNSET, REACTIVE_NODE, COMPUTING, consumerBeforeComputation, setActiveConsumer, consumerAfterComputation } from './_effect-chunk.mjs';
+
+function createLinkedSignal(sourceFn, computationFn, equalityFn) {
+  const node = Object.create(LINKED_SIGNAL_NODE);
+  node.source = sourceFn;
+  node.computation = computationFn;
+  if (equalityFn != undefined) {
+    node.equal = equalityFn;
+  }
+  const linkedSignalGetter = () => {
+    producerUpdateValueVersion(node);
+    producerAccessed(node);
+    if (node.value === ERRORED) {
+      throw node.error;
+    }
+    return node.value;
+  };
+  const getter = linkedSignalGetter;
+  getter[SIGNAL] = node;
+  if (typeof ngDevMode !== 'undefined' && ngDevMode) {
+    getter.toString = () => `[LinkedSignal${node.debugName ? ' (' + node.debugName + ')' : ''}: ${String(node.value)}]`;
+  }
+  runPostProducerCreatedFn(node);
+  return getter;
+}
+function linkedSignalSetFn(node, newValue) {
+  producerUpdateValueVersion(node);
+  signalSetFn(node, newValue);
+  producerMarkClean(node);
+}
+function linkedSignalUpdateFn(node, updater) {
+  producerUpdateValueVersion(node);
+  if (node.value === ERRORED) {
+    throw node.error;
+  }
+  signalUpdateFn(node, updater);
+  producerMarkClean(node);
+}
+const LINKED_SIGNAL_NODE = /* @__PURE__ */(() => {
+  return {
+    ...REACTIVE_NODE,
+    value: UNSET,
+    dirty: true,
+    error: null,
+    equal: defaultEquals,
+    kind: 'linkedSignal',
+    producerMustRecompute(node) {
+      return node.value === UNSET || node.value === COMPUTING;
+    },
+    producerRecomputeValue(node) {
+      if (node.value === COMPUTING) {
+        throw new Error(typeof ngDevMode !== 'undefined' && ngDevMode ? 'Detected cycle in computations.' : '');
+      }
+      const oldValue = node.value;
+      node.value = COMPUTING;
+      const prevConsumer = consumerBeforeComputation(node);
+      let newValue;
+      let wasEqual = false;
+      try {
+        const newSourceValue = node.source();
+        const oldValueValid = oldValue !== UNSET && oldValue !== ERRORED;
+        const prev = oldValueValid ? {
+          source: node.sourceValue,
+          value: oldValue
+        } : undefined;
+        newValue = node.computation(newSourceValue, prev);
+        node.sourceValue = newSourceValue;
+        setActiveConsumer(null);
+        wasEqual = oldValueValid && newValue !== ERRORED && node.equal(oldValue, newValue);
+      } catch (err) {
+        newValue = ERRORED;
+        node.error = err;
+      } finally {
+        consumerAfterComputation(node, prevConsumer);
+      }
+      if (wasEqual) {
+        node.value = oldValue;
+        return;
+      }
+      node.value = newValue;
+      node.version++;
+    }
+  };
+})();
+
+function untracked(nonReactiveReadsFn) {
+  const prevConsumer = setActiveConsumer(null);
+  try {
+    return nonReactiveReadsFn();
+  } finally {
+    setActiveConsumer(prevConsumer);
+  }
+}
+
+export { createLinkedSignal, linkedSignalSetFn, linkedSignalUpdateFn, untracked };
+//# sourceMappingURL=_untracked-chunk.mjs.map

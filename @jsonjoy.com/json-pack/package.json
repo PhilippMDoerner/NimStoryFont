@@ -1,6 +1,6 @@
 {
   "name": "@jsonjoy.com/json-pack",
-  "version": "1.3.0",
+  "version": "1.21.0",
   "description": "High-performance JSON serialization library",
   "author": {
     "name": "streamich",
@@ -63,10 +63,14 @@
     "tslib": "2"
   },
   "dependencies": {
-    "@jsonjoy.com/base64": "^1.1.1",
-    "@jsonjoy.com/util": "^1.1.2",
+    "@jsonjoy.com/base64": "^1.1.2",
+    "@jsonjoy.com/buffers": "^1.2.0",
+    "@jsonjoy.com/codegen": "^1.0.0",
+    "@jsonjoy.com/json-pointer": "^1.0.2",
+    "@jsonjoy.com/util": "^1.9.0",
     "hyperdyperid": "^1.2.0",
-    "thingies": "^1.20.0"
+    "thingies": "^2.5.0",
+    "tree-dump": "^1.1.0"
   },
   "devDependencies": {
     "@msgpack/msgpack": "^3.0.0-beta2",
@@ -93,6 +97,7 @@
     "js-base64": "^3.7.2",
     "jsbi": "^4.3.0",
     "json-pack-napi": "^0.0.2",
+    "memfs": "^4.49.0",
     "messagepack": "^1.1.12",
     "msgpack-lite": "^0.1.26",
     "msgpack5": "^6.0.2",
@@ -112,7 +117,8 @@
     "tslint": "^6.1.3",
     "tslint-config-common": "^1.6.2",
     "typedoc": "^0.25.12",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "websocket": "^1.0.35"
   },
   "jest": {
     "verbose": true,

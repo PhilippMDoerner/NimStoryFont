@@ -9,12 +9,12 @@ import {
   signal,
 } from '@angular/core';
 import { FormlyFieldConfig } from '@ngx-formly/core';
-import { Rule, RuleRaw } from 'src/app/_models/rule';
-import { FormlyService } from 'src/app/_services/formly/formly-service.service';
-import { ElementKind } from 'src/app/design/atoms/_models/button';
-import { HtmlTextComponent } from 'src/app/design/atoms/html-text/html-text.component';
-import { CompareFormComponent, FormComponent } from 'src/app/design/molecules';
-import { withViewTransition } from 'src/utils/animation';
+import { withViewTransition } from '../../../../utils/animation';
+import { Rule, RuleRaw } from '../../../_models/rule';
+import { FormlyService } from '../../../_services/formly/formly-service.service';
+import { ElementKind } from '../../atoms/_models/button';
+import { HtmlTextComponent } from '../../atoms/html-text/html-text.component';
+import { CompareFormComponent, FormComponent } from '../../molecules';
 import {
   DEFAULT_DELETE_MODAL_DATA,
   MenuItem,
@@ -37,24 +37,24 @@ type RuleState = 'DISPLAY' | 'CREATE' | 'UPDATE' | 'OUTDATED_UPDATE';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RuleComponent implements OnInit {
-  rule = input.required<Rule | undefined>();
-  canUpdate = input.required<boolean>();
-  canDelete = input.required<boolean>();
-  canCreate = input.required<boolean>();
-  disabledHotkeys = input<boolean>(false);
-  serverModel = input.required<Rule | undefined>();
-  cancelButtonType = input<ElementKind>('SECONDARY');
-  submitButtonType = input<ElementKind>('PRIMARY');
+  readonly rule = input.required<Rule | undefined>();
+  readonly canUpdate = input.required<boolean>();
+  readonly canDelete = input.required<boolean>();
+  readonly canCreate = input.required<boolean>();
+  readonly disabledHotkeys = input<boolean>(false);
+  readonly serverModel = input.required<Rule | undefined>();
+  readonly cancelButtonType = input<ElementKind>('SECONDARY');
+  readonly submitButtonType = input<ElementKind>('PRIMARY');
 
   readonly ruleDelete = output<Rule>();
   readonly ruleCreate = output<RuleRaw>();
   readonly ruleUpdate = output<Rule>();
   readonly ruleCreateCancel = output<void>();
 
-  userModel = signal<Rule | undefined>(undefined);
-  state = signal<RuleState>('DISPLAY');
+  readonly userModel = signal<Rule | undefined>(undefined);
+  readonly state = signal<RuleState>('DISPLAY');
 
-  contextMenuItems = computed<MenuItem[]>(() => {
+  readonly contextMenuItems = computed<MenuItem[]>(() => {
     const menuItems: MenuItem[] = [];
     if (this.canUpdate()) {
       menuItems.push({
@@ -85,7 +85,7 @@ export class RuleComponent implements OnInit {
     return menuItems;
   });
 
-  formlyFields: FormlyFieldConfig[] = [
+  readonly formlyFields: FormlyFieldConfig[] = [
     this.formlyService.buildInputConfig({
       key: 'name',
       inputKind: 'NAME',

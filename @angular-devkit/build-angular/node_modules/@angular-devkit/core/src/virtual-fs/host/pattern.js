@@ -32,3 +32,4 @@ class PatternMatchingHost extends resolver_1.ResolverHost {
     }
 }
 exports.PatternMatchingHost = PatternMatchingHost;
+//# sourceMappingURL=pattern.js.map

@@ -1,0 +1,1 @@
+{"version":3,"file":"constants.js","sourceRoot":"","sources":["../src/constants.ts"],"names":[],"mappings":"","sourcesContent":["export const enum SnapshotNodeType {\n  Folder = 0,\n  File = 1,\n  Symlink = 2,\n}\n"]}

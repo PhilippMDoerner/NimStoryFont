@@ -84,6 +84,7 @@ const analytics_parameters_1 = require("../analytics/analytics-parameters");
 const config_1 = require("../utilities/config");
 const error_1 = require("../utilities/error");
 const memoize_1 = require("../utilities/memoize");
+const prettier_1 = require("../utilities/prettier");
 const tty_1 = require("../utilities/tty");
 const command_module_1 = require("./command-module");
 const json_schema_1 = require("./utilities/json-schema");
@@ -224,11 +225,18 @@ let SchematicsCommandModule = (() => {
                                         ? {
                                             name: item,
                                             value: item,
+                                            checked: definition.multiselect && Array.isArray(definition.default)
+                                                ? definition.default?.includes(item)
+                                                : item === definition.default,
                                         }
                                         : {
                                             ...item,
                                             name: item.label,
                                             value: item.value,
+                                            checked: definition.multiselect && Array.isArray(definition.default)
+                                                ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                                    definition.default?.includes(item.value)
+                                                : item.value === definition.default,
                                         }),
                                 });
                                 break;
@@ -338,7 +346,19 @@ let SchematicsCommandModule = (() => {
                 }
                 if (executionOptions.dryRun) {
                     logger.warn(`\nNOTE: The "--dry-run" option means no changes were made.`);
+                    return 0;
                 }
+                if (files.size) {
+                    // Note: we could use a task executor to format the files but this is simpler.
+                    try {
+                        await (0, prettier_1.formatFiles)(this.context.root, files);
+                    }
+                    catch (error) {
+                        (0, error_1.assertIsError)(error);
+                        logger.warn(`WARNING: Formatting of files failed with the following error: ${error.message}`);
+                    }
+                }
+                return 0;
             }
             catch (err) {
                 // In case the workflow was not successful, show an appropriate error message.
@@ -355,7 +375,6 @@ let SchematicsCommandModule = (() => {
             finally {
                 unsubscribe();
             }
-            return 0;
         }
         getProjectName() {
             const { workspace } = this.context;
@@ -386,3 +405,4 @@ let SchematicsCommandModule = (() => {
     };
 })();
 exports.SchematicsCommandModule = SchematicsCommandModule;
+//# sourceMappingURL=schematics-command-module.js.map

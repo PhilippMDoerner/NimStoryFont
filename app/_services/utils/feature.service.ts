@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
-import { environment } from 'src/environments/environment';
+import { environment } from '../../../environments/environment';
 
 interface FeatureConfig {
   enableRegistration: boolean;
@@ -23,5 +23,5 @@ export class FeatureService {
     stream: ({ params }) => this.http.get<FeatureConfig>(params),
   });
 
-  public features$ = this._features$.asReadonly();
+  public readonly features$ = this._features$.asReadonly();
 }

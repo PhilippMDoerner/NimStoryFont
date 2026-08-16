@@ -12,11 +12,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getSupportedBrowsers = getSupportedBrowsers;
 const browserslist_1 = __importDefault(require("browserslist"));
+// The below is replaced by bazel `npm_package`.
+const BASELINE_DATE = '2026-05-07';
 function getSupportedBrowsers(projectRoot, logger) {
     // Read the browserslist configuration containing Angular's browser support policy.
-    const angularBrowserslist = (0, browserslist_1.default)(undefined, {
-        path: require.resolve('../../.browserslistrc'),
-    });
+    const angularBrowserslist = (0, browserslist_1.default)(`baseline widely available on ${getBaselineDate()}`);
     // Use Angular's configuration as the default.
     browserslist_1.default.defaults = angularBrowserslist;
     // Get the minimum set of browser versions supported by Angular.
@@ -50,3 +50,8 @@ function getSupportedBrowsers(projectRoot, logger) {
     }
     return Array.from(browsersFromConfigOrDefault);
 }
+function getBaselineDate() {
+    // Unlike `npm_package`, `ts_project` which is used to run unit tests does not support substitutions.
+    return BASELINE_DATE[0] === 'B' ? '2025-01-01' : BASELINE_DATE;
+}
+//# sourceMappingURL=supported-browsers.js.map

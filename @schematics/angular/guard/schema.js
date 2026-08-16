@@ -19,3 +19,4 @@ var TypeSeparator;
     TypeSeparator["Empty"] = "-";
     TypeSeparator["TypeSeparator"] = ".";
 })(TypeSeparator || (exports.TypeSeparator = TypeSeparator = {}));
+//# sourceMappingURL=schema.js.map

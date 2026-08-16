@@ -7,27 +7,44 @@
 
 const { WEBASSEMBLY_MODULE_TYPE_ASYNC } = require("../ModuleTypeConstants");
 const RuntimeGlobals = require("../RuntimeGlobals");
+const { getPresentKinds } = require("../TemplatedPathPlugin");
+const AsyncWasmCompileRuntimeModule = require("../wasm-async/AsyncWasmCompileRuntimeModule");
 const AsyncWasmLoadingRuntimeModule = require("../wasm-async/AsyncWasmLoadingRuntimeModule");
 
 /** @typedef {import("../Chunk")} Chunk */
 /** @typedef {import("../Compiler")} Compiler */
 
+/**
+ * The wasm runtime inlines `[fullhash]` as a runtime `getFullHash()` call, so
+ * that runtime module must be requested (`[hash]` is the per-module hash here).
+ * @param {string} filename `output.webassemblyModuleFilename`
+ * @returns {boolean} whether it references the compilation `[fullhash]`
+ */
+const usesFullHash = (filename) => getPresentKinds(filename).has("fullhash");
+
 const PLUGIN_NAME = "FetchCompileAsyncWasmPlugin";
 
+/**
+ * Enables asynchronous WebAssembly loading through `fetch` for environments
+ * that can instantiate fetched binaries at runtime.
+ */
 class FetchCompileAsyncWasmPlugin {
 	/**
-	 * Apply the plugin
+	 * Registers compilation hooks that attach the async fetch-based wasm runtime
+	 * to chunks containing async WebAssembly modules.
 	 * @param {Compiler} compiler the compiler instance
 	 * @returns {void}
 	 */
 	apply(compiler) {
-		compiler.hooks.thisCompilation.tap(PLUGIN_NAME, compilation => {
+		compiler.hooks.thisCompilation.tap(PLUGIN_NAME, (compilation) => {
 			const globalWasmLoading = compilation.outputOptions.wasmLoading;
 			/**
+			 * Determines whether the chunk should load async WebAssembly binaries
+			 * through the `fetch` backend.
 			 * @param {Chunk} chunk chunk
 			 * @returns {boolean} true, if wasm loading is enabled for the chunk
 			 */
-			const isEnabledForChunk = chunk => {
+			const isEnabledForChunk = (chunk) => {
 				const options = chunk.getEntryOptions();
 				const wasmLoading =
 					options && options.wasmLoading !== undefined
@@ -36,10 +53,12 @@ class FetchCompileAsyncWasmPlugin {
 				return wasmLoading === "fetch";
 			};
 			/**
+			 * Generates the runtime expression that downloads the emitted wasm
+			 * binary for an async WebAssembly module.
 			 * @param {string} path path to the wasm file
 			 * @returns {string} code to load the wasm file
 			 */
-			const generateLoadBinaryCode = path =>
+			const generateLoadBinaryCode = (path) =>
 				`fetch(${RuntimeGlobals.publicPath} + ${path})`;
 
 			compilation.hooks.runtimeRequirementInTree
@@ -49,15 +68,47 @@ class FetchCompileAsyncWasmPlugin {
 					if (
 						!chunkGraph.hasModuleInGraph(
 							chunk,
-							m => m.type === WEBASSEMBLY_MODULE_TYPE_ASYNC
+							(m) => m.type === WEBASSEMBLY_MODULE_TYPE_ASYNC
 						)
 					) {
 						return;
 					}
 					set.add(RuntimeGlobals.publicPath);
+					if (
+						usesFullHash(compilation.outputOptions.webassemblyModuleFilename)
+					) {
+						set.add(RuntimeGlobals.getFullHash);
+					}
 					compilation.addRuntimeModule(
 						chunk,
 						new AsyncWasmLoadingRuntimeModule({
+							generateLoadBinaryCode,
+							supportsStreaming: true
+						})
+					);
+				});
+
+			compilation.hooks.runtimeRequirementInTree
+				.for(RuntimeGlobals.compileWasm)
+				.tap(PLUGIN_NAME, (chunk, set, { chunkGraph }) => {
+					if (!isEnabledForChunk(chunk)) return;
+					if (
+						!chunkGraph.hasModuleInGraph(
+							chunk,
+							(m) => m.type === WEBASSEMBLY_MODULE_TYPE_ASYNC
+						)
+					) {
+						return;
+					}
+					set.add(RuntimeGlobals.publicPath);
+					if (
+						usesFullHash(compilation.outputOptions.webassemblyModuleFilename)
+					) {
+						set.add(RuntimeGlobals.getFullHash);
+					}
+					compilation.addRuntimeModule(
+						chunk,
+						new AsyncWasmCompileRuntimeModule({
 							generateLoadBinaryCode,
 							supportsStreaming: true
 						})

@@ -10,6 +10,11 @@ type Options = [
 ];
 export type MessageIds = 'preferInputSignals' | 'preferQuerySignals' | 'preferReadonlySignalProperties';
 export declare const RULE_NAME = "prefer-signals";
-declare const _default: ESLintUtils.RuleModule<MessageIds, Options, import("../utils/create-eslint-rule").RuleDocs, ESLintUtils.RuleListener>;
+declare const _default: ESLintUtils.RuleModule<MessageIds, Options, import("../utils/create-eslint-rule").RuleDocs, ESLintUtils.RuleListener> & {
+    name: string;
+};
 export default _default;
+export declare const RULE_DOCS_EXTENSION: {
+    rationale: string;
+};
 //# sourceMappingURL=prefer-signals.d.ts.map

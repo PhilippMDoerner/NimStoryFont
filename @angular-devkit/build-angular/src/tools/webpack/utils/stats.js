@@ -90,7 +90,6 @@ statsConfig, budgetFailures) {
     const rs = (x) => (colors ? color_1.colors.reset(x) : x);
     const w = (x) => (colors ? color_1.colors.bold.white(x) : x);
     const changedChunksStats = [];
-    let unchangedChunkNumber = 0;
     let hasEstimatedTransferSizes = false;
     const isFirstRun = !runsCache.has(json.outputPath || '');
     for (const chunk of json.chunks) {
@@ -119,7 +118,7 @@ statsConfig, budgetFailures) {
         }
         changedChunksStats.push(generateBundleStats({ ...chunk, rawSize, estimatedTransferSize }));
     }
-    unchangedChunkNumber = json.chunks.length - changedChunksStats.length;
+    const unchangedChunkNumber = json.chunks.length - changedChunksStats.length;
     runsCache.add(json.outputPath || '');
     const statsTable = (0, private_1.generateBuildStatsTable)(changedChunksStats, colors, unchangedChunkNumber === 0, hasEstimatedTransferSizes, budgetFailures);
     // In some cases we do things outside of webpack context
@@ -206,7 +205,13 @@ function statsErrorsToString(json, statsConfig) {
             // This below cleans up the error from stacks.
             // See: https://github.com/webpack/webpack/issues/15980
             const index = error.message.search(/[\n\s]+at /);
-            const message = statsConfig.errorStack || index === -1 ? error.message : error.message.substring(0, index);
+            let message = statsConfig.errorStack || index === -1 ? error.message : error.message.substring(0, index);
+            // Clean up error message paths when not verbose
+            // Ex: Execution of module code from module graph (./src/styles.scss.webpack[javascript/auto]!=!...) failed
+            // to Execution of module code from module graph (./src/styles.scss) failed
+            if (message && !statsConfig.errorDetails) {
+                message = message.replace(/([^(\s]+)\.webpack\[[^\]]+\]!=![^\s)]+/g, '$1');
+            }
             if (!/^error/i.test(message)) {
                 output += r('Error: ');
             }
@@ -298,3 +303,4 @@ function webpackStatsLogger(logger, json, config, budgetFailures) {
         logger.error(statsErrorsToString(json, config.stats));
     }
 }
+//# sourceMappingURL=stats.js.map

@@ -1,15 +1,15 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { WikiStatistics } from 'src/app/_models/campaign';
-import { environment } from 'src/environments/environment';
+import { environment } from '../../../environments/environment';
+import { WikiStatistics } from '../../_models/campaign';
 
 @Injectable({
   providedIn: 'root',
 })
 export class AdminService {
-  apiUrl = environment.apiUrl;
-  adminUrl = `${this.apiUrl}/admin`;
+  readonly apiUrl = environment.apiUrl;
+  readonly adminUrl = `${this.apiUrl}/admin`;
 
   constructor(private http: HttpClient) {}
 

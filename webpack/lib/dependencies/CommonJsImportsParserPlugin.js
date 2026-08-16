@@ -5,19 +5,17 @@
 
 "use strict";
 
-const { fileURLToPath } = require("url");
-const CommentCompilationWarning = require("../CommentCompilationWarning");
 const RuntimeGlobals = require("../RuntimeGlobals");
-const UnsupportedFeatureWarning = require("../UnsupportedFeatureWarning");
-const WebpackError = require("../WebpackError");
-const BasicEvaluatedExpression = require("../javascript/BasicEvaluatedExpression");
-const { VariableInfo } = require("../javascript/JavascriptParser");
+const CommentCompilationWarning = require("../errors/CommentCompilationWarning");
+const UnsupportedFeatureWarning = require("../errors/UnsupportedFeatureWarning");
 const {
 	evaluateToIdentifier,
 	evaluateToString,
 	expressionIsUnsupported,
 	toConstantDependency
 } = require("../javascript/JavascriptParserHelpers");
+const memoize = require("../util/memoize");
+const traverseDestructuringAssignmentProperties = require("../util/traverseDestructuringAssignmentProperties");
 const CommonJsFullRequireDependency = require("./CommonJsFullRequireDependency");
 const CommonJsRequireContextDependency = require("./CommonJsRequireContextDependency");
 const CommonJsRequireDependency = require("./CommonJsRequireDependency");
@@ -35,70 +33,465 @@ const RequireResolveHeaderDependency = require("./RequireResolveHeaderDependency
 /** @typedef {import("estree").NewExpression} NewExpression */
 /** @typedef {import("../../declarations/WebpackOptions").JavascriptParserOptions} JavascriptParserOptions */
 /** @typedef {import("../Dependency").DependencyLocation} DependencyLocation */
+/** @typedef {import("../Dependency").RawReferencedExports} RawReferencedExports */
 /** @typedef {import("../javascript/JavascriptParser")} JavascriptParser */
+/** @typedef {import("../javascript/BasicEvaluatedExpression")} BasicEvaluatedExpression */
 /** @typedef {import("../javascript/JavascriptParser").ImportSource} ImportSource */
 /** @typedef {import("../javascript/JavascriptParser").Range} Range */
+/** @typedef {import("../javascript/JavascriptParser").Members} Members */
+/** @typedef {import("../javascript/JavascriptParser").CalleeMembers} CalleeMembers */
+/** @typedef {import("./LocalModule")} LocalModule */
 
-const createRequireSpecifierTag = Symbol("createRequire");
-const createdRequireIdentifierTag = Symbol("createRequire()");
+/**
+ * Defines the common js import settings type used by this module.
+ * @typedef {object} CommonJsImportSettings
+ * @property {string=} name
+ * @property {string} context
+ */
+
+/**
+ * Per-`const NAME = require(LITERAL)` binding state used to forward
+ * member-access references on `NAME` to the `CommonJsRequireDependency`
+ * created for the `require()` call.
+ * @typedef {object} RequireBindingData
+ * @property {RawReferencedExports | null} referencedExports mutable list, pushed to as `NAME.x.y` accesses are walked; null means the whole namespace is used. Separate from `dep` so a deferred require (walked after accesses on `NAME`) still collects them; becomes the dep's shared list on creation.
+ * @property {InstanceType<typeof import("./CommonJsRequireDependency")> | null} dep dependency for the `require()` call, null until the `require()` is walked; kept so a later whole-namespace use can null its list directly
+ */
+
+const getHarmonyImportGuard = memoize(() => require("./HarmonyImportGuard"));
+
+const REQUIRE_BINDING_TAG = Symbol(
+	"CommonJsImportsParserPlugin require binding"
+);
+
+const PLUGIN_NAME = "CommonJsImportsParserPlugin";
+
+/**
+ * Checks whether this object is require call expression.
+ * @param {Expression} expression expression
+ * @returns {boolean} true, when expression is `require(...)` or `module.require(...)`
+ */
+const isRequireCallExpression = (expression) => {
+	if (expression.type !== "CallExpression") return false;
+	const { callee } = expression;
+	if (callee.type === "Identifier") {
+		return callee.name === "require";
+	}
+	if (callee.type === "MemberExpression" && !callee.computed) {
+		const object = callee.object;
+		const property = callee.property;
+		return (
+			object.type === "Identifier" &&
+			object.name === "module" &&
+			property.type === "Identifier" &&
+			property.name === "require"
+		);
+	}
+	return false;
+};
+
+/**
+ * Gets require referenced exports from destructuring.
+ * @param {JavascriptParser} parser parser
+ * @param {CallExpression | NewExpression} expr expression
+ * @returns {RawReferencedExports | null} referenced exports from destructuring
+ */
+const getRequireReferencedExportsFromDestructuring = (parser, expr) => {
+	const referencedPropertiesInDestructuring =
+		parser.destructuringAssignmentPropertiesFor(expr);
+	if (!referencedPropertiesInDestructuring) return null;
+
+	/** @type {RawReferencedExports} */
+	const referencedExports = [];
+	traverseDestructuringAssignmentProperties(
+		referencedPropertiesInDestructuring,
+		(stack) => referencedExports.push(stack.map((p) => p.id))
+	);
+	return referencedExports;
+};
+
+/**
+ * Creates a require cache dependency.
+ * @param {JavascriptParser} parser parser
+ * @returns {(expr: Expression) => boolean} handler
+ */
+const createRequireCacheDependency = (parser) =>
+	toConstantDependency(parser, RuntimeGlobals.moduleCache, [
+		RuntimeGlobals.moduleCache,
+		RuntimeGlobals.moduleId,
+		RuntimeGlobals.moduleLoaded
+	]);
+
+/**
+ * Creates a require as expression handler.
+ * @param {JavascriptParser} parser parser
+ * @param {JavascriptParserOptions} options options
+ * @param {() => undefined | string} getContext context accessor
+ * @returns {(expr: Expression) => boolean} handler
+ */
+const createRequireAsExpressionHandler =
+	(parser, options, getContext) => (expr) => {
+		const dep = new CommonJsRequireContextDependency(
+			{
+				request: /** @type {string} */ (options.unknownContextRequest),
+				recursive: /** @type {boolean} */ (options.unknownContextRecursive),
+				regExp: /** @type {RegExp} */ (options.unknownContextRegExp),
+				mode: "sync"
+			},
+			/** @type {Range} */ (expr.range),
+			undefined,
+			parser.scope.inShorthand,
+			getContext()
+		);
+		dep.critical =
+			options.unknownContextCritical &&
+			"require function is used in a way in which dependencies cannot be statically extracted";
+		dep.loc = parser.getLocation(expr);
+		dep.optional = Boolean(parser.scope.inTry);
+		parser.state.current.addDependency(dep);
+		return true;
+	};
+
+/**
+ * Creates a require call handler.
+ * @param {JavascriptParser} parser parser
+ * @param {JavascriptParserOptions} options options
+ * @param {() => undefined | string} getContext context accessor
+ * @param {WeakMap<CallExpression, RequireBindingData>=} requireBindingData per-parser `const NAME = require(LITERAL)` binding state; only the free-`require` plugin populates it
+ * @returns {(callNew: boolean) => (expr: CallExpression | NewExpression) => (boolean | void)} handler factory
+ */
+const createRequireCallHandler = (
+	parser,
+	options,
+	getContext,
+	requireBindingData
+) => {
+	/**
+	 * Process require item.
+	 * @param {CallExpression | NewExpression} expr expression
+	 * @param {BasicEvaluatedExpression} param param
+	 * @returns {boolean | void} true when handled
+	 */
+	const processRequireItem = (expr, param) => {
+		if (param.isString()) {
+			let referencedExports = getRequireReferencedExportsFromDestructuring(
+				parser,
+				expr
+			);
+			const binding =
+				requireBindingData &&
+				requireBindingData.get(/** @type {CallExpression} */ (expr));
+			if (binding && !referencedExports) {
+				// `const NAME = require(LITERAL)` — let later member-access walks
+				// on `NAME` populate the dependency's referenced exports.
+				referencedExports = binding.referencedExports;
+			}
+			const dep = new CommonJsRequireDependency(
+				/** @type {string} */ (param.string),
+				/** @type {Range} */ (param.range),
+				getContext(),
+				referencedExports,
+				/** @type {Range} */ (expr.range)
+			);
+			if (binding) binding.dep = dep;
+			dep.loc = parser.getLocation(expr);
+			dep.optional = Boolean(parser.scope.inTry);
+			parser.state.current.addDependency(dep);
+			getHarmonyImportGuard().attachDependencyGuards(parser, dep);
+			return true;
+		}
+	};
+	/**
+	 * Process require context.
+	 * @param {CallExpression | NewExpression} expr expression
+	 * @param {BasicEvaluatedExpression} param param
+	 * @returns {boolean | void} true when handled
+	 */
+	const processRequireContext = (expr, param) => {
+		const referencedExports = getRequireReferencedExportsFromDestructuring(
+			parser,
+			expr
+		);
+		const dep = ContextDependencyHelpers.create(
+			CommonJsRequireContextDependency,
+			/** @type {Range} */ (expr.range),
+			param,
+			expr,
+			options,
+			{
+				category: "commonjs",
+				referencedExports
+			},
+			parser,
+			undefined,
+			getContext()
+		);
+		if (!dep) return;
+		dep.loc = parser.getLocation(expr);
+		dep.optional = Boolean(parser.scope.inTry);
+		parser.state.current.addDependency(dep);
+		return true;
+	};
+
+	return (callNew) => (expr) => {
+		if (options.commonjsMagicComments) {
+			const { options: requireOptions, errors: commentErrors } =
+				parser.parseCommentOptions(/** @type {Range} */ (expr.range));
+
+			if (commentErrors) {
+				for (const e of commentErrors) {
+					const { comment } = e;
+					parser.state.module.addWarning(
+						new CommentCompilationWarning(
+							`Compilation error while processing magic comment(-s): /*${comment.value}*/: ${e.message}`,
+							parser.getLocation(comment)
+						)
+					);
+				}
+			}
+			if (requireOptions && requireOptions.webpackIgnore !== undefined) {
+				if (typeof requireOptions.webpackIgnore !== "boolean") {
+					parser.state.module.addWarning(
+						new UnsupportedFeatureWarning(
+							`\`webpackIgnore\` expected a boolean, but received: ${requireOptions.webpackIgnore}.`,
+							parser.getLocation(expr)
+						)
+					);
+				} else if (requireOptions.webpackIgnore) {
+					// Do not instrument `require()` if `webpackIgnore` is `true`
+					return true;
+				}
+			}
+		}
+
+		if (expr.arguments.length !== 1) return;
+		/** @type {null | LocalModule} */
+		let localModule;
+		const param = parser.evaluateExpression(expr.arguments[0]);
+		if (param.isConditional()) {
+			let isExpression = false;
+			for (const p of /** @type {BasicEvaluatedExpression[]} */ (
+				param.options
+			)) {
+				const result = processRequireItem(expr, p);
+				if (result === undefined) {
+					isExpression = true;
+				}
+			}
+			if (!isExpression) {
+				const dep = new RequireHeaderDependency(
+					/** @type {Range} */ (expr.callee.range)
+				);
+				dep.loc = parser.getLocation(expr);
+				parser.state.module.addPresentationalDependency(dep);
+				return true;
+			}
+		}
+		if (
+			param.isString() &&
+			(localModule = getLocalModule(
+				parser.state,
+				/** @type {string} */ (param.string)
+			))
+		) {
+			localModule.flagUsed();
+			const dep = new LocalModuleDependency(
+				localModule,
+				/** @type {Range} */ (expr.range),
+				callNew
+			);
+			dep.loc = parser.getLocation(expr);
+			parser.state.module.addPresentationalDependency(dep);
+		} else {
+			const result = processRequireItem(expr, param);
+			if (result === undefined) {
+				processRequireContext(expr, param);
+			} else {
+				const dep = new RequireHeaderDependency(
+					/** @type {Range} */ (expr.callee.range)
+				);
+				dep.loc = parser.getLocation(expr);
+				parser.state.module.addPresentationalDependency(dep);
+			}
+		}
+		return true;
+	};
+};
+
+/**
+ * Creates a process resolve handler.
+ * @param {JavascriptParser} parser parser
+ * @param {JavascriptParserOptions} options options
+ * @param {() => undefined | string} getContext context accessor
+ * @returns {(expr: CallExpression, weak: boolean) => (boolean | void)} resolver
+ */
+const createProcessResolveHandler = (parser, options, getContext) => {
+	/**
+	 * Process resolve item.
+	 * @param {CallExpression} expr call expression
+	 * @param {BasicEvaluatedExpression} param param
+	 * @param {boolean} weak weak
+	 * @returns {boolean | void} true when handled
+	 */
+	const processResolveItem = (expr, param, weak) => {
+		if (param.isString()) {
+			const dep = new RequireResolveDependency(
+				/** @type {string} */ (param.string),
+				/** @type {Range} */ (param.range),
+				getContext()
+			);
+			dep.loc = parser.getLocation(expr);
+			dep.optional = Boolean(parser.scope.inTry);
+			dep.weak = weak;
+			parser.state.current.addDependency(dep);
+			return true;
+		}
+	};
+	/**
+	 * Process resolve context.
+	 * @param {CallExpression} expr call expression
+	 * @param {BasicEvaluatedExpression} param param
+	 * @param {boolean} weak weak
+	 * @returns {boolean | void} true when handled
+	 */
+	const processResolveContext = (expr, param, weak) => {
+		const dep = ContextDependencyHelpers.create(
+			RequireResolveContextDependency,
+			/** @type {Range} */ (param.range),
+			param,
+			expr,
+			options,
+			{
+				category: "commonjs",
+				mode: weak ? "weak" : "sync"
+			},
+			parser,
+			getContext()
+		);
+		if (!dep) return;
+		dep.loc = parser.getLocation(expr);
+		dep.optional = Boolean(parser.scope.inTry);
+		parser.state.current.addDependency(dep);
+		return true;
+	};
+
+	return (expr, weak) => {
+		if (!weak && options.commonjsMagicComments) {
+			const { options: requireOptions, errors: commentErrors } =
+				parser.parseCommentOptions(/** @type {Range} */ (expr.range));
+
+			if (commentErrors) {
+				for (const e of commentErrors) {
+					const { comment } = e;
+					parser.state.module.addWarning(
+						new CommentCompilationWarning(
+							`Compilation error while processing magic comment(-s): /*${comment.value}*/: ${e.message}`,
+							parser.getLocation(comment)
+						)
+					);
+				}
+			}
+			if (requireOptions && requireOptions.webpackIgnore !== undefined) {
+				if (typeof requireOptions.webpackIgnore !== "boolean") {
+					parser.state.module.addWarning(
+						new UnsupportedFeatureWarning(
+							`\`webpackIgnore\` expected a boolean, but received: ${requireOptions.webpackIgnore}.`,
+							parser.getLocation(expr)
+						)
+					);
+				} else if (requireOptions.webpackIgnore) {
+					// Do not instrument `require()` if `webpackIgnore` is `true`
+					return true;
+				}
+			}
+		}
+
+		if (expr.arguments.length !== 1) return;
+		const param = parser.evaluateExpression(expr.arguments[0]);
+		if (param.isConditional()) {
+			for (const option of /** @type {BasicEvaluatedExpression[]} */ (
+				param.options
+			)) {
+				const result = processResolveItem(expr, option, weak);
+				if (result === undefined) {
+					processResolveContext(expr, option, weak);
+				}
+			}
+			const dep = new RequireResolveHeaderDependency(
+				/** @type {Range} */ (expr.callee.range)
+			);
+			dep.loc = parser.getLocation(expr);
+			parser.state.module.addPresentationalDependency(dep);
+			return true;
+		}
+		const result = processResolveItem(expr, param, weak);
+		if (result === undefined) {
+			processResolveContext(expr, param, weak);
+		}
+		const dep = new RequireResolveHeaderDependency(
+			/** @type {Range} */ (expr.callee.range)
+		);
+		dep.loc = parser.getLocation(expr);
+		parser.state.module.addPresentationalDependency(dep);
+		return true;
+	};
+};
 
 class CommonJsImportsParserPlugin {
 	/**
+	 * Creates an instance of CommonJsImportsParserPlugin.
 	 * @param {JavascriptParserOptions} options parser options
 	 */
 	constructor(options) {
+		/** @type {JavascriptParserOptions} */
 		this.options = options;
 	}
 
 	/**
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {JavascriptParser} parser the parser
 	 * @returns {void}
 	 */
 	apply(parser) {
 		const options = this.options;
+		parser.hooks.collectDestructuringAssignmentProperties.tap(
+			PLUGIN_NAME,
+			(expr) => {
+				if (isRequireCallExpression(expr)) return true;
+			}
+		);
 
 		const getContext = () => {
 			if (parser.currentTagData) {
-				const { context } = parser.currentTagData;
+				const { context } =
+					/** @type {CommonJsImportSettings} */
+					(parser.currentTagData);
 				return context;
 			}
 		};
 
 		// #region metadata
 		/**
+		 * Tap require expression.
 		 * @param {string} expression expression
-		 * @param {() => string[]} getMembers get members
+		 * @param {() => Members} getMembers get members
 		 */
 		const tapRequireExpression = (expression, getMembers) => {
 			parser.hooks.typeof
 				.for(expression)
 				.tap(
-					"CommonJsImportsParserPlugin",
+					PLUGIN_NAME,
 					toConstantDependency(parser, JSON.stringify("function"))
 				);
 			parser.hooks.evaluateTypeof
 				.for(expression)
-				.tap("CommonJsImportsParserPlugin", evaluateToString("function"));
+				.tap(PLUGIN_NAME, evaluateToString("function"));
 			parser.hooks.evaluateIdentifier
 				.for(expression)
 				.tap(
-					"CommonJsImportsParserPlugin",
+					PLUGIN_NAME,
 					evaluateToIdentifier(expression, "require", getMembers, true)
 				);
-		};
-		/**
-		 * @param {string | symbol} tag tag
-		 */
-		const tapRequireExpressionTag = tag => {
-			parser.hooks.typeof
-				.for(tag)
-				.tap(
-					"CommonJsImportsParserPlugin",
-					toConstantDependency(parser, JSON.stringify("function"))
-				);
-			parser.hooks.evaluateTypeof
-				.for(tag)
-				.tap("CommonJsImportsParserPlugin", evaluateToString("function"));
 		};
 		tapRequireExpression("require", () => []);
 		tapRequireExpression("require.resolve", () => ["resolve"]);
@@ -106,30 +499,19 @@ class CommonJsImportsParserPlugin {
 		// #endregion
 
 		// Weird stuff //
-		parser.hooks.assign
-			.for("require")
-			.tap("CommonJsImportsParserPlugin", expr => {
-				// to not leak to global "require", we need to define a local require here.
-				const dep = new ConstDependency("var require;", 0);
-				dep.loc = /** @type {DependencyLocation} */ (expr.loc);
-				parser.state.module.addPresentationalDependency(dep);
-				return true;
-			});
+		parser.hooks.assign.for("require").tap(PLUGIN_NAME, (expr) => {
+			// to not leak to global "require", we need to define a local require here.
+			const dep = new ConstDependency("var require;", 0);
+			dep.loc = parser.getLocation(expr);
+			parser.state.module.addPresentationalDependency(dep);
+			return true;
+		});
 
 		// #region Unsupported
-		parser.hooks.expression
-			.for("require.main")
-			.tap(
-				"CommonJsImportsParserPlugin",
-				expressionIsUnsupported(
-					parser,
-					"require.main is not supported by webpack."
-				)
-			);
 		parser.hooks.call
 			.for("require.main.require")
 			.tap(
-				"CommonJsImportsParserPlugin",
+				PLUGIN_NAME,
 				expressionIsUnsupported(
 					parser,
 					"require.main.require is not supported by webpack."
@@ -138,7 +520,7 @@ class CommonJsImportsParserPlugin {
 		parser.hooks.expression
 			.for("module.parent.require")
 			.tap(
-				"CommonJsImportsParserPlugin",
+				PLUGIN_NAME,
 				expressionIsUnsupported(
 					parser,
 					"module.parent.require is not supported by webpack."
@@ -147,7 +529,7 @@ class CommonJsImportsParserPlugin {
 		parser.hooks.call
 			.for("module.parent.require")
 			.tap(
-				"CommonJsImportsParserPlugin",
+				PLUGIN_NAME,
 				expressionIsUnsupported(
 					parser,
 					"module.parent.require is not supported by webpack."
@@ -157,224 +539,81 @@ class CommonJsImportsParserPlugin {
 
 		// #region Renaming
 		/**
+		 * Returns true when set undefined.
 		 * @param {Expression} expr expression
 		 * @returns {boolean} true when set undefined
 		 */
-		const defineUndefined = expr => {
+		const defineUndefined = (expr) => {
 			// To avoid "not defined" error, replace the value with undefined
 			const dep = new ConstDependency(
 				"undefined",
 				/** @type {Range} */ (expr.range)
 			);
-			dep.loc = /** @type {DependencyLocation} */ (expr.loc);
+			dep.loc = parser.getLocation(expr);
 			parser.state.module.addPresentationalDependency(dep);
 			return false;
 		};
-		parser.hooks.canRename
-			.for("require")
-			.tap("CommonJsImportsParserPlugin", () => true);
-		parser.hooks.rename
-			.for("require")
-			.tap("CommonJsImportsParserPlugin", defineUndefined);
+		parser.hooks.canRename.for("require").tap(PLUGIN_NAME, () => true);
+		parser.hooks.rename.for("require").tap(PLUGIN_NAME, defineUndefined);
 		// #endregion
 
 		// #region Inspection
-		const requireCache = toConstantDependency(
-			parser,
-			RuntimeGlobals.moduleCache,
-			[
-				RuntimeGlobals.moduleCache,
-				RuntimeGlobals.moduleId,
-				RuntimeGlobals.moduleLoaded
-			]
-		);
+		const requireCache = createRequireCacheDependency(parser);
 
-		parser.hooks.expression
-			.for("require.cache")
-			.tap("CommonJsImportsParserPlugin", requireCache);
+		parser.hooks.expression.for("require.cache").tap(PLUGIN_NAME, requireCache);
 		// #endregion
 
 		// #region Require as expression
 		/**
+		 * Require as expression handler.
 		 * @param {Expression} expr expression
 		 * @returns {boolean} true when handled
 		 */
-		const requireAsExpressionHandler = expr => {
-			const dep = new CommonJsRequireContextDependency(
-				{
-					request: /** @type {string} */ (options.unknownContextRequest),
-					recursive: /** @type {boolean} */ (options.unknownContextRecursive),
-					regExp: /** @type {RegExp} */ (options.unknownContextRegExp),
-					mode: "sync"
-				},
-				/** @type {Range} */ (expr.range),
-				undefined,
-				parser.scope.inShorthand,
-				getContext()
-			);
-			dep.critical =
-				options.unknownContextCritical &&
-				"require function is used in a way in which dependencies cannot be statically extracted";
-			dep.loc = /** @type {DependencyLocation} */ (expr.loc);
-			dep.optional = Boolean(parser.scope.inTry);
-			parser.state.current.addDependency(dep);
-			return true;
-		};
+		const requireAsExpressionHandler = createRequireAsExpressionHandler(
+			parser,
+			options,
+			getContext
+		);
 		parser.hooks.expression
 			.for("require")
-			.tap("CommonJsImportsParserPlugin", requireAsExpressionHandler);
+			.tap(PLUGIN_NAME, requireAsExpressionHandler);
 		// #endregion
 
 		// #region Require
 		/**
-		 * @param {CallExpression | NewExpression} expr expression
-		 * @param {BasicEvaluatedExpression} param param
-		 * @returns {boolean | void} true when handled
-		 */
-		const processRequireItem = (expr, param) => {
-			if (param.isString()) {
-				const dep = new CommonJsRequireDependency(
-					/** @type {string} */ (param.string),
-					/** @type {Range} */ (param.range),
-					getContext()
-				);
-				dep.loc = /** @type {DependencyLocation} */ (expr.loc);
-				dep.optional = Boolean(parser.scope.inTry);
-				parser.state.current.addDependency(dep);
-				return true;
-			}
-		};
-		/**
-		 * @param {CallExpression | NewExpression} expr expression
-		 * @param {BasicEvaluatedExpression} param param
-		 * @returns {boolean | void} true when handled
-		 */
-		const processRequireContext = (expr, param) => {
-			const dep = ContextDependencyHelpers.create(
-				CommonJsRequireContextDependency,
-				/** @type {Range} */ (expr.range),
-				param,
-				expr,
-				options,
-				{
-					category: "commonjs"
-				},
-				parser,
-				undefined,
-				getContext()
-			);
-			if (!dep) return;
-			dep.loc = /** @type {DependencyLocation} */ (expr.loc);
-			dep.optional = Boolean(parser.scope.inTry);
-			parser.state.current.addDependency(dep);
-			return true;
-		};
-		/**
+		 * Creates a require handler.
 		 * @param {boolean} callNew true, when require is called with new
 		 * @returns {(expr: CallExpression | NewExpression) => (boolean | void)} handler
 		 */
-		const createRequireHandler = callNew => expr => {
-			if (options.commonjsMagicComments) {
-				const { options: requireOptions, errors: commentErrors } =
-					parser.parseCommentOptions(/** @type {Range} */ (expr.range));
-
-				if (commentErrors) {
-					for (const e of commentErrors) {
-						const { comment } = e;
-						parser.state.module.addWarning(
-							new CommentCompilationWarning(
-								`Compilation error while processing magic comment(-s): /*${comment.value}*/: ${e.message}`,
-								/** @type {DependencyLocation} */ (comment.loc)
-							)
-						);
-					}
-				}
-				if (requireOptions && requireOptions.webpackIgnore !== undefined) {
-					if (typeof requireOptions.webpackIgnore !== "boolean") {
-						parser.state.module.addWarning(
-							new UnsupportedFeatureWarning(
-								`\`webpackIgnore\` expected a boolean, but received: ${requireOptions.webpackIgnore}.`,
-								/** @type {DependencyLocation} */ (expr.loc)
-							)
-						);
-					} else if (requireOptions.webpackIgnore) {
-						// Do not instrument `require()` if `webpackIgnore` is `true`
-						return true;
-					}
-				}
-			}
-
-			if (expr.arguments.length !== 1) return;
-			let localModule;
-			const param = parser.evaluateExpression(expr.arguments[0]);
-			if (param.isConditional()) {
-				let isExpression = false;
-				for (const p of /** @type {BasicEvaluatedExpression[]} */ (
-					param.options
-				)) {
-					const result = processRequireItem(expr, p);
-					if (result === undefined) {
-						isExpression = true;
-					}
-				}
-				if (!isExpression) {
-					const dep = new RequireHeaderDependency(
-						/** @type {Range} */ (expr.callee.range)
-					);
-					dep.loc = /** @type {DependencyLocation} */ (expr.loc);
-					parser.state.module.addPresentationalDependency(dep);
-					return true;
-				}
-			}
-			if (
-				param.isString() &&
-				(localModule = getLocalModule(
-					parser.state,
-					/** @type {string} */ (param.string)
-				))
-			) {
-				localModule.flagUsed();
-				const dep = new LocalModuleDependency(
-					localModule,
-					/** @type {Range} */ (expr.range),
-					callNew
-				);
-				dep.loc = /** @type {DependencyLocation} */ (expr.loc);
-				parser.state.module.addPresentationalDependency(dep);
-			} else {
-				const result = processRequireItem(expr, param);
-				if (result === undefined) {
-					processRequireContext(expr, param);
-				} else {
-					const dep = new RequireHeaderDependency(
-						/** @type {Range} */ (expr.callee.range)
-					);
-					dep.loc = /** @type {DependencyLocation} */ (expr.loc);
-					parser.state.module.addPresentationalDependency(dep);
-				}
-			}
-			return true;
-		};
+		/** @type {WeakMap<CallExpression, RequireBindingData>} */
+		const requireBindingData = new WeakMap();
+		const createRequireHandler = createRequireCallHandler(
+			parser,
+			options,
+			getContext,
+			requireBindingData
+		);
 		parser.hooks.call
 			.for("require")
-			.tap("CommonJsImportsParserPlugin", createRequireHandler(false));
+			.tap(PLUGIN_NAME, createRequireHandler(false));
 		parser.hooks.new
 			.for("require")
-			.tap("CommonJsImportsParserPlugin", createRequireHandler(true));
+			.tap(PLUGIN_NAME, createRequireHandler(true));
 		parser.hooks.call
 			.for("module.require")
-			.tap("CommonJsImportsParserPlugin", createRequireHandler(false));
+			.tap(PLUGIN_NAME, createRequireHandler(false));
 		parser.hooks.new
 			.for("module.require")
-			.tap("CommonJsImportsParserPlugin", createRequireHandler(true));
+			.tap(PLUGIN_NAME, createRequireHandler(true));
 		// #endregion
 
 		// #region Require with property access
 		/**
+		 * Returns true when handled.
 		 * @param {Expression} expr expression
-		 * @param {string[]} calleeMembers callee members
+		 * @param {CalleeMembers} calleeMembers callee members
 		 * @param {CallExpression} callExpr call expression
-		 * @param {string[]} members members
+		 * @param {Members} members members
 		 * @param {Range[]} memberRanges member ranges
 		 * @returns {boolean | void} true when handled
 		 */
@@ -401,16 +640,18 @@ class CommonJsImportsParserPlugin {
 					/** @type {Range} */ (expr.range)[0]
 				);
 				dep.optional = Boolean(parser.scope.inTry);
-				dep.loc = /** @type {DependencyLocation} */ (expr.loc);
+				dep.loc = parser.getLocation(expr);
 				parser.state.current.addDependency(dep);
+				getHarmonyImportGuard().attachDependencyGuards(parser, dep);
 				return true;
 			}
 		};
 		/**
+		 * Call chain handler.
 		 * @param {CallExpression} expr expression
-		 * @param {string[]} calleeMembers callee members
+		 * @param {CalleeMembers} calleeMembers callee members
 		 * @param {CallExpression} callExpr call expression
-		 * @param {string[]} members members
+		 * @param {Members} members members
 		 * @param {Range[]} memberRanges member ranges
 		 * @returns {boolean | void} true when handled
 		 */
@@ -438,377 +679,159 @@ class CommonJsImportsParserPlugin {
 					/** @type {Range} */ (expr.range)[0]
 				);
 				dep.optional = Boolean(parser.scope.inTry);
-				dep.loc = /** @type {DependencyLocation} */ (expr.callee.loc);
+				dep.loc = parser.getLocation(expr.callee);
 				parser.state.current.addDependency(dep);
+				getHarmonyImportGuard().attachDependencyGuards(parser, dep);
 				parser.walkExpressions(expr.arguments);
 				return true;
 			}
 		};
 		parser.hooks.memberChainOfCallMemberChain
 			.for("require")
-			.tap("CommonJsImportsParserPlugin", chainHandler);
+			.tap(PLUGIN_NAME, chainHandler);
 		parser.hooks.memberChainOfCallMemberChain
 			.for("module.require")
-			.tap("CommonJsImportsParserPlugin", chainHandler);
+			.tap(PLUGIN_NAME, chainHandler);
 		parser.hooks.callMemberChainOfCallMemberChain
 			.for("require")
-			.tap("CommonJsImportsParserPlugin", callChainHandler);
+			.tap(PLUGIN_NAME, callChainHandler);
 		parser.hooks.callMemberChainOfCallMemberChain
 			.for("module.require")
-			.tap("CommonJsImportsParserPlugin", callChainHandler);
+			.tap(PLUGIN_NAME, callChainHandler);
+		// #endregion
+
+		// #region Require bound to a const variable
+		// Track `const NAME = require(LITERAL)` so that static member accesses on
+		// `NAME` (e.g. `NAME.foo`, `NAME.foo()`) are forwarded to the same
+		// `CommonJsRequireDependency` as referenced exports — enabling tree
+		// shaking of CommonJS modules that are imported into a named binding
+		// rather than destructured.
+		parser.hooks.preDeclarator.tap(PLUGIN_NAME, (declarator, statement) => {
+			if (statement.kind !== "const") return;
+			if (declarator.id.type !== "Identifier") return;
+			if (!declarator.init || declarator.init.type !== "CallExpression") {
+				return;
+			}
+			const init = declarator.init;
+			if (
+				init.callee.type !== "Identifier" ||
+				init.callee.name !== "require" ||
+				init.arguments.length !== 1
+			) {
+				return;
+			}
+			const arg = init.arguments[0];
+			if (arg.type !== "Literal" || typeof arg.value !== "string") return;
+			// Only attach binding state when `require` resolves to the free
+			// `require` (i.e. it isn't shadowed in the current scope).
+			const requireInfo = parser.getFreeInfoFromVariable("require");
+			if (!requireInfo || requireInfo.name !== "require") return;
+			/** @type {RequireBindingData} */
+			const binding = {
+				referencedExports: [],
+				dep: null
+			};
+			requireBindingData.set(init, binding);
+			parser.tagVariable(declarator.id.name, REQUIRE_BINDING_TAG, binding);
+			return true;
+		});
+
+		parser.hooks.expression.for(REQUIRE_BINDING_TAG).tap(PLUGIN_NAME, () => {
+			const binding =
+				/** @type {RequireBindingData} */
+				(parser.currentTagData);
+			if (binding) {
+				// `NAME` is read as a value (not as the object of a static member
+				// chain), so we have to assume the whole exports object is used.
+				binding.referencedExports = null;
+				if (binding.dep) {
+					binding.dep.referencedExports = null;
+				}
+			}
+			return true;
+		});
+
+		parser.hooks.expressionMemberChain
+			.for(REQUIRE_BINDING_TAG)
+			.tap(PLUGIN_NAME, (_expr, members) => {
+				const binding =
+					/** @type {RequireBindingData} */
+					(parser.currentTagData);
+				if (binding && binding.referencedExports) {
+					binding.referencedExports.push(members);
+				}
+				// Returning truthy suppresses the parser's fallback chain (which
+				// would otherwise walk `NAME` as a bare expression and trigger our
+				// `expression` hook above, marking the whole namespace as used).
+				return true;
+			});
+
+		parser.hooks.callMemberChain
+			.for(REQUIRE_BINDING_TAG)
+			.tap(PLUGIN_NAME, (expr, members) => {
+				const binding =
+					/** @type {RequireBindingData} */
+					(parser.currentTagData);
+				if (binding && binding.referencedExports) {
+					if (members.length === 0) {
+						// `NAME(...)` — calling the require result directly; the
+						// whole exports object is observable.
+						binding.referencedExports = null;
+						if (binding.dep) {
+							binding.dep.referencedExports = null;
+						}
+					} else {
+						binding.referencedExports.push(members);
+					}
+				}
+				if (expr.arguments) parser.walkExpressions(expr.arguments);
+				return true;
+			});
+
+		// Re-exporting the binding lets the require result escape, so the whole
+		// exports object is observable. Stage -10 runs before the harmony bail tap.
+		parser.hooks.exportSpecifier.tap(
+			{ name: PLUGIN_NAME, stage: -10 },
+			(_statement, id) => {
+				const binding =
+					/** @type {RequireBindingData | undefined} */
+					(parser.getTagData(id, REQUIRE_BINDING_TAG));
+				if (binding) {
+					binding.referencedExports = null;
+					if (binding.dep) {
+						binding.dep.referencedExports = null;
+					}
+				}
+			}
+		);
 		// #endregion
 
 		// #region Require.resolve
 		/**
+		 * Processes the provided expr.
 		 * @param {CallExpression} expr call expression
 		 * @param {boolean} weak weak
 		 * @returns {boolean | void} true when handled
 		 */
-		const processResolve = (expr, weak) => {
-			if (!weak && options.commonjsMagicComments) {
-				const { options: requireOptions, errors: commentErrors } =
-					parser.parseCommentOptions(/** @type {Range} */ (expr.range));
-
-				if (commentErrors) {
-					for (const e of commentErrors) {
-						const { comment } = e;
-						parser.state.module.addWarning(
-							new CommentCompilationWarning(
-								`Compilation error while processing magic comment(-s): /*${comment.value}*/: ${e.message}`,
-								/** @type {DependencyLocation} */ (comment.loc)
-							)
-						);
-					}
-				}
-				if (requireOptions && requireOptions.webpackIgnore !== undefined) {
-					if (typeof requireOptions.webpackIgnore !== "boolean") {
-						parser.state.module.addWarning(
-							new UnsupportedFeatureWarning(
-								`\`webpackIgnore\` expected a boolean, but received: ${requireOptions.webpackIgnore}.`,
-								/** @type {DependencyLocation} */ (expr.loc)
-							)
-						);
-					} else if (requireOptions.webpackIgnore) {
-						// Do not instrument `require()` if `webpackIgnore` is `true`
-						return true;
-					}
-				}
-			}
-
-			if (expr.arguments.length !== 1) return;
-			const param = parser.evaluateExpression(expr.arguments[0]);
-			if (param.isConditional()) {
-				for (const option of /** @type {BasicEvaluatedExpression[]} */ (
-					param.options
-				)) {
-					const result = processResolveItem(expr, option, weak);
-					if (result === undefined) {
-						processResolveContext(expr, option, weak);
-					}
-				}
-				const dep = new RequireResolveHeaderDependency(
-					/** @type {Range} */ (expr.callee.range)
-				);
-				dep.loc = /** @type {DependencyLocation} */ (expr.loc);
-				parser.state.module.addPresentationalDependency(dep);
-				return true;
-			}
-			const result = processResolveItem(expr, param, weak);
-			if (result === undefined) {
-				processResolveContext(expr, param, weak);
-			}
-			const dep = new RequireResolveHeaderDependency(
-				/** @type {Range} */ (expr.callee.range)
-			);
-			dep.loc = /** @type {DependencyLocation} */ (expr.loc);
-			parser.state.module.addPresentationalDependency(dep);
-			return true;
-		};
-		/**
-		 * @param {CallExpression} expr call expression
-		 * @param {BasicEvaluatedExpression} param param
-		 * @param {boolean} weak weak
-		 * @returns {boolean | void} true when handled
-		 */
-		const processResolveItem = (expr, param, weak) => {
-			if (param.isString()) {
-				const dep = new RequireResolveDependency(
-					/** @type {string} */ (param.string),
-					/** @type {Range} */ (param.range),
-					getContext()
-				);
-				dep.loc = /** @type {DependencyLocation} */ (expr.loc);
-				dep.optional = Boolean(parser.scope.inTry);
-				dep.weak = weak;
-				parser.state.current.addDependency(dep);
-				return true;
-			}
-		};
-		/**
-		 * @param {CallExpression} expr call expression
-		 * @param {BasicEvaluatedExpression} param param
-		 * @param {boolean} weak weak
-		 * @returns {boolean | void} true when handled
-		 */
-		const processResolveContext = (expr, param, weak) => {
-			const dep = ContextDependencyHelpers.create(
-				RequireResolveContextDependency,
-				/** @type {Range} */ (param.range),
-				param,
-				expr,
-				options,
-				{
-					category: "commonjs",
-					mode: weak ? "weak" : "sync"
-				},
-				parser,
-				getContext()
-			);
-			if (!dep) return;
-			dep.loc = /** @type {DependencyLocation} */ (expr.loc);
-			dep.optional = Boolean(parser.scope.inTry);
-			parser.state.current.addDependency(dep);
-			return true;
-		};
+		const processResolve = createProcessResolveHandler(
+			parser,
+			options,
+			getContext
+		);
 
 		parser.hooks.call
 			.for("require.resolve")
-			.tap("CommonJsImportsParserPlugin", expr => processResolve(expr, false));
+			.tap(PLUGIN_NAME, (expr) => processResolve(expr, false));
 		parser.hooks.call
 			.for("require.resolveWeak")
-			.tap("CommonJsImportsParserPlugin", expr => processResolve(expr, true));
-		// #endregion
-
-		// #region Create require
-
-		if (!options.createRequire) return;
-
-		/** @type {ImportSource[]} */
-		let moduleName = [];
-		/** @type {string | undefined} */
-		let specifierName;
-
-		if (options.createRequire === true) {
-			moduleName = ["module", "node:module"];
-			specifierName = "createRequire";
-		} else {
-			let moduleName;
-			const match = /^(.*) from (.*)$/.exec(options.createRequire);
-			if (match) {
-				[, specifierName, moduleName] = match;
-			}
-			if (!specifierName || !moduleName) {
-				const err = new WebpackError(
-					`Parsing javascript parser option "createRequire" failed, got ${JSON.stringify(
-						options.createRequire
-					)}`
-				);
-				err.details =
-					'Expected string in format "createRequire from module", where "createRequire" is specifier name and "module" name of the module';
-				throw err;
-			}
-		}
-
-		tapRequireExpressionTag(createdRequireIdentifierTag);
-		tapRequireExpressionTag(createRequireSpecifierTag);
-		parser.hooks.evaluateCallExpression
-			.for(createRequireSpecifierTag)
-			.tap("CommonJsImportsParserPlugin", expr => {
-				const context = parseCreateRequireArguments(expr);
-				if (context === undefined) return;
-				const ident = parser.evaluatedVariable({
-					tag: createdRequireIdentifierTag,
-					data: { context },
-					next: undefined
-				});
-
-				return new BasicEvaluatedExpression()
-					.setIdentifier(ident, ident, () => [])
-					.setSideEffects(false)
-					.setRange(/** @type {Range} */ (expr.range));
-			});
-		parser.hooks.unhandledExpressionMemberChain
-			.for(createdRequireIdentifierTag)
-			.tap("CommonJsImportsParserPlugin", (expr, members) =>
-				expressionIsUnsupported(
-					parser,
-					`createRequire().${members.join(".")} is not supported by webpack.`
-				)(expr)
-			);
-		parser.hooks.canRename
-			.for(createdRequireIdentifierTag)
-			.tap("CommonJsImportsParserPlugin", () => true);
-		parser.hooks.canRename
-			.for(createRequireSpecifierTag)
-			.tap("CommonJsImportsParserPlugin", () => true);
-		parser.hooks.rename
-			.for(createRequireSpecifierTag)
-			.tap("CommonJsImportsParserPlugin", defineUndefined);
-		parser.hooks.expression
-			.for(createdRequireIdentifierTag)
-			.tap("CommonJsImportsParserPlugin", requireAsExpressionHandler);
-		parser.hooks.call
-			.for(createdRequireIdentifierTag)
-			.tap("CommonJsImportsParserPlugin", createRequireHandler(false));
-		/**
-		 * @param {CallExpression} expr call expression
-		 * @returns {string | void} context
-		 */
-		const parseCreateRequireArguments = expr => {
-			const args = expr.arguments;
-			if (args.length !== 1) {
-				const err = new WebpackError(
-					"module.createRequire supports only one argument."
-				);
-				err.loc = /** @type {DependencyLocation} */ (expr.loc);
-				parser.state.module.addWarning(err);
-				return;
-			}
-			const arg = args[0];
-			const evaluated = parser.evaluateExpression(arg);
-			if (!evaluated.isString()) {
-				const err = new WebpackError(
-					"module.createRequire failed parsing argument."
-				);
-				err.loc = /** @type {DependencyLocation} */ (arg.loc);
-				parser.state.module.addWarning(err);
-				return;
-			}
-			const ctx = /** @type {string} */ (evaluated.string).startsWith("file://")
-				? fileURLToPath(/** @type {string} */ (evaluated.string))
-				: /** @type {string} */ (evaluated.string);
-			// argument always should be a filename
-			return ctx.slice(0, ctx.lastIndexOf(ctx.startsWith("/") ? "/" : "\\"));
-		};
-
-		parser.hooks.import.tap(
-			{
-				name: "CommonJsImportsParserPlugin",
-				stage: -10
-			},
-			(statement, source) => {
-				if (
-					!moduleName.includes(source) ||
-					statement.specifiers.length !== 1 ||
-					statement.specifiers[0].type !== "ImportSpecifier" ||
-					statement.specifiers[0].imported.type !== "Identifier" ||
-					statement.specifiers[0].imported.name !== specifierName
-				)
-					return;
-				// clear for 'import { createRequire as x } from "module"'
-				// if any other specifier was used import module
-				const clearDep = new ConstDependency(
-					parser.isAsiPosition(/** @type {Range} */ (statement.range)[0])
-						? ";"
-						: "",
-					/** @type {Range} */ (statement.range)
-				);
-				clearDep.loc = /** @type {DependencyLocation} */ (statement.loc);
-				parser.state.module.addPresentationalDependency(clearDep);
-				parser.unsetAsiPosition(/** @type {Range} */ (statement.range)[1]);
-				return true;
-			}
-		);
-		parser.hooks.importSpecifier.tap(
-			{
-				name: "CommonJsImportsParserPlugin",
-				stage: -10
-			},
-			(statement, source, id, name) => {
-				if (!moduleName.includes(source) || id !== specifierName) return;
-				parser.tagVariable(name, createRequireSpecifierTag);
-				return true;
-			}
-		);
-		parser.hooks.preDeclarator.tap(
-			"CommonJsImportsParserPlugin",
-			declarator => {
-				if (
-					declarator.id.type !== "Identifier" ||
-					!declarator.init ||
-					declarator.init.type !== "CallExpression" ||
-					declarator.init.callee.type !== "Identifier"
-				)
-					return;
-				const variableInfo = parser.getVariableInfo(
-					declarator.init.callee.name
-				);
-				if (
-					variableInfo instanceof VariableInfo &&
-					variableInfo.tagInfo &&
-					variableInfo.tagInfo.tag === createRequireSpecifierTag
-				) {
-					const context = parseCreateRequireArguments(declarator.init);
-					if (context === undefined) return;
-					parser.tagVariable(declarator.id.name, createdRequireIdentifierTag, {
-						name: declarator.id.name,
-						context
-					});
-					return true;
-				}
-			}
-		);
-
-		parser.hooks.memberChainOfCallMemberChain
-			.for(createRequireSpecifierTag)
-			.tap(
-				"CommonJsImportsParserPlugin",
-				(expr, calleeMembers, callExpr, members) => {
-					if (
-						calleeMembers.length !== 0 ||
-						members.length !== 1 ||
-						members[0] !== "cache"
-					)
-						return;
-					// createRequire().cache
-					const context = parseCreateRequireArguments(callExpr);
-					if (context === undefined) return;
-					return requireCache(expr);
-				}
-			);
-		parser.hooks.callMemberChainOfCallMemberChain
-			.for(createRequireSpecifierTag)
-			.tap(
-				"CommonJsImportsParserPlugin",
-				(expr, calleeMembers, innerCallExpression, members) => {
-					if (
-						calleeMembers.length !== 0 ||
-						members.length !== 1 ||
-						members[0] !== "resolve"
-					)
-						return;
-					// createRequire().resolve()
-					return processResolve(expr, false);
-				}
-			);
-		parser.hooks.expressionMemberChain
-			.for(createdRequireIdentifierTag)
-			.tap("CommonJsImportsParserPlugin", (expr, members) => {
-				// require.cache
-				if (members.length === 1 && members[0] === "cache") {
-					return requireCache(expr);
-				}
-			});
-		parser.hooks.callMemberChain
-			.for(createdRequireIdentifierTag)
-			.tap("CommonJsImportsParserPlugin", (expr, members) => {
-				// require.resolve()
-				if (members.length === 1 && members[0] === "resolve") {
-					return processResolve(expr, false);
-				}
-			});
-		parser.hooks.call
-			.for(createRequireSpecifierTag)
-			.tap("CommonJsImportsParserPlugin", expr => {
-				const clearDep = new ConstDependency(
-					"/* createRequire() */ undefined",
-					/** @type {Range} */ (expr.range)
-				);
-				clearDep.loc = /** @type {DependencyLocation} */ (expr.loc);
-				parser.state.module.addPresentationalDependency(clearDep);
-				return true;
-			});
+			.tap(PLUGIN_NAME, (expr) => processResolve(expr, true));
 		// #endregion
 	}
 }
+
 module.exports = CommonJsImportsParserPlugin;
+module.exports.createProcessResolveHandler = createProcessResolveHandler;
+module.exports.createRequireAsExpressionHandler =
+	createRequireAsExpressionHandler;
+module.exports.createRequireCacheDependency = createRequireCacheDependency;
+module.exports.createRequireHandler = createRequireCallHandler;

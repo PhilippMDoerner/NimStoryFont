@@ -6,16 +6,19 @@ import {
   output,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { NodeLinkType, NodeLinkTypeRaw } from 'src/app/_models/graph';
-import { MapMarkerType, MapMarkerTypeRaw } from 'src/app/_models/mapMarkerType';
-import { PlayerClass } from 'src/app/_models/playerclass';
-import { FormlyService } from 'src/app/_services/formly/formly-service.service';
-import { RoutingService } from 'src/app/_services/routing.service';
+import { NodeLinkType, NodeLinkTypeRaw } from '../../../_models/graph';
+import {
+  MapMarkerType,
+  MapMarkerTypeRaw,
+} from '../../../_models/mapMarkerType';
+import { PlayerClass } from '../../../_models/playerclass';
+import { FormlyService } from '../../../_services/formly/formly-service.service';
+import { RoutingService } from '../../../_services/routing.service';
 import {
   ConfigTable,
   ConfigTableData,
   ConfigTableKind,
-} from 'src/app/design/organisms/_model/config-table';
+} from '../../../design/organisms/_model/config-table';
 import { ButtonLinkComponent } from '../../atoms/button-link/button-link.component';
 import { ConfigTableComponent } from '../../organisms/config-table/config-table.component';
 import { PageContainerComponent } from '../../organisms/page-container/page-container.component';
@@ -33,10 +36,10 @@ import { PageContainerComponent } from '../../organisms/page-container/page-cont
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ConfigTablesComponent {
-  currentCampaignId = input.required<number | undefined>();
-  tableData = input.required<ConfigTableData>();
-  canDeleteGlobalEntries = input.required<boolean>();
-  hasCampaignWritePermission = input.required<boolean>();
+  readonly currentCampaignId = input.required<number | undefined>();
+  readonly tableData = input.required<ConfigTableData>();
+  readonly canDeleteGlobalEntries = input.required<boolean>();
+  readonly hasCampaignWritePermission = input.required<boolean>();
 
   readonly loadTableEntries = output<ConfigTableKind>();
   readonly deleteTableEntry = output<{
@@ -48,12 +51,12 @@ export class ConfigTablesComponent {
     entry: unknown;
   }>();
 
-  canCreate = computed<boolean>(() => {
+  readonly canCreate = computed<boolean>(() => {
     if (this.canDeleteGlobalEntries()) return true;
     const isCampaignView = this.currentCampaignId() != null;
     return isCampaignView ? this.hasCampaignWritePermission() : false;
   });
-  tables = computed(() => [
+  readonly tables = computed(() => [
     {
       name: 'Marker Type',
       kind: 'MARKER_TYPE',
@@ -141,7 +144,8 @@ export class ConfigTablesComponent {
     } satisfies ConfigTable<NodeLinkType, NodeLinkTypeRaw>,
   ]);
 
-  campaignOverviewUrl = this.routingService.getRoutePath('campaign-overview');
+  readonly campaignOverviewUrl =
+    this.routingService.getRoutePath('campaign-overview');
 
   constructor(
     private routingService: RoutingService,

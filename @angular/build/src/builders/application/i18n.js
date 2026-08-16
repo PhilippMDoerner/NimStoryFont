@@ -10,7 +10,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.inlineI18n = inlineI18n;
 exports.loadActiveTranslations = loadActiveTranslations;
 const node_path_1 = require("node:path");
-const bundler_context_1 = require("../../tools/esbuild/bundler-context");
+const bundler_files_1 = require("../../tools/esbuild/bundler-files");
 const i18n_inliner_1 = require("../../tools/esbuild/i18n-inliner");
 const environment_options_1 = require("../../utils/environment-options");
 const i18n_options_1 = require("../../utils/i18n-options");
@@ -43,7 +43,7 @@ async function inlineI18n(metafile, options, executionResult, initialFiles) {
     const updatedOutputFiles = [];
     const updatedAssetFiles = [];
     // Root and SSR entry files are not modified.
-    const unModifiedOutputFiles = executionResult.outputFiles.filter(({ type }) => type === bundler_context_1.BuildOutputFileType.Root || type === bundler_context_1.BuildOutputFileType.ServerRoot);
+    const unModifiedOutputFiles = executionResult.outputFiles.filter(({ type }) => type === bundler_files_1.BuildOutputFileType.Root || type === bundler_files_1.BuildOutputFileType.ServerRoot);
     try {
         for (const locale of i18nOptions.inlineLocales) {
             // A locale specific set of files is returned from the inliner.
@@ -77,37 +77,37 @@ async function inlineI18n(metafile, options, executionResult, initialFiles) {
             inlineResult.prerenderedRoutes = { ...inlineResult.prerenderedRoutes, ...generatedRoutes };
             updatedOutputFiles.push(...localeOutputFiles);
         }
+        // Update the result with all localized files.
+        executionResult.outputFiles = [
+            // Root and SSR entry files are not modified.
+            ...unModifiedOutputFiles,
+            // Updated files for each locale.
+            ...updatedOutputFiles,
+        ];
+        // Assets are only changed if not using the flat output option
+        if (!i18nOptions.flatOutput) {
+            executionResult.assetFiles = updatedAssetFiles;
+        }
+        // Inline any template updates if present
+        if (executionResult.templateUpdates?.size) {
+            // The development server only allows a single locale but issue a warning if used programmatically (experimental)
+            // with multiple locales and template HMR.
+            if (i18nOptions.inlineLocales.size > 1) {
+                inlineResult.warnings.push(`Component HMR updates can only be inlined with a single locale. The first locale will be used.`);
+            }
+            const firstLocale = [...i18nOptions.inlineLocales][0];
+            for (const [id, content] of executionResult.templateUpdates) {
+                const templateUpdateResult = await inliner.inlineTemplateUpdate(firstLocale, i18nOptions.locales[firstLocale].translation, content, id);
+                executionResult.templateUpdates.set(id, templateUpdateResult.code);
+                inlineResult.errors.push(...templateUpdateResult.errors);
+                inlineResult.warnings.push(...templateUpdateResult.warnings);
+            }
+        }
+        return inlineResult;
     }
     finally {
         await inliner.close();
     }
-    // Update the result with all localized files.
-    executionResult.outputFiles = [
-        // Root and SSR entry files are not modified.
-        ...unModifiedOutputFiles,
-        // Updated files for each locale.
-        ...updatedOutputFiles,
-    ];
-    // Assets are only changed if not using the flat output option
-    if (!i18nOptions.flatOutput) {
-        executionResult.assetFiles = updatedAssetFiles;
-    }
-    // Inline any template updates if present
-    if (executionResult.templateUpdates?.size) {
-        // The development server only allows a single locale but issue a warning if used programmatically (experimental)
-        // with multiple locales and template HMR.
-        if (i18nOptions.inlineLocales.size > 1) {
-            inlineResult.warnings.push(`Component HMR updates can only be inlined with a single locale. The first locale will be used.`);
-        }
-        const firstLocale = [...i18nOptions.inlineLocales][0];
-        for (const [id, content] of executionResult.templateUpdates) {
-            const templateUpdateResult = await inliner.inlineTemplateUpdate(firstLocale, i18nOptions.locales[firstLocale].translation, content, id);
-            executionResult.templateUpdates.set(id, templateUpdateResult.code);
-            inlineResult.errors.push(...templateUpdateResult.errors);
-            inlineResult.warnings.push(...templateUpdateResult.warnings);
-        }
-    }
-    return inlineResult;
 }
 /**
  * Loads all active translations using the translation loaders from the `@angular/localize` package.
@@ -135,3 +135,4 @@ async function loadActiveTranslations(context, i18n) {
         }, undefined, i18n.duplicateTranslationBehavior);
     }
 }
+//# sourceMappingURL=i18n.js.map

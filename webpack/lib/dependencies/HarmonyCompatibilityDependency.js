@@ -8,13 +8,13 @@
 const { UsageState } = require("../ExportsInfo");
 const InitFragment = require("../InitFragment");
 const RuntimeGlobals = require("../RuntimeGlobals");
+const isGeneratorLowered = require("../async-modules/isGeneratorLowered");
 const makeSerializable = require("../util/makeSerializable");
 const NullDependency = require("./NullDependency");
 
 /** @typedef {import("webpack-sources").ReplaceSource} ReplaceSource */
 /** @typedef {import("../Dependency")} Dependency */
 /** @typedef {import("../DependencyTemplate").DependencyTemplateContext} DependencyTemplateContext */
-/** @typedef {import("../Module")} Module */
 /** @typedef {import("../Module").BuildMeta} BuildMeta */
 
 class HarmonyCompatibilityDependency extends NullDependency {
@@ -32,6 +32,7 @@ HarmonyCompatibilityDependency.Template = class HarmonyExportDependencyTemplate 
 	NullDependency.Template
 ) {
 	/**
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Dependency} dependency the dependency for which the template should be applied
 	 * @param {ReplaceSource} source the current replace source which can be modified
 	 * @param {DependencyTemplateContext} templateContext the context object
@@ -71,20 +72,37 @@ HarmonyCompatibilityDependency.Template = class HarmonyExportDependencyTemplate 
 		}
 		if (moduleGraph.isAsync(module)) {
 			runtimeRequirements.add(RuntimeGlobals.module);
-			runtimeRequirements.add(RuntimeGlobals.asyncModule);
-			initFragments.push(
-				new InitFragment(
-					runtimeTemplate.supportsArrowFunction()
-						? `${RuntimeGlobals.asyncModule}(${module.moduleArgument}, async (__webpack_handle_async_dependencies__, __webpack_async_result__) => { try {\n`
-						: `${RuntimeGlobals.asyncModule}(${module.moduleArgument}, async function (__webpack_handle_async_dependencies__, __webpack_async_result__) { try {\n`,
-					InitFragment.STAGE_ASYNC_BOUNDARY,
-					0,
-					undefined,
-					`\n__webpack_async_result__();\n} catch(e) { __webpack_async_result__(e); } }${
-						/** @type {BuildMeta} */ (module.buildMeta).async ? ", 1" : ""
-					});`
-				)
-			);
+			const hasAwait = /** @type {BuildMeta} */ (module.buildMeta).async
+				? ", 1"
+				: "";
+			// Target has no `async`/`await` but has generators: drive the body as a
+			// generator so `await` becomes `yield`, keeping the module in a single
+			// scope (unlike a `.then` callback) without transpiling to a state machine.
+			if (isGeneratorLowered(module, moduleGraph, runtimeTemplate)) {
+				runtimeRequirements.add(RuntimeGlobals.asyncModuleGenerator);
+				initFragments.push(
+					new InitFragment(
+						`${RuntimeGlobals.asyncModule}(${module.moduleArgument}, ${RuntimeGlobals.asyncModuleGenerator}(function* (__webpack_handle_async_dependencies__, __webpack_async_result__) { try {\n`,
+						InitFragment.STAGE_ASYNC_BOUNDARY,
+						0,
+						undefined,
+						`\n__webpack_async_result__();\n} catch(e) { __webpack_async_result__(e); } })${hasAwait});`
+					)
+				);
+			} else {
+				runtimeRequirements.add(RuntimeGlobals.asyncModule);
+				initFragments.push(
+					new InitFragment(
+						runtimeTemplate.supportsArrowFunction()
+							? `${RuntimeGlobals.asyncModule}(${module.moduleArgument}, async (__webpack_handle_async_dependencies__, __webpack_async_result__) => { try {\n`
+							: `${RuntimeGlobals.asyncModule}(${module.moduleArgument}, async function (__webpack_handle_async_dependencies__, __webpack_async_result__) { try {\n`,
+						InitFragment.STAGE_ASYNC_BOUNDARY,
+						0,
+						undefined,
+						`\n__webpack_async_result__();\n} catch(e) { __webpack_async_result__(e); } }${hasAwait});`
+					)
+				);
+			}
 		}
 	}
 };

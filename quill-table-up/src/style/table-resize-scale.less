@@ -1,0 +1,31 @@
+@import './variables.less';
+
+.@{namespace}-scale {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: hidden;
+  pointer-events: none;
+  &__block {
+    position: absolute;
+    top: 0;
+    left: 0;
+    transform: translate(-100%, -100%);
+    width: 12px;
+    height: 12px;
+    background-color: #f1f5f9;
+    border: 1px solid #808080;
+    cursor: nwse-resize;
+    pointer-events: all;
+  }
+  &.is-align-right {
+    .@{namespace}-scale {
+      &__block {
+        cursor: nesw-resize;
+      }
+    }
+  }
+  &.is-hidden {
+    display: none;
+  }
+}

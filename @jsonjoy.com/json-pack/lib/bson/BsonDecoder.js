@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.BsonDecoder = void 0;
-const Reader_1 = require("@jsonjoy.com/util/lib/buffers/Reader");
+const Reader_1 = require("@jsonjoy.com/buffers/lib/Reader");
 const values_1 = require("./values");
 class BsonDecoder {
     constructor(reader = new Reader_1.Reader()) {
@@ -13,6 +13,9 @@ class BsonDecoder {
     }
     decode(uint8) {
         this.reader.reset(uint8);
+        return this.readDocument();
+    }
+    readAny() {
         return this.readDocument();
     }
     readDocument() {

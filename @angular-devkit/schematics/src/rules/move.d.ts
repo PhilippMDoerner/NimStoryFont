@@ -6,4 +6,5 @@
  * found in the LICENSE file at https://angular.dev/license
  */
 import { Rule } from '../engine/interface';
-export declare function move(from: string, to?: string): Rule;
+export declare function move(from: string, to: string): Rule;
+export declare function move(to: string): Rule;

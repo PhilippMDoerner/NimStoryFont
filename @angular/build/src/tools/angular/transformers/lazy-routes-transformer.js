@@ -161,3 +161,4 @@ function getLoadComponentOrChildrenProperty(node) {
     }
     return loadComponentOrChildrenProperty;
 }
+//# sourceMappingURL=lazy-routes-transformer.js.map

@@ -87,3 +87,4 @@ class TempScopedNodeJsSyncHost extends src_1.virtualFs.ScopedHost {
     }
 }
 exports.TempScopedNodeJsSyncHost = TempScopedNodeJsSyncHost;
+//# sourceMappingURL=index.js.map

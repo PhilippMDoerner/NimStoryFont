@@ -90,3 +90,4 @@ class SyncDelegateHost {
     }
 }
 exports.SyncDelegateHost = SyncDelegateHost;
+//# sourceMappingURL=sync.js.map

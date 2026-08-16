@@ -48,6 +48,7 @@ export declare class Reference<T extends ts.Node = ts.Node> {
     synthetic: boolean;
     private _alias;
     readonly isAmbient: boolean;
+    readonly key: string;
     constructor(node: T, bestGuessOwningModule?: OwningModule | AmbientImport | null);
     /**
      * The best guess at which module specifier owns this particular reference, or `null` if there

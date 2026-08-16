@@ -16,11 +16,12 @@ const PLUGIN_NAME = "RequireContextDependencyParserPlugin";
 
 module.exports = class RequireContextDependencyParserPlugin {
 	/**
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {JavascriptParser} parser the parser
 	 * @returns {void}
 	 */
 	apply(parser) {
-		parser.hooks.call.for("require.context").tap(PLUGIN_NAME, expr => {
+		parser.hooks.call.for("require.context").tap(PLUGIN_NAME, (expr) => {
 			let regExp = /^\.\/.*$/;
 			let recursive = true;
 			/** @type {ContextMode} */
@@ -58,7 +59,7 @@ module.exports = class RequireContextDependencyParserPlugin {
 						/** @type {Range} */
 						(expr.range)
 					);
-					dep.loc = /** @type {DependencyLocation} */ (expr.loc);
+					dep.loc = parser.getLocation(expr);
 					dep.optional = Boolean(parser.scope.inTry);
 					parser.state.current.addDependency(dep);
 					return true;

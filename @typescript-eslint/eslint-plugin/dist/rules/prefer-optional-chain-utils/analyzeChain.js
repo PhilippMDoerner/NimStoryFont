@@ -43,7 +43,7 @@ const compareNodes_1 = require("./compareNodes");
 const gatherLogicalOperands_1 = require("./gatherLogicalOperands");
 function includesType(parserServices, node, typeFlagIn) {
     const typeFlag = typeFlagIn | ts.TypeFlags.Any | ts.TypeFlags.Unknown;
-    const types = (0, ts_api_utils_1.unionTypeParts)(parserServices.getTypeAtLocation(node));
+    const types = (0, ts_api_utils_1.unionConstituents)(parserServices.getTypeAtLocation(node));
     for (const type of types) {
         if ((0, util_1.isTypeFlagSet)(type, typeFlag)) {
             return true;
@@ -51,17 +51,49 @@ function includesType(parserServices, node, typeFlagIn) {
     }
     return false;
 }
+function isValidAndLastChainOperand(ComparisonValueType, comparisonType, parserServices) {
+    const type = parserServices.getTypeAtLocation(ComparisonValueType);
+    const ANY_UNKNOWN_FLAGS = ts.TypeFlags.Any | ts.TypeFlags.Unknown;
+    const types = (0, ts_api_utils_1.unionConstituents)(type);
+    switch (comparisonType) {
+        case gatherLogicalOperands_1.ComparisonType.Equal: {
+            const isNullish = types.some(t => (0, util_1.isTypeFlagSet)(t, ANY_UNKNOWN_FLAGS | ts.TypeFlags.Null | ts.TypeFlags.Undefined));
+            return !isNullish;
+        }
+        case gatherLogicalOperands_1.ComparisonType.StrictEqual: {
+            const isUndefined = types.some(t => (0, util_1.isTypeFlagSet)(t, ANY_UNKNOWN_FLAGS | ts.TypeFlags.Undefined));
+            return !isUndefined;
+        }
+        case gatherLogicalOperands_1.ComparisonType.NotStrictEqual: {
+            return types.every(t => (0, util_1.isTypeFlagSet)(t, ts.TypeFlags.Undefined));
+        }
+        case gatherLogicalOperands_1.ComparisonType.NotEqual: {
+            return types.every(t => (0, util_1.isTypeFlagSet)(t, ts.TypeFlags.Undefined | ts.TypeFlags.Null));
+        }
+    }
+}
+function isValidOrLastChainOperand(ComparisonValueType, comparisonType, parserServices) {
+    const type = parserServices.getTypeAtLocation(ComparisonValueType);
+    const ANY_UNKNOWN_FLAGS = ts.TypeFlags.Any | ts.TypeFlags.Unknown;
+    const types = (0, ts_api_utils_1.unionConstituents)(type);
+    switch (comparisonType) {
+        case gatherLogicalOperands_1.ComparisonType.NotEqual: {
+            const isNullish = types.some(t => (0, util_1.isTypeFlagSet)(t, ANY_UNKNOWN_FLAGS | ts.TypeFlags.Null | ts.TypeFlags.Undefined));
+            return !isNullish;
+        }
+        case gatherLogicalOperands_1.ComparisonType.NotStrictEqual: {
+            const isUndefined = types.some(t => (0, util_1.isTypeFlagSet)(t, ANY_UNKNOWN_FLAGS | ts.TypeFlags.Undefined));
+            return !isUndefined;
+        }
+        case gatherLogicalOperands_1.ComparisonType.Equal:
+            return types.every(t => (0, util_1.isTypeFlagSet)(t, ts.TypeFlags.Undefined | ts.TypeFlags.Null));
+        case gatherLogicalOperands_1.ComparisonType.StrictEqual:
+            return types.every(t => (0, util_1.isTypeFlagSet)(t, ts.TypeFlags.Undefined));
+    }
+}
 const analyzeAndChainOperand = (parserServices, operand, index, chain) => {
     switch (operand.comparisonType) {
-        case gatherLogicalOperands_1.NullishComparisonType.Boolean: {
-            const nextOperand = chain.at(index + 1);
-            if (nextOperand?.comparisonType ===
-                gatherLogicalOperands_1.NullishComparisonType.NotStrictEqualNull &&
-                operand.comparedName.type === utils_1.AST_NODE_TYPES.Identifier) {
-                return null;
-            }
-            return [operand];
-        }
+        case gatherLogicalOperands_1.NullishComparisonType.Boolean:
         case gatherLogicalOperands_1.NullishComparisonType.NotEqualNullOrUndefined:
             return [operand];
         case gatherLogicalOperands_1.NullishComparisonType.NotStrictEqualNull: {
@@ -73,13 +105,14 @@ const analyzeAndChainOperand = (parserServices, operand, index, chain) => {
                     compareNodes_1.NodeComparisonResult.Equal) {
                 return [operand, nextOperand];
             }
-            if (includesType(parserServices, operand.comparedName, ts.TypeFlags.Undefined)) {
+            if (nextOperand &&
+                !includesType(parserServices, operand.comparedName, ts.TypeFlags.Undefined)) {
                 // we know the next operand is not an `undefined` check and that this
                 // operand includes `undefined` - which means that making this an
                 // optional chain would change the runtime behavior of the expression
-                return null;
+                return [operand];
             }
-            return [operand];
+            return null;
         }
         case gatherLogicalOperands_1.NullishComparisonType.NotStrictEqualUndefined: {
             // handle `x !== undefined && x !== null`
@@ -144,6 +177,40 @@ const analyzeOrChainOperand = (parserServices, operand, index, chain) => {
             return null;
     }
 };
+const resolveOperandSubset = (previousOperand, lastChainOperand) => {
+    const isNameSubset = (0, compareNodes_1.compareNodes)(previousOperand.comparedName, lastChainOperand.comparedName) === compareNodes_1.NodeComparisonResult.Subset;
+    if (lastChainOperand.yoda !== gatherLogicalOperands_1.Yoda.Unknown) {
+        return {
+            comparedName: lastChainOperand.comparedName,
+            comparisonValue: lastChainOperand.comparisonValue,
+            isSubset: isNameSubset,
+            isYoda: lastChainOperand.yoda === gatherLogicalOperands_1.Yoda.Yes,
+        };
+    }
+    const isValueSubset = (0, compareNodes_1.compareNodes)(previousOperand.comparedName, lastChainOperand.comparisonValue) === compareNodes_1.NodeComparisonResult.Subset;
+    if (isNameSubset && !isValueSubset) {
+        return {
+            comparedName: lastChainOperand.comparedName,
+            comparisonValue: lastChainOperand.comparisonValue,
+            isSubset: true,
+            isYoda: false,
+        };
+    }
+    if (!isNameSubset && isValueSubset) {
+        return {
+            comparedName: lastChainOperand.comparisonValue,
+            comparisonValue: lastChainOperand.comparedName,
+            isSubset: true,
+            isYoda: true,
+        };
+    }
+    return {
+        comparedName: lastChainOperand.comparisonValue,
+        comparisonValue: lastChainOperand.comparisonValue,
+        isSubset: false,
+        isYoda: true,
+    };
+};
 /**
  * Returns the range that needs to be reported from the chain.
  * @param chain The chain of logical expressions.
@@ -172,7 +239,8 @@ function getReportRange(chain, boundary, sourceCode) {
     }
     return [leftMost.range[0], rightMost.range[1]];
 }
-function getReportDescriptor(sourceCode, parserServices, node, operator, options, chain) {
+function getReportDescriptor(sourceCode, parserServices, node, operator, options, subChain, lastChain) {
+    const chain = lastChain ? [...subChain, lastChain] : subChain;
     const lastOperand = chain[chain.length - 1];
     let useSuggestionFixer;
     if (options.allowPotentiallyUnsafeFixesThatModifyTheReturnTypeIKnowWhatImDoing ===
@@ -184,6 +252,9 @@ function getReportDescriptor(sourceCode, parserServices, node, operator, options
     // so we need to make sure that there is at least one operand that includes
     // `undefined`, or else we're going to change the final type - which is
     // unsafe and might cause downstream type errors.
+    else if (lastChain) {
+        useSuggestionFixer = true;
+    }
     else if (lastOperand.comparisonType === gatherLogicalOperands_1.NullishComparisonType.EqualNullOrUndefined ||
         lastOperand.comparisonType ===
             gatherLogicalOperands_1.NullishComparisonType.NotEqualNullOrUndefined ||
@@ -309,7 +380,50 @@ function getReportDescriptor(sourceCode, parserServices, node, operator, options
         newCode = `!${newCode}`;
     }
     const reportRange = getReportRange(chain, node.range, sourceCode);
-    const fix = fixer => fixer.replaceTextRange(reportRange, newCode);
+    const fix = fixer => {
+        let unclosedParens = 0;
+        const tokensInRange = sourceCode.getTokens(node, {
+            filter: token => token.range[0] >= reportRange[0] && token.range[1] <= reportRange[1],
+        });
+        for (const token of tokensInRange) {
+            if ((0, util_1.isOpeningParenToken)(token)) {
+                unclosedParens++;
+            }
+            else if ((0, util_1.isClosingParenToken)(token)) {
+                unclosedParens--;
+            }
+        }
+        if (unclosedParens > 0 && reportRange[1] < node.range[1]) {
+            const openParensOutsideRange = [];
+            const unmatchedCloseParens = [];
+            const tokensOutRange = sourceCode.getTokens(node, {
+                filter: token => token.range[1] > reportRange[1],
+            });
+            for (const token of tokensOutRange) {
+                if ((0, util_1.isOpeningParenToken)(token)) {
+                    openParensOutsideRange.push(token.range[0]);
+                }
+                if ((0, util_1.isClosingParenToken)(token)) {
+                    if (openParensOutsideRange.length > 0) {
+                        openParensOutsideRange.pop();
+                    }
+                    else {
+                        unmatchedCloseParens.push(token.range[0]);
+                    }
+                }
+            }
+            let leftCode = sourceCode.getText(node);
+            unmatchedCloseParens.reverse();
+            for (const unmatchedParenIndex of unmatchedCloseParens) {
+                leftCode =
+                    leftCode.slice(0, unmatchedParenIndex) +
+                        leftCode.slice(unmatchedParenIndex + 1);
+            }
+            leftCode = leftCode.slice(reportRange[1]);
+            return fixer.replaceTextRange(node.range, newCode + leftCode);
+        }
+        return fixer.replaceTextRange(reportRange, newCode);
+    };
     return {
         loc: {
             end: sourceCode.getLocFromIndex(reportRange[1]),
@@ -383,9 +497,9 @@ function getReportDescriptor(sourceCode, parserServices, node, operator, options
         }
     }
 }
-function analyzeChain(context, parserServices, options, node, operator, chain) {
+function analyzeChain(context, parserServices, options, node, operator, chain, lastChainOperand) {
     // need at least 2 operands in a chain for it to be a chain
-    if (chain.length <= 1 ||
+    if (chain.length + (lastChainOperand ? 1 : 0) <= 1 ||
         /* istanbul ignore next -- previous checks make this unreachable, but keep it for exhaustiveness check */
         operator === '??') {
         return;
@@ -401,10 +515,14 @@ function analyzeChain(context, parserServices, options, node, operator, chain) {
     // Things like x !== null && x !== undefined have two nodes, but they are
     // one logical unit here, so we'll allow them to be grouped.
     let subChain = [];
+    let lastChain = undefined;
     const maybeReportThenReset = (newChainSeed) => {
-        if (subChain.length > 1) {
+        if (subChain.length + (lastChain ? 1 : 0) > 1) {
             const subChainFlat = subChain.flat();
-            (0, checkNullishAndReport_1.checkNullishAndReport)(context, parserServices, options, subChainFlat.slice(0, -1).map(({ node }) => node), getReportDescriptor(context.sourceCode, parserServices, node, operator, options, subChainFlat));
+            const maybeNullishNodes = lastChain
+                ? subChainFlat.map(({ node }) => node)
+                : subChainFlat.slice(0, -1).map(({ node }) => node);
+            (0, checkNullishAndReport_1.checkNullishAndReport)(context, parserServices, options, maybeNullishNodes, getReportDescriptor(context.sourceCode, parserServices, node, operator, options, subChainFlat, lastChain));
         }
         // we've reached the end of a chain of logical expressions
         // i.e. the current operand doesn't belong to the previous chain.
@@ -419,6 +537,7 @@ function analyzeChain(context, parserServices, options, node, operator, chain) {
         //                          ^^^^^^^^^^^ newChainSeed
         //                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ second chain
         subChain = newChainSeed ? [newChainSeed] : [];
+        lastChain = undefined;
     };
     for (let i = 0; i < chain.length; i += 1) {
         const lastOperand = subChain.flat().at(-1);
@@ -433,6 +552,18 @@ function analyzeChain(context, parserServices, options, node, operator, chain) {
             //     ^^^^^^^^^^^ valid OR chain
             //                    ^^^^^^^ invalid OR chain logical, but still part of
             //                            the chain for combination purposes
+            if (lastOperand) {
+                const comparisonResult = (0, compareNodes_1.compareNodes)(lastOperand.comparedName, operand.comparedName);
+                switch (operand.comparisonType) {
+                    case gatherLogicalOperands_1.NullishComparisonType.StrictEqualUndefined:
+                    case gatherLogicalOperands_1.NullishComparisonType.NotStrictEqualUndefined: {
+                        if (comparisonResult === compareNodes_1.NodeComparisonResult.Subset) {
+                            lastChain = operand;
+                        }
+                        break;
+                    }
+                }
+            }
             maybeReportThenReset();
             continue;
         }
@@ -460,6 +591,22 @@ function analyzeChain(context, parserServices, options, node, operator, chain) {
         }
         else {
             subChain.push(currentOperand);
+        }
+    }
+    const lastOperand = subChain.flat().at(-1);
+    if (lastOperand && lastChainOperand) {
+        const isValidLastChainOperand = operator === '&&'
+            ? isValidAndLastChainOperand
+            : isValidOrLastChainOperand;
+        const { comparedName, comparisonValue, isSubset, isYoda } = resolveOperandSubset(lastOperand, lastChainOperand);
+        if (isSubset &&
+            isValidLastChainOperand(comparisonValue, lastChainOperand.comparisonType, parserServices)) {
+            lastChain = {
+                ...lastChainOperand,
+                comparedName,
+                comparisonValue,
+                isYoda,
+            };
         }
     }
     // check the leftovers

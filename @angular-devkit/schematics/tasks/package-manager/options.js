@@ -9,3 +9,4 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.NodePackageName = void 0;
 exports.NodePackageName = 'node-package';
+//# sourceMappingURL=options.js.map

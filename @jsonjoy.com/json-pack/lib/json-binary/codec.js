@@ -1,10 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.stringify = exports.wrapBinary = exports.stringifyBinary = exports.parse = exports.unwrapBinary = void 0;
-const msgpack_1 = require("../msgpack");
+const JsonPackExtension_1 = require("../JsonPackExtension");
+const JsonPackValue_1 = require("../JsonPackValue");
 const fromBase64_1 = require("@jsonjoy.com/base64/lib/fromBase64");
 const toBase64_1 = require("@jsonjoy.com/base64/lib/toBase64");
-const isUint8Array_1 = require("@jsonjoy.com/util/lib/buffers/isUint8Array");
+const isUint8Array_1 = require("@jsonjoy.com/buffers/lib/isUint8Array");
 const constants_1 = require("./constants");
 const binUriStartLength = constants_1.binUriStart.length;
 const msgPackUriStartLength = constants_1.msgPackUriStart.length;
@@ -17,7 +18,7 @@ const parseExtDataUri = (uri) => {
         throw new Error('INVALID_EXT_DATA_URI');
     const typeString = uri.substring(0, commaIndex);
     const buf = (0, fromBase64_1.fromBase64)(uri.substring(commaIndex + 1));
-    return new msgpack_1.JsonPackExtension(Number(typeString), buf);
+    return new JsonPackExtension_1.JsonPackExtension(Number(typeString), buf);
 };
 const unwrapBinary = (value) => {
     if (!value)
@@ -37,7 +38,7 @@ const unwrapBinary = (value) => {
                     if (item.substring(0, binUriStartLength) === constants_1.binUriStart)
                         value[i] = (0, fromBase64_1.fromBase64)(item.substring(binUriStartLength));
                     else if (item.substring(0, msgPackUriStartLength) === constants_1.msgPackUriStart)
-                        value[i] = new msgpack_1.JsonPackValue((0, fromBase64_1.fromBase64)(item.substring(msgPackUriStartLength)));
+                        value[i] = new JsonPackValue_1.JsonPackValue((0, fromBase64_1.fromBase64)(item.substring(msgPackUriStartLength)));
                     else if (item.substring(0, msgPackExtStartLength) === constants_1.msgPackExtStart)
                         value[i] = parseExtDataUri(item);
                 }
@@ -61,7 +62,7 @@ const unwrapBinary = (value) => {
                         value[key] = buf;
                     }
                     else if (item.substring(0, msgPackUriStartLength) === constants_1.msgPackUriStart) {
-                        value[key] = new msgpack_1.JsonPackValue((0, fromBase64_1.fromBase64)(item.substring(msgPackUriStartLength)));
+                        value[key] = new JsonPackValue_1.JsonPackValue((0, fromBase64_1.fromBase64)(item.substring(msgPackUriStartLength)));
                     }
                     else if (item.substring(0, msgPackExtStartLength) === constants_1.msgPackExtStart)
                         value[key] = parseExtDataUri(item);
@@ -76,7 +77,7 @@ const unwrapBinary = (value) => {
         if (value.substring(0, binUriStartLength) === constants_1.binUriStart)
             return (0, fromBase64_1.fromBase64)(value.substring(binUriStartLength));
         if (value.substring(0, msgPackUriStartLength) === constants_1.msgPackUriStart)
-            return new msgpack_1.JsonPackValue((0, fromBase64_1.fromBase64)(value.substring(msgPackUriStartLength)));
+            return new JsonPackValue_1.JsonPackValue((0, fromBase64_1.fromBase64)(value.substring(msgPackUriStartLength)));
         if (value.substring(0, msgPackExtStartLength) === constants_1.msgPackExtStart)
             return parseExtDataUri(value);
         else
@@ -106,9 +107,9 @@ const wrapBinary = (value) => {
         }
         return out;
     }
-    if (value instanceof msgpack_1.JsonPackValue)
+    if (value instanceof JsonPackValue_1.JsonPackValue)
         return constants_1.msgPackUriStart + (0, toBase64_1.toBase64)(value.val);
-    if (value instanceof msgpack_1.JsonPackExtension)
+    if (value instanceof JsonPackExtension_1.JsonPackExtension)
         return constants_1.msgPackExtStart + value.tag + ',' + (0, toBase64_1.toBase64)(value.val);
     if (typeof value === 'object') {
         const out = {};

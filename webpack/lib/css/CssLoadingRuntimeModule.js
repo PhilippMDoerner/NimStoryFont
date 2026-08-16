@@ -6,62 +6,60 @@
 "use strict";
 
 const { SyncWaterfallHook } = require("tapable");
-const Compilation = require("../Compilation");
+/** @typedef {import("../Compilation")} Compilation */
+const { CSS_TYPE } = require("../ModuleSourceTypeConstants");
 const RuntimeGlobals = require("../RuntimeGlobals");
 const RuntimeModule = require("../RuntimeModule");
 const Template = require("../Template");
 const compileBooleanMatcher = require("../util/compileBooleanMatcher");
+const createHooksRegistry = require("../util/createHooksRegistry");
 const { chunkHasCss } = require("./CssModulesPlugin");
 
-/** @typedef {import("../../declarations/WebpackOptions").Environment} Environment */
 /** @typedef {import("../Chunk")} Chunk */
+/** @typedef {import("../Chunk").ChunkId} ChunkId */
 /** @typedef {import("../ChunkGraph")} ChunkGraph */
-/** @typedef {import("../Compilation").RuntimeRequirementsContext} RuntimeRequirementsContext */
 /** @typedef {import("../Module").ReadOnlyRuntimeRequirements} ReadOnlyRuntimeRequirements */
 
+const createCompilationHooks = () => ({
+	/**
+	 * @type {SyncWaterfallHook<[string, Chunk]>}
+	 * @since 5.66.0
+	 */
+	createStylesheet: new SyncWaterfallHook(["source", "chunk"]),
+	/**
+	 * @type {SyncWaterfallHook<[string, Chunk]>}
+	 * @since 5.91.0
+	 */
+	linkPreload: new SyncWaterfallHook(["source", "chunk"]),
+	/**
+	 * @type {SyncWaterfallHook<[string, Chunk]>}
+	 * @since 5.91.0
+	 */
+	linkPrefetch: new SyncWaterfallHook(["source", "chunk"]),
+	/**
+	 * @type {SyncWaterfallHook<[string, Chunk]>}
+	 * @since 5.107.0
+	 */
+	linkInsert: new SyncWaterfallHook(["source", "chunk"])
+});
+
 /**
- * @typedef {object} CssLoadingRuntimeModulePluginHooks
- * @property {SyncWaterfallHook<[string, Chunk]>} createStylesheet
- * @property {SyncWaterfallHook<[string, Chunk]>} linkPreload
- * @property {SyncWaterfallHook<[string, Chunk]>} linkPrefetch
+ * @typedef {ReturnType<typeof createCompilationHooks>} CssLoadingRuntimeModulePluginHooks
  */
 
-/** @type {WeakMap<Compilation, CssLoadingRuntimeModulePluginHooks>} */
-const compilationHooksMap = new WeakMap();
-
 class CssLoadingRuntimeModule extends RuntimeModule {
-	/**
-	 * @param {Compilation} compilation the compilation
-	 * @returns {CssLoadingRuntimeModulePluginHooks} hooks
-	 */
-	static getCompilationHooks(compilation) {
-		if (!(compilation instanceof Compilation)) {
-			throw new TypeError(
-				"The 'compilation' argument must be an instance of Compilation"
-			);
-		}
-		let hooks = compilationHooksMap.get(compilation);
-		if (hooks === undefined) {
-			hooks = {
-				createStylesheet: new SyncWaterfallHook(["source", "chunk"]),
-				linkPreload: new SyncWaterfallHook(["source", "chunk"]),
-				linkPrefetch: new SyncWaterfallHook(["source", "chunk"])
-			};
-			compilationHooksMap.set(compilation, hooks);
-		}
-		return hooks;
-	}
-
 	/**
 	 * @param {ReadOnlyRuntimeRequirements} runtimeRequirements runtime requirements
 	 */
 	constructor(runtimeRequirements) {
 		super("css loading", 10);
 
+		/** @type {ReadOnlyRuntimeRequirements} */
 		this._runtimeRequirements = runtimeRequirements;
 	}
 
 	/**
+	 * Generates runtime code for this runtime module.
 	 * @returns {string | null} runtime code
 	 */
 	generate() {
@@ -75,19 +73,20 @@ class CssLoadingRuntimeModule extends RuntimeModule {
 				crossOriginLoading,
 				uniqueName,
 				chunkLoadTimeout: loadTimeout,
-				charset
+				charset,
+				importMetaName
 			}
 		} = compilation;
 		const fn = RuntimeGlobals.ensureChunkHandlers;
 		const conditionMap = chunkGraph.getChunkConditionMap(
-			/** @type {Chunk} */ (chunk),
+			chunk,
 			/**
 			 * @param {Chunk} chunk the chunk
 			 * @param {ChunkGraph} chunkGraph the chunk graph
 			 * @returns {boolean} true, if the chunk has css
 			 */
 			(chunk, chunkGraph) =>
-				Boolean(chunkGraph.getChunkModulesIterableBySourceType(chunk, "css"))
+				Boolean(chunkGraph.getChunkModulesIterableBySourceType(chunk, CSS_TYPE))
 		);
 		const hasCssMatcher = compileBooleanMatcher(conditionMap);
 
@@ -98,11 +97,11 @@ class CssLoadingRuntimeModule extends RuntimeModule {
 		const withHmr = _runtimeRequirements.has(
 			RuntimeGlobals.hmrDownloadUpdateHandlers
 		);
-		/** @type {Set<number | string | null>} */
+		/** @type {Set<ChunkId>} */
 		const initialChunkIds = new Set();
-		for (const c of /** @type {Chunk} */ (chunk).getAllInitialChunks()) {
+		for (const c of chunk.getAllInitialChunks()) {
 			if (chunkHasCss(c, chunkGraph)) {
-				initialChunkIds.add(c.id);
+				initialChunkIds.add(/** @type {ChunkId} */ (c.id));
 			}
 		}
 
@@ -110,9 +109,7 @@ class CssLoadingRuntimeModule extends RuntimeModule {
 			return null;
 		}
 
-		const environment =
-			/** @type {Environment} */
-			(compilation.outputOptions.environment);
+		const environment = compilation.outputOptions.environment;
 		const isNeutralPlatform = runtimeTemplate.isNeutralPlatform();
 		const withPrefetch =
 			this._runtimeRequirements.has(RuntimeGlobals.prefetchChunkHandlers) &&
@@ -121,17 +118,16 @@ class CssLoadingRuntimeModule extends RuntimeModule {
 		const withPreload =
 			this._runtimeRequirements.has(RuntimeGlobals.preloadChunkHandlers) &&
 			(environment.document || isNeutralPlatform) &&
-			chunk.hasChildByOrder(chunkGraph, "preload", true, chunkHasCss);
+			(chunk.hasChildByOrder(chunkGraph, "preload", true, chunkHasCss) ||
+				// `parser.javascript.dynamicImportCssPreload` — CSS-only preload order.
+				chunk.hasChildByOrder(chunkGraph, "cssPreload", true, chunkHasCss));
 
-		const { linkPreload, linkPrefetch } =
+		const { linkPreload, linkPrefetch, createStylesheet, linkInsert } =
 			CssLoadingRuntimeModule.getCompilationHooks(compilation);
 
 		const withFetchPriority = _runtimeRequirements.has(
 			RuntimeGlobals.hasFetchPriority
 		);
-
-		const { createStylesheet } =
-			CssLoadingRuntimeModule.getCompilationHooks(compilation);
 
 		const stateExpression = withHmr
 			? `${RuntimeGlobals.hmrRuntimeStatePrefix}_css`
@@ -173,39 +169,42 @@ class CssLoadingRuntimeModule extends RuntimeModule {
 				: ""
 		]);
 
+		const cst = runtimeTemplate.renderConst();
+		const lt = runtimeTemplate.renderLet();
+		const installedChunksObject = `{\n${Template.indent(
+			Array.from(initialChunkIds, (id) => `${JSON.stringify(id)}: 0`).join(
+				",\n"
+			)
+		)}\n}`;
 		return Template.asString([
 			"// object to store loaded and loading chunks",
 			"// undefined = chunk not loaded, null = chunk preloaded/prefetched",
 			"// [resolve, reject, Promise] = chunk loading, 0 = chunk loaded",
-			`var installedChunks = ${
-				stateExpression ? `${stateExpression} = ${stateExpression} || ` : ""
-			}{`,
-			Template.indent(
-				Array.from(initialChunkIds, id => `${JSON.stringify(id)}: 0`).join(
-					",\n"
-				)
-			),
-			"};",
+			`${cst} installedChunks = ${
+				stateExpression
+					? runtimeTemplate.assignOr(stateExpression, installedChunksObject)
+					: installedChunksObject
+			};`,
 			"",
 			uniqueName
-				? `var uniqueName = ${JSON.stringify(
+				? `${cst} uniqueName = ${JSON.stringify(
 						runtimeTemplate.outputOptions.uniqueName
 					)};`
 				: "// data-webpack is not used as build has no uniqueName",
 			withLoading || withHmr
 				? Template.asString([
-						'var loadingAttribute = "data-webpack-loading";',
-						`var loadStylesheet = ${runtimeTemplate.basicFunction(
+						`${cst} loadingAttribute = "data-webpack-loading";`,
+						`${cst} loadStylesheet = ${runtimeTemplate.basicFunction(
 							`chunkId, url, done${
 								withFetchPriority ? ", fetchPriority" : ""
 							}${withHmr ? ", hmr" : ""}`,
 							[
-								'var link, needAttach, key = "chunk-" + chunkId;',
+								`${lt} link, needAttach, key = "chunk-" + chunkId;`,
 								withHmr ? "if(!hmr) {" : "",
-								'var links = document.getElementsByTagName("link");',
+								`${cst} links = document.getElementsByTagName("link");`,
 								"for(var i = 0; i < links.length; i++) {",
 								Template.indent([
-									"var l = links[i];",
+									`${cst} l = links[i];`,
 									`if(l.rel == "stylesheet" && (${
 										withHmr
 											? 'l.href.startsWith(url) || l.getAttribute("href").startsWith(url)'
@@ -225,7 +224,8 @@ class CssLoadingRuntimeModule extends RuntimeModule {
 									createStylesheet.call(code, /** @type {Chunk} */ (this.chunk))
 								]),
 								"}",
-								`var onLinkComplete = ${runtimeTemplate.basicFunction(
+								`${lt} timeout;`,
+								`${cst} onLinkComplete = ${runtimeTemplate.basicFunction(
 									"prev, event",
 									Template.asString([
 										"link.onerror = link.onload = null;",
@@ -238,7 +238,7 @@ class CssLoadingRuntimeModule extends RuntimeModule {
 								)};`,
 								"if(link.getAttribute(loadingAttribute)) {",
 								Template.indent([
-									`var timeout = setTimeout(onLinkComplete.bind(null, undefined, { type: 'timeout', target: link }), ${loadTimeout});`,
+									`timeout = setTimeout(onLinkComplete.bind(null, undefined, { type: 'timeout', target: link }), ${loadTimeout});`,
 									"link.onerror = onLinkComplete.bind(null, link.onerror);",
 									"link.onload = onLinkComplete.bind(null, link.onload);"
 								]),
@@ -246,8 +246,24 @@ class CssLoadingRuntimeModule extends RuntimeModule {
 								withHmr && withFetchPriority
 									? 'if (hmr && hmr.getAttribute("fetchpriority")) link.setAttribute("fetchpriority", hmr.getAttribute("fetchpriority"));'
 									: "",
-								withHmr ? "hmr ? document.head.insertBefore(link, hmr) :" : "",
-								"needAttach && document.head.appendChild(link);",
+								linkInsert.call(
+									withHmr
+										? Template.asString([
+												"if (hmr) {",
+												Template.indent(
+													"hmr.parentNode.insertBefore(link, hmr);"
+												),
+												"} else if (needAttach) {",
+												Template.indent("document.head.appendChild(link);"),
+												"}"
+											])
+										: Template.asString([
+												"if (needAttach) {",
+												Template.indent("document.head.appendChild(link);"),
+												"}"
+											]),
+									/** @type {Chunk} */ (this.chunk)
+								),
 								"return link;"
 							]
 						)};`
@@ -259,7 +275,7 @@ class CssLoadingRuntimeModule extends RuntimeModule {
 							`chunkId, promises${withFetchPriority ? " , fetchPriority" : ""}`,
 							[
 								"// css chunk loading",
-								`var installedChunkData = ${RuntimeGlobals.hasOwnProperty}(installedChunks, chunkId) ? installedChunks[chunkId] : undefined;`,
+								`${lt} installedChunkData = ${RuntimeGlobals.hasOwnProperty}(installedChunks, chunkId) ? installedChunks[chunkId] : undefined;`,
 								'if(installedChunkData !== 0) { // 0 means "already installed".',
 								Template.indent([
 									"",
@@ -273,17 +289,17 @@ class CssLoadingRuntimeModule extends RuntimeModule {
 											: `if(${hasCssMatcher("chunkId")}) {`,
 										Template.indent([
 											"// setup Promise in chunk cache",
-											`var promise = new Promise(${runtimeTemplate.expressionFunction(
+											`${cst} promise = new Promise(${runtimeTemplate.expressionFunction(
 												"installedChunkData = installedChunks[chunkId] = [resolve, reject]",
 												"resolve, reject"
 											)});`,
 											"promises.push(installedChunkData[2] = promise);",
 											"",
 											"// start chunk loading",
-											`var url = ${RuntimeGlobals.publicPath} + ${RuntimeGlobals.getChunkCssFilename}(chunkId);`,
+											`${cst} url = ${RuntimeGlobals.publicPath} + ${RuntimeGlobals.getChunkCssFilename}(chunkId);`,
 											"// create error before stack unwound to get useful stacktrace later",
-											"var error = new Error();",
-											`var loadingEnded = ${runtimeTemplate.basicFunction(
+											`${cst} error = new Error();`,
+											`${cst} loadingEnded = ${runtimeTemplate.basicFunction(
 												"event",
 												[
 													`if(${RuntimeGlobals.hasOwnProperty}(installedChunks, chunkId)) {`,
@@ -294,12 +310,13 @@ class CssLoadingRuntimeModule extends RuntimeModule {
 														Template.indent([
 															'if(event.type !== "load") {',
 															Template.indent([
-																"var errorType = event && event.type;",
-																"var realHref = event && event.target && event.target.href;",
+																`${cst} errorType = event && event.type;`,
+																`${cst} realHref = event && event.target && event.target.href;`,
 																"error.message = 'Loading css chunk ' + chunkId + ' failed.\\n(' + errorType + ': ' + realHref + ')';",
 																"error.name = 'ChunkLoadError';",
 																"error.type = errorType;",
 																"error.request = realHref;",
+																"error.event = event;",
 																"installedChunkData[1](error);"
 															]),
 															"} else {",
@@ -323,7 +340,25 @@ class CssLoadingRuntimeModule extends RuntimeModule {
 												});`
 											]),
 											isNeutralPlatform
-												? "} else { loadingEnded({ type: 'load' }); }"
+												? Template.asString([
+														"} else {",
+														Template.indent([
+															// no DOM (Node SSR): read the emitted CSS via dynamic import('fs') (works on every node), collect it; never reject on a missing file
+															`Promise.all([import('fs'), import('url')]).then(${runtimeTemplate.basicFunction(
+																"[{ readFile }, { URL }]",
+																[
+																	`readFile(new URL(url, ${importMetaName}.url), 'utf8', ${runtimeTemplate.basicFunction(
+																		"err, content",
+																		[
+																			`if (!err) ${runtimeTemplate.cssServerStyleRegistry()}["chunk-" + chunkId] = content;`,
+																			"loadingEnded({ type: 'load' });"
+																		]
+																	)});`
+																]
+															)});`
+														]),
+														"}"
+													])
 												: ""
 										]),
 										"} else installedChunks[chunkId] = 0;"
@@ -347,12 +382,13 @@ class CssLoadingRuntimeModule extends RuntimeModule {
 						}) {`,
 						Template.indent([
 							"installedChunks[chunkId] = null;",
+							// prefetch is a browser-only resource hint; no-op without a DOM (e.g. node side of a universal build)
 							isNeutralPlatform
 								? "if (typeof document === 'undefined') return;"
 								: "",
 							linkPrefetch.call(
 								Template.asString([
-									"var link = document.createElement('link');",
+									`${cst} link = document.createElement('link');`,
 									charset ? "link.charset = 'utf-8';" : "",
 									crossOriginLoading
 										? `link.crossOrigin = ${JSON.stringify(
@@ -387,12 +423,13 @@ class CssLoadingRuntimeModule extends RuntimeModule {
 						}) {`,
 						Template.indent([
 							"installedChunks[chunkId] = null;",
+							// preload is a browser-only resource hint; no-op without a DOM (e.g. node side of a universal build)
 							isNeutralPlatform
 								? "if (typeof document === 'undefined') return;"
 								: "",
 							linkPreload.call(
 								Template.asString([
-									"var link = document.createElement('link');",
+									`${cst} link = document.createElement('link');`,
 									charset ? "link.charset = 'utf-8';" : "",
 									`if (${RuntimeGlobals.scriptNonce}) {`,
 									Template.indent(
@@ -425,26 +462,26 @@ class CssLoadingRuntimeModule extends RuntimeModule {
 				: "// no preloaded",
 			withHmr
 				? Template.asString([
-						"var oldTags = [];",
-						"var newTags = [];",
-						`var applyHandler = ${runtimeTemplate.basicFunction("options", [
-							`return { dispose: ${runtimeTemplate.basicFunction("", [
+						`${cst} oldTags = [];`,
+						`${cst} newTags = [];`,
+						`${cst} applyHandler = ${runtimeTemplate.basicFunction("options", [
+							`return { ${runtimeTemplate.method("dispose", "", [
 								"while(oldTags.length) {",
 								Template.indent([
-									"var oldTag = oldTags.pop();",
-									"if(oldTag.parentNode) oldTag.parentNode.removeChild(oldTag);"
+									`${cst} oldTag = oldTags.pop();`,
+									`if(${runtimeTemplate.optionalChaining("oldTag", "parentNode")}) oldTag.parentNode.removeChild(oldTag);`
 								]),
 								"}"
-							])}, apply: ${runtimeTemplate.basicFunction("", [
+							])}, ${runtimeTemplate.method("apply", "", [
 								"while(newTags.length) {",
 								Template.indent([
-									"var newTag = newTags.pop();",
+									`${cst} newTag = newTags.pop();`,
 									"newTag.sheet.disabled = false"
 								]),
 								"}"
 							])} };`
 						])}`,
-						`var cssTextKey = ${runtimeTemplate.returningFunction(
+						`${cst} cssTextKey = ${runtimeTemplate.returningFunction(
 							`Array.from(link.sheet.cssRules, ${runtimeTemplate.returningFunction(
 								"r.cssText",
 								"r"
@@ -454,31 +491,86 @@ class CssLoadingRuntimeModule extends RuntimeModule {
 						`${
 							RuntimeGlobals.hmrDownloadUpdateHandlers
 						}.css = ${runtimeTemplate.basicFunction(
-							"chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList",
+							"chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList, css",
 							[
 								isNeutralPlatform
-									? "if (typeof document === 'undefined') return;"
+									? Template.asString([
+											"if (typeof document === 'undefined') {",
+											Template.indent([
+												// node SSR: refresh the server style registry from the re-emitted CSS instead of touching the DOM
+												`${cst} cssRemovedChunks = css && css.r;`,
+												`${cst} registry = ${runtimeTemplate.cssServerStyleRegistry()};`,
+												`chunkIds.forEach(${runtimeTemplate.basicFunction(
+													"chunkId",
+													[
+														`${cst} key = "chunk-" + chunkId;`,
+														`if(${runtimeTemplate.optionalChaining(
+															"cssRemovedChunks",
+															"indexOf(chunkId)"
+														)} >= 0) { delete registry[key]; return; }`,
+														`${cst} url = ${RuntimeGlobals.publicPath} + ${RuntimeGlobals.getChunkCssFilename}(chunkId);`,
+														`promises.push(Promise.all([import('fs'), import('url')]).then(${runtimeTemplate.basicFunction(
+															"[{ readFile }, { URL }]",
+															[
+																`return new Promise(${runtimeTemplate.basicFunction(
+																	"resolve",
+																	[
+																		// best-effort: a non-file publicPath (e.g. a CDN) can't be read from disk, so skip
+																		"try {",
+																		Template.indent([
+																			`readFile(new URL(url, ${importMetaName}.url), 'utf8', ${runtimeTemplate.basicFunction(
+																				"err, content",
+																				[
+																					"if (!err) registry[key] = content;",
+																					"resolve();"
+																				]
+																			)});`
+																		]),
+																		"} catch (e) { resolve(); }"
+																	]
+																)});`
+															]
+														)}));`
+													]
+												)});`,
+												"return;"
+											]),
+											"}"
+										])
 									: "",
 								"applyHandlers.push(applyHandler);",
+								"// Read CSS removed chunks from update manifest",
+								`${cst} cssRemovedChunks = css && css.r;`,
 								`chunkIds.forEach(${runtimeTemplate.basicFunction("chunkId", [
-									`var filename = ${RuntimeGlobals.getChunkCssFilename}(chunkId);`,
-									`var url = ${RuntimeGlobals.publicPath} + filename;`,
-									"var oldTag = loadStylesheet(chunkId, url);",
-									"if(!oldTag) return;",
+									`${cst} filename = ${RuntimeGlobals.getChunkCssFilename}(chunkId);`,
+									`${cst} url = ${RuntimeGlobals.publicPath} + filename;`,
+									`${cst} oldTag = loadStylesheet(chunkId, url);`,
+									`if(!oldTag && !${withHmr} ) return;`,
+									"// Skip if CSS was removed",
+									`if(${runtimeTemplate.optionalChaining(
+										"cssRemovedChunks",
+										"indexOf(chunkId)"
+									)} >= 0) {`,
+									Template.indent(["oldTags.push(oldTag);", "return;"]),
+									"}",
+									"",
+									"// create error before stack unwound to get useful stacktrace later",
+									`${cst} error = new Error();`,
 									`promises.push(new Promise(${runtimeTemplate.basicFunction(
 										"resolve, reject",
 										[
-											`var link = loadStylesheet(chunkId, url + (url.indexOf("?") < 0 ? "?" : "&") + "hmr=" + Date.now(), ${runtimeTemplate.basicFunction(
+											`${cst} link = loadStylesheet(chunkId, url + (url.indexOf("?") < 0 ? "?" : "&") + "hmr=" + Date.now(), ${runtimeTemplate.basicFunction(
 												"event",
 												[
 													'if(event.type !== "load") {',
 													Template.indent([
-														"var errorType = event && event.type;",
-														"var realHref = event && event.target && event.target.href;",
+														`${cst} errorType = event && event.type;`,
+														`${cst} realHref = event && event.target && event.target.href;`,
 														"error.message = 'Loading css hot update chunk ' + chunkId + ' failed.\\n(' + errorType + ': ' + realHref + ')';",
 														"error.name = 'ChunkLoadError';",
 														"error.type = errorType;",
 														"error.request = realHref;",
+														"error.event = event;",
 														"reject(error);"
 													]),
 													"} else {",
@@ -502,5 +594,9 @@ class CssLoadingRuntimeModule extends RuntimeModule {
 		]);
 	}
 }
+
+CssLoadingRuntimeModule.getCompilationHooks = createHooksRegistry(
+	createCompilationHooks
+);
 
 module.exports = CssLoadingRuntimeModule;

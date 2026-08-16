@@ -1,7 +1,7 @@
 import {
   NON_NORMAL_CHARACTER_REGEXP,
   TWO_OR_MORE_WHITESPACE_REGEXP,
-} from 'src/utils/string';
+} from '../../../../utils/string';
 
 export type Formatter = (searchTerm: string | undefined) => string | undefined;
 
@@ -45,7 +45,7 @@ export function cleanSearchTerm(
     .trim();
 }
 
-export function formatSearchTerm(str: string | undefined){
-    const undesiredCharRegex = /[-\s']/g;
-    return str?.replaceAll(undesiredCharRegex, '') ?? '';
+export function formatSearchTerm(str: string | undefined) {
+  const undesiredCharRegex = /[-\s']/g;
+  return str?.replaceAll(undesiredCharRegex, '') ?? '';
 }

@@ -1,7 +1,7 @@
 import { Preprocessor } from './preprocessor.js';
 import { CODE_POINTS as $, SEQUENCES as $$, REPLACEMENT_CHARACTER, isSurrogate, isUndefinedCodePoint, isControlCodePoint, } from '../common/unicode.js';
 import { TokenType, getTokenAttr, } from '../common/token.js';
-import { htmlDecodeTree, EntityDecoder, DecodingMode } from 'entities/lib/decode.js';
+import { htmlDecodeTree, EntityDecoder, DecodingMode } from 'entities/decode';
 import { ERR } from '../common/error-codes.js';
 import { TAG_ID, getTagID } from '../common/html.js';
 //States
@@ -459,7 +459,9 @@ export class Tokenizer {
             : cp === $.NULL
                 ? TokenType.NULL_CHARACTER
                 : TokenType.CHARACTER;
-        this._appendCharToCurrentCharacterToken(type, String.fromCodePoint(cp));
+        // OPTIMIZATION: Use String.fromCharCode for BMP characters (< 0x10000) which is faster
+        // than String.fromCodePoint. Characters outside BMP are rare in HTML.
+        this._appendCharToCurrentCharacterToken(type, cp < 65536 ? String.fromCharCode(cp) : String.fromCodePoint(cp));
     }
     //NOTE: used when we emit characters explicitly.
     //This is always for non-whitespace and non-null characters, which allows us to avoid additional checks.

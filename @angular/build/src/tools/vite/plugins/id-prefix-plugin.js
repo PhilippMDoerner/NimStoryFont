@@ -8,6 +8,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createRemoveIdPrefixPlugin = createRemoveIdPrefixPlugin;
+exports.createTransformer = createTransformer;
 // NOTE: the implementation for this Vite plugin is roughly based on:
 // https://github.com/MilanKovacic/vite-plugin-externalize-dependencies
 const VITE_ID_PREFIX = '@id/';
@@ -23,8 +24,7 @@ function createRemoveIdPrefixPlugin(externals) {
             if (externals.length === 0) {
                 return;
             }
-            const escapedExternals = externals.map((e) => escapeRegexSpecialChars(e) + '(?:/.+)?');
-            const prefixedExternalRegex = new RegExp(`${resolvedConfig.base}${VITE_ID_PREFIX}(${escapedExternals.join('|')})`, 'g');
+            const transformFn = createTransformer(resolvedConfig.base, externals);
             // @ts-expect-error: Property 'push' does not exist on type 'readonly Plugin<any>[]'
             // Reasoning:
             //  since the /@id/ prefix is added by Vite's import-analysis plugin,
@@ -32,14 +32,29 @@ function createRemoveIdPrefixPlugin(externals) {
             //  AFTER the import-analysis.
             resolvedConfig.plugins.push({
                 name: 'angular-plugin-remove-id-prefix-transform',
-                transform: (code) => {
-                    // don't do anything when code does not contain the Vite prefix
-                    if (!code.includes(VITE_ID_PREFIX)) {
-                        return code;
-                    }
-                    return code.replace(prefixedExternalRegex, (_, externalName) => externalName);
-                },
+                transform: transformFn,
             });
         },
     };
 }
+/**
+ * Creates a transform function that removes the Vite ID prefix from externals.
+ * @param base The base path of the application.
+ * @param externals The external package names.
+ * @returns A function that transforms code by removing the Vite ID prefix.
+ */
+function createTransformer(base, externals) {
+    // The path suffix is bounded so that a match can never extend past the end of an
+    // import specifier string literal. With a greedy `.+`, minified (single-line) code
+    // would let the first match consume the remainder of the line, leaving all later
+    // `/@id/` occurrences on that line unstripped.
+    const escapedExternals = externals.map((e) => escapeRegexSpecialChars(e) + '(?:/[^\'"`\\s]+)?');
+    const prefixedExternalRegex = new RegExp(`${base}${VITE_ID_PREFIX}(${escapedExternals.join('|')})`, 'g');
+    return (code) => {
+        return code.includes(VITE_ID_PREFIX)
+            ? code.replace(prefixedExternalRegex, (_, externalName) => externalName)
+            : // don't do anything when code does not contain the Vite prefix
+                code;
+    };
+}
+//# sourceMappingURL=id-prefix-plugin.js.map

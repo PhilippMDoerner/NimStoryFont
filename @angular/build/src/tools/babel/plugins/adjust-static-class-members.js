@@ -346,3 +346,4 @@ function analyzeClassStaticProperties(path) {
     }
     return { shouldWrap };
 }
+//# sourceMappingURL=adjust-static-class-members.js.map

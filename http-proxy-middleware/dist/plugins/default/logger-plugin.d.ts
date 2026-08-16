@@ -1,2 +1,2 @@
-import { Plugin } from '../../types';
+import type { Plugin } from '../../types.js';
 export declare const loggerPlugin: Plugin;

@@ -6,6 +6,11 @@
  */
 export type Schema = {
     /**
+     * Specifies which AI tools to generate configuration files for. These file are used to
+     * improve the outputs of AI tools by following the best practices.
+     */
+    aiConfig?: AiConfig[];
+    /**
      * Configure the initial Git commit for the new repository.
      */
     commit?: CommitUnion;
@@ -21,15 +26,20 @@ export type Schema = {
      */
     directory?: string;
     /**
+     * The file naming convention to use for generated files. The '2025' style guide (default)
+     * uses a concise format (e.g., `app.ts` for the root component), while the '2016' style
+     * guide includes the type in the file name (e.g., `app.component.ts`). For more
+     * information, see the Angular Style Guide (https://angular.dev/style-guide).
+     */
+    fileNameStyleGuide?: FileNameStyleGuide;
+    /**
      * Include the styles for the initial application's root component directly within the
-     * `app.component.ts` file. By default, a separate stylesheet file (e.g.,
-     * `app.component.css`) is created.
+     * `app.ts` file. By default, a separate stylesheet file (e.g., `app.css`) is created.
      */
     inlineStyle?: boolean;
     /**
      * Include the HTML template for the initial application's root component directly within
-     * the `app.component.ts` file. By default, a separate template file (e.g.,
-     * `app.component.html`) is created.
+     * the `app.ts` file. By default, a separate template file (e.g., `app.html`) is created.
      */
     inlineTemplate?: boolean;
     /**
@@ -96,6 +106,10 @@ export type Schema = {
      */
     style?: Style;
     /**
+     * The unit testing runner to use.
+     */
+    testRunner?: TestRunner;
+    /**
      * The version of the Angular CLI to use.
      */
     version: string;
@@ -111,6 +125,14 @@ export type Schema = {
      */
     zoneless?: boolean;
 };
+export declare enum AiConfig {
+    ClaudeCode = "claude-code",
+    Cursor = "cursor",
+    GeminiCli = "gemini-cli",
+    None = "none",
+    OpenAiCodex = "open-ai-codex",
+    Vscode = "vscode"
+}
 /**
  * Configure the initial Git commit for the new repository.
  */
@@ -122,11 +144,20 @@ export type CommitObject = {
     [property: string]: any;
 };
 /**
+ * The file naming convention to use for generated files. The '2025' style guide (default)
+ * uses a concise format (e.g., `app.ts` for the root component), while the '2016' style
+ * guide includes the type in the file name (e.g., `app.component.ts`). For more
+ * information, see the Angular Style Guide (https://angular.dev/style-guide).
+ */
+export declare enum FileNameStyleGuide {
+    The2016 = "2016",
+    The2025 = "2025"
+}
+/**
  * The package manager used to install dependencies.
  */
 export declare enum PackageManager {
     Bun = "bun",
-    Cnpm = "cnpm",
     Npm = "npm",
     Pnpm = "pnpm",
     Yarn = "yarn"
@@ -138,7 +169,15 @@ export declare enum Style {
     Css = "css",
     Less = "less",
     Sass = "sass",
-    Scss = "scss"
+    Scss = "scss",
+    Tailwind = "tailwind"
+}
+/**
+ * The unit testing runner to use.
+ */
+export declare enum TestRunner {
+    Karma = "karma",
+    Vitest = "vitest"
 }
 /**
  * Sets the view encapsulation mode for components in the initial project. This determines

@@ -31,13 +31,6 @@
 	var inlineObjectReadThreshold = 2;
 	var readStruct;
 	var BlockedFunction; // we use search and replace to change the next call to BlockedFunction to avoid CSP issues for
-	// no-eval build
-	try {
-		new BlockedFunction ('');
-	} catch(error) {
-		// if eval variants are not supported, do not create inline object readers ever
-		inlineObjectReadThreshold = Infinity;
-	}
 
 	class Unpackr {
 		constructor(options) {
@@ -503,11 +496,19 @@
 		function readObject() {
 			// This initial function is quick to instantiate, but runs slower. After several iterations pay the cost to build the faster function
 			if (readObject.count++ > inlineObjectReadThreshold) {
-				let readObject = structure.read = (new BlockedFunction ('r', 'return function(){return ' + (currentUnpackr.freezeData ? 'Object.freeze' : '') +
-					'({' + structure.map(key => key === '__proto__' ? '__proto_:r()' : validName.test(key) ? key + ':r()' : ('[' + JSON.stringify(key) + ']:r()')).join(',') + '})}'))(read);
+				let optimizedReadObject;
+				try {
+					optimizedReadObject = structure.read = (new BlockedFunction ('r', 'return function(){return ' + (currentUnpackr.freezeData ? 'Object.freeze' : '') +
+						'({' + structure.map(key => key === '__proto__' ? '__proto_:r()' : validName.test(key) ? key + ':r()' : ('[' + JSON.stringify(key) + ']:r()')).join(',') + '})}'))(read);
+				} catch(error) {
+					// in CF workers, the new BlockedFunction  call could begin to fail at any point in time
+					inlineObjectReadThreshold = Infinity; // disable going forward
+					return readObject(); // recursively try again
+				}
+				structure.read0 = optimizedReadObject; // keep the un-wrapped body reader in sync
 				if (structure.highByte === 0)
 					structure.read = createSecondByteReader(firstId, structure.read);
-				return readObject() // second byte is already read, if there is one so immediately read object
+				return optimizedReadObject() // second byte is already read, if there is one so immediately read object
 			}
 			let object = {};
 			for (let i = 0, l = structure.length; i < l; i++) {
@@ -521,6 +522,12 @@
 			return object
 		}
 		readObject.count = 0;
+		// read0 is the un-wrapped body reader: it reads the record's values directly without
+		// consuming a leading high byte. recordDefinition uses it for the immediate read that follows
+		// a record definition (the high byte, if present, was already consumed). For highByte === 0
+		// structures the public reader is a second-byte reader (used by later references), but the
+		// definition read itself must not consume that byte.
+		structure.read0 = readObject;
 		if (structure.highByte === 0) {
 			return createSecondByteReader(firstId, readObject)
 		}
@@ -576,26 +583,45 @@
 			} else if ((byte1 & 0xe0) === 0xc0) {
 				// 2 bytes
 				const byte2 = src[position$1++] & 0x3f;
-				units.push(((byte1 & 0x1f) << 6) | byte2);
+				const codePoint = ((byte1 & 0x1f) << 6) | byte2;
+				// Reject overlong encoding: 2-byte sequences must encode values >= 0x80
+				if (codePoint < 0x80) {
+					units.push(0xFFFD); // replacement character
+				} else {
+					units.push(codePoint);
+				}
 			} else if ((byte1 & 0xf0) === 0xe0) {
 				// 3 bytes
 				const byte2 = src[position$1++] & 0x3f;
 				const byte3 = src[position$1++] & 0x3f;
-				units.push(((byte1 & 0x1f) << 12) | (byte2 << 6) | byte3);
+				const codePoint = ((byte1 & 0x1f) << 12) | (byte2 << 6) | byte3;
+				// Reject overlong encoding: 3-byte sequences must encode values >= 0x800
+				// Also reject surrogates (0xD800-0xDFFF)
+				if (codePoint < 0x800 || (codePoint >= 0xD800 && codePoint <= 0xDFFF)) {
+					units.push(0xFFFD); // replacement character
+				} else {
+					units.push(codePoint);
+				}
 			} else if ((byte1 & 0xf8) === 0xf0) {
 				// 4 bytes
 				const byte2 = src[position$1++] & 0x3f;
 				const byte3 = src[position$1++] & 0x3f;
 				const byte4 = src[position$1++] & 0x3f;
 				let unit = ((byte1 & 0x07) << 0x12) | (byte2 << 0x0c) | (byte3 << 0x06) | byte4;
-				if (unit > 0xffff) {
+				// Reject overlong encoding: 4-byte sequences must encode values >= 0x10000
+				// Also reject values > 0x10FFFF (maximum valid Unicode)
+				if (unit < 0x10000 || unit > 0x10FFFF) {
+					units.push(0xFFFD); // replacement character
+				} else if (unit > 0xffff) {
 					unit -= 0x10000;
 					units.push(((unit >>> 10) & 0x3ff) | 0xd800);
 					unit = 0xdc00 | (unit & 0x3ff);
+					units.push(unit);
+				} else {
+					units.push(unit);
 				}
-				units.push(unit);
 			} else {
-				units.push(byte1);
+				units.push(0xFFFD); // replacement character for invalid lead byte
 			}
 
 			if (units.length >= 0x1000) {
@@ -939,26 +965,57 @@
 		}
 		currentStructures[id] = structure;
 		structure.read = createStructureReader(structure, firstByte);
-		return structure.read()
+		// The high byte (if any) was already consumed as the `highByte` argument above, so read the
+		// record body directly. Going through structure.read (a second-byte reader when highByte === 0)
+		// would misinterpret the first value byte as a high byte — corrupting two-byte own-record
+		// definitions (0xd5 0x72 ...). createStructureReader stashes the un-wrapped body reader on
+		// structure.read0 precisely for this immediate post-definition read.
+		return (structure.read0 || structure.read)()
 	};
 	currentExtensions[0] = () => {}; // notepack defines extension 0 to mean undefined, so use that as the default here
 	currentExtensions[0].noBuffer = true;
 
-	currentExtensions[0x42] = (data) => {
-		// decode bigint
-		let length = data.length;
-		let value = BigInt(data[0] & 0x80 ? data[0] - 0x100 : data[0]);
-		for (let i = 1; i < length; i++) {
-			value <<= BigInt(8);
-			value += BigInt(data[i]);
+	currentExtensions[0x42] = data => {
+		let headLength = (data.byteLength % 8) || 8;
+		let head = BigInt(data[0] & 0x80 ? data[0] - 0x100 : data[0]);
+		for (let i = 1; i < headLength; i++) {
+			head <<= BigInt(8);
+			head += BigInt(data[i]);
 		}
-		return value;
+		if (data.byteLength !== headLength) {
+			let view = new DataView(data.buffer, data.byteOffset, data.byteLength);
+			let decode = (start, end) => {
+				let length = end - start;
+				if (length <= 40) {
+					let out = view.getBigUint64(start);
+					for (let i = start + 8; i < end; i += 8) {
+						out <<= BigInt(64);
+						out |= view.getBigUint64(i);
+					}
+					return out
+				}
+				// if (length === 8) return view.getBigUint64(start)
+				let middle = start + (length >> 4 << 3);
+				let left = decode(start, middle);
+				let right = decode(middle, end);
+				return (left << BigInt((end - middle) * 8)) | right
+			};
+			head = (head << BigInt((view.byteLength - headLength) * 8)) | decode(headLength, view.byteLength);
+		}
+		return head
 	};
 
-	let errors = { Error, TypeError, ReferenceError };
+	let errors = {
+		Error, EvalError, RangeError, ReferenceError, SyntaxError, TypeError, URIError, AggregateError: typeof AggregateError === 'function' ? AggregateError : null,
+	};
 	currentExtensions[0x65] = () => {
 		let data = read();
-		return (errors[data[0]] || Error)(data[1], { cause: data[2] })
+		if (!errors[data[0]]) {
+			let error = Error(data[1], { cause: data[2] });
+			error.name = data[0];
+			return error
+		}
+		return errors[data[0]](data[1], { cause: data[2] })
 	};
 
 	currentExtensions[0x69] = (data) => {
@@ -1251,9 +1308,19 @@
 					hasSharedUpdate = false;
 				let encodingError;
 				try {
-					if (packr.randomAccessStructure && value && value.constructor && value.constructor === Object)
-						writeStruct(value);
-					else
+					// readOnlyStructures: skip the random-access struct write path so NO new struct is
+					// minted. randomAccessStructure stays true (the struct READ path and the struct-safe
+					// integer boundary are preserved, so existing struct data still decodes), but objects
+					// fall through to the normal pack()->writeObject->writeRecord path and are written as
+					// classic shared-structure records (byte range 0x40-0x7f, disjoint from struct headers
+					// at 0x20-0x3f) — the bounded, width-agnostic encoding used before struct mode.
+					if (packr.randomAccessStructure && !packr.readOnlyStructures && value && typeof value === 'object') {
+						if (value.constructor === Object) writeStruct(value); // simple object
+						else if (value.constructor !== Map && !Array.isArray(value) && !extensionClasses.some(extClass => value instanceof extClass)) {
+							// allow user classes, if they don't need special handling (but do use toJSON if available)
+							writeStruct(value.toJSON ? value.toJSON() : value);
+						} else pack(value);
+					} else
 						pack(value);
 					let lastBundle = bundledStrings;
 					if (bundledStrings)
@@ -1313,7 +1380,14 @@
 							let newSharedData = prepareStructures(structures, packr);
 							if (!encodingError) { // TODO: If there is an encoding error, should make the structures as uninitialized so they get rebuilt next time
 								if (packr.saveStructures(newSharedData, newSharedData.isCompatible) === false) {
-									// get updated structures and try again if the update failed
+									// The save was declined (a concurrent writer updated the shared structures,
+									// or the store transaction did not durably commit). Our in-memory
+									// structures + transition trie may now reference record ids that were
+									// never persisted; re-packing as-is would re-emit the same record pointing
+									// at an unpersisted structure (-> "Record id is not defined" on decode).
+									// Mark structures uninitialized so the re-pack reloads durable structures
+									// via getStructures, rebuilds the transition trie, and re-mints + re-saves.
+									structures.uninitialized = true;
 									return packr.pack(value, encodeOptions)
 								}
 								packr.lastNamedStructuresLength = sharedLength;
@@ -1666,22 +1740,47 @@
 							targetView.setFloat64(position, Number(value));
 						} else if (this.largeBigIntToString) {
 							return pack(value.toString());
-						} else if ((this.useBigIntExtension || this.moreTypes) && value < BigInt(2)**BigInt(1023) && value > -(BigInt(2)**BigInt(1023))) {
-							target[position++] = 0xc7;
-							position++;
-							target[position++] = 0x42; // "B" for BigInt
-							let bytes = [];
-							let alignedSign;
-							do {
-								let byte = value & BigInt(0xff);
-								alignedSign = (byte & BigInt(0x80)) === (value < BigInt(0) ? BigInt(0x80) : BigInt(0));
-								bytes.push(byte);
-								value >>= BigInt(8);
-							} while (!((value === BigInt(0) || value === BigInt(-1)) && alignedSign));
-							target[position-2] = bytes.length;
-							for (let i = bytes.length; i > 0;) {
-								target[position++] = Number(bytes[--i]);
+						} else if (this.useBigIntExtension || this.moreTypes) {
+							let empty = value < 0 ? BigInt(-1) : BigInt(0);
+
+							let array;
+							if (value >> BigInt(0x10000) === empty) {
+								let mask = BigInt(0x10000000000000000) - BigInt(1); // literal would overflow
+								let chunks = [];
+								while (true) {
+									chunks.push(value & mask);
+									if ((value >> BigInt(63)) === empty) break
+									value >>= BigInt(64);
+								}
+
+								array = new Uint8Array(new BigUint64Array(chunks).buffer);
+								array.reverse();
+							} else {
+								let invert = value < 0;
+								let string = (invert ? ~value : value).toString(16);
+								if (string.length % 2) {
+									string = '0' + string;
+								} else if (parseInt(string.charAt(0), 16) >= 8) {
+									string = '00' + string;
+								}
+
+								if (hasNodeBuffer) {
+									array = Buffer.from(string, 'hex');
+								} else {
+									array = new Uint8Array(string.length / 2);
+									for (let i = 0; i < array.length; i++) {
+										array[i] = parseInt(string.slice(i * 2, i * 2 + 2), 16);
+									}
+								}
+
+								if (invert) {
+									for (let i = 0; i < array.length; i++) array[i] = ~array[i];
+								}
 							}
+
+							if (array.length + position > safeEnd)
+								makeRoom(array.length + position);
+							position = writeExtensionData(array, target, position, 0x42);
 							return
 						} else {
 							throw new RangeError(value + ' was too large to fit in MessagePack 64-bit integer format, use' +
@@ -1969,6 +2068,7 @@
 			// this means we are finished using our own buffer and we can write over it safely
 			target = buffer;
 			target.dataView || (target.dataView = new DataView(target.buffer, target.byteOffset, target.byteLength));
+			targetView = target.dataView;
 			position = 0;
 		}
 		set position (value) {

@@ -5,7 +5,23 @@
 
 "use strict";
 
-const NoModeWarning = require("./NoModeWarning");
+const WebpackError = require("./errors/WebpackError");
+
+class NoModeWarning extends WebpackError {
+	constructor() {
+		super();
+
+		/** @type {string} */
+		this.name = "NoModeWarning";
+		/** @type {string} */
+		this.message =
+			"configuration\n" +
+			"The 'mode' option has not been set, webpack will fallback to 'production' for this value.\n" +
+			"Set 'mode' option to 'development' or 'production' to enable defaults for each environment.\n" +
+			"You can also set it to 'none' to disable any default behavior. " +
+			"Learn more: https://webpack.js.org/configuration/mode/";
+	}
+}
 
 /** @typedef {import("./Compiler")} Compiler */
 
@@ -13,12 +29,12 @@ const PLUGIN_NAME = "WarnNoModeSetPlugin";
 
 class WarnNoModeSetPlugin {
 	/**
-	 * Apply the plugin
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Compiler} compiler the compiler instance
 	 * @returns {void}
 	 */
 	apply(compiler) {
-		compiler.hooks.thisCompilation.tap(PLUGIN_NAME, compilation => {
+		compiler.hooks.thisCompilation.tap(PLUGIN_NAME, (compilation) => {
 			compilation.warnings.push(new NoModeWarning());
 		});
 	}

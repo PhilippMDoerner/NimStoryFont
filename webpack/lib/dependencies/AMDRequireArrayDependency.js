@@ -14,12 +14,13 @@ const NullDependency = require("./NullDependency");
 /** @typedef {import("../Dependency")} Dependency */
 /** @typedef {import("../DependencyTemplate").DependencyTemplateContext} DependencyTemplateContext */
 /** @typedef {import("../javascript/JavascriptParser").Range} Range */
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext} ObjectDeserializerContext */
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext} ObjectSerializerContext */
 /** @typedef {import("./AMDRequireItemDependency")} AMDRequireItemDependency */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext<[(string | LocalModuleDependency | AMDRequireItemDependency)[], Range]>} ObjectDeserializerContext */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext<[(string | LocalModuleDependency | AMDRequireItemDependency)[], Range]>} ObjectSerializerContext */
 
 class AMDRequireArrayDependency extends NullDependency {
 	/**
+	 * Creates an instance of AMDRequireArrayDependency.
 	 * @param {(string | LocalModuleDependency | AMDRequireItemDependency)[]} depsArray deps array
 	 * @param {Range} range range
 	 */
@@ -39,27 +40,25 @@ class AMDRequireArrayDependency extends NullDependency {
 	}
 
 	/**
+	 * Serializes this instance into the provided serializer context.
 	 * @param {ObjectSerializerContext} context context
 	 */
 	serialize(context) {
-		const { write } = context;
-
-		write(this.depsArray);
-		write(this.range);
+		context.write(this.depsArray).write(this.range);
 
 		super.serialize(context);
 	}
 
 	/**
+	 * Restores this instance from the provided deserializer context.
 	 * @param {ObjectDeserializerContext} context context
 	 */
 	deserialize(context) {
-		const { read } = context;
+		this.depsArray = context.read();
+		const c1 = context.rest;
+		this.range = c1.read();
 
-		this.depsArray = read();
-		this.range = read();
-
-		super.deserialize(context);
+		super.deserialize(c1.rest);
 	}
 }
 
@@ -72,6 +71,7 @@ AMDRequireArrayDependency.Template = class AMDRequireArrayDependencyTemplate ext
 	DependencyTemplate
 ) {
 	/**
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Dependency} dependency the dependency for which the template should be applied
 	 * @param {ReplaceSource} source the current replace source which can be modified
 	 * @param {DependencyTemplateContext} templateContext the context object
@@ -84,18 +84,20 @@ AMDRequireArrayDependency.Template = class AMDRequireArrayDependencyTemplate ext
 	}
 
 	/**
+	 * Returns content.
 	 * @param {AMDRequireArrayDependency} dep the dependency for which the template should be applied
 	 * @param {DependencyTemplateContext} templateContext the context object
 	 * @returns {string} content
 	 */
 	getContent(dep, templateContext) {
-		const requires = dep.depsArray.map(dependency =>
+		const requires = dep.depsArray.map((dependency) =>
 			this.contentForDependency(dependency, templateContext)
 		);
 		return `[${requires.join(", ")}]`;
 	}
 
 	/**
+	 * Content for dependency.
 	 * @param {string | LocalModuleDependency | AMDRequireItemDependency} dep the dependency for which the template should be applied
 	 * @param {DependencyTemplateContext} templateContext the context object
 	 * @returns {string} content

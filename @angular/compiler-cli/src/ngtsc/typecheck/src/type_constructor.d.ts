@@ -5,11 +5,12 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.dev/license
  */
+import { TcbExpr, TcbTypeParameter, TypeCtorMetadata } from '@angular/compiler';
 import ts from 'typescript';
+import { Reference } from '../../imports';
 import { ClassDeclaration, ReflectionHost } from '../../reflection';
-import { TypeCtorMetadata } from '../api';
 import { ReferenceEmitEnvironment } from './reference_emit_environment';
-export declare function generateTypeCtorDeclarationFn(env: ReferenceEmitEnvironment, meta: TypeCtorMetadata, nodeTypeRef: ts.EntityName, typeParams: ts.TypeParameterDeclaration[] | undefined): ts.Statement;
+export declare function generateTypeCtorDeclarationFn(env: ReferenceEmitEnvironment, meta: TypeCtorMetadata, nodeTypeRef: TcbExpr, typeParams: TcbTypeParameter[] | undefined): TcbExpr;
 /**
  * Generate an inline type constructor for the given class and metadata.
  *
@@ -45,5 +46,5 @@ export declare function generateTypeCtorDeclarationFn(env: ReferenceEmitEnvironm
  * @param meta additional metadata required to generate the type constructor.
  * @returns a `ts.MethodDeclaration` for the type constructor.
  */
-export declare function generateInlineTypeCtor(env: ReferenceEmitEnvironment, node: ClassDeclaration<ts.ClassDeclaration>, meta: TypeCtorMetadata): ts.MethodDeclaration;
-export declare function requiresInlineTypeCtor(node: ClassDeclaration<ts.ClassDeclaration>, host: ReflectionHost, env: ReferenceEmitEnvironment): boolean;
+export declare function generateInlineTypeCtor(env: ReferenceEmitEnvironment, node: ClassDeclaration<ts.ClassDeclaration>, meta: TypeCtorMetadata): string;
+export declare function requiresInlineTypeCtor(node: ClassDeclaration<ts.ClassDeclaration>, host: ReflectionHost, canReferenceType: (ref: Reference) => boolean): boolean;

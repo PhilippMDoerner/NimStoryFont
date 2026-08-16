@@ -12,6 +12,10 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   SyncBailHook: function() { return /* binding */ SyncBailHook; }
 /* harmony export */ });
+/**
+ * @returns {SyncBailHook} mocked sync bail hook
+ * @constructor
+ */
 function SyncBailHook() {
   return {
     call: function call() {}
@@ -21,7 +25,6 @@ function SyncBailHook() {
 /**
  * Client stub for tapable SyncBailHook
  */
-// eslint-disable-next-line import/prefer-default-export
 
 
 /***/ }),
@@ -137,23 +140,32 @@ var LogType = Object.freeze({
 module.exports.LogType = LogType;
 
 /** @typedef {typeof LogType[keyof typeof LogType]} LogTypeEnum */
+/** @typedef {Map<string | undefined, [number, number]>} TimersMap */
 
 var LOG_SYMBOL = (typeof Symbol !== "undefined" ? Symbol : function (i) { return i; })("webpack logger raw log method");
 var TIMERS_SYMBOL = (typeof Symbol !== "undefined" ? Symbol : function (i) { return i; })("webpack logger times");
 var TIMERS_AGGREGATES_SYMBOL = (typeof Symbol !== "undefined" ? Symbol : function (i) { return i; })("webpack logger aggregated times");
+
+/** @typedef {EXPECTED_ANY[]} Args */
+/** @typedef {(type: LogTypeEnum, args?: Args) => void} LogFn */
+/** @typedef {(name: string | (() => string)) => WebpackLogger} GetChildLogger */
 var WebpackLogger = /*#__PURE__*/function () {
   /**
-   * @param {(type: LogTypeEnum, args?: EXPECTED_ANY[]) => void} log log function
-   * @param {(name: string | (() => string)) => WebpackLogger} getChildLogger function to create child logger
+   * Creates an instance of WebpackLogger.
+   * @param {LogFn} log log function
+   * @param {GetChildLogger} getChildLogger function to create child logger
    */
   function WebpackLogger(log, getChildLogger) {
     _classCallCheck(this, WebpackLogger);
+    /** @type {LogFn} */
     this[LOG_SYMBOL] = log;
+    /** @type {GetChildLogger} */
     this.getChildLogger = getChildLogger;
   }
 
   /**
-   * @param {...EXPECTED_ANY} args args
+   * Processes the provided arg.
+   * @param {Args} args args
    */
   return _createClass(WebpackLogger, [{
     key: "error",
@@ -165,7 +177,8 @@ var WebpackLogger = /*#__PURE__*/function () {
     }
 
     /**
-     * @param {...EXPECTED_ANY} args args
+     * Processes the provided arg.
+     * @param {Args} args args
      */
   }, {
     key: "warn",
@@ -177,7 +190,8 @@ var WebpackLogger = /*#__PURE__*/function () {
     }
 
     /**
-     * @param {...EXPECTED_ANY} args args
+     * Processes the provided arg.
+     * @param {Args} args args
      */
   }, {
     key: "info",
@@ -189,7 +203,8 @@ var WebpackLogger = /*#__PURE__*/function () {
     }
 
     /**
-     * @param {...EXPECTED_ANY} args args
+     * Processes the provided arg.
+     * @param {Args} args args
      */
   }, {
     key: "log",
@@ -201,7 +216,8 @@ var WebpackLogger = /*#__PURE__*/function () {
     }
 
     /**
-     * @param {...EXPECTED_ANY} args args
+     * Processes the provided arg.
+     * @param {Args} args args
      */
   }, {
     key: "debug",
@@ -213,13 +229,14 @@ var WebpackLogger = /*#__PURE__*/function () {
     }
 
     /**
-     * @param {EXPECTED_ANY} assertion assertion
-     * @param {...EXPECTED_ANY} args args
+     * Processes the provided condition.
+     * @param {boolean=} condition condition
+     * @param {Args} args args
      */
   }, {
     key: "assert",
-    value: function assert(assertion) {
-      if (!assertion) {
+    value: function assert(condition) {
+      if (!condition) {
         for (var _len6 = arguments.length, args = new Array(_len6 > 1 ? _len6 - 1 : 0), _key6 = 1; _key6 < _len6; _key6++) {
           args[_key6 - 1] = arguments[_key6];
         }
@@ -238,7 +255,8 @@ var WebpackLogger = /*#__PURE__*/function () {
     }
 
     /**
-     * @param {...EXPECTED_ANY} args args
+     * Processes the provided arg.
+     * @param {Args} args args
      */
   }, {
     key: "status",
@@ -250,7 +268,8 @@ var WebpackLogger = /*#__PURE__*/function () {
     }
 
     /**
-     * @param {...EXPECTED_ANY} args args
+     * Processes the provided arg.
+     * @param {Args} args args
      */
   }, {
     key: "group",
@@ -262,7 +281,8 @@ var WebpackLogger = /*#__PURE__*/function () {
     }
 
     /**
-     * @param {...EXPECTED_ANY} args args
+     * Processes the provided arg.
+     * @param {Args} args args
      */
   }, {
     key: "groupCollapsed",
@@ -279,6 +299,7 @@ var WebpackLogger = /*#__PURE__*/function () {
     }
 
     /**
+     * Processes the provided label.
      * @param {string=} label label
      */
   }, {
@@ -288,6 +309,7 @@ var WebpackLogger = /*#__PURE__*/function () {
     }
 
     /**
+     * Processes the provided label.
      * @param {string=} label label
      */
   }, {
@@ -297,17 +319,19 @@ var WebpackLogger = /*#__PURE__*/function () {
     }
 
     /**
+     * Processes the provided label.
      * @param {string} label label
      */
   }, {
     key: "time",
     value: function time(label) {
-      /** @type {Map<string | undefined, [number, number]>} */
+      /** @type {TimersMap} */
       this[TIMERS_SYMBOL] = this[TIMERS_SYMBOL] || new Map();
       this[TIMERS_SYMBOL].set(label, process.hrtime());
     }
 
     /**
+     * Processes the provided label.
      * @param {string=} label label
      */
   }, {
@@ -322,6 +346,7 @@ var WebpackLogger = /*#__PURE__*/function () {
     }
 
     /**
+     * Processes the provided label.
      * @param {string=} label label
      */
   }, {
@@ -332,12 +357,13 @@ var WebpackLogger = /*#__PURE__*/function () {
         throw new Error("No such label '".concat(label, "' for WebpackLogger.timeEnd()"));
       }
       var time = process.hrtime(prev);
-      /** @type {Map<string | undefined, [number, number]>} */
+      /** @type {TimersMap} */
       this[TIMERS_SYMBOL].delete(label);
       this[LOG_SYMBOL](LogType.time, [label].concat(_toConsumableArray(time)));
     }
 
     /**
+     * Processes the provided label.
      * @param {string=} label label
      */
   }, {
@@ -348,9 +374,9 @@ var WebpackLogger = /*#__PURE__*/function () {
         throw new Error("No such label '".concat(label, "' for WebpackLogger.timeAggregate()"));
       }
       var time = process.hrtime(prev);
-      /** @type {Map<string | undefined, [number, number]>} */
+      /** @type {TimersMap} */
       this[TIMERS_SYMBOL].delete(label);
-      /** @type {Map<string | undefined, [number, number]>} */
+      /** @type {TimersMap} */
       this[TIMERS_AGGREGATES_SYMBOL] = this[TIMERS_AGGREGATES_SYMBOL] || new Map();
       var current = this[TIMERS_AGGREGATES_SYMBOL].get(label);
       if (current !== undefined) {
@@ -366,6 +392,7 @@ var WebpackLogger = /*#__PURE__*/function () {
     }
 
     /**
+     * Time aggregate end.
      * @param {string=} label label
      */
   }, {
@@ -471,36 +498,40 @@ var _require = __webpack_require__(/*! ./Logger */ "./node_modules/webpack/lib/l
 /** @typedef {import("../../declarations/WebpackOptions").FilterItemTypes} FilterItemTypes */
 /** @typedef {import("../../declarations/WebpackOptions").FilterTypes} FilterTypes */
 /** @typedef {import("./Logger").LogTypeEnum} LogTypeEnum */
+/** @typedef {import("./Logger").Args} Args */
 
 /** @typedef {(item: string) => boolean} FilterFunction */
-/** @typedef {(value: string, type: LogTypeEnum, args?: EXPECTED_ANY[]) => void} LoggingFunction */
+/** @typedef {(value: string, type: LogTypeEnum, args?: Args) => void} LoggingFunction */
 
 /**
+ * Defines the logger console type used by this module.
  * @typedef {object} LoggerConsole
  * @property {() => void} clear
  * @property {() => void} trace
- * @property {(...args: EXPECTED_ANY[]) => void} info
- * @property {(...args: EXPECTED_ANY[]) => void} log
- * @property {(...args: EXPECTED_ANY[]) => void} warn
- * @property {(...args: EXPECTED_ANY[]) => void} error
- * @property {(...args: EXPECTED_ANY[]) => void=} debug
- * @property {(...args: EXPECTED_ANY[]) => void=} group
- * @property {(...args: EXPECTED_ANY[]) => void=} groupCollapsed
- * @property {(...args: EXPECTED_ANY[]) => void=} groupEnd
- * @property {(...args: EXPECTED_ANY[]) => void=} status
- * @property {(...args: EXPECTED_ANY[]) => void=} profile
- * @property {(...args: EXPECTED_ANY[]) => void=} profileEnd
- * @property {(...args: EXPECTED_ANY[]) => void=} logTime
+ * @property {(...args: Args) => void} info
+ * @property {(...args: Args) => void} log
+ * @property {(...args: Args) => void} warn
+ * @property {(...args: Args) => void} error
+ * @property {(...args: Args) => void=} debug
+ * @property {(...args: Args) => void=} group
+ * @property {(...args: Args) => void=} groupCollapsed
+ * @property {(...args: Args) => void=} groupEnd
+ * @property {(...args: Args) => void=} status
+ * @property {(...args: Args) => void=} profile
+ * @property {(...args: Args) => void=} profileEnd
+ * @property {(...args: Args) => void=} logTime
  */
 
 /**
+ * Defines the logger options type used by this module.
  * @typedef {object} LoggerOptions
- * @property {false|true|"none"|"error"|"warn"|"info"|"log"|"verbose"} level loglevel
- * @property {FilterTypes|boolean} debug filter for debug logging
+ * @property {false | true | "none" | "error" | "warn" | "info" | "log" | "verbose"} level loglevel
+ * @property {FilterTypes | boolean} debug filter for debug logging
  * @property {LoggerConsole} console the console to log to
  */
 
 /**
+ * Filter to function.
  * @param {FilterItemTypes} item an input item
  * @returns {FilterFunction | undefined} filter function
  */
@@ -527,6 +558,7 @@ var filterToFunction = function filterToFunction(item) {
 };
 
 /**
+ * Enumerates the available values.
  * @enum {number}
  */
 var LogLevel = {
@@ -541,6 +573,7 @@ var LogLevel = {
 };
 
 /**
+ * Returns logging function.
  * @param {LoggerOptions} options options object
  * @returns {LoggingFunction} logging function
  */
@@ -554,16 +587,22 @@ module.exports = function (_ref) {
 
   typeof debug === "boolean" ? [function () {
     return debug;
-  }] : /** @type {FilterItemTypes[]} */[].concat(debug).map(filterToFunction);
+  }] : /** @type {FilterItemTypes[]} */_toConsumableArray(Array.isArray(debug) ? debug : [debug]).map(filterToFunction);
   var loglevel = LogLevel["".concat(level)] || 0;
 
   /**
+   * Processes the provided name.
    * @param {string} name name of the logger
    * @param {LogTypeEnum} type type of the log entry
-   * @param {EXPECTED_ANY[]=} args arguments of the log entry
+   * @param {Args=} args arguments of the log entry
    * @returns {void}
    */
   var logger = function logger(name, type, args) {
+    /**
+     * Returns labeled args.
+     * @template T
+     * @returns {[string?, ...T[]]} labeled args
+     */
     var labeledArgs = function labeledArgs() {
       if (Array.isArray(args)) {
         if (args.length > 0 && typeof args[0] === "string") {
@@ -721,6 +760,17 @@ var currentDefaultLoggerOptions = {
 var currentDefaultLogger = createConsoleLogger(currentDefaultLoggerOptions);
 
 /**
+ * Processes the provided create console logger.logger option.
+ * @param {createConsoleLogger.LoggerOptions} options new options, merge with old options
+ * @returns {void}
+ */
+module.exports.configureDefaultLogger = function (options) {
+  _extends(currentDefaultLoggerOptions, options);
+  currentDefaultLogger = createConsoleLogger(currentDefaultLoggerOptions);
+};
+
+/**
+ * Returns a logger.
  * @param {string} name name of the logger
  * @returns {Logger} a logger
  */
@@ -732,15 +782,6 @@ module.exports.getLogger = function (name) {
   }, function (childName) {
     return module.exports.getLogger("".concat(name, "/").concat(childName));
   });
-};
-
-/**
- * @param {createConsoleLogger.LoggerOptions} options new options, merge with old options
- * @returns {void}
- */
-module.exports.configureDefaultLogger = function (options) {
-  _extends(currentDefaultLoggerOptions, options);
-  currentDefaultLogger = createConsoleLogger(currentDefaultLoggerOptions);
 };
 module.exports.hooks = {
   log: new SyncBailHook(["origin", "type", "args"])
@@ -768,6 +809,12 @@ module.exports.hooks = {
 /******/ 		};
 /******/ 	
 /******/ 		// Execute the module function
+/******/ 		if (!(moduleId in __webpack_modules__)) {
+/******/ 			delete __webpack_module_cache__[moduleId];
+/******/ 			var e = new Error("Cannot find module '" + moduleId + "'");
+/******/ 			e.code = 'MODULE_NOT_FOUND';
+/******/ 			throw e;
+/******/ 		}
 /******/ 		__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
 /******/ 	
 /******/ 		// Return the exports of the module
@@ -815,6 +862,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "default": function() { return /* reexport default export from named module */ webpack_lib_logging_runtime_js__WEBPACK_IMPORTED_MODULE_0__; }
 /* harmony export */ });
 /* harmony import */ var webpack_lib_logging_runtime_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! webpack/lib/logging/runtime.js */ "./node_modules/webpack/lib/logging/runtime.js");
+// @ts-expect-error
 
 }();
 var __webpack_export_target__ = exports;

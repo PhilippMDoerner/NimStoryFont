@@ -6,20 +6,23 @@
 "use strict";
 
 const Template = require("../Template");
+const AwaitDependenciesInitFragment = require("../async-modules/AwaitDependenciesInitFragment");
 const makeSerializable = require("../util/makeSerializable");
 const HarmonyImportDependency = require("./HarmonyImportDependency");
+const { ImportPhaseUtils } = require("./ImportPhase");
 const NullDependency = require("./NullDependency");
 
 /** @typedef {import("webpack-sources").ReplaceSource} ReplaceSource */
 /** @typedef {import("../Dependency")} Dependency */
 /** @typedef {import("../DependencyTemplate").DependencyTemplateContext} DependencyTemplateContext */
 /** @typedef {import("../javascript/JavascriptParser").Range} Range */
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext} ObjectDeserializerContext */
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext} ObjectSerializerContext */
 /** @typedef {import("./HarmonyAcceptImportDependency")} HarmonyAcceptImportDependency */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext<[Range, HarmonyAcceptImportDependency[], boolean]>} ObjectDeserializerContext */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext<[Range, HarmonyAcceptImportDependency[], boolean]>} ObjectSerializerContext */
 
 class HarmonyAcceptDependency extends NullDependency {
 	/**
+	 * Creates an instance of HarmonyAcceptDependency.
 	 * @param {Range} range expression range
 	 * @param {HarmonyAcceptImportDependency[]} dependencies import dependencies
 	 * @param {boolean} hasCallback true, if the range wraps an existing callback
@@ -27,7 +30,9 @@ class HarmonyAcceptDependency extends NullDependency {
 	constructor(range, dependencies, hasCallback) {
 		super();
 		this.range = range;
+		/** @type {HarmonyAcceptImportDependency[]} */
 		this.dependencies = dependencies;
+		/** @type {boolean} */
 		this.hasCallback = hasCallback;
 	}
 
@@ -36,25 +41,25 @@ class HarmonyAcceptDependency extends NullDependency {
 	}
 
 	/**
+	 * Serializes this instance into the provided serializer context.
 	 * @param {ObjectSerializerContext} context context
 	 */
 	serialize(context) {
-		const { write } = context;
-		write(this.range);
-		write(this.dependencies);
-		write(this.hasCallback);
+		context.write(this.range).write(this.dependencies).write(this.hasCallback);
 		super.serialize(context);
 	}
 
 	/**
+	 * Restores this instance from the provided deserializer context.
 	 * @param {ObjectDeserializerContext} context context
 	 */
 	deserialize(context) {
-		const { read } = context;
-		this.range = read();
-		this.dependencies = read();
-		this.hasCallback = read();
-		super.deserialize(context);
+		this.range = context.read();
+		const c1 = context.rest;
+		this.dependencies = c1.read();
+		const c2 = c1.rest;
+		this.hasCallback = c2.read();
+		super.deserialize(c2.rest);
 	}
 }
 
@@ -67,6 +72,7 @@ HarmonyAcceptDependency.Template = class HarmonyAcceptDependencyTemplate extends
 	NullDependency.Template
 ) {
 	/**
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Dependency} dependency the dependency for which the template should be applied
 	 * @param {ReplaceSource} source the current replace source which can be modified
 	 * @param {DependencyTemplateContext} templateContext the context object
@@ -82,8 +88,78 @@ HarmonyAcceptDependency.Template = class HarmonyAcceptDependencyTemplate extends
 			moduleGraph,
 			chunkGraph
 		} = templateContext;
-		const content = dep.dependencies
-			.map(dependency => {
+
+		/**
+		 * Checks whether this harmony accept dependency is related harmony import dependency.
+		 * @param {Dependency} a the first dependency
+		 * @param {Dependency} b the second dependency
+		 * @returns {boolean} true if the dependencies are related
+		 */
+		const isRelatedHarmonyImportDependency = (a, b) => {
+			if (a === b || !(b instanceof HarmonyImportDependency)) return false;
+			// Compare modules by reference: an unresolved import (ignored/failed, or a
+			// deferred lazy-barrel re-export) has no module, and a module not in any
+			// chunk has a null id — so comparing ids would crash or miss real matches.
+			const moduleA = moduleGraph.getModule(a);
+			return moduleA !== null && moduleA === moduleGraph.getModule(b);
+		};
+
+		/**
+		 * HarmonyAcceptImportDependency lacks a lot of information, such as the defer property.
+		 * One HarmonyAcceptImportDependency may need to generate multiple ImportStatements.
+		 * Therefore, we find its original HarmonyImportDependency for code generation.
+		 * @param {HarmonyAcceptImportDependency} dependency the dependency to get harmony import dependencies for
+		 * @returns {HarmonyImportDependency[]} array of related harmony import dependencies
+		 */
+		const getHarmonyImportDependencies = (dependency) => {
+			/** @type {HarmonyImportDependency[]} */
+			const result = [];
+			/** @type {HarmonyImportDependency | null} */
+			let deferDependency = null;
+			/** @type {HarmonyImportDependency | null} */
+			let noDeferredDependency = null;
+
+			for (const d of module.dependencies) {
+				if (deferDependency && noDeferredDependency) break;
+				if (isRelatedHarmonyImportDependency(dependency, d)) {
+					if (
+						ImportPhaseUtils.isDefer(
+							/** @type {HarmonyImportDependency} */ (d).phase
+						)
+					) {
+						deferDependency = /** @type {HarmonyImportDependency} */ (d);
+					} else {
+						noDeferredDependency = /** @type {HarmonyImportDependency} */ (d);
+					}
+				}
+			}
+			if (deferDependency) result.push(deferDependency);
+			if (noDeferredDependency) result.push(noDeferredDependency);
+			if (result.length === 0) {
+				// fallback to the original dependency
+				result.push(dependency);
+			}
+			return result;
+		};
+
+		/** @type {HarmonyImportDependency[]} */
+		const syncDeps = [];
+
+		/** @type {HarmonyAcceptImportDependency[]} */
+		const asyncDeps = [];
+
+		for (const dependency of dep.dependencies) {
+			const connection = moduleGraph.getConnection(dependency);
+
+			if (connection && moduleGraph.isAsync(connection.module)) {
+				asyncDeps.push(dependency);
+			} else {
+				syncDeps.push(...getHarmonyImportDependencies(dependency));
+			}
+		}
+
+		let content = syncDeps
+			.map((dependency) => {
 				const referencedModule = moduleGraph.getModule(dependency);
 				return {
 					dependency,
@@ -112,17 +188,33 @@ HarmonyAcceptDependency.Template = class HarmonyAcceptDependencyTemplate extends
 			})
 			.join("");
 
+		const promises = new Map(
+			asyncDeps.map((dependency) => [
+				dependency.getImportVar(moduleGraph),
+				dependency.getModuleExports(templateContext)
+			])
+		);
+
+		let optAsync = "";
+		if (promises.size !== 0) {
+			optAsync = "async ";
+			content += new AwaitDependenciesInitFragment(promises).getContent({
+				...templateContext,
+				type: "javascript"
+			});
+		}
+
 		if (dep.hasCallback) {
 			if (runtimeTemplate.supportsArrowFunction()) {
 				source.insert(
 					dep.range[0],
-					`__WEBPACK_OUTDATED_DEPENDENCIES__ => { ${content}(`
+					`${optAsync}__WEBPACK_OUTDATED_DEPENDENCIES__ => { ${content} return (`
 				);
 				source.insert(dep.range[1], ")(__WEBPACK_OUTDATED_DEPENDENCIES__); }");
 			} else {
 				source.insert(
 					dep.range[0],
-					`function(__WEBPACK_OUTDATED_DEPENDENCIES__) { ${content}(`
+					`${optAsync}function(__WEBPACK_OUTDATED_DEPENDENCIES__) { ${content} return (`
 				);
 				source.insert(
 					dep.range[1],
@@ -135,7 +227,7 @@ HarmonyAcceptDependency.Template = class HarmonyAcceptDependencyTemplate extends
 		const arrow = runtimeTemplate.supportsArrowFunction();
 		source.insert(
 			dep.range[1] - 0.5,
-			`, ${arrow ? "() =>" : "function()"} { ${content} }`
+			`, ${arrow ? `${optAsync}() =>` : `${optAsync}function()`} { ${content} }`
 		);
 	}
 };

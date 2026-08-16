@@ -1,4 +1,4 @@
-import { MapMarkerType } from 'src/app/_models/mapMarkerType';
+import { MapMarkerType } from '../../_models/mapMarkerType';
 
 export const dummyMarkerTypes: MapMarkerType[] = [
   {

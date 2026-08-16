@@ -1,16 +1,10 @@
 "use strict";
 
-const {
-  validate
-} = require("schema-utils");
+const fs = require("node:fs");
+const path = require("node:path");
+const memfs = require("memfs");
 const mime = require("mime-types");
 const middleware = require("./middleware");
-const getFilenameFromUrl = require("./utils/getFilenameFromUrl");
-const setupHooks = require("./utils/setupHooks");
-const setupWriteToDisk = require("./utils/setupWriteToDisk");
-const setupOutputFileSystem = require("./utils/setupOutputFileSystem");
-const ready = require("./utils/ready");
-const schema = require("./options.json");
 const noop = () => {};
 
 /** @typedef {import("schema-utils/declarations/validate").Schema} Schema */
@@ -20,10 +14,16 @@ const noop = () => {};
 /** @typedef {import("webpack").Stats} Stats */
 /** @typedef {import("webpack").MultiStats} MultiStats */
 /** @typedef {import("fs").ReadStream} ReadStream */
+/** @typedef {import("./middleware").FilenameWithExtra} FilenameWithExtra */
+
+// eslint-disable-next-line jsdoc/reject-any-type
+/** @typedef {any} EXPECTED_ANY */
+// eslint-disable-next-line jsdoc/reject-function-type
+/** @typedef {Function} EXPECTED_FUNCTION */
 
 /**
- * @typedef {Object} ExtendedServerResponse
- * @property {{ webpack?: { devMiddleware?: Context<IncomingMessage, ServerResponse> } }} [locals]
+ * @typedef {object} ExtendedServerResponse
+ * @property {{ webpack?: { devMiddleware?: Context<IncomingMessage, ServerResponse> } }=} locals locals
  */
 
 /** @typedef {import("http").IncomingMessage} IncomingMessage */
@@ -31,62 +31,50 @@ const noop = () => {};
 
 /**
  * @callback NextFunction
- * @param {any} [err]
- * @return {void}
+ * @param {EXPECTED_ANY=} err error
+ * @returns {void}
  */
 
-/**
- * @typedef {NonNullable<Configuration["watchOptions"]>} WatchOptions
- */
-
-/**
- * @typedef {Compiler["watching"]} Watching
- */
-
-/**
- * @typedef {ReturnType<MultiCompiler["watch"]>} MultiWatching
- */
-
-/**
- * @typedef {import("webpack").OutputFileSystem & { createReadStream?: import("fs").createReadStream, statSync: import("fs").statSync, readFileSync: import("fs").readFileSync }} OutputFileSystem
- */
-
+/** @typedef {NonNullable<Configuration["watchOptions"]>} WatchOptions */
+/** @typedef {Compiler["watching"]} Watching */
+/** @typedef {ReturnType<MultiCompiler["watch"]>} MultiWatching */
+/** @typedef {import("webpack").OutputFileSystem & { createReadStream?: import("fs").createReadStream, statSync: import("fs").statSync, readFileSync: import("fs").readFileSync }} OutputFileSystem */
 /** @typedef {ReturnType<Compiler["getInfrastructureLogger"]>} Logger */
 
 /**
  * @callback Callback
- * @param {Stats | MultiStats} [stats]
+ * @param {(Stats | MultiStats)=} stats
  */
 
 /**
- * @typedef {Object} ResponseData
- * @property {Buffer | ReadStream} data
- * @property {number} byteLength
+ * @typedef {object} ResponseData
+ * @property {Buffer | ReadStream} data data
+ * @property {number} byteLength byte length
  */
 
 /**
  * @template {IncomingMessage} [RequestInternal=IncomingMessage]
  * @template {ServerResponse} [ResponseInternal=ServerResponse]
  * @callback ModifyResponseData
- * @param {RequestInternal} req
- * @param {ResponseInternal} res
- * @param {Buffer | ReadStream} data
- * @param {number} byteLength
- * @return {ResponseData}
+ * @param {RequestInternal} req req
+ * @param {ResponseInternal} res res
+ * @param {Buffer | ReadStream} data data
+ * @param {number} byteLength byte length
+ * @returns {ResponseData}
  */
 
 /**
  * @template {IncomingMessage} [RequestInternal=IncomingMessage]
  * @template {ServerResponse} [ResponseInternal=ServerResponse]
- * @typedef {Object} Context
- * @property {boolean} state
- * @property {Stats | MultiStats | undefined} stats
- * @property {Callback[]} callbacks
- * @property {Options<RequestInternal, ResponseInternal>} options
- * @property {Compiler | MultiCompiler} compiler
- * @property {Watching | MultiWatching | undefined} watching
- * @property {Logger} logger
- * @property {OutputFileSystem} outputFileSystem
+ * @typedef {object} Context
+ * @property {boolean} state state
+ * @property {Stats | MultiStats | undefined} stats stats
+ * @property {Callback[]} callbacks callbacks
+ * @property {Options<RequestInternal, ResponseInternal>} options options
+ * @property {Compiler | MultiCompiler} compiler compiler
+ * @property {Watching | MultiWatching} watching watching
+ * @property {Logger} logger logger
+ * @property {OutputFileSystem} outputFileSystem output file system
  */
 
 /**
@@ -95,52 +83,50 @@ const noop = () => {};
  * @typedef {WithoutUndefined<Context<RequestInternal, ResponseInternal>, "watching">} FilledContext
  */
 
-/** @typedef {Record<string, string | number> | Array<{ key: string, value: number | string }>} NormalizedHeaders */
+/** @typedef {Record<string, string | number> | { key: string, value: number | string }[]} NormalizedHeaders */
 
 /**
  * @template {IncomingMessage} [RequestInternal=IncomingMessage]
  * @template {ServerResponse} [ResponseInternal=ServerResponse]
- * @typedef {NormalizedHeaders | ((req: RequestInternal, res: ResponseInternal, context: Context<RequestInternal, ResponseInternal>) =>  void | undefined | NormalizedHeaders) | undefined} Headers
+ * @typedef {NormalizedHeaders | ((req: RequestInternal, res: ResponseInternal, context: Context<RequestInternal, ResponseInternal>) => void | undefined | NormalizedHeaders) | undefined} Headers
  */
 
 /**
  * @template {IncomingMessage} [RequestInternal = IncomingMessage]
  * @template {ServerResponse} [ResponseInternal = ServerResponse]
- * @typedef {Object} Options
- * @property {{[key: string]: string}} [mimeTypes]
- * @property {string | undefined} [mimeTypeDefault]
- * @property {boolean | ((targetPath: string) => boolean)} [writeToDisk]
- * @property {string[]} [methods]
- * @property {Headers<RequestInternal, ResponseInternal>} [headers]
- * @property {NonNullable<Configuration["output"]>["publicPath"]} [publicPath]
- * @property {Configuration["stats"]} [stats]
- * @property {boolean} [serverSideRender]
- * @property {OutputFileSystem} [outputFileSystem]
- * @property {boolean | string} [index]
- * @property {ModifyResponseData<RequestInternal, ResponseInternal>} [modifyResponseData]
- * @property {"weak" | "strong"} [etag]
- * @property {boolean} [lastModified]
- * @property {boolean | number | string | { maxAge?: number, immutable?: boolean }} [cacheControl]
- * @property {boolean} [cacheImmutable]
+ * @typedef {object} Options
+ * @property {{ [key: string]: string }=} mimeTypes mime types
+ * @property {(string | undefined)=} mimeTypeDefault mime type default
+ * @property {(boolean | ((targetPath: string) => boolean))=} writeToDisk write to disk
+ * @property {string[]=} methods methods
+ * @property {Headers<RequestInternal, ResponseInternal>=} headers headers
+ * @property {NonNullable<Configuration["output"]>["publicPath"]=} publicPath public path
+ * @property {Configuration["stats"]=} stats stats
+ * @property {boolean=} serverSideRender is server side render
+ * @property {OutputFileSystem=} outputFileSystem output file system
+ * @property {(boolean | string)=} index index
+ * @property {ModifyResponseData<RequestInternal, ResponseInternal>=} modifyResponseData modify response data
+ * @property {"weak" | "strong"=} etag options to generate etag header
+ * @property {boolean=} lastModified options to generate last modified header
+ * @property {(boolean | number | string | { maxAge?: number, immutable?: boolean })=} cacheControl options to generate cache headers
+ * @property {boolean=} cacheImmutable is cache immutable
+ * @property {boolean=} forwardError forward error to next middleware
  */
 
 /**
  * @template {IncomingMessage} [RequestInternal=IncomingMessage]
  * @template {ServerResponse} [ResponseInternal=ServerResponse]
  * @callback Middleware
- * @param {RequestInternal} req
- * @param {ResponseInternal} res
- * @param {NextFunction} next
- * @return {Promise<void>}
+ * @param {RequestInternal} req request
+ * @param {ResponseInternal} res response
+ * @param {NextFunction} next next function
+ * @returns {Promise<void>}
  */
-
-/** @typedef {import("./utils/getFilenameFromUrl").Extra} Extra */
 
 /**
  * @callback GetFilenameFromUrl
- * @param {string} url
- * @param {Extra=} extra
- * @returns {string | undefined}
+ * @param {string} url request URL
+ * @returns {Promise<FilenameWithExtra | undefined>} a filename with additional information, or `undefined` if nothing is found
  */
 
 /**
@@ -161,12 +147,12 @@ const noop = () => {};
 /**
  * @template {IncomingMessage} RequestInternal
  * @template {ServerResponse} ResponseInternal
- * @typedef {Object} AdditionalMethods
- * @property {GetFilenameFromUrl} getFilenameFromUrl
- * @property {WaitUntilValid} waitUntilValid
- * @property {Invalidate} invalidate
- * @property {Close} close
- * @property {Context<RequestInternal, ResponseInternal>} context
+ * @typedef {object} AdditionalMethods
+ * @property {GetFilenameFromUrl} getFilenameFromUrl get filename from url
+ * @property {WaitUntilValid} waitUntilValid wait until valid
+ * @property {Invalidate} invalidate invalidate
+ * @property {Close} close close
+ * @property {Context<RequestInternal, ResponseInternal>} context context
  */
 
 /**
@@ -188,17 +174,218 @@ const noop = () => {};
  */
 
 /**
+ * @param {Compiler | MultiCompiler} compiler compiler
+ * @returns {compiler is MultiCompiler} true when is multi compiler, otherwise false
+ */
+function isMultipleCompiler(compiler) {
+  return typeof (/** @type {MultiCompiler} */compiler.compilers) !== "undefined";
+}
+
+/**
  * @template {IncomingMessage} [RequestInternal=IncomingMessage]
  * @template {ServerResponse} [ResponseInternal=ServerResponse]
- * @param {Compiler | MultiCompiler} compiler
- * @param {Options<RequestInternal, ResponseInternal>} [options]
- * @returns {API<RequestInternal, ResponseInternal>}
+ * @param {Compiler | MultiCompiler} compiler compiler
+ * @param {Options<RequestInternal, ResponseInternal>} options options
  */
-function wdm(compiler, options = {}) {
-  validate( /** @type {Schema} */schema, options, {
+const internalValidate = (compiler, options) => {
+  const schema = require("./options.json");
+  const firstCompiler = /** @type {Compiler & { validate: EXPECTED_ANY }} */
+  isMultipleCompiler(compiler) ? compiler.compilers[0] : compiler;
+  if (typeof firstCompiler.validate === "function") {
+    firstCompiler.validate(schema, options, {
+      name: "Dev Middleware",
+      baseDataPath: "options"
+    });
+    return;
+  }
+
+  // TODO in the next major release bump minimum supported webpack version and remove it in favor of `compiler.validate` (above)
+  const {
+    validate
+  } = require("schema-utils");
+  validate(/** @type {Schema} */schema, options, {
     name: "Dev Middleware",
     baseDataPath: "options"
   });
+};
+
+/** @typedef {Configuration["stats"]} StatsOptions */
+/** @typedef {{ children: Configuration["stats"][] }} MultiStatsOptions */
+/** @typedef {Exclude<Configuration["stats"], boolean | string | undefined>} StatsObjectOptions */
+
+/**
+ * @param {StatsOptions} statsOptions stats options
+ * @returns {StatsObjectOptions} object stats options
+ */
+function normalizeStatsOptions(statsOptions) {
+  if (typeof statsOptions === "undefined") {
+    statsOptions = {
+      preset: "normal"
+    };
+  } else if (typeof statsOptions === "boolean") {
+    statsOptions = statsOptions ? {
+      preset: "normal"
+    } : {
+      preset: "none"
+    };
+  } else if (typeof statsOptions === "string") {
+    statsOptions = {
+      preset: statsOptions
+    };
+  }
+  return statsOptions;
+}
+
+// Compatibility with rspack
+/**
+ * @returns {boolean} true when color supported, otherwise false
+ */
+function isColorSupported() {
+  const {
+    env = {},
+    argv = [],
+    platform = ""
+  } = typeof process === "undefined" ? {} : process;
+  const isDisabled = "NO_COLOR" in env || argv.includes("--no-color");
+  const isForced = "FORCE_COLOR" in env || argv.includes("--color");
+  const isWindows = platform === "win32";
+  const isDumbTerminal = env.TERM === "dumb";
+  const tty = require("node:tty");
+  const isCompatibleTerminal = tty && tty.isatty && tty.isatty(1) && env.TERM && !isDumbTerminal;
+  const isCI = "CI" in env && ("GITHUB_ACTIONS" in env || "GITLAB_CI" in env || "CIRCLECI" in env);
+  return !isDisabled && (isForced || isWindows && !isDumbTerminal || isCompatibleTerminal || isCI);
+}
+
+/**
+ * @template {IncomingMessage} Request
+ * @template {ServerResponse} Response
+ * @param {Stats | MultiStats} stats stats
+ * @param {WithOptional<Context<Request, Response>, "watching" | "outputFileSystem">} context context
+ */
+function printStats(stats, context) {
+  const {
+    compiler,
+    logger,
+    options
+  } = context;
+  logger.log("Compilation finished");
+  const isMultiCompilerMode = isMultipleCompiler(compiler);
+
+  /**
+   * @type {StatsOptions | MultiStatsOptions | undefined}
+   */
+  let statsOptions;
+  if (typeof options.stats !== "undefined") {
+    statsOptions = isMultiCompilerMode ? {
+      children: /** @type {MultiCompiler} */
+      compiler.compilers.map(() => options.stats)
+    } : options.stats;
+  } else {
+    statsOptions = isMultiCompilerMode ? {
+      children: /** @type {MultiCompiler} */
+      compiler.compilers.map(child => child.options.stats)
+    } : /** @type {Compiler} */compiler.options.stats;
+  }
+  if (isMultiCompilerMode) {
+    /** @type {MultiStatsOptions} */
+    statsOptions.children = /** @type {MultiStatsOptions} */
+    statsOptions.children.map(
+    /**
+     * @param {StatsOptions} childStatsOptions child stats options
+     * @returns {StatsObjectOptions} object child stats options
+     */
+    childStatsOptions => {
+      childStatsOptions = normalizeStatsOptions(childStatsOptions);
+      if (typeof childStatsOptions.colors === "undefined") {
+        const [firstCompiler] = /** @type {MultiCompiler} */
+        compiler.compilers;
+        childStatsOptions.colors =
+        // rspack compatibility
+        firstCompiler.webpack.cli && typeof firstCompiler.webpack.cli.isColorSupported === "function" ? firstCompiler.webpack.cli.isColorSupported() : isColorSupported();
+      }
+      return childStatsOptions;
+    });
+  } else {
+    statsOptions = normalizeStatsOptions(/** @type {StatsOptions} */statsOptions);
+    if (typeof statsOptions.colors === "undefined") {
+      const {
+        compiler
+      } = /** @type {{ compiler: Compiler }} */context;
+      statsOptions.colors =
+      // rspack compatibility
+      compiler.webpack.cli && typeof compiler.webpack.cli.isColorSupported === "function" ? compiler.webpack.cli.isColorSupported() : isColorSupported();
+    }
+  }
+  const printedStats = stats.toString(/** @type {StatsObjectOptions} */
+  statsOptions);
+
+  // Avoid extra empty line when `stats: 'none'`
+  if (printedStats) {
+    // eslint-disable-next-line no-console
+    console.log(printedStats);
+  }
+}
+const PLUGIN_NAME = "DevMiddleware";
+
+/**
+ * @template {IncomingMessage} Request
+ * @template {ServerResponse} Response
+ * @param {Compiler} compiler compiler
+ * @param {WithOptional<Context<Request, Response>, "watching" | "outputFileSystem">} context context
+ */
+function hookForWriteToDisk(compiler, context) {
+  compiler.hooks.emit.tap(PLUGIN_NAME, () => {
+    // @ts-expect-error
+    if (compiler.hasWebpackDevMiddlewareAssetEmittedCallback) {
+      return;
+    }
+    compiler.hooks.assetEmitted.tapAsync(PLUGIN_NAME, (file, info, callback) => {
+      const {
+        targetPath,
+        content
+      } = info;
+      const {
+        writeToDisk: filter
+      } = context.options;
+      const allowWrite = filter && typeof filter === "function" ? filter(targetPath) : true;
+      if (!allowWrite) {
+        return callback();
+      }
+      const dir = path.dirname(targetPath);
+      const name = compiler.options.name ? `Child "${compiler.options.name}": ` : "";
+      return fs.mkdir(dir, {
+        recursive: true
+      }, mkdirError => {
+        if (mkdirError) {
+          context.logger.error(`${name}Unable to write "${dir}" directory to disk:\n${mkdirError}`);
+          return callback(mkdirError);
+        }
+        return fs.writeFile(targetPath, content, writeFileError => {
+          if (writeFileError) {
+            context.logger.error(`${name}Unable to write "${targetPath}" asset to disk:\n${writeFileError}`);
+            return callback(writeFileError);
+          }
+          context.logger.log(`${name}Asset written to disk: "${targetPath}"`);
+          return callback();
+        });
+      });
+    });
+
+    // @ts-expect-error
+    compiler.hasWebpackDevMiddlewareAssetEmittedCallback = true;
+  });
+}
+
+/**
+ * @template {IncomingMessage} [RequestInternal=IncomingMessage]
+ * @template {ServerResponse} [ResponseInternal=ServerResponse]
+ * @param {Compiler | MultiCompiler} compiler compiler
+ * @param {Options<RequestInternal, ResponseInternal>=} options options
+ * @param {boolean} isPlugin true when will use as a plugin, otherwise false
+ * @returns {API<RequestInternal, ResponseInternal>} webpack dev middleware
+ */
+function wdm(compiler, options = {}, isPlugin = false) {
+  internalValidate(compiler, options);
   const {
     mimeTypes
   } = options;
@@ -209,7 +396,7 @@ function wdm(compiler, options = {}) {
 
     // mimeTypes from user provided options should take priority
     // over existing, known types
-    // @ts-ignore
+    // @ts-expect-error
     mime.types = {
       ...types,
       ...mimeTypes
@@ -221,43 +408,116 @@ function wdm(compiler, options = {}) {
    */
   const context = {
     state: false,
-    // eslint-disable-next-line no-undefined
     stats: undefined,
     callbacks: [],
     options,
     compiler,
     logger: compiler.getInfrastructureLogger("webpack-dev-middleware")
   };
-  setupHooks(context);
-  if (options.writeToDisk) {
-    setupWriteToDisk(context);
-  }
-  setupOutputFileSystem(context);
 
-  // Start watching
-  if ( /** @type {Compiler} */context.compiler.watching) {
-    context.watching = /** @type {Compiler} */context.compiler.watching;
+  // Adding hooks
+  /**
+   * @returns {void}
+   */
+  const invalid = () => {
+    if (context.state) {
+      context.logger.log("Compilation starting...");
+    }
+
+    // We are now in invalid state
+    context.state = false;
+    context.stats = undefined;
+  };
+  /**
+   * @param {Stats | MultiStats} stats stats
+   * @returns {void}
+   */
+  const done = stats => {
+    // We are now on valid state
+
+    context.state = true;
+    context.stats = stats;
+
+    // Do the stuff in nextTick, because bundle may be invalidated if a change happened while compiling
+    process.nextTick(() => {
+      const {
+        state,
+        callbacks
+      } = context;
+
+      // Check if still in valid state
+      if (!state) {
+        return;
+      }
+
+      // For plugin support we should print nothing, because webpack/webpack-cli/webpack-dev-server will print them on using `stats.toString()`
+      if (!isPlugin) {
+        printStats(stats, context);
+      }
+      context.callbacks = [];
+
+      // Execute callback that are delayed
+      for (const callback of callbacks) {
+        callback(stats);
+      }
+    });
+  };
+  compiler.hooks.watchRun.tap(PLUGIN_NAME, invalid);
+  compiler.hooks.invalid.tap(PLUGIN_NAME, invalid);
+  compiler.hooks.done.tap(PLUGIN_NAME, done);
+  const compilersToModify = isMultipleCompiler(compiler) ? compiler.compilers.filter(item => item.options.devServer !== false) : [compiler];
+  if (typeof options.writeToDisk === "function") {
+    for (const compiler of compilersToModify) {
+      hookForWriteToDisk(compiler, context);
+    }
+  }
+
+  // Modify output file system
+  /** @type {OutputFileSystem} */
+  let outputFileSystem;
+  if (context.options.outputFileSystem) {
+    const {
+      outputFileSystem: outputFileSystemFromOptions
+    } = context.options;
+    outputFileSystem = outputFileSystemFromOptions;
+  }
+  // Don't use `memfs` when developer wants to write everything to a disk, because it doesn't make sense.
+  else if (context.options.writeToDisk === true) {
+    // Prefer compiler with `devServer` option or fallback to the first one
+    ({
+      outputFileSystem
+    } = /** @type {Compiler & { outputFileSystem: OutputFileSystem }} */
+
+    isMultipleCompiler(compiler) ? compilersToModify[0] || compiler.compilers[0] : compiler);
   } else {
+    outputFileSystem = /** @type {OutputFileSystem} */
+    /** @type {unknown} */memfs.createFsFromVolume(new memfs.Volume());
+  }
+  context.outputFileSystem = outputFileSystem;
+  for (const compiler of compilersToModify) {
+    compiler.outputFileSystem = outputFileSystem;
+  }
+
+  // Start watching, but only for standalone usage, for plugin usage stats will be printed by external code, for example - webpack-cli
+  if (!isPlugin) {
     /**
-     * @param {Error | null | undefined} error
+     * @param {Error | null} err err
      */
-    const errorHandler = error => {
-      if (error) {
-        // TODO: improve that in future
+    const errorHandler = err => {
+      if (err) {
         // For example - `writeToDisk` can throw an error and right now it is ends watching.
         // We can improve that and keep watching active, but it is require API on webpack side.
         // Let's implement that in webpack@5 because it is rare case.
-        context.logger.error(error);
+        context.logger.error(err);
       }
     };
-    if (Array.isArray( /** @type {MultiCompiler} */context.compiler.compilers)) {
-      const c = /** @type {MultiCompiler} */context.compiler;
-      const watchOptions = c.compilers.map(childCompiler => childCompiler.options.watchOptions || {});
-      context.watching = compiler.watch(watchOptions, errorHandler);
+    if (isMultipleCompiler(compiler)) {
+      // TODO improve on webpack side - add an option `watching(s)` for MultiCompiler
+      context.watching = compiler.watch(compiler.compilers.map(compiler => compiler.options.watchOptions || {}), errorHandler);
+    } else if (compiler.watching) {
+      context.watching = compiler.watching;
     } else {
-      const c = /** @type {Compiler} */context.compiler;
-      const watchOptions = c.options.watchOptions || {};
-      context.watching = compiler.watch(watchOptions, errorHandler);
+      context.watching = compiler.watch(compiler.options.watchOptions || {}, errorHandler);
     }
   }
   const filledContext = /** @type {FilledContext<RequestInternal, ResponseInternal>} */
@@ -266,12 +526,12 @@ function wdm(compiler, options = {}) {
   middleware(filledContext);
 
   // API
-  instance.getFilenameFromUrl = (url, extra) => getFilenameFromUrl(filledContext, url, extra);
+  instance.getFilenameFromUrl = url => middleware.getFilenameFromUrl(filledContext, url);
   instance.waitUntilValid = (callback = noop) => {
-    ready(filledContext, callback);
+    middleware.ready(filledContext, callback);
   };
   instance.invalidate = (callback = noop) => {
-    ready(filledContext, callback);
+    middleware.ready(filledContext, callback);
     filledContext.watching.invalidate();
   };
   instance.close = (callback = noop) => {
@@ -284,8 +544,8 @@ function wdm(compiler, options = {}) {
 /**
  * @template S
  * @template O
- * @typedef {Object} HapiPluginBase
- * @property {(server: S, options: O) => void | Promise<void>} register
+ * @typedef {object} HapiPluginBase
+ * @property {(server: S, options: O) => void | Promise<void>} register register
  */
 
 /**
@@ -301,9 +561,10 @@ function wdm(compiler, options = {}) {
 /**
  * @template HapiServer
  * @template {HapiOptions} HapiOptionsInternal
- * @returns {HapiPlugin<HapiServer, HapiOptionsInternal>}
+ * @param {boolean=} usePlugin true when need to use as a plugin, otherwise false
+ * @returns {HapiPlugin<HapiServer, HapiOptionsInternal>} hapi wrapper
  */
-function hapiWrapper() {
+function hapiWrapper(usePlugin = false) {
   return {
     pkg: {
       name: "webpack-dev-middleware"
@@ -318,31 +579,32 @@ function hapiWrapper() {
       if (!compiler) {
         throw new Error("The compiler options is required.");
       }
-      const devMiddleware = wdm(compiler, rest);
+      const devMiddleware = wdm(compiler, rest, usePlugin);
 
-      // @ts-ignore
+      // @ts-expect-error
       if (!server.decorations.server.includes("webpackDevMiddleware")) {
-        // @ts-ignore
+        // @ts-expect-error
         server.decorate("server", "webpackDevMiddleware", devMiddleware);
       }
 
-      // @ts-ignore
+      // @ts-expect-error
+      // eslint-disable-next-line id-length
       server.ext("onRequest", (request, h) => new Promise((resolve, reject) => {
         let isFinished = false;
 
         /**
-         * @param {string | Buffer} [data]
+         * @param {(string | Buffer)=} data
          */
-        // eslint-disable-next-line no-param-reassign
+
         request.raw.res.send = data => {
           isFinished = true;
           request.raw.res.end(data);
         };
 
         /**
-         * @param {string | Buffer} [data]
+         * @param {(string | Buffer)=} data
          */
-        // eslint-disable-next-line no-param-reassign
+
         request.raw.res.finish = data => {
           isFinished = true;
           request.raw.res.end(data);
@@ -367,20 +629,20 @@ wdm.hapiWrapper = hapiWrapper;
 /**
  * @template {IncomingMessage} [RequestInternal=IncomingMessage]
  * @template {ServerResponse} [ResponseInternal=ServerResponse]
- * @param {Compiler | MultiCompiler} compiler
- * @param {Options<RequestInternal, ResponseInternal>} [options]
- * @returns {(ctx: any, next: Function) => Promise<void> | void}
+ * @param {Compiler | MultiCompiler} compiler compiler
+ * @param {Options<RequestInternal, ResponseInternal>=} options options
+ * @param {boolean=} usePlugin whether to use as webpack plugin
+ * @returns {(ctx: EXPECTED_ANY, next: EXPECTED_FUNCTION) => Promise<void> | void} kow wrapper
  */
-function koaWrapper(compiler, options) {
-  const devMiddleware = wdm(compiler, options);
+function koaWrapper(compiler, options = {}, usePlugin = false) {
+  const devMiddleware = wdm(compiler, options, usePlugin);
 
   /**
-   * @param {{ req: RequestInternal, res: ResponseInternal & import("./utils/compatibleAPI").ExpectedServerResponse, status: number, body: string | Buffer | import("fs").ReadStream | { message: string }, state: Object }} ctx
-   * @param {Function} next
+   * @param {{ req: RequestInternal, res: ResponseInternal & import("./utils").ExpectedServerResponse, status: number, body: string | Buffer | import("fs").ReadStream | { message: string }, state: object }} ctx context
+   * @param {EXPECTED_FUNCTION} next next
    * @returns {Promise<void>}
    */
-
-  const wrapper = async function webpackDevMiddleware(ctx, next) {
+  async function webpackDevMiddleware(ctx, next) {
     const {
       req,
       res
@@ -400,114 +662,145 @@ function koaWrapper(compiler, options) {
      */
     res.setStatusCode = statusCode => {
       status = statusCode;
-      // eslint-disable-next-line no-param-reassign
       ctx.status = statusCode;
     };
-    res.getReadyReadableStreamState = () => "open";
+    let isFinished = false;
+    let needNext = false;
     try {
       await new Promise(
       /**
-       * @param {(value: void) => void} resolve
-       * @param {(reason?: any) => void} reject
+       * @param {(value: void) => void} resolve resolve
+       * @param {(reason?: Error) => void} reject reject
        */
       (resolve, reject) => {
         /**
          * @param {import("fs").ReadStream} stream readable stream
          */
         res.stream = stream => {
-          // eslint-disable-next-line no-param-reassign
-          ctx.body = stream;
+          let resolved = false;
+
+          /**
+           * @param {Error=} err error
+           */
+          const onEvent = err => {
+            if (resolved) return;
+            resolved = true;
+            stream.removeListener("error", onEvent);
+            stream.removeListener("readable", onEvent);
+            if (err) {
+              reject(err);
+              return;
+            }
+            ctx.body = stream;
+            isFinished = true;
+            resolve();
+          };
+          stream.once("error", onEvent);
+          stream.once("readable", onEvent);
+          // Empty stream
+          stream.once("end", onEvent);
         };
         /**
          * @param {string | Buffer} data data
          */
         res.send = data => {
-          // eslint-disable-next-line no-param-reassign
           ctx.body = data;
+          isFinished = true;
+          resolve();
         };
 
         /**
-         * @param {string | Buffer} [data] data
+         * @param {(string | Buffer)=} data data
          */
         res.finish = data => {
-          // eslint-disable-next-line no-param-reassign
           ctx.status = status;
           res.end(data);
+          isFinished = true;
+          resolve();
         };
         devMiddleware(req, res, err => {
           if (err) {
             reject(err);
             return;
           }
-          resolve();
+          needNext = true;
+          if (!isFinished) {
+            resolve();
+          }
         });
       });
     } catch (err) {
-      // eslint-disable-next-line no-param-reassign
+      if (options?.forwardError) {
+        await next();
+
+        // need the return for prevent to execute the code below and override the status and body set by user in the next middleware
+        return;
+      }
       ctx.status = /** @type {Error & { statusCode: number }} */err.statusCode || /** @type {Error & { status: number }} */err.status || 500;
-      // eslint-disable-next-line no-param-reassign
       ctx.body = {
         message: /** @type {Error} */err.message
       };
     }
-    await next();
-  };
-  wrapper.devMiddleware = devMiddleware;
-  return wrapper;
+    if (needNext) {
+      await next();
+    }
+  }
+  webpackDevMiddleware.devMiddleware = devMiddleware;
+  return webpackDevMiddleware;
 }
 wdm.koaWrapper = koaWrapper;
 
 /**
  * @template {IncomingMessage} [RequestInternal=IncomingMessage]
  * @template {ServerResponse} [ResponseInternal=ServerResponse]
- * @param {Compiler | MultiCompiler} compiler
- * @param {Options<RequestInternal, ResponseInternal>} [options]
- * @returns {(ctx: any, next: Function) => Promise<void> | void}
+ * @param {Compiler | MultiCompiler} compiler compiler
+ * @param {Options<RequestInternal, ResponseInternal>=} options options
+ * @param {boolean=} usePlugin true when need to use as a plugin, otherwise false
+ * @returns {(ctx: EXPECTED_ANY, next: EXPECTED_FUNCTION) => Promise<void> | void} hono wrapper
  */
-function honoWrapper(compiler, options) {
-  const devMiddleware = wdm(compiler, options);
+function honoWrapper(compiler, options = {}, usePlugin = false) {
+  const devMiddleware = wdm(compiler, options, usePlugin);
 
   /**
-   * @param {{ env: any, body: any, json: any, status: any, set:any, req: RequestInternal & import("./utils/compatibleAPI").ExpectedIncomingMessage & { header: (name: string) => string }, res: ResponseInternal & import("./utils/compatibleAPI").ExpectedServerResponse & { headers: any, status: any } }} c
-   * @param {Function} next
+   * @param {{ env: EXPECTED_ANY, body: EXPECTED_ANY, json: EXPECTED_ANY, status: EXPECTED_ANY, set: EXPECTED_ANY, req: RequestInternal & import("./utils").ExpectedIncomingMessage & { header: (name: string) => string }, res: ResponseInternal & import("./utils").ExpectedServerResponse & { headers: EXPECTED_ANY, status: EXPECTED_ANY } }} context context
+   * @param {EXPECTED_FUNCTION} next next function
    * @returns {Promise<void>}
    */
-  // eslint-disable-next-line consistent-return
-  const wrapper = async function webpackDevMiddleware(c, next) {
+  async function webpackDevMiddleware(context, next) {
     const {
       req,
       res
-    } = c;
-    c.set("webpack", {
+    } = context;
+    context.set("webpack", {
       devMiddleware: devMiddleware.context
     });
 
     /**
-     * @returns {string | undefined}
+     * @returns {string | undefined} method
      */
-    req.getMethod = () => c.req.method;
+    req.getMethod = () => context.req.method;
 
     /**
-     * @param {string} name
-     * @returns {string | string[] | undefined}
+     * @param {string} name name
+     * @returns {string | string[] | undefined} header value
      */
-    req.getHeader = name => c.req.header(name);
+    req.getHeader = name => context.req.header(name);
 
     /**
-     * @returns {string | undefined}
+     * @returns {string | undefined} URL
      */
-    req.getURL = () => c.req.url;
+    req.getURL = () => context.req.url;
     let {
       status
-    } = c.res;
+    } = context.res;
 
     /**
-     * @returns {number} code
+     * @returns {number} code code
      */
     res.getStatusCode = () => status;
 
     /**
-     * @param {number} code
+     * @param {number} code code
      */
     res.setStatusCode = code => {
       status = code;
@@ -515,89 +808,136 @@ function honoWrapper(compiler, options) {
 
     /**
      * @param {string} name header name
+     * @returns {string | string[] | undefined} header
      */
-    res.getHeader = name => c.res.headers.get(name);
+    res.getHeader = name => context.res.headers.get(name);
 
     /**
-     * @param {string} name
-     * @param {string | number | Readonly<string[]>} value
+     * @param {string} name header name
+     * @param {string | number | Readonly<string[]>} value value
+     * @returns {ResponseInternal & import("./utils").ExpectedServerResponse & { headers: EXPECTED_ANY, status: EXPECTED_ANY }} response
      */
     res.setHeader = (name, value) => {
-      c.res.headers.append(name, value);
-      return c.res;
+      context.res.headers.append(name, value);
+      return context.res;
     };
 
     /**
-     * @param {string} name
+     * @param {string} name header name
      */
     res.removeHeader = name => {
-      c.res.headers.delete(name);
+      context.res.headers.delete(name);
     };
 
     /**
-     * @returns {string[]}
+     * @returns {string[]} response headers
      */
-    res.getResponseHeaders = () => Array.from(c.res.headers.keys());
+    res.getResponseHeaders = () => [...context.res.headers.keys()];
 
     /**
-     * @returns {ServerResponse}
+     * @returns {ServerResponse} server response
      */
-    res.getOutgoing = () => c.env.outgoing;
+    res.getOutgoing = () => context.env.outgoing;
     res.setState = () => {
       // Do nothing, because we set it before
     };
-    res.getReadyReadableStreamState = () => "readable";
-    res.getHeadersSent = () => c.env.outgoing.headersSent;
+    res.getHeadersSent = () => context.env.outgoing.headersSent;
     let body;
+    let isFinished = false;
     try {
       await new Promise(
       /**
-       * @param {(value: void) => void} resolve
-       * @param {(reason?: any) => void} reject
+       * @param {(value: void) => void} resolve resolve
+       * @param {(reason?: Error) => void} reject reject
        */
       (resolve, reject) => {
         /**
          * @param {import("fs").ReadStream} stream readable stream
          */
         res.stream = stream => {
-          body = stream;
-          // responseHandler(stream);
+          let isResolved = false;
+
+          /**
+           * @param {Error=} err err
+           */
+          const onEvent = err => {
+            if (isResolved) return;
+            isResolved = true;
+            stream.removeListener("error", onEvent);
+            stream.removeListener("readable", onEvent);
+            stream.removeListener("end", onEvent);
+            if (err) {
+              stream.destroy();
+              reject(err);
+              return;
+            }
+            body = stream;
+            isFinished = true;
+            resolve();
+          };
+          stream.once("error", onEvent);
+          stream.once("readable", onEvent);
+          // Empty stream
+          stream.once("end", onEvent);
+          if (stream.pending === false) {
+            onEvent();
+          }
         };
 
         /**
          * @param {string | Buffer} data data
          */
         res.send = data => {
+          // Hono sets `Content-Length` by default
+          context.res.headers.delete("Content-Length");
           body = data;
+          isFinished = true;
+          resolve();
         };
 
         /**
-         * @param {string | Buffer} [data] data
+         * @param {(string | Buffer)=} data data
          */
         res.finish = data => {
-          body = typeof data !== "undefined" ? data : null;
+          const isDataExist = typeof data !== "undefined";
+
+          // Hono sets `Content-Length` by default
+          if (isDataExist) {
+            context.res.headers.delete("Content-Length");
+          }
+          body = isDataExist ? data : null;
+          isFinished = true;
+          resolve();
         };
         devMiddleware(req, res, err => {
           if (err) {
             reject(err);
             return;
           }
-          resolve();
+          if (!isFinished) {
+            resolve();
+          }
         });
       });
     } catch (err) {
-      c.status(500);
-      return c.json({
+      if (options?.forwardError) {
+        await next();
+
+        // need the return for prevent to execute the code below and override the status and body set by user in the next middleware
+        return;
+      }
+      context.status(500);
+      return context.json({
         message: /** @type {Error} */err.message
       });
     }
     if (typeof body !== "undefined") {
-      return c.body(body, status);
+      return context.body(body, status);
     }
     await next();
-  };
-  wrapper.devMiddleware = devMiddleware;
-  return wrapper;
+  }
+  webpackDevMiddleware.devMiddleware = devMiddleware;
+  return webpackDevMiddleware;
 }
 wdm.honoWrapper = honoWrapper;
 module.exports = wdm;

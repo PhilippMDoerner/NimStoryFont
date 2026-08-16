@@ -1,12 +1,12 @@
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterTestingModule } from '@angular/router/testing';
 import { LeafletModule } from '@bluehalo/ngx-leaflet';
-import { action } from 'storybook/actions';
 import { Meta, StoryFn, moduleMetadata } from '@storybook/angular';
 import * as x from 'leaflet';
-import { ExtendedMap } from 'src/app/_models/map';
-import { OverviewItem } from 'src/app/_models/overview';
-import { dummyMarkers } from 'src/app/_services/article/marker.service.mock';
+import { action } from 'storybook/actions';
+import { ExtendedMap } from '../../../_models/map';
+import { OverviewItem } from '../../../_models/overview';
+import { dummyMarkers } from '../../../_services/article/marker.service.mock';
 import { MapComponent } from './map.component';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

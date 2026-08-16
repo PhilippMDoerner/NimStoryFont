@@ -12,16 +12,16 @@ import {
   CharacterEncounterConnections,
   CharacterItem,
   CharacterOrganizationMembership,
-} from 'src/app/_models/character';
-import { Encounter } from 'src/app/_models/encounter';
-import { Image } from 'src/app/_models/image';
-import { OverviewItem } from 'src/app/_models/overview';
+} from '../../../_models/character';
+import { Encounter } from '../../../_models/encounter';
+import { Image } from '../../../_models/image';
+import { OverviewItem } from '../../../_models/overview';
 import {
   CharacterPlayerClassConnectionDetail,
   PlayerClass,
-} from 'src/app/_models/playerclass';
-import { Quote, QuoteConnection, QuoteRaw } from 'src/app/_models/quote';
-import { RoutingService } from 'src/app/_services/routing.service';
+} from '../../../_models/playerclass';
+import { Quote, QuoteConnection, QuoteRaw } from '../../../_models/quote';
+import { RoutingService } from '../../../_services/routing.service';
 import { InfoCircleTooltipComponent } from '../../atoms/info-circle-tooltip/info-circle-tooltip.component';
 import { BadgeListEntry, ListEntry } from '../../molecules';
 import { ArticleContextMenuComponent } from '../../molecules/article-context-menu/article-context-menu.component';
@@ -54,23 +54,22 @@ import { QuoteFieldComponent } from '../../organisms/quote-field/quote-field.com
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CharacterComponent {
-  character = input.required<CharacterDetails>();
-  characterServerModel = input<CharacterDetails>();
-  characterQuote = input<Quote>();
-  campaignNPCCharacters = input.required<OverviewItem[]>();
-  campaignCharacters = input.required<OverviewItem[]>();
-  campaignOrganizations = input.required<OverviewItem[]>();
-  campaignLocations = input.required<OverviewItem[]>();
-  campaignClasses = input.required<PlayerClass[]>();
-  serverUrl = input.required<string>();
-  quoteServerModel = input<Quote>();
-  imageServerModel = input<Image>();
-  sessions = input.required<OverviewItem[]>();
-  encounters = input.required<OverviewItem[]>();
-  encounterServerModel = input<Encounter>();
-  canUpdate = input(false);
-  canCreate = input(false);
-  canDelete = input(false);
+  readonly character = input.required<CharacterDetails>();
+  readonly characterServerModel = input<CharacterDetails>();
+  readonly characterQuote = input<Quote>();
+  readonly campaignCharacters = input.required<OverviewItem[]>();
+  readonly campaignOrganizations = input.required<OverviewItem[]>();
+  readonly campaignLocations = input.required<OverviewItem[]>();
+  readonly campaignClasses = input.required<PlayerClass[]>();
+  readonly serverUrl = input.required<string>();
+  readonly quoteServerModel = input<Quote>();
+  readonly imageServerModel = input<Image>();
+  readonly sessions = input.required<OverviewItem[]>();
+  readonly encounters = input.required<OverviewItem[]>();
+  readonly encounterServerModel = input<Encounter>();
+  readonly canUpdate = input(false);
+  readonly canCreate = input(false);
+  readonly canDelete = input(false);
 
   readonly createImage = output<Image>();
   readonly deleteImage = output<Image>();
@@ -84,35 +83,37 @@ export class CharacterComponent {
   readonly encounterConnectionCreate = output<CharacterEncounterConnections>();
   readonly refreshQuote = output<void>();
   readonly characterDelete = output<CharacterDetails>();
-  characterUpdate = output<CharacterDetails>();
+  readonly characterUpdate = output<CharacterDetails>();
   readonly encounterDelete = output<CharacterEncounter>();
   readonly encounterUpdate = output<CharacterEncounter>();
   readonly organizationMembershipCreate =
     output<CharacterOrganizationMembership>();
   readonly organizationMembershipDelete =
     output<CharacterOrganizationMembership>();
-  addClass = output<PlayerClass>();
-  removeClass = output<PlayerClass>();
+  readonly addClass = output<PlayerClass>();
+  readonly removeClass = output<PlayerClass>();
 
-  campaignName = computed(() => this.character().campaign_details?.name);
-  createUrl = computed(() => {
+  readonly campaignName = computed(
+    () => this.character().campaign_details?.name,
+  );
+  readonly createUrl = computed(() => {
     return this.routingService.getRoutePath('character-update', {
       campaign: this.campaignName(),
       name: this.character().name,
     });
   });
-  updateUrl = computed(() => {
+  readonly updateUrl = computed(() => {
     return this.routingService.getRoutePath('character-update', {
       campaign: this.campaignName(),
       name: this.character().name,
     });
   });
-  overviewUrl = computed(() =>
+  readonly overviewUrl = computed(() =>
     this.routingService.getRoutePath('character-overview', {
       campaign: this.campaignName(),
     }),
   );
-  locationUrl = computed(() => {
+  readonly locationUrl = computed(() => {
     const locationName = this.character().current_location_details?.name;
     const parentLocationName =
       this.character().current_location_details?.parent_location;
@@ -122,12 +123,12 @@ export class CharacterComponent {
       campaign: this.campaignName(),
     });
   });
-  itemCreateUrl = computed(() =>
+  readonly itemCreateUrl = computed(() =>
     this.routingService.getRoutePath('item-create', {
       campaign: this.campaignName(),
     }),
   );
-  organizationMemberships = computed<
+  readonly organizationMemberships = computed<
     BadgeListEntry<CharacterOrganizationMembership>[]
   >(
     () =>
@@ -135,7 +136,7 @@ export class CharacterComponent {
         this.toBadgeListEntry(org),
       ) ?? [],
   );
-  joinableOrganizations = computed(() => {
+  readonly joinableOrganizations = computed(() => {
     const joinedOrgIds = this.organizationMemberships().map(
       (membership) => membership.badgeValue.organization_id,
     );
@@ -143,16 +144,21 @@ export class CharacterComponent {
       (org) => org.pk && !joinedOrgIds.includes(org.pk),
     );
   });
-  characterItems = computed<ListEntry[]>(
+  readonly characterItems = computed<ListEntry[]>(
     () => this.character().items?.map((item) => this.toListEntry(item)) ?? [],
   );
-  characterClasses = computed<BadgeListEntry<PlayerClass>[]>(() => {
+  readonly characterClasses = computed<BadgeListEntry<PlayerClass>[]>(() => {
     return (
       this.character().player_class_connections?.map(
         this.connectionToBadgeListEntry,
       ) ?? []
     );
   });
+  readonly campaignNPCCharacters = computed(() =>
+    this.campaignCharacters()?.filter(
+      (character) => !character.player_character,
+    ),
+  );
 
   constructor(private routingService: RoutingService) {}
 

@@ -25,8 +25,8 @@ class CborDecoder extends CborDecoderBase_1.CborDecoderBase {
     readMapRaw(length) {
         const map = new Map();
         for (let i = 0; i < length; i++) {
-            const key = this.val();
-            const value = this.val();
+            const key = this.readAny();
+            const value = this.readAny();
             map.set(key, value);
         }
         return map;
@@ -34,10 +34,10 @@ class CborDecoder extends CborDecoderBase_1.CborDecoderBase {
     readMapIndef() {
         const map = new Map();
         while (this.reader.peak() !== 255) {
-            const key = this.val();
+            const key = this.readAny();
             if (this.reader.peak() === 255)
                 throw 7;
-            const value = this.val();
+            const value = this.readAny();
             map.set(key, value);
         }
         this.reader.x++;
@@ -235,7 +235,7 @@ class CborDecoder extends CborDecoderBase_1.CborDecoderBase {
             case 5:
                 return this.readAsValue();
             default:
-                return this.val();
+                return this.readAny();
         }
     }
     readAsValue() {

@@ -1,6 +1,7 @@
 "use strict";
+/* tslint:disable no-invalid-this */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.once = void 0;
+exports.once = once;
 const instances = new WeakMap();
 /**
  * A class method decorator that limits a method to be called only once. All
@@ -16,4 +17,3 @@ function once(fn, context) {
         return map.get(fn);
     };
 }
-exports.once = once;

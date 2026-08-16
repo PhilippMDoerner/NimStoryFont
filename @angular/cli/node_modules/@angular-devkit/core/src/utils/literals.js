@@ -56,3 +56,4 @@ function trimNewlines(strings, ...values) {
         // Remove the newline at the end and following whitespace.
         .replace(/(?:\r?\n(?:\s*))$/, ''));
 }
+//# sourceMappingURL=literals.js.map

@@ -17,3 +17,4 @@ async function formatValidator(data, dataSchema, formats) {
     const validator = await registry.compile(dataSchema);
     return validator(data);
 }
+//# sourceMappingURL=format-validator.js.map

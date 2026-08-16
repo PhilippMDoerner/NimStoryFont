@@ -18,15 +18,15 @@ type HotKey = 'Space' | 'Enter' | 'KeyM' | 'ArrowRight' | 'ArrowLeft';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PlayerComponent {
-  private SEEK_TIME = 5;
-  private VOLUME_STEP = 0.05;
+  private readonly SEEK_TIME = 5;
+  private readonly VOLUME_STEP = 0.05;
 
-  serverUrl = input.required<string>();
-  audioSource = input.required<string>();
-  downloadSource = input.required<string>();
-  playTime = input.required<number | undefined>();
+  readonly serverUrl = input.required<string>();
+  readonly audioSource = input.required<string>();
+  readonly downloadSource = input.required<string>();
+  readonly playTime = input.required<number | undefined>();
 
-  audioPlayer = viewChild<ElementRef<HTMLAudioElement>>('audioPlayer');
+  readonly audioPlayer = viewChild<ElementRef<HTMLAudioElement>>('audioPlayer');
 
   private plyr!: Plyr;
 

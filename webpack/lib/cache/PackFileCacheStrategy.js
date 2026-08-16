@@ -7,17 +7,19 @@
 
 const FileSystemInfo = require("../FileSystemInfo");
 const ProgressPlugin = require("../ProgressPlugin");
-const { formatSize } = require("../SizeFormatHelpers");
+const { getReferencedFilenames } = require("../serialization/FileMiddleware");
 const SerializerMiddleware = require("../serialization/SerializerMiddleware");
 const LazySet = require("../util/LazySet");
+const formatSize = require("../util/formatSize");
 const makeSerializable = require("../util/makeSerializable");
 const memoize = require("../util/memoize");
 const {
-	createFileSerializer,
-	NOT_SERIALIZABLE
+	NOT_SERIALIZABLE,
+	createFileSerializer
 } = require("../util/serialization");
 
 /** @typedef {import("../../declarations/WebpackOptions").SnapshotOptions} SnapshotOptions */
+/** @typedef {import("../Compilation").FileSystemDependencies} FileSystemDependencies */
 /** @typedef {import("../Cache").Data} Data */
 /** @typedef {import("../Cache").Etag} Etag */
 /** @typedef {import("../Compiler")} Compiler */
@@ -27,15 +29,27 @@ const {
 /** @typedef {import("../logging/Logger").Logger} Logger */
 /** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext} ObjectDeserializerContext */
 /** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext} ObjectSerializerContext */
-/** @typedef {typeof import("../util/Hash")} Hash */
+/** @typedef {import("../util/Hash").HashFunction} HashFunction */
 /** @typedef {import("../util/fs").IntermediateFileSystem} IntermediateFileSystem */
 
 /** @typedef {Set<string>} Items */
 /** @typedef {Set<string>} BuildDependencies */
 /** @typedef {Map<string, PackItemInfo>} ItemInfo */
+/** @typedef {{ firstSeen: number, size: number }} UnreferencedFile */
+/** @typedef {Map<string, UnreferencedFile>} UnreferencedFiles */
+
+// Unreferenced files are kept for this long to not race concurrent builds sharing the cache directory.
+const CLEANUP_GRACE_PERIOD = 30 * 60 * 1000;
+// Records when each unreferenced file was first seen. Aging by recorded time keeps
+// orphans expiring across caches restored with refreshed modification times.
+const UNREFERENCED_FILE = "unreferenced.json";
+// A file written this recently may belong to a concurrent build that reused the name,
+// in which case the recorded time describes the previous file and must not be trusted.
+const CLEANUP_RECENT_WRITE_PERIOD = 60 * 1000;
 
 class PackContainer {
 	/**
+	 * Creates an instance of PackContainer.
 	 * @param {Pack} data stored data
 	 * @param {string} version version identifier
 	 * @param {Snapshot} buildSnapshot snapshot of all build dependencies
@@ -51,15 +65,22 @@ class PackContainer {
 		resolveResults,
 		resolveBuildDependenciesSnapshot
 	) {
+		/** @type {Pack | (() => Pack)} */
 		this.data = data;
+		/** @type {string} */
 		this.version = version;
+		/** @type {Snapshot} */
 		this.buildSnapshot = buildSnapshot;
+		/** @type {BuildDependencies} */
 		this.buildDependencies = buildDependencies;
+		/** @type {ResolveResults} */
 		this.resolveResults = resolveResults;
+		/** @type {Snapshot} */
 		this.resolveBuildDependenciesSnapshot = resolveBuildDependenciesSnapshot;
 	}
 
 	/**
+	 * Serializes this instance into the provided serializer context.
 	 * @param {ObjectSerializerContext} context context
 	 */
 	serialize({ write, writeLazy }) {
@@ -73,6 +94,7 @@ class PackContainer {
 	}
 
 	/**
+	 * Restores this instance from the provided deserializer context.
 	 * @param {ObjectDeserializerContext} context context
 	 */
 	deserialize({ read }) {
@@ -95,25 +117,32 @@ const MIN_CONTENT_SIZE = 1024 * 1024; // 1 MB
 const CONTENT_COUNT_TO_MERGE = 10;
 const MIN_ITEMS_IN_FRESH_PACK = 100;
 const MAX_ITEMS_IN_FRESH_PACK = 50000;
-const MAX_TIME_IN_FRESH_PACK = 1 * 60 * 1000; // 1 min
+const MAX_TIME_IN_FRESH_PACK = 60 * 1000; // 1 min
 
 class PackItemInfo {
 	/**
+	 * Creates an instance of PackItemInfo.
 	 * @param {string} identifier identifier of item
 	 * @param {string | null | undefined} etag etag of item
 	 * @param {Data} value fresh value of item
 	 */
 	constructor(identifier, etag, value) {
+		/** @type {string} */
 		this.identifier = identifier;
+		/** @type {string | null | undefined} */
 		this.etag = etag;
+		/** @type {number} */
 		this.location = -1;
+		/** @type {number} */
 		this.lastAccess = Date.now();
+		/** @type {Data} */
 		this.freshValue = value;
 	}
 }
 
 class Pack {
 	/**
+	 * Creates an instance of Pack.
 	 * @param {Logger} logger a logger
 	 * @param {number} maxAge max age of cache items
 	 */
@@ -122,17 +151,22 @@ class Pack {
 		this.itemInfo = new Map();
 		/** @type {(string | undefined)[]} */
 		this.requests = [];
+		/** @type {undefined | NodeJS.Timeout} */
 		this.requestsTimeout = undefined;
 		/** @type {ItemInfo} */
 		this.freshContent = new Map();
 		/** @type {(undefined | PackContent)[]} */
 		this.content = [];
+		/** @type {boolean} */
 		this.invalid = false;
+		/** @type {Logger} */
 		this.logger = logger;
+		/** @type {number} */
 		this.maxAge = maxAge;
 	}
 
 	/**
+	 * Adds the provided identifier to the pack.
 	 * @param {string} identifier identifier
 	 */
 	_addRequest(identifier) {
@@ -154,6 +188,7 @@ class Pack {
 	}
 
 	/**
+	 * Returns cached content.
 	 * @param {string} identifier unique name for the resource
 	 * @param {string | null} etag etag of the resource
 	 * @returns {Data} cached content
@@ -177,6 +212,7 @@ class Pack {
 	}
 
 	/**
+	 * Updates value using the provided identifier.
 	 * @param {string} identifier unique name for the resource
 	 * @param {string | null} etag etag of the resource
 	 * @param {Data} data cached content
@@ -228,15 +264,18 @@ class Pack {
 	}
 
 	/**
+	 * Returns new location of data entries.
 	 * @returns {number} new location of data entries
 	 */
 	_findLocation() {
+		/** @type {number} */
 		let i;
 		for (i = 0; i < this.content.length && this.content[i] !== undefined; i++);
 		return i;
 	}
 
 	/**
+	 * Gc and update location.
 	 * @private
 	 * @param {Items} items items
 	 * @param {Items} usedItems used items
@@ -244,6 +283,7 @@ class Pack {
 	 */
 	_gcAndUpdateLocation(items, usedItems, newLoc) {
 		let count = 0;
+		/** @type {undefined | string} */
 		let lastGC;
 		const now = Date.now();
 		for (const identifier of items) {
@@ -292,8 +332,9 @@ class Pack {
 				return pack;
 			};
 			let pack = createNextPack();
-			if (this.requestsTimeout !== undefined)
+			if (this.requestsTimeout !== undefined) {
 				clearTimeout(this.requestsTimeout);
+			}
 			for (const identifier of this.requests) {
 				if (identifier === undefined) {
 					if (ignoreNextTimeTick) {
@@ -329,7 +370,7 @@ class Pack {
 				`${itemsCount} fresh items in cache put into pack ${
 					packs.length > 1
 						? packs
-								.map(pack => `${pack.loc} (${pack.items.size} items)`)
+								.map((pack) => `${pack.loc} (${pack.items.size} items)`)
 								.join(", ")
 						: packs[0].loc
 				}`
@@ -368,6 +409,7 @@ class Pack {
 		}
 
 		// 2. Check if minimum number is reached
+		/** @type {number[]} */
 		let mergedIndices;
 		if (
 			smallUsedContents.length >= CONTENT_COUNT_TO_MERGE ||
@@ -379,9 +421,11 @@ class Pack {
 			smallUnusedContentSize > MIN_CONTENT_SIZE
 		) {
 			mergedIndices = smallUnusedContents;
-		} else return;
+		} else {
+			return;
+		}
 
-		/** @type {PackContent[] } */
+		/** @type {PackContent[]} */
 		const mergedContent = [];
 
 		// 3. Remove old content entries
@@ -404,7 +448,7 @@ class Pack {
 			for (const identifier of content.used) {
 				mergedUsedItems.add(identifier);
 			}
-			addToMergedMap.push(async map => {
+			addToMergedMap.push(async (map) => {
 				// unpack existing content
 				// after that values are accessible in .content
 				await content.unpack(
@@ -430,7 +474,7 @@ class Pack {
 				memoize(async () => {
 					/** @type {Content} */
 					const map = new Map();
-					await Promise.all(addToMergedMap.map(fn => fn(map)));
+					await Promise.all(addToMergedMap.map((fn) => fn(map)));
 					return new PackContentItems(map);
 				})
 			);
@@ -490,6 +534,7 @@ class Pack {
 
 				// 5. Determine items for the unused content file
 				const unusedItems = new Set(content.items);
+				/** @type {Items} */
 				const usedOfUnusedItems = new Set();
 				for (const identifier of usedItems) {
 					unusedItems.delete(identifier);
@@ -506,6 +551,7 @@ class Pack {
 							await content.unpack(
 								"it should be splitted into used and unused items"
 							);
+							/** @type {Content} */
 							const map = new Map();
 							for (const identifier of unusedItems) {
 								map.set(
@@ -536,6 +582,41 @@ class Pack {
 	}
 
 	/**
+	 * Drops every content whose items all expired. Unlike a partial collection this
+	 * never unpacks, so it is not limited to a single content per store and lets a
+	 * long unused cache shrink in one go instead of one pack per build.
+	 */
+	_gcExpiredContent() {
+		const now = Date.now();
+		let packCount = 0;
+		let itemCount = 0;
+		for (let loc = 0; loc < this.content.length; loc++) {
+			const content = this.content[loc];
+			if (!content) continue;
+			let expired = true;
+			for (const identifier of content.items) {
+				const info = this.itemInfo.get(identifier);
+				if (info !== undefined && now - info.lastAccess <= this.maxAge) {
+					expired = false;
+					break;
+				}
+			}
+			if (!expired) continue;
+			for (const identifier of content.items) this.itemInfo.delete(identifier);
+			this.content[loc] = undefined;
+			packCount++;
+			itemCount += content.items.size;
+		}
+		if (packCount > 0) {
+			this.logger.log(
+				"Garbage Collected %d completely expired packs with %d items",
+				packCount,
+				itemCount
+			);
+		}
+	}
+
+	/**
 	 * Find the content with the oldest item and run GC on that.
 	 * Only runs for one content to avoid large invalidation.
 	 */
@@ -547,11 +628,10 @@ class Pack {
 				oldest = info;
 			}
 		}
-		if (
-			Date.now() - /** @type {PackItemInfo} */ (oldest).lastAccess >
-			this.maxAge
-		) {
-			const loc = /** @type {PackItemInfo} */ (oldest).location;
+		// collecting expired content may have left no items at all
+		if (oldest === undefined) return;
+		if (Date.now() - oldest.lastAccess > this.maxAge) {
+			const loc = oldest.location;
 			if (loc < 0) return;
 			const content = /** @type {PackContent} */ (this.content[loc]);
 			const items = new Set(content.items);
@@ -564,6 +644,7 @@ class Pack {
 							await content.unpack(
 								"it contains old items that should be garbage collected"
 							);
+							/** @type {Content} */
 							const map = new Map();
 							for (const identifier of items) {
 								map.set(
@@ -579,12 +660,14 @@ class Pack {
 	}
 
 	/**
+	 * Serializes this instance into the provided serializer context.
 	 * @param {ObjectSerializerContext} context context
 	 */
 	serialize({ write, writeSeparate }) {
 		this._persistFreshContent();
 		this._optimizeSmallContent();
 		this._optimizeUnusedContent();
+		this._gcExpiredContent();
 		this._gcOldestContent();
 		for (const identifier of this.itemInfo.keys()) {
 			write(identifier);
@@ -600,7 +683,7 @@ class Pack {
 			const content = this.content[i];
 			if (content !== undefined) {
 				write(content.items);
-				content.writeLazy(lazy =>
+				content.writeLazy((lazy) =>
 					/** @type {NonNullable<ObjectSerializerContext["writeSeparate"]>} */
 					(writeSeparate)(lazy, { name: `${i}` })
 				);
@@ -612,6 +695,7 @@ class Pack {
 	}
 
 	/**
+	 * Restores this instance from the provided deserializer context.
 	 * @param {ObjectDeserializerContext & { logger: Logger }} context context
 	 */
 	deserialize({ read, logger }) {
@@ -624,7 +708,7 @@ class Pack {
 				item = read();
 			}
 			this.itemInfo.clear();
-			const infoItems = items.map(identifier => {
+			const infoItems = items.map((identifier) => {
 				const info = new PackItemInfo(identifier, undefined, undefined);
 				this.itemInfo.set(identifier, info);
 				return info;
@@ -669,14 +753,17 @@ makeSerializable(Pack, "webpack/lib/cache/PackFileCacheStrategy", "Pack");
 
 class PackContentItems {
 	/**
+	 * Creates an instance of PackContentItems.
 	 * @param {Content} map items
 	 */
 	constructor(map) {
+		/** @type {Content} */
 		this.map = map;
 	}
 
 	/**
-	 * @param {ObjectSerializerContext & { logger: Logger, profile: boolean | undefined  }} context context
+	 * Serializes this instance into the provided serializer context.
+	 * @param {ObjectSerializerContext & { logger: Logger, profile: boolean | undefined }} context context
 	 */
 	serialize({ write, snapshot, rollback, logger, profile }) {
 		if (profile) {
@@ -690,15 +777,17 @@ class PackContentItems {
 					const durationHr = process.hrtime(start);
 					const duration = durationHr[0] * 1000 + durationHr[1] / 1e6;
 					if (duration > 1) {
-						if (duration > 500)
+						if (duration > 500) {
 							logger.error(`Serialization of '${key}': ${duration} ms`);
-						else if (duration > 50)
+						} else if (duration > 50) {
 							logger.warn(`Serialization of '${key}': ${duration} ms`);
-						else if (duration > 10)
+						} else if (duration > 10) {
 							logger.info(`Serialization of '${key}': ${duration} ms`);
-						else if (duration > 5)
+						} else if (duration > 5) {
 							logger.log(`Serialization of '${key}': ${duration} ms`);
-						else logger.debug(`Serialization of '${key}': ${duration} ms`);
+						} else {
+							logger.debug(`Serialization of '${key}': ${duration} ms`);
+						}
 					}
 				} catch (err) {
 					rollback(s);
@@ -751,12 +840,14 @@ class PackContentItems {
 	}
 
 	/**
+	 * Restores this instance from the provided deserializer context.
 	 * @param {ObjectDeserializerContext & { logger: Logger, profile: boolean | undefined }} context context
 	 */
 	deserialize({ read, logger, profile }) {
 		if (read()) {
 			this.map = read();
 		} else if (profile) {
+			/** @type {Content} */
 			const map = new Map();
 			let key = read();
 			while (key !== null) {
@@ -765,21 +856,24 @@ class PackContentItems {
 				const durationHr = process.hrtime(start);
 				const duration = durationHr[0] * 1000 + durationHr[1] / 1e6;
 				if (duration > 1) {
-					if (duration > 100)
+					if (duration > 100) {
 						logger.error(`Deserialization of '${key}': ${duration} ms`);
-					else if (duration > 20)
+					} else if (duration > 20) {
 						logger.warn(`Deserialization of '${key}': ${duration} ms`);
-					else if (duration > 5)
+					} else if (duration > 5) {
 						logger.info(`Deserialization of '${key}': ${duration} ms`);
-					else if (duration > 2)
+					} else if (duration > 2) {
 						logger.log(`Deserialization of '${key}': ${duration} ms`);
-					else logger.debug(`Deserialization of '${key}': ${duration} ms`);
+					} else {
+						logger.debug(`Deserialization of '${key}': ${duration} ms`);
+					}
 				}
 				map.set(key, value);
 				key = read();
 			}
 			this.map = map;
 		} else {
+			/** @type {Content} */
 			const map = new Map();
 			let key = read();
 			while (key !== null) {
@@ -797,7 +891,7 @@ makeSerializable(
 	"PackContentItems"
 );
 
-/** @typedef {(() => Promise<PackContentItems> | PackContentItems) & Partial<{ options: { size?: number }}>} LazyFunction */
+/** @typedef {(() => Promise<PackContentItems> | PackContentItems) & Partial<{ options: { size?: number } }>} LazyFunction */
 
 class PackContent {
 	/*
@@ -820,6 +914,7 @@ class PackContent {
 	*/
 
 	/**
+	 * Creates an instance of PackContent.
 	 * @param {Items} items keys
 	 * @param {Items} usedItems used keys
 	 * @param {PackContentItems | (() => Promise<PackContentItems>)} dataOrFn sync or async content
@@ -827,18 +922,24 @@ class PackContent {
 	 * @param {string=} lazyName name of dataOrFn for logging
 	 */
 	constructor(items, usedItems, dataOrFn, logger, lazyName) {
+		/** @type {Items} */
 		this.items = items;
 		/** @type {LazyFunction | undefined} */
 		this.lazy = typeof dataOrFn === "function" ? dataOrFn : undefined;
 		/** @type {Content | undefined} */
 		this.content = typeof dataOrFn === "function" ? undefined : dataOrFn.map;
+		/** @type {boolean} */
 		this.outdated = false;
+		/** @type {Items} */
 		this.used = usedItems;
+		/** @type {Logger | undefined} */
 		this.logger = logger;
+		/** @type {string | undefined} */
 		this.lazyName = lazyName;
 	}
 
 	/**
+	 * Returns result.
 	 * @param {string} identifier identifier
 	 * @returns {string | Promise<string>} result
 	 */
@@ -868,7 +969,7 @@ class PackContent {
 		}
 		const value = /** @type {LazyFunction} */ (this.lazy)();
 		if ("then" in value) {
-			return value.then(data => {
+			return value.then((data) => {
 				const map = data.map;
 				if (timeMessage) {
 					logger.timeEnd(timeMessage);
@@ -891,6 +992,7 @@ class PackContent {
 	}
 
 	/**
+	 * Returns maybe a promise if lazy.
 	 * @param {string} reason explanation why unpack is necessary
 	 * @returns {void | Promise<void>} maybe a promise if lazy
 	 */
@@ -920,7 +1022,7 @@ class PackContent {
 				/** @type {PackContentItems | Promise<PackContentItems>} */
 				(this.lazy());
 			if ("then" in value) {
-				return value.then(data => {
+				return value.then((data) => {
 					if (timeMessage) {
 						logger.timeEnd(timeMessage);
 					}
@@ -935,6 +1037,7 @@ class PackContent {
 	}
 
 	/**
+	 * Returns the estimated size for the requested source type.
 	 * @returns {number} size of the content or -1 if not known
 	 */
 	getSize() {
@@ -949,6 +1052,7 @@ class PackContent {
 	}
 
 	/**
+	 * Processes the provided identifier.
 	 * @param {string} identifier identifier
 	 */
 	delete(identifier) {
@@ -958,6 +1062,7 @@ class PackContent {
 	}
 
 	/**
+	 * Processes the provided write.
 	 * @param {(lazy: LazyFunction) => (() => PackContentItems | Promise<PackContentItems>)} write write function
 	 * @returns {void}
 	 */
@@ -1015,7 +1120,7 @@ class PackContent {
 		if ("then" in value) {
 			// Move to state B1
 			this.lazy = write(() =>
-				value.then(data => {
+				value.then((data) => {
 					if (timeMessage) {
 						logger.timeEnd(timeMessage);
 					}
@@ -1050,10 +1155,11 @@ class PackContent {
 }
 
 /**
+ * Allow collecting memory.
  * @param {Buffer} buf buffer
  * @returns {Buffer} buffer that can be collected
  */
-const allowCollectingMemory = buf => {
+const allowCollectingMemory = (buf) => {
 	const wasted = buf.buffer.byteLength - buf.byteLength;
 	if (wasted > 8192 && (wasted > 1048576 || wasted > buf.byteLength)) {
 		return Buffer.from(buf);
@@ -1063,6 +1169,7 @@ const allowCollectingMemory = buf => {
 
 class PackFileCacheStrategy {
 	/**
+	 * Creates an instance of PackFileCacheStrategy.
 	 * @param {object} options options
 	 * @param {Compiler} options.compiler the compiler
 	 * @param {IntermediateFileSystem} options.fs the filesystem
@@ -1072,10 +1179,10 @@ class PackFileCacheStrategy {
 	 * @param {Logger} options.logger a logger
 	 * @param {SnapshotOptions} options.snapshot options regarding snapshotting
 	 * @param {number} options.maxAge max age of cache items
-	 * @param {boolean | undefined} options.profile track and log detailed timing information for individual cache items
-	 * @param {boolean | undefined} options.allowCollectingMemory allow to collect unused memory created during deserialization
-	 * @param {false | "gzip" | "brotli" | undefined} options.compression compression used
-	 * @param {boolean | undefined} options.readonly disable storing cache into filesystem
+	 * @param {boolean=} options.profile track and log detailed timing information for individual cache items
+	 * @param {boolean=} options.allowCollectingMemory allow to collect unused memory created during deserialization
+	 * @param {false | "gzip" | "brotli" | "zstd"=} options.compression compression used
+	 * @param {boolean=} options.readonly disable storing cache into filesystem
 	 */
 	constructor({
 		compiler,
@@ -1091,38 +1198,63 @@ class PackFileCacheStrategy {
 		compression,
 		readonly
 	}) {
-		/** @type {import("../serialization/Serializer")<PackContainer, null, {}>} */
+		/** @type {import("../serialization/Serializer")<PackContainer, null, EXPECTED_OBJECT>} */
 		this.fileSerializer = createFileSerializer(
 			fs,
-			/** @type {string | Hash} */
+			/** @type {HashFunction} */
 			(compiler.options.output.hashFunction)
 		);
+		/** @type {FileSystemInfo} */
 		this.fileSystemInfo = new FileSystemInfo(fs, {
 			managedPaths: snapshot.managedPaths,
 			immutablePaths: snapshot.immutablePaths,
 			logger: logger.getChildLogger("webpack.FileSystemInfo"),
 			hashFunction: compiler.options.output.hashFunction
 		});
+		/** @type {Compiler} */
 		this.compiler = compiler;
+		/** @type {IntermediateFileSystem} */
+		this.fs = fs;
+		/** @type {string} */
 		this.context = context;
+		/** @type {string} */
 		this.cacheLocation = cacheLocation;
+		/** @type {string} */
 		this.version = version;
+		/** @type {Logger} */
 		this.logger = logger;
+		/** @type {number} */
 		this.maxAge = maxAge;
+		/** @type {boolean | undefined} */
 		this.profile = profile;
+		/** @type {boolean | undefined} */
 		this.readonly = readonly;
+		/** @type {boolean | undefined} */
 		this.allowCollectingMemory = allowCollectingMemory;
+		// referenced names per on-disk file, versioned by mtime since concurrent
+		// processes may rewrite packs in place under the same name
+		/** @type {Map<string, { mtimeMs: number, referenced: string[] }>} */
+		this._referencedFilesCache = new Map();
+		/** @type {false | "gzip" | "brotli" | "zstd" | undefined} */
 		this.compression = compression;
+		// eslint-disable-next-line n/no-unsupported-features/node-builtins
+		if (compression === "zstd" && !require("zlib").createZstdCompress) {
+			throw new Error("cache.compression: 'zstd' requires Node.js >= 22.15.0");
+		}
+		/** @type {string} */
 		this._extension =
 			compression === "brotli"
 				? ".pack.br"
 				: compression === "gzip"
 					? ".pack.gz"
-					: ".pack";
+					: compression === "zstd"
+						? ".pack.zst"
+						: ".pack";
+		/** @type {SnapshotOptions} */
 		this.snapshot = snapshot;
 		/** @type {BuildDependencies} */
 		this.buildDependencies = new Set();
-		/** @type {LazySet<string>} */
+		/** @type {FileSystemDependencies} */
 		this.newBuildDependencies = new LazySet();
 		/** @type {Snapshot | undefined} */
 		this.resolveBuildDependenciesSnapshot = undefined;
@@ -1132,10 +1264,12 @@ class PackFileCacheStrategy {
 		this.buildSnapshot = undefined;
 		/** @type {Promise<Pack> | undefined} */
 		this.packPromise = this._openPack();
+		/** @type {Promise<void>} */
 		this.storePromise = Promise.resolve();
 	}
 
 	/**
+	 * Returns pack.
 	 * @returns {Promise<Pack>} pack
 	 */
 	_getPack() {
@@ -1146,6 +1280,7 @@ class PackFileCacheStrategy {
 	}
 
 	/**
+	 * Returns the pack.
 	 * @returns {Promise<Pack>} the pack
 	 */
 	_openPack() {
@@ -1171,7 +1306,7 @@ class PackFileCacheStrategy {
 					? allowCollectingMemory
 					: undefined
 			})
-			.catch(err => {
+			.catch((err) => {
 				if (err.code !== "ENOENT") {
 					logger.warn(
 						`Restoring pack failed from ${cacheLocation}${this._extension}: ${err}`
@@ -1184,7 +1319,7 @@ class PackFileCacheStrategy {
 				}
 				return undefined;
 			})
-			.then(packContainer => {
+			.then((packContainer) => {
 				logger.timeEnd("restore cache container");
 				if (!packContainer) return;
 				if (!(packContainer instanceof PackContainer)) {
@@ -1202,7 +1337,7 @@ class PackFileCacheStrategy {
 				}
 				logger.time("check build dependencies");
 				return Promise.all([
-					new Promise((resolve, reject) => {
+					new Promise((resolve, _reject) => {
 						this.fileSystemInfo.checkSnapshotValid(
 							packContainer.buildSnapshot,
 							(err, valid) => {
@@ -1224,7 +1359,7 @@ class PackFileCacheStrategy {
 							}
 						);
 					}),
-					new Promise((resolve, reject) => {
+					new Promise((resolve, _reject) => {
 						this.fileSystemInfo.checkSnapshotValid(
 							packContainer.resolveBuildDependenciesSnapshot,
 							(err, valid) => {
@@ -1270,7 +1405,7 @@ class PackFileCacheStrategy {
 						);
 					})
 				])
-					.catch(err => {
+					.catch((err) => {
 						logger.timeEnd("check build dependencies");
 						throw err;
 					})
@@ -1278,20 +1413,23 @@ class PackFileCacheStrategy {
 						logger.timeEnd("check build dependencies");
 						if (buildSnapshotValid && resolveValid) {
 							logger.time("restore cache content metadata");
-							const d = /** @type {TODO} */ (packContainer).data();
+							const d =
+								/** @type {() => Pack} */
+								(packContainer.data)();
 							logger.timeEnd("restore cache content metadata");
 							return d;
 						}
 						return undefined;
 					});
 			})
-			.then(pack => {
+			.then((pack) => {
 				if (pack) {
 					pack.maxAge = this.maxAge;
 					this.buildSnapshot = buildSnapshot;
 					if (buildDependencies) this.buildDependencies = buildDependencies;
-					if (newBuildDependencies)
+					if (newBuildDependencies) {
 						this.newBuildDependencies.addAll(newBuildDependencies);
+					}
 					this.resolveResults = resolveResults;
 					this.resolveBuildDependenciesSnapshot =
 						resolveBuildDependenciesSnapshot;
@@ -1299,7 +1437,7 @@ class PackFileCacheStrategy {
 				}
 				return new Pack(logger, this.maxAge);
 			})
-			.catch(err => {
+			.catch((err) => {
 				this.logger.warn(
 					`Restoring pack from ${cacheLocation}${this._extension} failed: ${err}`
 				);
@@ -1309,6 +1447,7 @@ class PackFileCacheStrategy {
 	}
 
 	/**
+	 * Returns promise.
 	 * @param {string} identifier unique name for the resource
 	 * @param {Etag | null} etag etag of the resource
 	 * @param {Data} data cached content
@@ -1317,22 +1456,23 @@ class PackFileCacheStrategy {
 	store(identifier, etag, data) {
 		if (this.readonly) return Promise.resolve();
 
-		return this._getPack().then(pack => {
+		return this._getPack().then((pack) => {
 			pack.set(identifier, etag === null ? null : etag.toString(), data);
 		});
 	}
 
 	/**
+	 * Returns promise to the cached content.
 	 * @param {string} identifier unique name for the resource
 	 * @param {Etag | null} etag etag of the resource
 	 * @returns {Promise<Data>} promise to the cached content
 	 */
 	restore(identifier, etag) {
 		return this._getPack()
-			.then(pack =>
+			.then((pack) =>
 				pack.get(identifier, etag === null ? null : etag.toString())
 			)
-			.catch(err => {
+			.catch((err) => {
 				if (err && err.code !== "ENOENT") {
 					this.logger.warn(
 						`Restoring failed for ${identifier} from pack: ${err}`
@@ -1343,7 +1483,8 @@ class PackFileCacheStrategy {
 	}
 
 	/**
-	 * @param {LazySet<string> | Iterable<string>} dependencies dependencies to store
+	 * Stores build dependencies.
+	 * @param {FileSystemDependencies | Iterable<string>} dependencies dependencies to store
 	 */
 	storeBuildDependencies(dependencies) {
 		if (this.readonly) return;
@@ -1355,12 +1496,14 @@ class PackFileCacheStrategy {
 		if (packPromise === undefined) return Promise.resolve();
 		const reportProgress = ProgressPlugin.getReporter(this.compiler);
 		return (this.storePromise = packPromise
-			.then(pack => {
+			.then((pack) => {
 				pack.stopCapturingRequests();
 				if (!pack.invalid) return;
 				this.packPromise = undefined;
 				this.logger.log("Storing pack...");
+				/** @type {undefined | Promise<void>} */
 				let promise;
+				/** @type {Set<string>} */
 				const newBuildDependencies = new Set();
 				for (const dep of this.newBuildDependencies) {
 					if (!this.buildDependencies.has(dep)) {
@@ -1370,12 +1513,11 @@ class PackFileCacheStrategy {
 				if (newBuildDependencies.size > 0 || !this.buildSnapshot) {
 					if (reportProgress) reportProgress(0.5, "resolve build dependencies");
 					this.logger.debug(
-						`Capturing build dependencies... (${Array.from(
-							newBuildDependencies
-						).join(", ")})`
+						`Capturing build dependencies... (${[...newBuildDependencies].join(", ")})`
 					);
 					promise = new Promise(
 						/**
+						 * Handles the callback logic for this hook.
 						 * @param {(value?: undefined) => void} resolve resolve
 						 * @param {(reason?: Error) => void} reject reject
 						 */
@@ -1499,10 +1641,17 @@ class PackFileCacheStrategy {
 						/** @type {Snapshot} */
 						(this.resolveBuildDependenciesSnapshot)
 					);
+					const cleanup = this.fs.unlink !== undefined;
+					/** @type {Set<string> | undefined} */
+					const writtenFiles = cleanup ? new Set() : undefined;
+					/** @type {Set<string> | undefined} */
+					const retainedFiles = cleanup ? new Set() : undefined;
 					return this.fileSerializer
 						.serialize(content, {
 							filename: `${this.cacheLocation}/index${this._extension}`,
 							extension: `${this._extension}`,
+							writtenFiles,
+							retainedFiles,
 							logger: this.logger,
 							profile: this.profile
 						})
@@ -1519,18 +1668,212 @@ class PackFileCacheStrategy {
 								stats.count,
 								Math.round(stats.size / 1024 / 1024)
 							);
+							if (writtenFiles !== undefined) {
+								return this._cleanupUnusedFiles(
+									writtenFiles,
+									/** @type {Set<string>} */ (retainedFiles)
+								);
+							}
 						})
-						.catch(err => {
+						.catch((err) => {
 							this.logger.timeEnd("store pack");
+							// files may be in an unknown state after a failed store
+							this._referencedFilesCache.clear();
 							this.logger.warn(`Caching failed for pack: ${err}`);
 							this.logger.debug(err.stack);
 						});
 				});
 			})
-			.catch(err => {
+			.catch((err) => {
 				this.logger.warn(`Caching failed for pack: ${err}`);
 				this.logger.debug(err.stack);
 			}));
+	}
+
+	/**
+	 * Reads when the currently unreferenced files were first seen. A missing or
+	 * unreadable file just restarts the grace period for every orphan.
+	 * @returns {Promise<UnreferencedFiles>} first seen time and size per file name
+	 */
+	_readUnreferencedFiles() {
+		return new Promise((resolve) => {
+			this.fs.readFile(
+				`${this.cacheLocation}/${UNREFERENCED_FILE}`,
+				(err, content) => {
+					/** @type {UnreferencedFiles} */
+					const result = new Map();
+					if (err) return resolve(result);
+					try {
+						const data = JSON.parse(
+							/** @type {Buffer} */ (content).toString("utf8")
+						);
+						for (const [file, entry] of Object.entries(data)) {
+							const { firstSeen, size } = /** @type {UnreferencedFile} */ (
+								entry
+							);
+							if (typeof firstSeen === "number" && typeof size === "number") {
+								result.set(file, { firstSeen, size });
+							}
+						}
+					} catch (_err) {
+						result.clear();
+					}
+					resolve(result);
+				}
+			);
+		});
+	}
+
+	/**
+	 * Persists when the still unreferenced files were first seen. Failing to write
+	 * only costs the orphans another grace period, so errors are ignored.
+	 * @param {UnreferencedFiles} unreferenced first seen time and size per file name
+	 * @param {boolean} hadEntries whether a previous state exists that must be replaced
+	 * @returns {Promise<void>} promise
+	 */
+	_writeUnreferencedFiles(unreferenced, hadEntries) {
+		if (unreferenced.size === 0 && !hadEntries) return Promise.resolve();
+		/** @type {Record<string, UnreferencedFile>} */
+		const data = {};
+		for (const [file, entry] of unreferenced) data[file] = entry;
+		return new Promise((resolve) => {
+			this.fs.writeFile(
+				`${this.cacheLocation}/${UNREFERENCED_FILE}`,
+				JSON.stringify(data),
+				() => resolve()
+			);
+		});
+	}
+
+	/**
+	 * Deletes files from the cache directory that are no longer referenced by the
+	 * stored pack. Retained files are walked on disk since nested lazy segments
+	 * reference files not visible during serialization. Errors only log a warning.
+	 * @param {Set<string>} writtenNames names (without extension) written by this store
+	 * @param {Set<string>} retainedNames names (without extension) referenced but not rewritten
+	 * @returns {Promise<void>} promise
+	 */
+	async _cleanupUnusedFiles(writtenNames, retainedNames) {
+		this.logger.time("cleanup unused cache files");
+		const fs = this.fs;
+		const extension = this._extension;
+		const cacheLocation = this.cacheLocation;
+		const referencedFilesCache = this._referencedFilesCache;
+		try {
+			// rewritten files may reference different names now
+			for (const name of writtenNames) referencedFilesCache.delete(name);
+			/** @type {Set<string>} */
+			const liveFiles = new Set([`index${extension}`, UNREFERENCED_FILE]);
+			for (const name of writtenNames) liveFiles.add(`${name}${extension}`);
+			/** @type {string[]} */
+			const queue = [];
+			/**
+			 * Marks a file live and queues it for walking its references.
+			 * @param {string} name file name without extension
+			 */
+			const enqueue = (name) => {
+				const file = `${name}${extension}`;
+				if (liveFiles.has(file)) return;
+				liveFiles.add(file);
+				queue.push(name);
+			};
+			for (const name of retainedNames) enqueue(name);
+			while (queue.length > 0) {
+				const name = /** @type {string} */ (queue.pop());
+				const file = `${cacheLocation}/${name}${extension}`;
+				// an unchanged mtime proves the memo entry still matches the disk
+				const mtimeMs = await new Promise((resolve, reject) => {
+					fs.stat(file, (err, stats) => {
+						if (err) return reject(err);
+						resolve(
+							/** @type {number} */ (
+								/** @type {import("../util/fs").IStats} */ (stats).mtimeMs
+							)
+						);
+					});
+				});
+				const entry = referencedFilesCache.get(name);
+				let referenced;
+				if (entry !== undefined && entry.mtimeMs === mtimeMs) {
+					referenced = entry.referenced;
+				} else {
+					referenced = await getReferencedFilenames(fs, file);
+					referencedFilesCache.set(name, { mtimeMs, referenced });
+				}
+				for (const referencedName of referenced) enqueue(referencedName);
+			}
+			const files = await new Promise((resolve, reject) => {
+				fs.readdir(cacheLocation, (err, files) => {
+					if (err) return reject(err);
+					resolve(/** @type {string[]} */ (files));
+				});
+			});
+			const seenFiles = await this._readUnreferencedFiles();
+			const now = Date.now();
+			// every store rewrites the index backup, so a recorded time would age a file
+			// that is in fact new; renaming carries the previous index mtime onto it
+			const indexBackup = `index${extension}.old`;
+			/** @type {UnreferencedFiles} */
+			const stillUnreferenced = new Map();
+			let deletedCount = 0;
+			for (const file of files) {
+				if (typeof file !== "string" || liveFiles.has(file)) continue;
+				const path = `${cacheLocation}/${file}`;
+				const stats = await new Promise((resolve) => {
+					fs.stat(path, (err, stats) => {
+						resolve(
+							err
+								? undefined
+								: /** @type {import("../util/fs").IStats} */ (stats)
+						);
+					});
+				});
+				if (stats === undefined || !stats.isFile()) continue;
+				const size = /** @type {number} */ (stats.size);
+				const seen = seenFiles.get(file);
+				// a differing size means the name was rewritten, so it is a new orphan
+				const firstSeen =
+					seen !== undefined && seen.size === size ? seen.firstSeen : now;
+				const expireTime = now - CLEANUP_GRACE_PERIOD;
+				const mtimeMs = /** @type {number} */ (stats.mtimeMs);
+				// either signal is enough: modification times are lost when a cache is
+				// restored, and recorded times are lost when the cache directory is new
+				const expired =
+					mtimeMs <= expireTime ||
+					(file !== indexBackup &&
+						firstSeen <= expireTime &&
+						mtimeMs <= now - CLEANUP_RECENT_WRITE_PERIOD);
+				if (expired) {
+					const deleted = await new Promise((resolve) => {
+						/** @type {NonNullable<IntermediateFileSystem["unlink"]>} */
+						(fs.unlink)(path, (err) => resolve(!err));
+					});
+					if (deleted) {
+						deletedCount++;
+						continue;
+					}
+				}
+				if (file !== indexBackup) {
+					stillUnreferenced.set(file, { firstSeen, size });
+				}
+			}
+			await this._writeUnreferencedFiles(stillUnreferenced, seenFiles.size > 0);
+			// drop entries of files that are no longer alive
+			for (const name of referencedFilesCache.keys()) {
+				if (!liveFiles.has(`${name}${extension}`)) {
+					referencedFilesCache.delete(name);
+				}
+			}
+			if (deletedCount > 0) {
+				this.logger.log("Deleted %d unused cache files", deletedCount);
+			}
+		} catch (err) {
+			this.logger.warn(
+				`Cleanup of unused cache files failed: ${/** @type {Error} */ (err)}`
+			);
+			this.logger.debug(/** @type {Error} */ (err).stack);
+		}
+		this.logger.timeEnd("cleanup unused cache files");
 	}
 
 	clear() {

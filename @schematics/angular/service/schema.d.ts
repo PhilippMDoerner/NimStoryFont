@@ -5,10 +5,19 @@
  */
 export type Schema = {
     /**
+     * When true, the 'type' option will be appended to the generated class name. When false,
+     * only the file name will include the type.
+     */
+    addTypeToClassName?: boolean;
+    /**
      * Creates files at the top level of the project or the given path. If set to false, a new
      * folder with the service's name will be created to contain the files.
      */
     flat?: boolean;
+    /**
+     * When true, generates an `@Injectable` instead of `@Service`.
+     */
+    injectable?: boolean;
     /**
      * The name for the new service. This will be used to create the service's class and spec
      * files (e.g., `my-service.service.ts` and `my-service.service.spec.ts`).

@@ -7,12 +7,12 @@ import {
 import { toObservable } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { FormlyFieldConfig } from '@ngx-formly/core';
-import { BaseCampaignData } from 'src/app/_models/campaign';
-import { FormlyService } from 'src/app/_services/formly/formly-service.service';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { SiteAdministrationPageStore } from 'src/app/administration/pages/site-administration-page/site-administration-page.store';
-import { NavigationStore } from 'src/app/navigation.store';
+import { BaseCampaignData } from '../../../_models/campaign';
+import { FormlyService } from '../../../_services/formly/formly-service.service';
+import { RoutingService } from '../../../_services/routing.service';
+import { SiteAdministrationPageStore } from '../../../administration/pages/site-administration-page/site-administration-page.store';
 import { CreateUpdateComponent } from '../../../design/templates/create-update/create-update.component';
+import { NavigationStore } from '../../../navigation.store';
 
 @Component({
   selector: 'app-create-campaign',
@@ -34,8 +34,8 @@ export class CreateCampaignComponent {
     this.store.createCampaignRequestState,
   );
 
-  campaignModel: Partial<BaseCampaignData> = {};
-  campaignFields: FormlyFieldConfig[] = [
+  readonly campaignModel: Partial<BaseCampaignData> = {};
+  readonly campaignFields: FormlyFieldConfig[] = [
     this.formlyService.buildInputConfig({
       key: 'name',
       inputKind: 'NAME',

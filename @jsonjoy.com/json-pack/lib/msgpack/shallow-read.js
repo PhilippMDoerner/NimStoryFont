@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.genShallowReader = void 0;
-const Codegen_1 = require("@jsonjoy.com/util/lib/codegen/Codegen");
+const Codegen_1 = require("@jsonjoy.com/codegen/lib/Codegen");
 const toUtf8 = (str) => {
     const arr = [];
     const length = str.length;

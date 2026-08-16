@@ -28,6 +28,10 @@ function getAttributeValue({ attributes, inputs }, attributeName) {
     if (attributeOrInput.value.ast instanceof bundled_angular_compiler_1.LiteralMap) {
         const { keys, values } = attributeOrInput.value.ast;
         return keys.reduce((current, next, index) => {
+            // Skip spread keys as they don't have a key property
+            if (next.kind === 'spread') {
+                return current;
+            }
             return current.set(next.key, values[index]);
         }, new Map());
     }

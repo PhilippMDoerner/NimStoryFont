@@ -87,3 +87,4 @@ exports.VALID_SELF_CLOSING_TAGS = new Set([
     'mpadded',
     'mtable',
 ]);
+//# sourceMappingURL=valid-self-closing-tags.js.map

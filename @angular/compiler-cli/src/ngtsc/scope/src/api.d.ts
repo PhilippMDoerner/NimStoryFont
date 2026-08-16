@@ -9,6 +9,7 @@ import { SchemaMetadata } from '@angular/compiler';
 import { Reexport, Reference } from '../../imports';
 import { DirectiveMeta, NgModuleMeta, PipeMeta } from '../../metadata';
 import { ClassDeclaration } from '../../reflection';
+import ts from 'typescript';
 /**
  * Data for one of a given NgModule's scopes (either compilation scope or export scopes).
  */
@@ -46,7 +47,8 @@ export interface RemoteScope {
 }
 export declare enum ComponentScopeKind {
     NgModule = 0,
-    Standalone = 1
+    Standalone = 1,
+    Selectorless = 2
 }
 export interface LocalModuleScope extends ExportScope {
     kind: ComponentScopeKind.NgModule;
@@ -63,7 +65,15 @@ export interface StandaloneScope {
     schemas: SchemaMetadata[];
     isPoisoned: boolean;
 }
-export type ComponentScope = LocalModuleScope | StandaloneScope;
+export interface SelectorlessScope {
+    kind: ComponentScopeKind.Selectorless;
+    dependencies: Map<string, DirectiveMeta | PipeMeta>;
+    dependencyIdentifiers: ts.Identifier[];
+    component: ClassDeclaration;
+    schemas: SchemaMetadata[];
+    isPoisoned: boolean;
+}
+export type ComponentScope = LocalModuleScope | StandaloneScope | SelectorlessScope;
 /**
  * Read information about the compilation scope of components.
  */

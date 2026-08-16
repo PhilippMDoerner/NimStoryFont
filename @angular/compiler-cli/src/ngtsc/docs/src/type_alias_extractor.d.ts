@@ -16,4 +16,5 @@ export declare function extractTypeAlias(declaration: ts.TypeAliasDeclaration): 
     rawComment: string;
     description: string;
     jsdocTags: import("./entities").JsDocTagEntry[];
+    members: never[];
 };

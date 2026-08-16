@@ -1,17 +1,17 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { map, Observable } from 'rxjs';
-import { KeyCombination, parseKeyCombinationStr } from 'src/app/_models/hotkey';
+import { environment } from '../../../environments/environment';
+import { toBoolean } from '../../../utils/bool';
+import { KeyCombination, parseKeyCombinationStr } from '../../_models/hotkey';
 import {
   GeneralMetadata,
   MetaDataEntry,
   MetaDataEntryRaw,
   MetaDataKind,
   ShortcutMetadataEntry,
-} from 'src/app/_models/userMetadata';
-import { SidebarOption } from 'src/app/design/molecules';
-import { environment } from 'src/environments/environment';
-import { toBoolean } from 'src/utils/bool';
+} from '../../_models/userMetadata';
+import { SidebarOption } from '../../design/molecules';
 
 @Injectable({
   providedIn: 'root',
@@ -35,7 +35,7 @@ export class PreferencesService {
     );
   }
 
-  getUserShortcuts(): Observable<ShortcutMetadataEntry[]> {
+  getUserHotkeys(): Observable<ShortcutMetadataEntry[]> {
     return this.http
       .get<MetaDataEntry[]>(`${this.settingsApiUrl}/shortcut/`)
       .pipe(

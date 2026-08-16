@@ -12,9 +12,9 @@ import {
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import {} from 'd3-zoom';
 import { filter, map, Subject, take } from 'rxjs';
-import { NodeSelection, ParsedNodeMap } from 'src/app/_models/graph';
-import { ArticleService } from 'src/app/_services/article/article.service';
-import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
+import { NodeSelection, ParsedNodeMap } from '../../../_models/graph';
+import { ArticleService } from '../../../_services/article/article.service';
+import { ButtonComponent } from '../../atoms/button/button.component';
 import { GRAPH_SETTINGS } from '../_model/graph';
 import { GraphService } from './graph.service';
 
@@ -26,19 +26,20 @@ import { GraphService } from './graph.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class GraphComponent {
-  articleService = inject(ArticleService);
-  graphService = inject(GraphService); //Accessible as the parent, GraphPageComponent, provides an instance
-  destructor = inject(DestroyRef);
+  readonly articleService = inject(ArticleService);
+  readonly graphService = inject(GraphService); //Accessible as the parent, GraphPageComponent, provides an instance
+  readonly destructor = inject(DestroyRef);
 
-  data = input.required<ParsedNodeMap>();
-  activeNodesData = input.required<NodeSelection>();
-  graphSettings = input.required<typeof GRAPH_SETTINGS>();
+  readonly data = input.required<ParsedNodeMap>();
+  readonly activeNodesData = input.required<NodeSelection>();
+  readonly graphSettings = input.required<typeof GRAPH_SETTINGS>();
 
-  graphContainer = viewChild<ElementRef<HTMLDivElement>>('graphContainer');
-  elements = toSignal(this.graphService.elements$);
-  zoomLevel$ = this.graphService.zoomLevelChangedEvent$;
+  readonly graphContainer =
+    viewChild<ElementRef<HTMLDivElement>>('graphContainer');
+  readonly elements = toSignal(this.graphService.elements$);
+  readonly zoomLevel$ = this.graphService.zoomLevelChangedEvent$;
 
-  zoomSliderEvents$ = new Subject<string>();
+  readonly zoomSliderEvents$ = new Subject<string>();
 
   constructor() {
     effect(() =>

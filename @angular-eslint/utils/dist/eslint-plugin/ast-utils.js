@@ -42,6 +42,7 @@ var AngularClassDecorators;
     AngularClassDecorators["Injectable"] = "Injectable";
     AngularClassDecorators["NgModule"] = "NgModule";
     AngularClassDecorators["Pipe"] = "Pipe";
+    AngularClassDecorators["Service"] = "Service";
 })(AngularClassDecorators || (exports.AngularClassDecorators = AngularClassDecorators = {}));
 var AngularConstructorParameterDecorators;
 (function (AngularConstructorParameterDecorators) {
@@ -156,6 +157,10 @@ exports.ANGULAR_CLASS_DECORATOR_LIFECYCLE_METHOD_MAPPER = new Map([
         AngularClassDecorators.Pipe,
         new Set([AngularLifecycleMethods.ngOnDestroy]),
     ],
+    [
+        AngularClassDecorators.Service,
+        new Set([AngularLifecycleMethods.ngOnDestroy]),
+    ],
 ]);
 exports.ANGULAR_INNER_CLASS_DECORATORS = new Set(exports.angularInnerClassDecoratorKeys);
 exports.ANGULAR_CLASS_DECORATORS = new Set(exports.angularClassDecoratorKeys);
@@ -184,6 +189,16 @@ exports.ANGULAR_CLASS_DECORATOR_MAPPER = new Map([
     ],
     [
         AngularClassDecorators.Pipe,
+        new Set([
+            exports.AngularInnerClassDecorators.Host,
+            exports.AngularInnerClassDecorators.Inject,
+            exports.AngularInnerClassDecorators.Optional,
+            exports.AngularInnerClassDecorators.Self,
+            exports.AngularInnerClassDecorators.SkipSelf,
+        ]),
+    ],
+    [
+        AngularClassDecorators.Service,
         new Set([
             exports.AngularInnerClassDecorators.Host,
             exports.AngularInnerClassDecorators.Inject,

@@ -45,3 +45,4 @@ class ExtractI18nCommandModule extends architect_command_module_1.ArchitectComma
     }
 }
 exports.default = ExtractI18nCommandModule;
+//# sourceMappingURL=cli.js.map

@@ -1,4 +1,5 @@
 "use strict";
+/* eslint-disable import/first -- intentionally executing code before rest of the require()s. This will not work with ESM. */
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     var desc = Object.getOwnPropertyDescriptor(m, k);
@@ -36,27 +37,27 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.config = exports.configs = exports.plugin = exports.parser = void 0;
+exports.globs = exports.extensions = exports.config = exports.configs = exports.plugin = exports.parser = void 0;
+const ts = __importStar(require("typescript"));
+const [versionMajor, _versionMinor] = ts.versionMajorMinor
+    .split('.')
+    .map(Number);
+if (versionMajor >= 7) {
+    // eslint-disable-next-line no-console
+    console.error([
+        'typescript-eslint does not support TS 7.0.',
+        'Please see https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/#running-side-by-side-with-typescript-6.0 to run typescript-eslint using the TS 6 API.',
+        "See also https://github.com/typescript-eslint/typescript-eslint/issues/10940 for tracking typescript-eslint's support for TS >=7.1",
+    ].join('\n'));
+    throw new Error('typescript-eslint does not support TS 7.0.');
+}
 const eslint_plugin_1 = __importDefault(require("@typescript-eslint/eslint-plugin"));
-const parserBase = __importStar(require("@typescript-eslint/parser"));
+const raw_plugin_1 = __importDefault(require("@typescript-eslint/eslint-plugin/use-at-your-own-risk/raw-plugin"));
+const typescript_estree_1 = require("@typescript-eslint/typescript-estree");
 const config_helper_1 = require("./config-helper");
-const all_1 = __importDefault(require("./configs/all"));
-const base_1 = __importDefault(require("./configs/base"));
-const disable_type_checked_1 = __importDefault(require("./configs/disable-type-checked"));
-const eslint_recommended_1 = __importDefault(require("./configs/eslint-recommended"));
-const recommended_1 = __importDefault(require("./configs/recommended"));
-const recommended_type_checked_1 = __importDefault(require("./configs/recommended-type-checked"));
-const recommended_type_checked_only_1 = __importDefault(require("./configs/recommended-type-checked-only"));
-const strict_1 = __importDefault(require("./configs/strict"));
-const strict_type_checked_1 = __importDefault(require("./configs/strict-type-checked"));
-const strict_type_checked_only_1 = __importDefault(require("./configs/strict-type-checked-only"));
-const stylistic_1 = __importDefault(require("./configs/stylistic"));
-const stylistic_type_checked_1 = __importDefault(require("./configs/stylistic-type-checked"));
-const stylistic_type_checked_only_1 = __importDefault(require("./configs/stylistic-type-checked-only"));
-exports.parser = {
-    meta: parserBase.meta,
-    parseForESLint: parserBase.parseForESLint,
-};
+const getTSConfigRootDirFromStack_1 = require("./getTSConfigRootDirFromStack");
+const globs_1 = require("./globs");
+exports.parser = raw_plugin_1.default.parser;
 /*
 we could build a plugin object here without the `configs` key - but if we do
 that then we create a situation in which
@@ -66,7 +67,7 @@ require('typescript-eslint').plugin !== require('@typescript-eslint/eslint-plugi
 
 This is bad because it means that 3rd party configs would be required to use
 `typescript-eslint` or else they would break a user's config if the user either
-used `tseslint.configs.recomended` et al or
+used `tseslint.configs.recommended` et al or
 ```
 {
   plugins: {
@@ -81,76 +82,93 @@ would never be able to satisfy this constraint and thus users would be blocked
 from using them.
 */
 exports.plugin = eslint_plugin_1.default;
-exports.configs = {
+exports.configs = createConfigsGetters({
     /**
      * Enables each the rules provided as a part of typescript-eslint. Note that many rules are not applicable in all codebases, or are meant to be configured.
      * @see {@link https://typescript-eslint.io/users/configs#all}
      */
-    all: (0, all_1.default)(exports.plugin, exports.parser),
+    all: raw_plugin_1.default.flatConfigs['flat/all'],
     /**
      * A minimal ruleset that sets only the required parser and plugin options needed to run typescript-eslint.
      * We don't recommend using this directly; instead, extend from an earlier recommended rule.
      * @see {@link https://typescript-eslint.io/users/configs#base}
      */
-    base: (0, base_1.default)(exports.plugin, exports.parser),
+    base: raw_plugin_1.default.flatConfigs['flat/base'],
     /**
      * A utility ruleset that will disable type-aware linting and all type-aware rules available in our project.
      * @see {@link https://typescript-eslint.io/users/configs#disable-type-checked}
      */
-    disableTypeChecked: (0, disable_type_checked_1.default)(exports.plugin, exports.parser),
+    disableTypeChecked: raw_plugin_1.default.flatConfigs['flat/disable-type-checked'],
     /**
      * This is a compatibility ruleset that:
      * - disables rules from eslint:recommended which are already handled by TypeScript.
      * - enables rules that make sense due to TS's typechecking / transpilation.
      * @see {@link https://typescript-eslint.io/users/configs/#eslint-recommended}
      */
-    eslintRecommended: (0, eslint_recommended_1.default)(exports.plugin, exports.parser),
+    eslintRecommended: raw_plugin_1.default.flatConfigs['flat/eslint-recommended'],
     /**
      * Recommended rules for code correctness that you can drop in without additional configuration.
      * @see {@link https://typescript-eslint.io/users/configs#recommended}
      */
-    recommended: (0, recommended_1.default)(exports.plugin, exports.parser),
+    recommended: raw_plugin_1.default.flatConfigs['flat/recommended'],
     /**
      * Contains all of `recommended` along with additional recommended rules that require type information.
      * @see {@link https://typescript-eslint.io/users/configs#recommended-type-checked}
      */
-    recommendedTypeChecked: (0, recommended_type_checked_1.default)(exports.plugin, exports.parser),
+    recommendedTypeChecked: raw_plugin_1.default.flatConfigs['flat/recommended-type-checked'],
     /**
      * A version of `recommended` that only contains type-checked rules and disables of any corresponding core ESLint rules.
      * @see {@link https://typescript-eslint.io/users/configs#recommended-type-checked-only}
      */
-    recommendedTypeCheckedOnly: (0, recommended_type_checked_only_1.default)(exports.plugin, exports.parser),
+    recommendedTypeCheckedOnly: raw_plugin_1.default.flatConfigs['flat/recommended-type-checked-only'],
     /**
      * Contains all of `recommended`, as well as additional strict rules that can also catch bugs.
      * @see {@link https://typescript-eslint.io/users/configs#strict}
      */
-    strict: (0, strict_1.default)(exports.plugin, exports.parser),
+    strict: raw_plugin_1.default.flatConfigs['flat/strict'],
     /**
      * Contains all of `recommended`, `recommended-type-checked`, and `strict`, along with additional strict rules that require type information.
      * @see {@link https://typescript-eslint.io/users/configs#strict-type-checked}
      */
-    strictTypeChecked: (0, strict_type_checked_1.default)(exports.plugin, exports.parser),
+    strictTypeChecked: raw_plugin_1.default.flatConfigs['flat/strict-type-checked'],
     /**
      * A version of `strict` that only contains type-checked rules and disables of any corresponding core ESLint rules.
      * @see {@link https://typescript-eslint.io/users/configs#strict-type-checked-only}
      */
-    strictTypeCheckedOnly: (0, strict_type_checked_only_1.default)(exports.plugin, exports.parser),
+    strictTypeCheckedOnly: raw_plugin_1.default.flatConfigs['flat/strict-type-checked-only'],
     /**
      * Rules considered to be best practice for modern TypeScript codebases, but that do not impact program logic.
      * @see {@link https://typescript-eslint.io/users/configs#stylistic}
      */
-    stylistic: (0, stylistic_1.default)(exports.plugin, exports.parser),
+    stylistic: raw_plugin_1.default.flatConfigs['flat/stylistic'],
     /**
      * Contains all of `stylistic`, along with additional stylistic rules that require type information.
      * @see {@link https://typescript-eslint.io/users/configs#stylistic-type-checked}
      */
-    stylisticTypeChecked: (0, stylistic_type_checked_1.default)(exports.plugin, exports.parser),
+    stylisticTypeChecked: raw_plugin_1.default.flatConfigs['flat/stylistic-type-checked'],
     /**
      * A version of `stylistic` that only contains type-checked rules and disables of any corresponding core ESLint rules.
      * @see {@link https://typescript-eslint.io/users/configs#stylistic-type-checked-only}
      */
-    stylisticTypeCheckedOnly: (0, stylistic_type_checked_only_1.default)(exports.plugin, exports.parser),
-};
+    stylisticTypeCheckedOnly: raw_plugin_1.default.flatConfigs['flat/stylistic-type-checked-only'],
+});
+function createConfigsGetters(values) {
+    const configs = {};
+    Object.defineProperties(configs, Object.fromEntries(Object.entries(values).map(([key, value]) => [
+        key,
+        {
+            enumerable: true,
+            get: () => {
+                const candidateRootDir = (0, getTSConfigRootDirFromStack_1.getTSConfigRootDirFromStack)();
+                if (candidateRootDir) {
+                    (0, typescript_estree_1.addCandidateTSConfigRootDir)(candidateRootDir);
+                }
+                return value;
+            },
+        },
+    ])));
+    return configs;
+}
 /*
 we do both a default and named exports to allow people to use this package from
 both CJS and ESM in very natural ways.
@@ -195,8 +213,14 @@ module.exports = config(
 exports.default = {
     config: config_helper_1.config,
     configs: exports.configs,
+    extensions: globs_1.extensions,
+    globs: globs_1.globs,
     parser: exports.parser,
     plugin: exports.plugin,
 };
 var config_helper_2 = require("./config-helper");
+// eslint-disable-next-line @typescript-eslint/no-deprecated
 Object.defineProperty(exports, "config", { enumerable: true, get: function () { return config_helper_2.config; } });
+var globs_2 = require("./globs");
+Object.defineProperty(exports, "extensions", { enumerable: true, get: function () { return globs_2.extensions; } });
+Object.defineProperty(exports, "globs", { enumerable: true, get: function () { return globs_2.globs; } });

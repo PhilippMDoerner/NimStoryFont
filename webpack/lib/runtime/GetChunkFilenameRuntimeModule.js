@@ -7,33 +7,57 @@
 const RuntimeGlobals = require("../RuntimeGlobals");
 const RuntimeModule = require("../RuntimeModule");
 const Template = require("../Template");
+const { reEncodeDigest } = require("../TemplatedPathPlugin");
 const { first } = require("../util/SetHelpers");
 
 /** @typedef {import("../Chunk")} Chunk */
 /** @typedef {import("../Chunk").ChunkId} ChunkId */
 /** @typedef {import("../ChunkGraph")} ChunkGraph */
 /** @typedef {import("../Compilation")} Compilation */
-/** @typedef {import("../Compilation").AssetInfo} AssetInfo */
-/** @typedef {import("../TemplatedPathPlugin").TemplatePath} TemplatePath */
+/** @typedef {import("../Compilation").HashWithLengthFunction} HashWithLengthFunction */
+/** @typedef {import("../Compilation").HashWithDigestFunction} HashWithDigestFunction */
+/** @typedef {import("../Chunk").ChunkFilenameTemplate} ChunkFilenameTemplate */
 
 class GetChunkFilenameRuntimeModule extends RuntimeModule {
 	/**
 	 * @param {string} contentType the contentType to use the content hash for
 	 * @param {string} name kind of filename
 	 * @param {string} global function name to be assigned
-	 * @param {(chunk: Chunk) => TemplatePath | false} getFilenameForChunk functor to get the filename or function
+	 * @param {(chunk: Chunk) => ChunkFilenameTemplate | false} getFilenameForChunk functor to get the filename or function
 	 * @param {boolean} allChunks when false, only async chunks are included
+	 * @param {boolean=} usesFullHashDigest the filename uses `[fullhash:<digest>]`/`[hash:<digest>]`, so the re-encoded full hash must be inlined (post-hash) instead of read from the runtime `getFullHash()` expression
 	 */
-	constructor(contentType, name, global, getFilenameForChunk, allChunks) {
+	constructor(
+		contentType,
+		name,
+		global,
+		getFilenameForChunk,
+		allChunks,
+		usesFullHashDigest
+	) {
 		super(`get ${name} chunk filename`);
+		/** @type {string} */
 		this.contentType = contentType;
+		/** @type {string} */
 		this.global = global;
+		/** @type {(chunk: Chunk) => ChunkFilenameTemplate | false} */
 		this.getFilenameForChunk = getFilenameForChunk;
+		/** @type {boolean} */
 		this.allChunks = allChunks;
-		this.dependentHash = true;
+		// An inline digest on `[fullhash]` needs the final hash inlined, so this
+		// module must re-render after hashing (`fullHash`); otherwise it only needs
+		// the referenced chunk hashes, available before the full hash (`dependentHash`).
+		if (usesFullHashDigest) {
+			/** @type {boolean} */
+			this.fullHash = true;
+		} else {
+			/** @type {boolean} */
+			this.dependentHash = true;
+		}
 	}
 
 	/**
+	 * Generates runtime code for this runtime module.
 	 * @returns {string | null} runtime code
 	 */
 	generate() {
@@ -42,8 +66,39 @@ class GetChunkFilenameRuntimeModule extends RuntimeModule {
 		const chunkGraph = /** @type {ChunkGraph} */ (this.chunkGraph);
 		const chunk = /** @type {Chunk} */ (this.chunk);
 		const { runtimeTemplate } = compilation;
+		// Digest the stored hashes are encoded in, for re-encoding `[<hash>:<digest>]`.
+		const sourceDigest = compilation.outputOptions.hashDigest;
 
-		/** @type {Map<string | TemplatePath, Set<Chunk>>} */
+		/**
+		 * Re-encodes a full hash digest into the requested digest, optionally truncated.
+		 * @param {string} value full hash digest
+		 * @param {string} digest requested digest
+		 * @param {number=} length requested length
+		 * @returns {string} re-encoded hash
+		 */
+		const reEncode = (value, digest, length) => {
+			const hash = reEncodeDigest(
+				value,
+				/** @type {string} */ (sourceDigest),
+				digest
+			);
+			return length ? hash.slice(0, length) : hash;
+		};
+
+		// `[fullhash:<digest>]`/`[hash:<digest>]` would resolve to a runtime
+		// `getFullHash()` expression that can't be re-encoded; instead this module is
+		// flagged `fullHash` and re-rendered after hashing, so we inline the
+		// re-encoded full hash here — byte-identical to the statically emitted file.
+		/** @type {HashWithDigestFunction} */
+		const fullHashWithDigest = (digest, length) => {
+			const fullHash = compilation.fullHash;
+			// Pre-hash pass (hash not computed yet): a placeholder, replaced on the
+			// post-hash re-render. Matches `GetFullHashRuntimeModule`'s `|| "XXXX"`.
+			if (!fullHash) return length ? "x".repeat(length) : "x";
+			return reEncode(fullHash, digest, length);
+		};
+
+		/** @type {Map<ChunkFilenameTemplate, Set<Chunk>>} */
 		const chunkFilenames = new Map();
 		let maxChunks = 0;
 		/** @type {string | undefined} */
@@ -53,7 +108,7 @@ class GetChunkFilenameRuntimeModule extends RuntimeModule {
 		 * @param {Chunk} c the chunk
 		 * @returns {void}
 		 */
-		const addChunk = c => {
+		const addChunk = (c) => {
 			const chunkFilename = getFilenameForChunk(c);
 			if (chunkFilename) {
 				let set = chunkFilenames.get(chunkFilename);
@@ -101,8 +156,8 @@ class GetChunkFilenameRuntimeModule extends RuntimeModule {
 				.getTreeRuntimeRequirements(chunk)
 				.has(RuntimeGlobals.ensureChunkIncludeEntries);
 			if (includeEntries) {
-				includedChunksMessages.push("sibling chunks for the entrypoint");
-				for (const c of chunkGraph.getChunkEntryDependentChunksIterable(
+				includedChunksMessages.push("chunks that the entrypoint depends on");
+				for (const c of chunkGraph.getRuntimeChunkDependentChunksIterable(
 					chunk
 				)) {
 					addChunk(c);
@@ -120,15 +175,15 @@ class GetChunkFilenameRuntimeModule extends RuntimeModule {
 
 		/**
 		 * @param {Chunk} c the chunk
-		 * @param {string | TemplatePath} chunkFilename the filename template for the chunk
+		 * @param {ChunkFilenameTemplate} chunkFilename the filename template for the chunk
 		 * @returns {void}
 		 */
 		const addStaticUrl = (c, chunkFilename) => {
 			/**
-			 * @param {string | number} value a value
+			 * @param {ChunkId} value a value
 			 * @returns {string} string to put in quotes
 			 */
-			const unquotedStringify = value => {
+			const unquotedStringify = (value) => {
 				const str = `${value}`;
 				if (str.length >= 5 && str === `${c.id}`) {
 					// This is shorter and generates the same result
@@ -139,9 +194,9 @@ class GetChunkFilenameRuntimeModule extends RuntimeModule {
 			};
 			/**
 			 * @param {string} value string
-			 * @returns {(length: number) => string} string to put in quotes with length
+			 * @returns {HashWithLengthFunction} string to put in quotes with length
 			 */
-			const unquotedStringifyWithLength = value => length =>
+			const unquotedStringifyWithLength = (value) => (length) =>
 				unquotedStringify(`${value}`.slice(0, length));
 			const chunkFilenameValue =
 				typeof chunkFilename === "function"
@@ -154,14 +209,19 @@ class GetChunkFilenameRuntimeModule extends RuntimeModule {
 					: JSON.stringify(chunkFilename);
 			const staticChunkFilename = compilation.getPath(chunkFilenameValue, {
 				hash: `" + ${RuntimeGlobals.getFullHash}() + "`,
-				hashWithLength: length =>
+				hashWithLength: (length) =>
 					`" + ${RuntimeGlobals.getFullHash}().slice(0, ${length}) + "`,
+				hashWithDigest: fullHashWithDigest,
 				chunk: {
 					id: unquotedStringify(/** @type {ChunkId} */ (c.id)),
 					hash: unquotedStringify(/** @type {string} */ (c.renderedHash)),
 					hashWithLength: unquotedStringifyWithLength(
 						/** @type {string} */ (c.renderedHash)
 					),
+					hashWithDigest: (digest, length) =>
+						unquotedStringify(
+							reEncode(/** @type {string} */ (c.hash), digest, length)
+						),
 					name: unquotedStringify(c.name || /** @type {ChunkId} */ (c.id)),
 					contentHash: {
 						[contentType]: unquotedStringify(c.contentHash[contentType])
@@ -170,6 +230,16 @@ class GetChunkFilenameRuntimeModule extends RuntimeModule {
 						[contentType]: unquotedStringifyWithLength(
 							c.contentHash[contentType]
 						)
+					},
+					contentHashWithDigest: {
+						[contentType]: (digest, length) =>
+							unquotedStringify(
+								reEncode(
+									c.contentHashFull[contentType] || c.contentHash[contentType],
+									digest,
+									length
+								)
+							)
 					}
 				},
 				contentHashType: contentType
@@ -193,11 +263,11 @@ class GetChunkFilenameRuntimeModule extends RuntimeModule {
 		 * @param {(chunk: Chunk) => string | number} fn function from chunk to value
 		 * @returns {string} code with static mapping of results of fn
 		 */
-		const createMap = fn => {
-			/** @type {Record<number | string, number | string>} */
+		const createMap = (fn) => {
+			/** @type {Record<ChunkId, ChunkId>} */
 			const obj = {};
 			let useId = false;
-			/** @type {number | string | undefined} */
+			/** @type {ChunkId | undefined} */
 			let lastKey;
 			let entries = 0;
 			for (const c of dynamicUrlChunks) {
@@ -205,8 +275,8 @@ class GetChunkFilenameRuntimeModule extends RuntimeModule {
 				if (value === c.id) {
 					useId = true;
 				} else {
-					obj[/** @type {number | string} */ (c.id)] = value;
-					lastKey = /** @type {number | string} */ (c.id);
+					obj[/** @type {ChunkId} */ (c.id)] = value;
+					lastKey = /** @type {ChunkId} */ (c.id);
 					entries++;
 				}
 			}
@@ -214,9 +284,9 @@ class GetChunkFilenameRuntimeModule extends RuntimeModule {
 			if (entries === 1) {
 				return useId
 					? `(chunkId === ${JSON.stringify(lastKey)} ? ${JSON.stringify(
-							obj[/** @type {number | string} */ (lastKey)]
+							obj[/** @type {ChunkId} */ (lastKey)]
 						)} : chunkId)`
-					: JSON.stringify(obj[/** @type {number | string} */ (lastKey)]);
+					: JSON.stringify(obj[/** @type {ChunkId} */ (lastKey)]);
 			}
 			return useId
 				? `(${JSON.stringify(obj)}[chunkId] || chunkId)`
@@ -227,33 +297,48 @@ class GetChunkFilenameRuntimeModule extends RuntimeModule {
 		 * @param {(chunk: Chunk) => string | number} fn function from chunk to value
 		 * @returns {string} code with static mapping of results of fn for including in quoted string
 		 */
-		const mapExpr = fn => `" + ${createMap(fn)} + "`;
+		const mapExpr = (fn) => `" + ${createMap(fn)} + "`;
 
 		/**
 		 * @param {(chunk: Chunk) => string | number} fn function from chunk to value
-		 * @returns {(length: number) => string} function which generates code with static mapping of results of fn for including in quoted string for specific length
+		 * @returns {HashWithLengthFunction} function which generates code with static mapping of results of fn for including in quoted string for specific length
 		 */
-		const mapExprWithLength = fn => length =>
-			`" + ${createMap(c => `${fn(c)}`.slice(0, length))} + "`;
+		const mapExprWithLength = (fn) => (length) =>
+			`" + ${createMap((c) => `${fn(c)}`.slice(0, length))} + "`;
 
 		const url =
 			dynamicFilename &&
 			compilation.getPath(JSON.stringify(dynamicFilename), {
 				hash: `" + ${RuntimeGlobals.getFullHash}() + "`,
-				hashWithLength: length =>
+				hashWithLength: (length) =>
 					`" + ${RuntimeGlobals.getFullHash}().slice(0, ${length}) + "`,
+				hashWithDigest: fullHashWithDigest,
 				chunk: {
 					id: '" + chunkId + "',
-					hash: mapExpr(c => /** @type {string} */ (c.renderedHash)),
+					hash: mapExpr((c) => /** @type {string} */ (c.renderedHash)),
 					hashWithLength: mapExprWithLength(
-						c => /** @type {string} */ (c.renderedHash)
+						(c) => /** @type {string} */ (c.renderedHash)
 					),
-					name: mapExpr(c => c.name || /** @type {number | string} */ (c.id)),
+					hashWithDigest: (digest, length) =>
+						mapExpr((c) =>
+							reEncode(/** @type {string} */ (c.hash), digest, length)
+						),
+					name: mapExpr((c) => c.name || /** @type {ChunkId} */ (c.id)),
 					contentHash: {
-						[contentType]: mapExpr(c => c.contentHash[contentType])
+						[contentType]: mapExpr((c) => c.contentHash[contentType])
 					},
 					contentHashWithLength: {
-						[contentType]: mapExprWithLength(c => c.contentHash[contentType])
+						[contentType]: mapExprWithLength((c) => c.contentHash[contentType])
+					},
+					contentHashWithDigest: {
+						[contentType]: (digest, length) =>
+							mapExpr((c) =>
+								reEncode(
+									c.contentHashFull[contentType] || c.contentHash[contentType],
+									digest,
+									length
+								)
+							)
 					}
 				},
 				contentHashType: contentType
@@ -277,7 +362,7 @@ class GetChunkFilenameRuntimeModule extends RuntimeModule {
 											? `chunkId === ${JSON.stringify(first(ids))}`
 											: `{${Array.from(
 													ids,
-													id => `${JSON.stringify(id)}:1`
+													(id) => `${JSON.stringify(id)}:1`
 												).join(",")}}[chunkId]`;
 									return `if (${condition}) return ${url};`;
 								})

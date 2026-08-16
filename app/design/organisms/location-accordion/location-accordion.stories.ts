@@ -1,12 +1,12 @@
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterTestingModule } from '@angular/router/testing';
-import { action } from 'storybook/actions';
 import { Meta, StoryFn, moduleMetadata } from '@storybook/angular';
-import { Location } from 'src/app/_models/location';
-import { FORMLY_MODULE } from 'src/app/_modules/formly_constants';
-import { dummyOverviewCharacters } from 'src/app/_services/article/character-service.mock';
-import { RoutingServiceMock } from 'src/app/_services/routing.mock.service';
-import { RoutingService } from 'src/app/_services/routing.service';
+import { action } from 'storybook/actions';
+import { Location } from '../../../_models/location';
+import { FORMLY_MODULE } from '../../../_modules/formly_constants';
+import { dummyOverviewCharacters } from '../../../_services/article/character-service.mock';
+import { RoutingServiceMock } from '../../../_services/routing.mock.service';
+import { RoutingService } from '../../../_services/routing.service';
 import { LocationAccordionComponent } from './location-accordion.component';
 
 const dummyLocations: Location[] = [
@@ -56,12 +56,12 @@ const dummyLocations: Location[] = [
         name_full: "The Witch's Hut in the Dark Forest",
         description: `
           <p>
-            The Witch's Hut is a small, dilapidated cabin hidden deep in the heart of the Dark Forest. 
+            The Witch's Hut is a small, dilapidated cabin hidden deep in the heart of the Dark Forest.
             It is said to be the dwelling place of Elena, the Witch of the Dark Forest, who brews powerful potions and performs arcane rituals within its walls.
           </p>
-          
+
           <p>
-            The hut is surrounded by twisted trees and eerie toadstools, and the air is thick with the scent of herbs and incense. 
+            The hut is surrounded by twisted trees and eerie toadstools, and the air is thick with the scent of herbs and incense.
             Visitors are warned to approach with caution, as Elena is known to be both unpredictable and dangerous.
           </p>
         `,

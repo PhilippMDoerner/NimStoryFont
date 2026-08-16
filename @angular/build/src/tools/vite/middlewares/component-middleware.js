@@ -33,3 +33,4 @@ function createAngularComponentMiddleware(server, templateUpdates) {
         res.end(updateCode);
     };
 }
+//# sourceMappingURL=component-middleware.js.map

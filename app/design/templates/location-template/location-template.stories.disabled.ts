@@ -1,8 +1,8 @@
 import { RouterTestingModule } from '@angular/router/testing';
 import { Meta, StoryFn, moduleMetadata } from '@storybook/angular';
-import { Location } from 'src/app/_models/location';
-import { FORMLY_MODULE } from 'src/app/_modules/formly_constants';
 import { action } from 'storybook/actions';
+import { Location } from '../../../_models/location';
+import { FORMLY_MODULE } from '../../../_modules/formly_constants';
 import { LocationTemplateComponent } from './location-template.component';
 
 const dummyLocation: Location = {

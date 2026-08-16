@@ -1,9 +1,9 @@
 import type { MessagePort } from 'node:worker_threads';
 import { AsyncResource } from 'node:async_hooks';
 import type { WorkerInfo } from '../worker_pool';
-import type { AbortSignalAny } from '../abort';
-import { kQueueOptions } from '../symbols';
 import type { Task, TaskQueue, PiscinaTask } from './common';
+import { type AbortSignalAny } from '../abort';
+import { kQueueOptions } from '../symbols';
 export { ArrayTaskQueue } from './array_queue';
 export { FixedQueue } from './fixed_queue';
 export type TaskCallback = (err: Error, result: any) => void;
@@ -11,6 +11,14 @@ export type TransferList = MessagePort extends {
     postMessage: (value: any, transferList: infer T) => any;
 } ? T : never;
 export type TransferListItem = TransferList extends Array<infer T> ? T : never;
+type TaskInfoParameters = {
+    task: any;
+    transferList: TransferList;
+    filename: string;
+    name: string;
+    abortSignal: AbortSignalAny | null;
+    triggerAsyncId: number;
+};
 /**
  * Verifies if a given TaskQueue is valid
  *
@@ -31,11 +39,13 @@ export declare class TaskInfo extends AsyncResource implements Task {
     created: number;
     started: number;
     aborted: boolean;
-    _abortListener: (() => void) | null;
-    constructor(task: any, transferList: TransferList, filename: string, name: string, callback: TaskCallback, abortSignal: AbortSignalAny | null, triggerAsyncId: number);
-    set abortListener(value: (() => void));
-    get abortListener(): (() => void) | null;
+    _abortListener: (() => void);
+    _abortCleaner: (() => void) | null;
+    constructor({ task, transferList, filename, name, abortSignal, triggerAsyncId, }: TaskInfoParameters, callback: TaskCallback);
+    onAbort(value: (() => void)): void;
+    setAbortListener(signal: AbortSignalAny): void;
     releaseTask(): any;
+    onResponse(_result: any): void;
     done(err: Error | null, result?: any): void;
     get [kQueueOptions](): {} | null;
     get interface(): PiscinaTask;

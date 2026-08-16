@@ -14,11 +14,12 @@ const NullDependency = require("./NullDependency");
 /** @typedef {import("../Dependency")} Dependency */
 /** @typedef {import("../DependencyTemplate").DependencyTemplateContext} DependencyTemplateContext */
 /** @typedef {import("../javascript/JavascriptParser").Range} Range */
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext} ObjectDeserializerContext */
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext} ObjectSerializerContext */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext<[Range, Range, Range | null, Range | null, boolean, boolean]>} ObjectDeserializerContext */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext<[Range, Range, Range | null, Range | null, boolean, boolean]>} ObjectSerializerContext */
 
 class AMDRequireDependency extends NullDependency {
 	/**
+	 * Creates an instance of AMDRequireDependency.
 	 * @param {Range} outerRange outer range
 	 * @param {Range} arrayRange array range
 	 * @param {Range | null} functionRange function range
@@ -31,7 +32,9 @@ class AMDRequireDependency extends NullDependency {
 		this.arrayRange = arrayRange;
 		this.functionRange = functionRange;
 		this.errorCallbackRange = errorCallbackRange;
+		/** @type {boolean} */
 		this.functionBindThis = false;
+		/** @type {boolean} */
 		this.errorCallbackBindThis = false;
 	}
 
@@ -40,35 +43,39 @@ class AMDRequireDependency extends NullDependency {
 	}
 
 	/**
+	 * Serializes this instance into the provided serializer context.
 	 * @param {ObjectSerializerContext} context context
 	 */
 	serialize(context) {
-		const { write } = context;
-
-		write(this.outerRange);
-		write(this.arrayRange);
-		write(this.functionRange);
-		write(this.errorCallbackRange);
-		write(this.functionBindThis);
-		write(this.errorCallbackBindThis);
+		context
+			.write(this.outerRange)
+			.write(this.arrayRange)
+			.write(this.functionRange)
+			.write(this.errorCallbackRange)
+			.write(this.functionBindThis)
+			.write(this.errorCallbackBindThis);
 
 		super.serialize(context);
 	}
 
 	/**
+	 * Restores this instance from the provided deserializer context.
 	 * @param {ObjectDeserializerContext} context context
 	 */
 	deserialize(context) {
-		const { read } = context;
+		this.outerRange = context.read();
+		const c1 = context.rest;
+		this.arrayRange = c1.read();
+		const c2 = c1.rest;
+		this.functionRange = c2.read();
+		const c3 = c2.rest;
+		this.errorCallbackRange = c3.read();
+		const c4 = c3.rest;
+		this.functionBindThis = c4.read();
+		const c5 = c4.rest;
+		this.errorCallbackBindThis = c5.read();
 
-		this.outerRange = read();
-		this.arrayRange = read();
-		this.functionRange = read();
-		this.errorCallbackRange = read();
-		this.functionBindThis = read();
-		this.errorCallbackBindThis = read();
-
-		super.deserialize(context);
+		super.deserialize(c5.rest);
 	}
 }
 
@@ -81,6 +88,7 @@ AMDRequireDependency.Template = class AMDRequireDependencyTemplate extends (
 	NullDependency.Template
 ) {
 	/**
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Dependency} dependency the dependency for which the template should be applied
 	 * @param {ReplaceSource} source the current replace source which can be modified
 	 * @param {DependencyTemplateContext} templateContext the context object

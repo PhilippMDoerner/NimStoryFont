@@ -12,9 +12,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.generateIndexHtml = generateIndexHtml;
 const node_assert_1 = __importDefault(require("node:assert"));
+const node_crypto_1 = require("node:crypto");
 const node_path_1 = __importDefault(require("node:path"));
 const index_html_generator_1 = require("../../utils/index-file/index-html-generator");
-const bundler_context_1 = require("./bundler-context");
+const bundler_files_1 = require("./bundler-files");
 /**
  * The maximum number of module preload link elements that should be added for
  * initial scripts.
@@ -48,7 +49,7 @@ async function generateIndexHtml(initialFiles, outputFiles, buildOptions, lang) 
         hints.push(...modulePreloads.slice(0, MODULE_PRELOAD_MAX));
     }
     /** Virtual output path to support reading in-memory files. */
-    const browserOutputFiles = outputFiles.filter(({ type }) => type === bundler_context_1.BuildOutputFileType.Browser);
+    const browserOutputFiles = outputFiles.filter(({ type }) => type === bundler_files_1.BuildOutputFileType.Browser);
     const virtualOutputPath = '/';
     const readAsset = async function (filePath) {
         // Remove leading directory separator
@@ -59,6 +60,21 @@ async function generateIndexHtml(initialFiles, outputFiles, buildOptions, lang) 
         }
         throw new Error(`Output file does not exist: ${relativefilePath}`);
     };
+    // When SRI is enabled, build an integrity map for every browser JavaScript
+    // chunk so an `<script type="importmap">` block can carry integrity metadata
+    // for modules loaded via dynamic `import()`.
+    let chunksIntegrity;
+    if (subresourceIntegrity) {
+        const integrity = new Map();
+        for (const file of browserOutputFiles) {
+            if (!file.path.endsWith('.js') || initialFiles.has(file.path)) {
+                continue;
+            }
+            const hash = (0, node_crypto_1.createHash)('sha384').update(file.contents).digest('base64');
+            integrity.set(file.path, 'sha384-' + hash);
+        }
+        chunksIntegrity = integrity;
+    }
     // Create an index HTML generator that reads from the in-memory output files
     const indexHtmlGenerator = new index_html_generator_1.IndexHtmlGenerator({
         indexPath: indexHtmlOptions.input,
@@ -72,6 +88,7 @@ async function generateIndexHtml(initialFiles, outputFiles, buildOptions, lang) 
             buildOptions.prerenderOptions ||
             buildOptions.appShellOptions),
         autoCsp: buildOptions.security.autoCsp,
+        chunksIntegrity,
     });
     indexHtmlGenerator.readAsset = readAsset;
     return indexHtmlGenerator.process({
@@ -88,3 +105,4 @@ async function generateIndexHtml(initialFiles, outputFiles, buildOptions, lang) 
         hints,
     });
 }
+//# sourceMappingURL=index-html-generator.js.map

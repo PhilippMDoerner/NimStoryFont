@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RULE_NAME = void 0;
+exports.RULE_DOCS_EXTENSION = exports.RULE_NAME = void 0;
 const bundled_angular_compiler_1 = require("@angular-eslint/bundled-angular-compiler");
 const utils_1 = require("@angular-eslint/utils");
 const aria_query_1 = require("aria-query");
@@ -26,7 +26,12 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
     defaultOptions: [],
     create(context) {
         const parserServices = (0, utils_1.getTemplateParserServices)(context);
-        const elementNamePattern = (0, to_pattern_1.toPattern)([...(0, get_dom_elements_1.getDomElements)()]);
+        const domElements = [...(0, get_dom_elements_1.getDomElements)()];
+        const uppercaseDomElements = domElements.map((element) => element.toUpperCase());
+        const elementNamePattern = (0, to_pattern_1.toPattern)([
+            ...domElements,
+            ...uppercaseDomElements,
+        ]);
         return {
             [`Element[name=${elementNamePattern}] > :matches(BoundAttribute, TextAttribute)[name=/^aria-.+/]`](node) {
                 const { name: attribute, sourceSpan } = node;
@@ -129,3 +134,6 @@ function isValidAriaPropertyValue({ allowundefined, type, values }, attributeVal
         }
     }
 }
+exports.RULE_DOCS_EXTENSION = {
+    rationale: "ARIA (Accessible Rich Internet Applications) attributes must be valid and used correctly for screen readers to interpret them. Using invalid or misspelled ARIA attributes (like 'aria-labeledby' instead of 'aria-labelledby', or using ARIA attributes that don't exist) causes screen readers to ignore them, breaking accessibility. Each HTML element only supports specific ARIA attributes based on its role. Invalid ARIA is worse than no ARIA because it gives developers false confidence that they've made something accessible when they haven't. Use a reference like the ARIA specification or MDN to verify attribute names and valid usage.",
+};

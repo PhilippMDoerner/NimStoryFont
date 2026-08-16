@@ -22,3 +22,4 @@ class AnalyticsInfoCommandModule extends command_module_1.CommandModule {
     }
 }
 exports.AnalyticsInfoCommandModule = AnalyticsInfoCommandModule;
+//# sourceMappingURL=cli.js.map

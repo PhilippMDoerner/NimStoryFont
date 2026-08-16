@@ -1,6 +1,6 @@
 {
   "name": "@angular-eslint/utils",
-  "version": "20.1.1",
+  "version": "22.1.0",
   "license": "MIT",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -17,12 +17,12 @@
     "LICENSE"
   ],
   "peerDependencies": {
-    "@typescript-eslint/utils": "^7.11.0 || ^8.0.0",
-    "eslint": "^8.57.0 || ^9.0.0",
+    "@typescript-eslint/utils": "^8.0.0",
+    "eslint": "^9.0.0 || ^10.0.0",
     "typescript": "*"
   },
   "dependencies": {
-    "@angular-eslint/bundled-angular-compiler": "20.1.1"
+    "@angular-eslint/bundled-angular-compiler": "22.1.0"
   },
   "nx": {
     "namedInputs": {
@@ -35,7 +35,7 @@
         "outputs": [
           "{projectRoot}/src/eslint-plugin/get-native-event-names"
         ],
-        "command": "npx tsx ./tools/scripts/update-native-event-names.ts"
+        "command": "pnpm exec tsx ./tools/scripts/update-native-event-names.ts"
       }
     }
   },

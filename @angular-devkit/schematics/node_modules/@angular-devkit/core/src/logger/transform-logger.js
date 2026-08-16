@@ -16,3 +16,4 @@ class TransformLogger extends logger_1.Logger {
     }
 }
 exports.TransformLogger = TransformLogger;
+//# sourceMappingURL=transform-logger.js.map

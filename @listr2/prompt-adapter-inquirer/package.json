@@ -1,22 +1,22 @@
 {
   "name": "@listr2/prompt-adapter-inquirer",
-  "version": "2.0.22",
+  "version": "4.2.4",
   "description": "Listr2 prompt adapter for inquirer.",
   "license": "MIT",
   "repository": "https://github.com/listr2/listr2",
   "type": "module",
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
   "exports": {
     ".": {
       "require": {
-        "types": "./dist/index.d.cts",
-        "default": "./dist/index.cjs"
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
       },
       "import": {
-        "types": "./dist/index.d.ts",
-        "default": "./dist/index.js"
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
       }
     },
     "./package.json": "./package.json"
@@ -30,16 +30,16 @@
     "access": "public"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=22.13.0"
   },
   "scripts": {
-    "build": "tsup-node",
-    "dev:start": "tsup-node --watch",
+    "build": "tsdown",
+    "dev:start": "tsdown --watch",
     "format": "prettier --log-level warn --write src/ tests/ && pnpm run lint --fix",
-    "lint": "eslint --ext .ts,.js,.tsx,.jsx src/ tests/",
-    "test": "NO_COLOR=1 TS_NODE_PROJECT=tests/tsconfig.json NODE_OPTIONS='--no-warnings --experimental-specifier-resolution=node --experimental-vm-modules' jest --config tests/jest.config.ts",
+    "lint": "eslint src/ tests/",
+    "test": "NODE_OPTIONS='--no-warnings --experimental-vm-modules' jest --config tests/jest.config.ts",
     "test:cov": "pnpm run test --coverage",
-    "test:dev": "NODE_OPTIONS='--no-warnings --experimental-specifier-resolution=node --experimental-vm-modules --inspect=0.0.0.0:9229' pnpm run test --verbose --watchAll"
+    "test:dev": "NODE_OPTIONS='--no-warnings --experimental-vm-modules --inspect=0.0.0.0:9229' pnpm run test --verbose --watchAll"
   },
   "lint-staged": {
     "{src,tests}/**/*.{ts,js,tsx,jsx,spec.ts}": [
@@ -70,14 +70,16 @@
     "idle"
   ],
   "dependencies": {
-    "@inquirer/type": "^1.5.5"
+    "@inquirer/type": "^4.0.6"
   },
   "devDependencies": {
-    "@inquirer/input": "^3.0.1",
-    "@inquirer/prompts": "^6.0.1",
-    "listr2": "8.3.3"
+    "@inquirer/core": "^11.1.5",
+    "@inquirer/input": "^5.0.8",
+    "@inquirer/prompts": "^8.3.0",
+    "listr2": "10.2.1"
   },
   "peerDependencies": {
-    "@inquirer/prompts": ">= 3 < 8"
+    "@inquirer/prompts": ">= 3 < 9",
+    "listr2": "10.2.1"
   }
 }

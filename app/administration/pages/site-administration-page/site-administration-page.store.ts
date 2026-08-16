@@ -4,22 +4,22 @@ import { tapResponse } from '@ngrx/operators';
 import { patchState, signalStore, withMethods, withState } from '@ngrx/signals';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
 import { pipe, switchMap, take, tap } from 'rxjs';
-import { PermissionGroup } from 'src/app/_models/auth';
+import { replaceItem } from '../../../../utils/array';
+import { RequestState } from '../../../../utils/store/factory-types';
+import { PermissionGroup } from '../../../_models/auth';
 import {
   BaseCampaignData,
   Campaign,
   CampaignRaw,
   WikiStatistics,
-} from 'src/app/_models/campaign';
-import { httpErrorToast } from 'src/app/_models/toast';
-import { User, UserRaw } from 'src/app/_models/user';
-import { GroupService } from 'src/app/_services/article/group.service';
-import { UserService } from 'src/app/_services/article/user.service';
-import { AdminService } from 'src/app/_services/utils/admin.service';
-import { CampaignService } from 'src/app/_services/utils/campaign.service';
-import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
-import { replaceItem } from 'src/utils/array';
-import { RequestState } from 'src/utils/store/factory-types';
+} from '../../../_models/campaign';
+import { httpErrorToast } from '../../../_models/toast';
+import { User, UserRaw } from '../../../_models/user';
+import { GroupService } from '../../../_services/article/group.service';
+import { UserService } from '../../../_services/article/user.service';
+import { AdminService } from '../../../_services/utils/admin.service';
+import { CampaignService } from '../../../_services/utils/campaign.service';
+import { ToastService } from '../../../design/organisms/toast-overlay/toast.service';
 
 export interface SiteAdministrationPageState {
   allSiteUsers: User[] | undefined;

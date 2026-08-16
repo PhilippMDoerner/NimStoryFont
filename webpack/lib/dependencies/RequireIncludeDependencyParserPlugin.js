@@ -5,7 +5,7 @@
 
 "use strict";
 
-const WebpackError = require("../WebpackError");
+const WebpackError = require("../errors/WebpackError");
 const {
 	evaluateToString,
 	toConstantDependency
@@ -17,79 +17,77 @@ const RequireIncludeDependency = require("./RequireIncludeDependency");
 /** @typedef {import("../javascript/JavascriptParser")} JavascriptParser */
 /** @typedef {import("../javascript/JavascriptParser").Range} Range */
 
+const PLUGIN_NAME = "RequireIncludeDependencyParserPlugin";
+
 module.exports = class RequireIncludeDependencyParserPlugin {
 	/**
+	 * Creates an instance of RequireIncludeDependencyParserPlugin.
 	 * @param {boolean} warn true: warn about deprecation, false: don't warn
 	 */
 	constructor(warn) {
+		/** @type {boolean} */
 		this.warn = warn;
 	}
 
 	/**
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {JavascriptParser} parser the parser
 	 * @returns {void}
 	 */
 	apply(parser) {
 		const { warn } = this;
-		parser.hooks.call
-			.for("require.include")
-			.tap("RequireIncludeDependencyParserPlugin", expr => {
-				if (expr.arguments.length !== 1) return;
-				const param = parser.evaluateExpression(expr.arguments[0]);
-				if (!param.isString()) return;
+		parser.hooks.call.for("require.include").tap(PLUGIN_NAME, (expr) => {
+			if (expr.arguments.length !== 1) return;
+			const param = parser.evaluateExpression(expr.arguments[0]);
+			if (!param.isString()) return;
 
-				if (warn) {
-					parser.state.module.addWarning(
-						new RequireIncludeDeprecationWarning(
-							/** @type {DependencyLocation} */ (expr.loc)
-						)
-					);
-				}
-
-				const dep = new RequireIncludeDependency(
-					/** @type {string} */ (param.string),
-					/** @type {Range} */ (expr.range)
+			if (warn) {
+				parser.state.module.addWarning(
+					new RequireIncludeDeprecationWarning(parser.getLocation(expr))
 				);
-				dep.loc = /** @type {DependencyLocation} */ (expr.loc);
-				parser.state.current.addDependency(dep);
-				return true;
-			});
+			}
+
+			const dep = new RequireIncludeDependency(
+				/** @type {string} */ (param.string),
+				/** @type {Range} */ (expr.range)
+			);
+			dep.loc = parser.getLocation(expr);
+			parser.state.current.addDependency(dep);
+			return true;
+		});
 		parser.hooks.evaluateTypeof
 			.for("require.include")
-			.tap("RequireIncludePlugin", expr => {
+			.tap(PLUGIN_NAME, (expr) => {
 				if (warn) {
 					parser.state.module.addWarning(
-						new RequireIncludeDeprecationWarning(
-							/** @type {DependencyLocation} */ (expr.loc)
-						)
+						new RequireIncludeDeprecationWarning(parser.getLocation(expr))
 					);
 				}
 				return evaluateToString("function")(expr);
 			});
-		parser.hooks.typeof
-			.for("require.include")
-			.tap("RequireIncludePlugin", expr => {
-				if (warn) {
-					parser.state.module.addWarning(
-						new RequireIncludeDeprecationWarning(
-							/** @type {DependencyLocation} */ (expr.loc)
-						)
-					);
-				}
-				return toConstantDependency(parser, JSON.stringify("function"))(expr);
-			});
+		parser.hooks.typeof.for("require.include").tap(PLUGIN_NAME, (expr) => {
+			if (warn) {
+				parser.state.module.addWarning(
+					new RequireIncludeDeprecationWarning(parser.getLocation(expr))
+				);
+			}
+			return toConstantDependency(parser, JSON.stringify("function"))(expr);
+		});
 	}
 };
 
 class RequireIncludeDeprecationWarning extends WebpackError {
 	/**
+	 * Creates an instance of RequireIncludeDeprecationWarning.
 	 * @param {DependencyLocation} loc location
 	 */
 	constructor(loc) {
 		super("require.include() is deprecated and will be removed soon.");
 
+		/** @type {string} */
 		this.name = "RequireIncludeDeprecationWarning";
 
+		/** @type {DependencyLocation} */
 		this.loc = loc;
 	}
 }

@@ -81,16 +81,18 @@ exports.default = (0, util_1.createRule)({
          * can't be resolved.
          */
         function isSymbolTypeBased(symbol) {
-            if (!symbol) {
+            if (!symbol || checker.isUnknownSymbol(symbol)) {
                 return undefined;
             }
-            const aliasedSymbol = tsutils.isSymbolFlagSet(symbol, ts.SymbolFlags.Alias)
-                ? checker.getAliasedSymbol(symbol)
-                : symbol;
-            if (checker.isUnknownSymbol(aliasedSymbol)) {
-                return undefined;
+            if (symbol.getDeclarations()?.some(ts.isTypeOnlyImportOrExportDeclaration)) {
+                return true;
             }
-            return !(aliasedSymbol.flags & ts.SymbolFlags.Value);
+            if (tsutils.isSymbolFlagSet(symbol, ts.SymbolFlags.Value)) {
+                return false;
+            }
+            return tsutils.isSymbolFlagSet(symbol, ts.SymbolFlags.Alias)
+                ? isSymbolTypeBased(checker.getImmediateAliasedSymbol(symbol))
+                : true;
         }
         return {
             ExportAllDeclaration(node) {
@@ -158,14 +160,12 @@ exports.default = (0, util_1.createRule)({
                 // Cache the first encountered exports for the package. We will need to come
                 // back to these later when fixing the problems.
                 if (node.exportKind === 'type') {
-                    if (sourceExports.typeOnlyNamedExport == null) {
-                        // The export is a type export
-                        sourceExports.typeOnlyNamedExport = node;
-                    }
+                    // The export is a type export
+                    sourceExports.typeOnlyNamedExport ??= node;
                 }
-                else if (sourceExports.valueOnlyNamedExport == null) {
+                else {
                     // The export is a value export
-                    sourceExports.valueOnlyNamedExport = node;
+                    sourceExports.valueOnlyNamedExport ??= node;
                 }
                 // Next for the current export, we will separate type/value specifiers.
                 const typeBasedSpecifiers = [];

@@ -7,13 +7,13 @@
 
 const Chunk = require("../Chunk");
 const { STAGE_ADVANCED } = require("../OptimizationStages");
-const WebpackError = require("../WebpackError");
+const WebpackError = require("../errors/WebpackError");
 const { requestToId } = require("../ids/IdHelpers");
 const { isSubset } = require("../util/SetHelpers");
 const SortableSet = require("../util/SortableSet");
 const {
-	compareModulesByIdentifier,
-	compareIterables
+	compareIterables,
+	compareModulesByIdentifier
 } = require("../util/comparators");
 const createHash = require("../util/createHash");
 const deterministicGrouping = require("../util/deterministicGrouping");
@@ -21,43 +21,53 @@ const { makePathsRelative } = require("../util/identifier");
 const memoize = require("../util/memoize");
 const MinMaxSizeWarning = require("./MinMaxSizeWarning");
 
-/** @typedef {import("../../declarations/WebpackOptions").HashFunction} HashFunction */
 /** @typedef {import("../../declarations/WebpackOptions").OptimizationSplitChunksCacheGroup} OptimizationSplitChunksCacheGroup */
-/** @typedef {import("../../declarations/WebpackOptions").OptimizationSplitChunksGetCacheGroups} OptimizationSplitChunksGetCacheGroups */
 /** @typedef {import("../../declarations/WebpackOptions").OptimizationSplitChunksOptions} OptimizationSplitChunksOptions */
 /** @typedef {import("../../declarations/WebpackOptions").OptimizationSplitChunksSizes} OptimizationSplitChunksSizes */
-/** @typedef {import("../../declarations/WebpackOptions").Output} OutputOptions */
+/** @typedef {import("../config/defaults").OutputNormalizedWithDefaults} OutputOptions */
 /** @typedef {import("../Chunk").ChunkName} ChunkName */
 /** @typedef {import("../ChunkGraph")} ChunkGraph */
 /** @typedef {import("../ChunkGroup")} ChunkGroup */
 /** @typedef {import("../Compiler")} Compiler */
 /** @typedef {import("../Module")} Module */
+/** @typedef {import("../Module").SourceType} SourceType */
 /** @typedef {import("../ModuleGraph")} ModuleGraph */
-/** @typedef {import("../TemplatedPathPlugin").TemplatePath} TemplatePath */
+/** @typedef {import("../Chunk").ChunkFilenameTemplate} ChunkFilenameTemplate */
 /** @typedef {import("../util/deterministicGrouping").GroupedItems<Module>} DeterministicGroupingGroupedItemsForModule */
 /** @typedef {import("../util/deterministicGrouping").Options<Module>} DeterministicGroupingOptionsForModule */
-
-/** @typedef {Record<string, number>} SplitChunksSizes */
+/** @typedef {import("../util/deterministicGrouping").Sizes} Sizes */
 
 /**
- * @callback ChunkFilterFunction
+ * Defines the chunk filter fn callback.
+ * @callback ChunkFilterFn
  * @param {Chunk} chunk
  * @returns {boolean | undefined}
  */
 
-/**
- * @callback CombineSizeFunction
- * @param {number} a
- * @param {number} b
- * @returns {number}
- */
+/** @typedef {number} Priority */
+/** @typedef {number} Size */
+/** @typedef {number} CountOfChunk */
+/** @typedef {number} CountOfRequest */
 
 /**
+ * Defines the combine size function callback.
+ * @callback CombineSizeFunction
+ * @param {Size} a
+ * @param {Size} b
+ * @returns {Size}
+ */
+
+/** @typedef {SourceType[]} SourceTypes */
+/** @typedef {SourceType[]} DefaultSizeTypes */
+/** @typedef {Record<SourceType, Size>} SplitChunksSizes */
+
+/**
+ * Defines the cache group source type used by this module.
  * @typedef {object} CacheGroupSource
  * @property {string} key
- * @property {number=} priority
- * @property {GetName=} getName
- * @property {ChunkFilterFunction=} chunksFilter
+ * @property {Priority=} priority
+ * @property {GetNameFn=} getName
+ * @property {ChunkFilterFn=} chunksFilter
  * @property {boolean=} enforce
  * @property {SplitChunksSizes} minSize
  * @property {SplitChunksSizes} minSizeReduction
@@ -65,10 +75,10 @@ const MinMaxSizeWarning = require("./MinMaxSizeWarning");
  * @property {SplitChunksSizes} enforceSizeThreshold
  * @property {SplitChunksSizes} maxAsyncSize
  * @property {SplitChunksSizes} maxInitialSize
- * @property {number=} minChunks
- * @property {number=} maxAsyncRequests
- * @property {number=} maxInitialRequests
- * @property {TemplatePath=} filename
+ * @property {CountOfChunk=} minChunks
+ * @property {CountOfRequest=} maxAsyncRequests
+ * @property {CountOfRequest=} maxInitialRequests
+ * @property {ChunkFilenameTemplate=} filename
  * @property {string=} idHint
  * @property {string=} automaticNameDelimiter
  * @property {boolean=} reuseExistingChunk
@@ -76,21 +86,22 @@ const MinMaxSizeWarning = require("./MinMaxSizeWarning");
  */
 
 /**
+ * Defines the cache group type used by this module.
  * @typedef {object} CacheGroup
  * @property {string} key
- * @property {number} priority
- * @property {GetName=} getName
- * @property {ChunkFilterFunction} chunksFilter
+ * @property {Priority} priority
+ * @property {GetNameFn=} getName
+ * @property {ChunkFilterFn} chunksFilter
  * @property {SplitChunksSizes} minSize
  * @property {SplitChunksSizes} minSizeReduction
  * @property {SplitChunksSizes} minRemainingSize
  * @property {SplitChunksSizes} enforceSizeThreshold
  * @property {SplitChunksSizes} maxAsyncSize
  * @property {SplitChunksSizes} maxInitialSize
- * @property {number} minChunks
- * @property {number} maxAsyncRequests
- * @property {number} maxInitialRequests
- * @property {TemplatePath=} filename
+ * @property {CountOfChunk} minChunks
+ * @property {CountOfRequest} maxAsyncRequests
+ * @property {CountOfRequest} maxInitialRequests
+ * @property {ChunkFilenameTemplate=} filename
  * @property {string} idHint
  * @property {string} automaticNameDelimiter
  * @property {boolean} reuseExistingChunk
@@ -102,8 +113,9 @@ const MinMaxSizeWarning = require("./MinMaxSizeWarning");
  */
 
 /**
+ * Defines the fallback cache group type used by this module.
  * @typedef {object} FallbackCacheGroup
- * @property {ChunkFilterFunction} chunksFilter
+ * @property {ChunkFilterFn} chunksFilter
  * @property {SplitChunksSizes} minSize
  * @property {SplitChunksSizes} maxAsyncSize
  * @property {SplitChunksSizes} maxInitialSize
@@ -111,12 +123,16 @@ const MinMaxSizeWarning = require("./MinMaxSizeWarning");
  */
 
 /**
+ * Defines the cache groups context type used by this module.
  * @typedef {object} CacheGroupsContext
  * @property {ModuleGraph} moduleGraph
  * @property {ChunkGraph} chunkGraph
  */
 
+/** @typedef {(module: Module) => OptimizationSplitChunksCacheGroup | OptimizationSplitChunksCacheGroup[] | void} RawGetCacheGroups */
+
 /**
+ * Defines the get cache groups callback.
  * @callback GetCacheGroups
  * @param {Module} module
  * @param {CacheGroupsContext} context
@@ -124,48 +140,52 @@ const MinMaxSizeWarning = require("./MinMaxSizeWarning");
  */
 
 /**
- * @callback GetName
+ * Defines the get name fn callback.
+ * @callback GetNameFn
  * @param {Module} module
  * @param {Chunk[]} chunks
  * @param {string} key
- * @returns {string=}
+ * @returns {string | undefined}
  */
 
 /**
+ * Defines the split chunks options type used by this module.
  * @typedef {object} SplitChunksOptions
- * @property {ChunkFilterFunction} chunksFilter
- * @property {string[]} defaultSizeTypes
+ * @property {ChunkFilterFn} chunksFilter
+ * @property {DefaultSizeTypes} defaultSizeTypes
  * @property {SplitChunksSizes} minSize
  * @property {SplitChunksSizes} minSizeReduction
  * @property {SplitChunksSizes} minRemainingSize
  * @property {SplitChunksSizes} enforceSizeThreshold
  * @property {SplitChunksSizes} maxInitialSize
  * @property {SplitChunksSizes} maxAsyncSize
- * @property {number} minChunks
- * @property {number} maxAsyncRequests
- * @property {number} maxInitialRequests
+ * @property {CountOfChunk} minChunks
+ * @property {CountOfRequest} maxAsyncRequests
+ * @property {CountOfRequest} maxInitialRequests
  * @property {boolean} hidePathInfo
- * @property {TemplatePath=} filename
+ * @property {ChunkFilenameTemplate=} filename
  * @property {string} automaticNameDelimiter
  * @property {GetCacheGroups} getCacheGroups
- * @property {GetName} getName
+ * @property {GetNameFn} getName
  * @property {boolean} usedExports
  * @property {FallbackCacheGroup} fallbackCacheGroup
  */
 
+/** @typedef {Set<Chunk>} ChunkSet  */
+
 /**
+ * Defines the chunks info item type used by this module.
  * @typedef {object} ChunksInfoItem
  * @property {SortableSet<Module>} modules
  * @property {CacheGroup} cacheGroup
  * @property {number} cacheGroupIndex
  * @property {string=} name
- * @property {Record<string, number>} sizes
- * @property {Set<Chunk>} chunks
- * @property {Set<Chunk>} reusableChunks
+ * @property {SplitChunksSizes} sizes
+ * @property {ChunkSet} chunks
  * @property {Set<bigint | Chunk>} chunksKeys
  */
 
-/** @type {GetName} */
+/** @type {GetNameFn} */
 const defaultGetName = () => undefined;
 
 const deterministicGroupingForModules =
@@ -176,6 +196,7 @@ const deterministicGroupingForModules =
 const getKeyCache = new WeakMap();
 
 /**
+ * Returns hashed filename.
  * @param {string} name a filename to hash
  * @param {OutputOptions} outputOptions hash function used
  * @returns {string} hashed filename
@@ -184,7 +205,7 @@ const hashFilename = (name, outputOptions) => {
 	const digest =
 		/** @type {string} */
 		(
-			createHash(/** @type {HashFunction} */ (outputOptions.hashFunction))
+			createHash(outputOptions.hashFunction)
 				.update(name)
 				.digest(outputOptions.hashDigest)
 		);
@@ -192,10 +213,11 @@ const hashFilename = (name, outputOptions) => {
 };
 
 /**
+ * Returns the number of requests.
  * @param {Chunk} chunk the chunk
- * @returns {number} the number of requests
+ * @returns {CountOfRequest} the number of requests
  */
-const getRequests = chunk => {
+const getRequests = (chunk) => {
 	let requests = 0;
 	for (const chunkGroup of chunk.groupsIterable) {
 		requests = Math.max(requests, chunkGroup.chunks.length);
@@ -204,16 +226,17 @@ const getRequests = chunk => {
 };
 
 /**
+ * Returns result.
  * @template {object} T
- * @template {object} R
  * @param {T} obj obj an object
- * @param {function(T[keyof T], keyof T): T[keyof T]} fn fn
+ * @param {(obj: T[keyof T], key: keyof T) => T[keyof T]} fn fn
  * @returns {T} result
  */
 const mapObject = (obj, fn) => {
+	/** @type {T} */
 	const newObj = Object.create(null);
 	for (const key of Object.keys(obj)) {
-		newObj[key] = fn(
+		newObj[/** @type {keyof T} */ (key)] = fn(
 			obj[/** @type {keyof T} */ (key)],
 			/** @type {keyof T} */
 			(key)
@@ -223,6 +246,7 @@ const mapObject = (obj, fn) => {
 };
 
 /**
+ * Checks whether this object is overlap.
  * @template T
  * @param {Set<T>} a set
  * @param {Set<T>} b other set
@@ -238,6 +262,7 @@ const isOverlap = (a, b) => {
 const compareModuleIterables = compareIterables(compareModulesByIdentifier);
 
 /**
+ * Compares the provided values and returns their ordering.
  * @param {ChunksInfoItem} a item
  * @param {ChunksInfoItem} b item
  * @returns {number} compare result
@@ -269,29 +294,36 @@ const compareEntries = (a, b) => {
 };
 
 /**
+ * Initial chunk filter.
  * @param {Chunk} chunk the chunk
  * @returns {boolean} true, if the chunk is an entry chunk
  */
-const INITIAL_CHUNK_FILTER = chunk => chunk.canBeInitial();
+const INITIAL_CHUNK_FILTER = (chunk) => chunk.canBeInitial();
 /**
+ * Async chunk filter.
  * @param {Chunk} chunk the chunk
  * @returns {boolean} true, if the chunk is an async chunk
  */
-const ASYNC_CHUNK_FILTER = chunk => !chunk.canBeInitial();
+const ASYNC_CHUNK_FILTER = (chunk) => !chunk.canBeInitial();
 /**
- * @param {Chunk} chunk the chunk
+ * Returns always true.
+ * @param {Chunk} _chunk the chunk
  * @returns {boolean} always true
  */
-const ALL_CHUNK_FILTER = chunk => true;
+const ALL_CHUNK_FILTER = (_chunk) => true;
+
+/** Placeholder until a chunk set group is filled and its signatures are written. */
+const EMPTY_SIGNATURES = new Uint32Array(0);
 
 /**
+ * Returns normalized representation.
  * @param {OptimizationSplitChunksSizes | undefined} value the sizes
- * @param {string[]} defaultSizeTypes the default size types
+ * @param {DefaultSizeTypes} defaultSizeTypes the default size types
  * @returns {SplitChunksSizes} normalized representation
  */
 const normalizeSizes = (value, defaultSizeTypes) => {
 	if (typeof value === "number") {
-		/** @type {Record<string, number>} */
+		/** @type {SplitChunksSizes} */
 		const o = {};
 		for (const sizeType of defaultSizeTypes) o[sizeType] = value;
 		return o;
@@ -302,6 +334,7 @@ const normalizeSizes = (value, defaultSizeTypes) => {
 };
 
 /**
+ * Merges the provided values into a single result.
  * @param {...(SplitChunksSizes | undefined)} sizes the sizes
  * @returns {SplitChunksSizes} the merged sizes
  */
@@ -315,25 +348,27 @@ const mergeSizes = (...sizes) => {
 };
 
 /**
+ * Checks whether this object contains the size.
  * @param {SplitChunksSizes} sizes the sizes
  * @returns {boolean} true, if there are sizes > 0
  */
-const hasNonZeroSizes = sizes => {
-	for (const key of Object.keys(sizes)) {
+const hasNonZeroSizes = (sizes) => {
+	for (const key of /** @type {SourceType[]} */ (Object.keys(sizes))) {
 		if (sizes[key] > 0) return true;
 	}
 	return false;
 };
 
 /**
+ * Returns the combine sizes.
  * @param {SplitChunksSizes} a first sizes
  * @param {SplitChunksSizes} b second sizes
  * @param {CombineSizeFunction} combine a function to combine sizes
  * @returns {SplitChunksSizes} the combine sizes
  */
 const combineSizes = (a, b, combine) => {
-	const aKeys = new Set(Object.keys(a));
-	const bKeys = new Set(Object.keys(b));
+	const aKeys = /** @type {Set<SourceType>} */ (new Set(Object.keys(a)));
+	const bKeys = /** @type {Set<SourceType>} */ (new Set(Object.keys(b)));
 	/** @type {SplitChunksSizes} */
 	const result = {};
 	for (const key of aKeys) {
@@ -348,12 +383,13 @@ const combineSizes = (a, b, combine) => {
 };
 
 /**
+ * Checks true if there are sizes and all existing sizes are at least minSize.
  * @param {SplitChunksSizes} sizes the sizes
  * @param {SplitChunksSizes} minSize the min sizes
  * @returns {boolean} true if there are sizes and all existing sizes are at least `minSize`
  */
 const checkMinSize = (sizes, minSize) => {
-	for (const key of Object.keys(minSize)) {
+	for (const key of /** @type {SourceType[]} */ (Object.keys(minSize))) {
 		const size = sizes[key];
 		if (size === undefined || size === 0) continue;
 		if (size < minSize[key]) return false;
@@ -362,13 +398,16 @@ const checkMinSize = (sizes, minSize) => {
 };
 
 /**
+ * Checks min size reduction.
  * @param {SplitChunksSizes} sizes the sizes
  * @param {SplitChunksSizes} minSizeReduction the min sizes
- * @param {number} chunkCount number of chunks
+ * @param {CountOfChunk} chunkCount number of chunks
  * @returns {boolean} true if there are sizes and all existing sizes are at least `minSizeReduction`
  */
 const checkMinSizeReduction = (sizes, minSizeReduction, chunkCount) => {
-	for (const key of Object.keys(minSizeReduction)) {
+	for (const key of /** @type {SourceType[]} */ (
+		Object.keys(minSizeReduction)
+	)) {
 		const size = sizes[key];
 		if (size === undefined || size === 0) continue;
 		if (size * chunkCount < minSizeReduction[key]) return false;
@@ -377,13 +416,15 @@ const checkMinSizeReduction = (sizes, minSizeReduction, chunkCount) => {
 };
 
 /**
+ * Gets violating min sizes.
  * @param {SplitChunksSizes} sizes the sizes
  * @param {SplitChunksSizes} minSize the min sizes
- * @returns {undefined | string[]} list of size types that are below min size
+ * @returns {undefined | SourceTypes} list of size types that are below min size
  */
 const getViolatingMinSizes = (sizes, minSize) => {
+	/** @type {SourceTypes | undefined} */
 	let list;
-	for (const key of Object.keys(minSize)) {
+	for (const key of /** @type {SourceType[]} */ (Object.keys(minSize))) {
 		const size = sizes[key];
 		if (size === undefined || size === 0) continue;
 		if (size < minSize[key]) {
@@ -395,35 +436,38 @@ const getViolatingMinSizes = (sizes, minSize) => {
 };
 
 /**
+ * Returns the total size.
  * @param {SplitChunksSizes} sizes the sizes
- * @returns {number} the total size
+ * @returns {Size} the total size
  */
-const totalSize = sizes => {
+const totalSize = (sizes) => {
 	let size = 0;
-	for (const key of Object.keys(sizes)) {
+	for (const key of /** @type {SourceType[]} */ (Object.keys(sizes))) {
 		size += sizes[key];
 	}
 	return size;
 };
 
 /**
+ * Returns a function to get the name of the chunk.
  * @param {OptimizationSplitChunksCacheGroup["name"]} name the chunk name
- * @returns {GetName | undefined} a function to get the name of the chunk
+ * @returns {GetNameFn | undefined} a function to get the name of the chunk
  */
-const normalizeName = name => {
+const normalizeName = (name) => {
 	if (typeof name === "string") {
 		return () => name;
 	}
 	if (typeof name === "function") {
-		return /** @type {GetName} */ (name);
+		return /** @type {GetNameFn} */ (name);
 	}
 };
 
 /**
+ * Normalizes chunks filter.
  * @param {OptimizationSplitChunksCacheGroup["chunks"]} chunks the chunk filter option
- * @returns {ChunkFilterFunction | undefined} the chunk filter function
+ * @returns {ChunkFilterFn | undefined} the chunk filter function
  */
-const normalizeChunksFilter = chunks => {
+const normalizeChunksFilter = (chunks) => {
 	if (chunks === "initial") {
 		return INITIAL_CHUNK_FILTER;
 	}
@@ -434,7 +478,7 @@ const normalizeChunksFilter = chunks => {
 		return ALL_CHUNK_FILTER;
 	}
 	if (chunks instanceof RegExp) {
-		return chunk => (chunk.name ? chunks.test(chunk.name) : false);
+		return (chunk) => (chunk.name ? chunks.test(chunk.name) : false);
 	}
 	if (typeof chunks === "function") {
 		return chunks;
@@ -442,8 +486,9 @@ const normalizeChunksFilter = chunks => {
 };
 
 /**
- * @param {undefined | GetCacheGroups | Record<string, false | string | RegExp | OptimizationSplitChunksGetCacheGroups | OptimizationSplitChunksCacheGroup>} cacheGroups the cache group options
- * @param {string[]} defaultSizeTypes the default size types
+ * Normalizes cache groups.
+ * @param {undefined | GetCacheGroups | Record<string, false | string | RegExp | RawGetCacheGroups | OptimizationSplitChunksCacheGroup>} cacheGroups the cache group options
+ * @param {DefaultSizeTypes} defaultSizeTypes the default size types
  * @returns {GetCacheGroups} a function to get the cache groups
  */
 const normalizeCacheGroups = (cacheGroups, defaultSizeTypes) => {
@@ -466,6 +511,7 @@ const normalizeCacheGroups = (cacheGroups, defaultSizeTypes) => {
 					}
 				});
 			} else if (typeof option === "function") {
+				/** @type {WeakMap<OptimizationSplitChunksCacheGroup, CacheGroupSource>} */
 				const cache = new WeakMap();
 				handlers.push((module, context, results) => {
 					const result = option(module);
@@ -501,6 +547,7 @@ const normalizeCacheGroups = (cacheGroups, defaultSizeTypes) => {
 			}
 		}
 		/**
+		 * Returns the matching cache groups.
 		 * @param {Module} module the current module
 		 * @param {CacheGroupsContext} context the current context
 		 * @returns {CacheGroupSource[]} the matching cache groups
@@ -518,7 +565,10 @@ const normalizeCacheGroups = (cacheGroups, defaultSizeTypes) => {
 	return () => null;
 };
 
+/** @typedef {(module: Module, context: CacheGroupsContext) => boolean} CheckTestFn */
+
 /**
+ * Checks true, if the module should be selected.
  * @param {OptimizationSplitChunksCacheGroup["test"]} test test option
  * @param {Module} module the module
  * @param {CacheGroupsContext} context context object
@@ -541,7 +591,10 @@ const checkTest = (test, module, context) => {
 	return false;
 };
 
+/** @typedef {(type: string) => boolean} CheckModuleTypeFn */
+
 /**
+ * Checks module type.
  * @param {OptimizationSplitChunksCacheGroup["type"]} test type option
  * @param {Module} module the module
  * @returns {boolean} true, if the module should be selected
@@ -562,7 +615,10 @@ const checkModuleType = (test, module) => {
 	return false;
 };
 
+/** @typedef {(layer: string | null) => boolean} CheckModuleLayerFn */
+
 /**
+ * Checks module layer.
  * @param {OptimizationSplitChunksCacheGroup["layer"]} test type option
  * @param {Module} module the module
  * @returns {boolean} true, if the module should be selected
@@ -584,9 +640,10 @@ const checkModuleLayer = (test, module) => {
 };
 
 /**
+ * Creates a cache group source.
  * @param {OptimizationSplitChunksCacheGroup} options the group options
  * @param {string} key key of cache group
- * @param {string[]} defaultSizeTypes the default size types
+ * @param {DefaultSizeTypes} defaultSizeTypes the default size types
  * @returns {CacheGroupSource} the normalized cached group
  */
 const createCacheGroupSource = (options, key, defaultSizeTypes) => {
@@ -635,6 +692,7 @@ const PLUGIN_NAME = "SplitChunksPlugin";
 
 module.exports = class SplitChunksPlugin {
 	/**
+	 * Creates an instance of SplitChunksPlugin.
 	 * @param {OptimizationSplitChunksOptions=} options plugin options
 	 */
 	constructor(options = {}) {
@@ -653,7 +711,7 @@ module.exports = class SplitChunksPlugin {
 		/** @type {SplitChunksOptions} */
 		this.options = {
 			chunksFilter:
-				/** @type {ChunkFilterFunction} */
+				/** @type {ChunkFilterFn} */
 				(normalizeChunksFilter(options.chunks || "all")),
 			defaultSizeTypes,
 			minSize,
@@ -684,13 +742,13 @@ module.exports = class SplitChunksPlugin {
 				defaultSizeTypes
 			),
 			getName: options.name
-				? /** @type {GetName} */ (normalizeName(options.name))
+				? /** @type {GetNameFn} */ (normalizeName(options.name))
 				: defaultGetName,
 			automaticNameDelimiter: options.automaticNameDelimiter || "-",
 			usedExports: options.usedExports || false,
 			fallbackCacheGroup: {
 				chunksFilter:
-					/** @type {ChunkFilterFunction} */
+					/** @type {ChunkFilterFn} */
 					(
 						normalizeChunksFilter(
 							fallbackCacheGroup.chunks || options.chunks || "all"
@@ -724,6 +782,7 @@ module.exports = class SplitChunksPlugin {
 	}
 
 	/**
+	 * Returns the cache group (cached).
 	 * @param {CacheGroupSource} cacheGroupSource source
 	 * @returns {CacheGroup} the cache group (cached)
 	 */
@@ -815,7 +874,7 @@ module.exports = class SplitChunksPlugin {
 	}
 
 	/**
-	 * Apply the plugin
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Compiler} compiler the compiler instance
 	 * @returns {void}
 	 */
@@ -824,7 +883,7 @@ module.exports = class SplitChunksPlugin {
 			compiler.context,
 			compiler.root
 		);
-		compiler.hooks.thisCompilation.tap(PLUGIN_NAME, compilation => {
+		compiler.hooks.thisCompilation.tap(PLUGIN_NAME, (compilation) => {
 			const logger = compilation.getLogger(`webpack.${PLUGIN_NAME}`);
 			let alreadyOptimized = false;
 			compilation.hooks.unseal.tap(PLUGIN_NAME, () => {
@@ -835,7 +894,7 @@ module.exports = class SplitChunksPlugin {
 					name: PLUGIN_NAME,
 					stage: STAGE_ADVANCED
 				},
-				chunks => {
+				(chunks) => {
 					if (alreadyOptimized) return;
 					alreadyOptimized = true;
 					logger.time("prepare");
@@ -844,22 +903,29 @@ module.exports = class SplitChunksPlugin {
 					// Give each selected chunk an index (to create strings from chunks)
 					/** @type {Map<Chunk, bigint>} */
 					const chunkIndexMap = new Map();
+					// Dense per-chunk index, folded into the 64 bit membership
+					// signatures that reject non-subsets in getCombinations
+					/** @type {Map<Chunk, number>} */
+					const chunkSignatureBitMap = new Map();
 					const ZERO = BigInt("0");
 					const ONE = BigInt("1");
 					const START = ONE << BigInt("31");
 					let index = START;
+					let denseIndex = 0;
 					for (const chunk of chunks) {
 						chunkIndexMap.set(
 							chunk,
 							index | BigInt((Math.random() * 0x7fffffff) | 0)
 						);
-						index = index << ONE;
+						chunkSignatureBitMap.set(chunk, denseIndex++ & 63);
+						index <<= ONE;
 					}
 					/**
-					 * @param {Iterable<Chunk>} chunks list of chunks
+					 * Returns key of the chunks.
+					 * @param {Iterable<Chunk, undefined, undefined>} chunks list of chunks
 					 * @returns {bigint | Chunk} key of the chunks
 					 */
-					const getKey = chunks => {
+					const getKey = (chunks) => {
 						const iterator = chunks[Symbol.iterator]();
 						let result = iterator.next();
 						if (result.done) return ZERO;
@@ -871,23 +937,24 @@ module.exports = class SplitChunksPlugin {
 							/** @type {bigint} */ (chunkIndexMap.get(result.value));
 						while (!(result = iterator.next()).done) {
 							const raw = chunkIndexMap.get(result.value);
-							key = key ^ /** @type {bigint} */ (raw);
+							key ^= /** @type {bigint} */ (raw);
 						}
 						return key;
 					};
 					/**
+					 * Returns stringified key.
 					 * @param {bigint | Chunk} key key of the chunks
 					 * @returns {string} stringified key
 					 */
-					const keyToString = key => {
+					const keyToString = (key) => {
 						if (typeof key === "bigint") return key.toString(16);
 						return /** @type {bigint} */ (chunkIndexMap.get(key)).toString(16);
 					};
 
 					const getChunkSetsInGraph = memoize(() => {
-						/** @type {Map<bigint, Set<Chunk>>} */
+						/** @type {Map<bigint, ChunkSet>} */
 						const chunkSetsInGraph = new Map();
-						/** @type {Set<Chunk>} */
+						/** @type {ChunkSet} */
 						const singleChunkSets = new Set();
 						for (const module of compilation.modules) {
 							const chunks = chunkGraph.getModuleChunksIterable(module);
@@ -904,11 +971,13 @@ module.exports = class SplitChunksPlugin {
 					});
 
 					/**
+					 * Group chunks by exports.
 					 * @param {Module} module the module
 					 * @returns {Iterable<Chunk[]>} groups of chunks with equal exports
 					 */
-					const groupChunksByExports = module => {
+					const groupChunksByExports = (module) => {
 						const exportsInfo = moduleGraph.getExportsInfo(module);
+						/** @type {Map<string, Chunk[]>} */
 						const groupedByUsedExports = new Map();
 						for (const chunk of chunkGraph.getModuleChunksIterable(module)) {
 							const key = exportsInfo.getUsageKey(chunk.runtime);
@@ -925,13 +994,15 @@ module.exports = class SplitChunksPlugin {
 					/** @type {Map<Module, Iterable<Chunk[]>>} */
 					const groupedByExportsMap = new Map();
 
+					/** @typedef {Map<bigint | Chunk, ChunkSet>} ChunkSetsInGraph */
+
 					const getExportsChunkSetsInGraph = memoize(() => {
-						/** @type {Map<bigint | Chunk, Set<Chunk>>} */
+						/** @type {ChunkSetsInGraph} */
 						const chunkSetsInGraph = new Map();
-						/** @type {Set<Chunk>} */
+						/** @type {ChunkSet} */
 						const singleChunkSets = new Set();
 						for (const module of compilation.modules) {
-							const groupedChunks = Array.from(groupChunksByExports(module));
+							const groupedChunks = [...groupChunksByExports(module)];
 							groupedByExportsMap.set(module, groupedChunks);
 							for (const chunks of groupedChunks) {
 								if (chunks.length === 1) {
@@ -947,24 +1018,64 @@ module.exports = class SplitChunksPlugin {
 						return { chunkSetsInGraph, singleChunkSets };
 					});
 
+					/**
+					 * Chunk sets of equal size, with a 64 bit membership signature
+					 * per set stored as two words at `2 * i` in `signatures`.
+					 * @typedef {object} ChunkSetGroup
+					 * @property {ChunkSet[]} sets the chunk sets
+					 * @property {Uint32Array} signatures two signature words per set
+					 */
+
+					/** @typedef {Map<CountOfChunk, ChunkSetGroup>} ChunkSetsByCount */
+
+					// holds the signature of the set currently being combined; transient
+					const signatureScratch = new Uint32Array(2);
+
+					/**
+					 * Folds a chunk set into a 64 bit membership signature.
+					 * @param {ChunkSet} chunksSet set of chunks
+					 * @param {Uint32Array} out target array
+					 * @param {number} offset index of the first of the two words
+					 * @returns {void}
+					 */
+					const writeSignature = (chunksSet, out, offset) => {
+						out[offset] = 0;
+						out[offset + 1] = 0;
+						for (const chunk of chunksSet) {
+							const bit = /** @type {number} */ (
+								chunkSignatureBitMap.get(chunk)
+							);
+							out[offset + (bit >> 5)] |= 1 << (bit & 31);
+						}
+					};
+
 					// group these set of chunks by count
 					// to allow to check less sets via isSubset
 					// (only smaller sets can be subset)
 					/**
-					 * @param {IterableIterator<Set<Chunk>>} chunkSets set of sets of chunks
-					 * @returns {Map<number, Array<Set<Chunk>>>} map of sets of chunks by count
+					 * Group chunk sets by count.
+					 * @param {IterableIterator<ChunkSet>} chunkSets set of sets of chunks
+					 * @returns {ChunkSetsByCount} map of sets of chunks by count
 					 */
-					const groupChunkSetsByCount = chunkSets => {
-						/** @type {Map<number, Array<Set<Chunk>>>} */
+					const groupChunkSetsByCount = (chunkSets) => {
+						/** @type {ChunkSetsByCount} */
 						const chunkSetsByCount = new Map();
 						for (const chunksSet of chunkSets) {
 							const count = chunksSet.size;
-							let array = chunkSetsByCount.get(count);
-							if (array === undefined) {
-								array = [];
-								chunkSetsByCount.set(count, array);
+							let group = chunkSetsByCount.get(count);
+							if (group === undefined) {
+								group = { sets: [], signatures: EMPTY_SIGNATURES };
+								chunkSetsByCount.set(count, group);
 							}
-							array.push(chunksSet);
+							group.sets.push(chunksSet);
+						}
+						for (const group of chunkSetsByCount.values()) {
+							const { sets } = group;
+							const signatures = new Uint32Array(sets.length * 2);
+							for (let i = 0; i < sets.length; i++) {
+								writeSignature(sets[i], signatures, i * 2);
+							}
+							group.signatures = signatures;
 						}
 						return chunkSetsByCount;
 					};
@@ -979,22 +1090,25 @@ module.exports = class SplitChunksPlugin {
 						)
 					);
 
+					/** @typedef {(ChunkSet | Chunk)[]} Combinations */
+
 					// Create a list of possible combinations
 					/**
-					 * @param {Map<bigint | Chunk, Set<Chunk>>} chunkSets chunk sets
-					 * @param {Set<Chunk>} singleChunkSets single chunks sets
-					 * @param {Map<number, Set<Chunk>[]>} chunkSetsByCount chunk sets by count
-					 * @returns {(key: bigint | Chunk) => (Set<Chunk> | Chunk)[]} combinations
+					 * Creates a get combinations.
+					 * @param {ChunkSetsInGraph} chunkSets chunk sets
+					 * @param {ChunkSet} singleChunkSets single chunks sets
+					 * @param {ChunkSetsByCount} chunkSetsByCount chunk sets by count
+					 * @returns {(key: bigint | Chunk) => Combinations} combinations
 					 */
 					const createGetCombinations = (
 						chunkSets,
 						singleChunkSets,
 						chunkSetsByCount
 					) => {
-						/** @type {Map<bigint | Chunk, (Set<Chunk> | Chunk)[]>} */
+						/** @type {Map<bigint | Chunk, Combinations>} */
 						const combinationsCache = new Map();
 
-						return key => {
+						return (key) => {
 							const cacheEntry = combinationsCache.get(key);
 							if (cacheEntry !== undefined) return cacheEntry;
 							if (key instanceof Chunk) {
@@ -1003,14 +1117,28 @@ module.exports = class SplitChunksPlugin {
 								return result;
 							}
 							const chunksSet =
-								/** @type {Set<Chunk>} */
+								/** @type {ChunkSet} */
 								(chunkSets.get(key));
-							/** @type {(Set<Chunk> | Chunk)[]} */
+							/** @type {Combinations} */
 							const array = [chunksSet];
-							for (const [count, setArray] of chunkSetsByCount) {
+							writeSignature(chunksSet, signatureScratch, 0);
+							const selfLow = signatureScratch[0];
+							const selfHigh = signatureScratch[1];
+							for (const [count, group] of chunkSetsByCount) {
 								// "equal" is not needed because they would have been merge in the first step
 								if (count < chunksSet.size) {
-									for (const set of setArray) {
+									const { sets, signatures } = group;
+									for (let i = 0; i < sets.length; i++) {
+										// a subset cannot hold a signature bit the superset lacks,
+										// so this rejects nearly every candidate without touching the Set
+										const offset = i * 2;
+										if (
+											(signatures[offset] & ~selfLow) !== 0 ||
+											(signatures[offset + 1] & ~selfHigh) !== 0
+										) {
+											continue;
+										}
+										const set = sets[i];
 										if (isSubset(chunksSet, set)) {
 											array.push(set);
 										}
@@ -1037,10 +1165,11 @@ module.exports = class SplitChunksPlugin {
 					});
 
 					/**
+					 * Returns combinations by key.
 					 * @param {bigint | Chunk} key key
-					 * @returns {(Set<Chunk> | Chunk)[]} combinations by key
+					 * @returns {Combinations} combinations by key
 					 */
-					const getCombinations = key => getCombinationsFactory()(key);
+					const getCombinations = (key) => getCombinationsFactory()(key);
 
 					const getExportsCombinationsFactory = memoize(() => {
 						const { chunkSetsInGraph, singleChunkSets } =
@@ -1052,31 +1181,35 @@ module.exports = class SplitChunksPlugin {
 						);
 					});
 					/**
+					 * Gets exports combinations.
 					 * @param {bigint | Chunk} key key
-					 * @returns {(Set<Chunk> | Chunk)[]} exports combinations by key
+					 * @returns {Combinations} exports combinations by key
 					 */
-					const getExportsCombinations = key =>
+					const getExportsCombinations = (key) =>
 						getExportsCombinationsFactory()(key);
 
 					/**
+					 * Defines the selected chunks result type used by this module.
 					 * @typedef {object} SelectedChunksResult
 					 * @property {Chunk[]} chunks the list of chunks
 					 * @property {bigint | Chunk} key a key of the list
 					 */
 
-					/** @type {WeakMap<Set<Chunk> | Chunk, WeakMap<ChunkFilterFunction, SelectedChunksResult>>} */
+					/** @typedef {WeakMap<ChunkFilterFn, SelectedChunksResult>} ChunkMap */
+					/** @type {WeakMap<ChunkSet | Chunk, ChunkMap>} */
 					const selectedChunksCacheByChunksSet = new WeakMap();
 
 					/**
 					 * get list and key by applying the filter function to the list
 					 * It is cached for performance reasons
-					 * @param {Set<Chunk> | Chunk} chunks list of chunks
-					 * @param {ChunkFilterFunction} chunkFilter filter function for chunks
+					 * @param {ChunkSet | Chunk} chunks list of chunks
+					 * @param {ChunkFilterFn} chunkFilter filter function for chunks
 					 * @returns {SelectedChunksResult} list and key
 					 */
 					const getSelectedChunks = (chunks, chunkFilter) => {
 						let entry = selectedChunksCacheByChunksSet.get(chunks);
 						if (entry === undefined) {
+							/** @type {ChunkMap} */
 							entry = new WeakMap();
 							selectedChunksCacheByChunksSet.set(chunks, entry);
 						}
@@ -1112,7 +1245,33 @@ module.exports = class SplitChunksPlugin {
 					/** @type {Map<string, ChunksInfoItem>} */
 					const chunksInfoMap = new Map();
 
+					// The unnamed key is derived only from cache group and chunk set, so it
+					// repeats for every module sharing that pair — build the string once
+					/** @type {Map<CacheGroup, Map<bigint | Chunk, string>>} */
+					const unnamedKeyCache = new Map();
+
 					/**
+					 * Returns the chunksInfoMap key for a cache group and chunk set.
+					 * @param {CacheGroup} cacheGroup the current cache group
+					 * @param {bigint | Chunk} selectedChunksKey a key of selectedChunks
+					 * @returns {string} key into chunksInfoMap
+					 */
+					const getUnnamedKey = (cacheGroup, selectedChunksKey) => {
+						let byChunksKey = unnamedKeyCache.get(cacheGroup);
+						if (byChunksKey === undefined) {
+							byChunksKey = new Map();
+							unnamedKeyCache.set(cacheGroup, byChunksKey);
+						}
+						let key = byChunksKey.get(selectedChunksKey);
+						if (key === undefined) {
+							key = `${cacheGroup.key} chunks:${keyToString(selectedChunksKey)}`;
+							byChunksKey.set(selectedChunksKey, key);
+						}
+						return key;
+					};
+
+					/**
+					 * Adds module to chunks info map.
 					 * @param {CacheGroup} cacheGroup the current cache group
 					 * @param {number} cacheGroupIndex the index of the cache group of ordering
 					 * @param {Chunk[]} selectedChunks chunks selected for this module
@@ -1132,7 +1291,7 @@ module.exports = class SplitChunksPlugin {
 						// Determine name for split chunk
 
 						const name =
-							/** @type {GetName} */
+							/** @type {GetNameFn} */
 							(cacheGroup.getName)(module, selectedChunks, cacheGroup.key);
 						// Check if the name is ok
 						const existingChunk = name && compilation.namedChunks.get(name);
@@ -1194,11 +1353,9 @@ module.exports = class SplitChunksPlugin {
 						// When it has a name we use the name as key
 						// Otherwise we create the key from chunks and cache group key
 						// This automatically merges equal names
-						const key =
-							cacheGroup.key +
-							(name
-								? ` name:${name}`
-								: ` chunks:${keyToString(selectedChunksKey)}`);
+						const key = name
+							? `${cacheGroup.key} name:${name}`
+							: getUnnamedKey(cacheGroup, selectedChunksKey);
 						// Add module to maps
 						let info = chunksInfoMap.get(key);
 						if (info === undefined) {
@@ -1214,7 +1371,6 @@ module.exports = class SplitChunksPlugin {
 									name,
 									sizes: {},
 									chunks: new Set(),
-									reusableChunks: new Set(),
 									chunksKeys: new Set()
 								})
 							);
@@ -1240,6 +1396,35 @@ module.exports = class SplitChunksPlugin {
 						chunkGraph
 					};
 
+					/**
+					 * Returns combinations of the chunks the module is in.
+					 * @param {Module} module the module
+					 * @returns {Combinations} chunk combinations
+					 */
+					const computeCombinations = (module) =>
+						getCombinations(getKey(chunkGraph.getModuleChunksIterable(module)));
+
+					/**
+					 * Returns combinations of the module's chunks grouped by used exports.
+					 * @param {Module} module the module
+					 * @returns {Set<ChunkSet | Chunk>} chunk combinations
+					 */
+					const computeCombinationsByUsedExports = (module) => {
+						// fill the groupedByExportsMap
+						getExportsChunkSetsInGraph();
+						/** @type {Set<ChunkSet | Chunk>} */
+						const set = new Set();
+						const groupedByUsedExports =
+							/** @type {Iterable<Chunk[]>} */
+							(groupedByExportsMap.get(module));
+						for (const chunks of groupedByUsedExports) {
+							for (const comb of getExportsCombinations(getKey(chunks))) {
+								set.add(comb);
+							}
+						}
+						return set;
+					};
+
 					logger.timeEnd("prepare");
 
 					logger.time("modules");
@@ -1252,37 +1437,29 @@ module.exports = class SplitChunksPlugin {
 							continue;
 						}
 
-						// Prepare some values (usedExports = false)
-						const getCombs = memoize(() => {
-							const chunks = chunkGraph.getModuleChunksIterable(module);
-							const chunksKey = getKey(chunks);
-							return getCombinations(chunksKey);
-						});
-
-						// Prepare some values (usedExports = true)
-						const getCombsByUsedExports = memoize(() => {
-							// fill the groupedByExportsMap
-							getExportsChunkSetsInGraph();
-							/** @type {Set<Set<Chunk> | Chunk>} */
-							const set = new Set();
-							const groupedByUsedExports =
-								/** @type {Iterable<Chunk[]>} */
-								(groupedByExportsMap.get(module));
-							for (const chunks of groupedByUsedExports) {
-								const chunksKey = getKey(chunks);
-								for (const comb of getExportsCombinations(chunksKey))
-									set.add(comb);
-							}
-							return set;
-						});
+						// Computed at most once per module, on first use by a cache group
+						/** @type {Combinations | undefined} */
+						let combsCache;
+						/** @type {Set<ChunkSet | Chunk> | undefined} */
+						let combsByUsedExportsCache;
 
 						let cacheGroupIndex = 0;
 						for (const cacheGroupSource of cacheGroups) {
 							const cacheGroup = this._getCacheGroup(cacheGroupSource);
 
-							const combs = cacheGroup.usedExports
-								? getCombsByUsedExports()
-								: getCombs();
+							let combs;
+							if (cacheGroup.usedExports) {
+								if (combsByUsedExportsCache === undefined) {
+									combsByUsedExportsCache =
+										computeCombinationsByUsedExports(module);
+								}
+								combs = combsByUsedExportsCache;
+							} else {
+								if (combsCache === undefined) {
+									combsCache = computeCombinations(module);
+								}
+								combs = combsCache;
+							}
 							// For all combination of chunk selection
 							for (const chunkCombination of combs) {
 								// Break if minimum number of chunks is not reached
@@ -1293,7 +1470,7 @@ module.exports = class SplitChunksPlugin {
 								const { chunks: selectedChunks, key: selectedChunksKey } =
 									getSelectedChunks(
 										chunkCombination,
-										/** @type {ChunkFilterFunction} */
+										/** @type {ChunkFilterFn} */
 										(cacheGroup.chunksFilter)
 									);
 
@@ -1314,13 +1491,14 @@ module.exports = class SplitChunksPlugin {
 					logger.time("queue");
 
 					/**
+					 * Removes modules with source type.
 					 * @param {ChunksInfoItem} info entry
-					 * @param {string[]} sourceTypes source types to be removed
+					 * @param {SourceTypes} sourceTypes source types to be removed
 					 */
 					const removeModulesWithSourceType = (info, sourceTypes) => {
 						for (const module of info.modules) {
 							const types = module.getSourceTypes();
-							if (sourceTypes.some(type => types.has(type))) {
+							if (sourceTypes.some((type) => types.has(type))) {
 								info.modules.delete(module);
 								for (const type of types) {
 									info.sizes[type] -= module.size(type);
@@ -1330,10 +1508,11 @@ module.exports = class SplitChunksPlugin {
 					};
 
 					/**
+					 * Removes min size violating modules.
 					 * @param {ChunksInfoItem} info entry
 					 * @returns {boolean} true, if entry become empty
 					 */
-					const removeMinSizeViolatingModules = info => {
+					const removeMinSizeViolatingModules = (info) => {
 						if (!info.cacheGroup._validateSize) return false;
 						const violatingSizes = getViolatingMinSizes(
 							info.sizes,
@@ -1360,6 +1539,7 @@ module.exports = class SplitChunksPlugin {
 					}
 
 					/**
+					 * Defines the max size queue item type used by this module.
 					 * @typedef {object} MaxSizeQueueItem
 					 * @property {SplitChunksSizes} minSize
 					 * @property {SplitChunksSizes} maxAsyncSize
@@ -1373,7 +1553,9 @@ module.exports = class SplitChunksPlugin {
 
 					while (chunksInfoMap.size > 0) {
 						// Find best matching entry
+						/** @type {undefined | string} */
 						let bestEntryKey;
+						/** @type {undefined | ChunksInfoItem} */
 						let bestEntry;
 						for (const pair of chunksInfoMap) {
 							const key = pair[0];
@@ -1452,6 +1634,7 @@ module.exports = class SplitChunksPlugin {
 							item.cacheGroup._conditionalEnforce &&
 							checkMinSize(item.sizes, item.cacheGroup.enforceSizeThreshold);
 
+						/** @type {Set<Chunk>} */
 						const usedChunks = new Set(item.chunks);
 
 						// Check if maxRequests condition can be fulfilled
@@ -1489,16 +1672,19 @@ module.exports = class SplitChunksPlugin {
 						// Were some (invalid) chunks removed from usedChunks?
 						// => readd all modules to the queue, as things could have been changed
 						if (usedChunks.size < item.chunks.size) {
-							if (isExistingChunk)
+							if (isExistingChunk) {
 								usedChunks.add(/** @type {Chunk} */ (newChunk));
+							}
 							if (usedChunks.size >= item.cacheGroup.minChunks) {
-								const chunksArr = Array.from(usedChunks);
+								const chunksArr = [...usedChunks];
+								// invariant across the module loop below
+								const usedChunksKey = getKey(usedChunks);
 								for (const module of item.modules) {
 									addModuleToChunksInfoMap(
 										item.cacheGroup,
 										item.cacheGroupIndex,
 										chunksArr,
-										getKey(usedChunks),
+										usedChunksKey,
 										module
 									);
 								}
@@ -1513,6 +1699,7 @@ module.exports = class SplitChunksPlugin {
 							usedChunks.size === 1
 						) {
 							const [chunk] = usedChunks;
+							/** @type {SplitChunksSizes} */
 							const chunkSizes = Object.create(null);
 							for (const module of chunkGraph.getChunkModulesIterable(chunk)) {
 								if (!item.modules.has(module)) {
@@ -1618,7 +1805,7 @@ module.exports = class SplitChunksPlugin {
 									: item.cacheGroup.maxInitialSize,
 								automaticNameDelimiter: item.cacheGroup.automaticNameDelimiter,
 								keys: oldMaxSizeSettings
-									? oldMaxSizeSettings.keys.concat(item.cacheGroup.key)
+									? [...oldMaxSizeSettings.keys, item.cacheGroup.key]
 									: [item.cacheGroup.key]
 							});
 						}
@@ -1672,7 +1859,7 @@ module.exports = class SplitChunksPlugin {
 
 					// Make sure that maxSize is fulfilled
 					const { fallbackCacheGroup } = this.options;
-					for (const chunk of Array.from(compilation.chunks)) {
+					for (const chunk of compilation.chunks) {
 						const chunkConfig = maxSizeQueueMap.get(chunk);
 						const {
 							minSize,
@@ -1680,8 +1867,9 @@ module.exports = class SplitChunksPlugin {
 							maxInitialSize,
 							automaticNameDelimiter
 						} = chunkConfig || fallbackCacheGroup;
-						if (!chunkConfig && !fallbackCacheGroup.chunksFilter(chunk))
+						if (!chunkConfig && !fallbackCacheGroup.chunksFilter(chunk)) {
 							continue;
+						}
 						/** @type {SplitChunksSizes} */
 						let maxSize;
 						if (chunk.isOnlyInitial()) {
@@ -1694,7 +1882,9 @@ module.exports = class SplitChunksPlugin {
 						if (Object.keys(maxSize).length === 0) {
 							continue;
 						}
-						for (const key of Object.keys(maxSize)) {
+						for (const key of /** @type {SourceType[]} */ (
+							Object.keys(maxSize)
+						)) {
 							const maxSizeValue = maxSize[key];
 							const minSizeValue = minSize[key];
 							if (
@@ -1740,6 +1930,7 @@ module.exports = class SplitChunksPlugin {
 								return key;
 							},
 							getSize(module) {
+								/** @type {Sizes} */
 								const size = Object.create(null);
 								for (const key of module.getSourceTypes()) {
 									size[key] = module.size(key);

@@ -24,8 +24,8 @@ import {
   switchMap,
   withLatestFrom,
 } from 'rxjs';
-import { FocusOnRender } from 'src/app/_directives/focusOnRender.directive';
-import { filterNil } from 'src/utils/rxjs-operators';
+import { filterNil } from '../../../../utils/rxjs-operators';
+import { FocusOnRender } from '../../../_directives/focusOnRender.directive';
 import {
   cleanSearchTerm,
   Formatter,
@@ -41,45 +41,46 @@ import { BadgeComponent } from '../badge/badge.component';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TypeaheadComponent<T> {
-  options = input.required<T[]>();
-  labelProp = input.required<keyof T>();
-  valueProp = input.required<keyof T>();
-  selectedItem = input<T>();
-  id = input.required<string>();
-  autocomplete = input<string>();
-  suggestionLimit = input<number | undefined>(20);
-  placeholder = input<string>();
-  disabled = input<boolean | undefined>(false);
-  formatter = input<Formatter>();
-  autofocus = input<boolean>(false);
+  readonly options = input.required<T[]>();
+  readonly labelProp = input.required<keyof T>();
+  readonly valueProp = input.required<keyof T>();
+  readonly selectedItem = input<T>();
+  readonly id = input.required<string>();
+  readonly autocomplete = input<string>();
+  readonly suggestionLimit = input<number | undefined>(20);
+  readonly placeholder = input<string>();
+  readonly disabled = input<boolean | undefined>(false);
+  readonly formatter = input<Formatter>();
+  readonly autofocus = input<boolean>(false);
 
-  changed = output<T | undefined>();
+  readonly changed = output<T | undefined>();
 
-  typeaheadElement = viewChild.required<NgbTypeahead>(`instance`, {
+  readonly typeaheadElement = viewChild.required<NgbTypeahead>(`instance`, {
     debugName: 'instance',
   });
 
-  selectedItemLabel = computed<string | undefined>(() => {
+  readonly selectedItemLabel = computed<string | undefined>(() => {
     const selectedItem = this.selectedItem();
     if (!selectedItem) return undefined;
     return selectedItem[this.labelProp()] as string | undefined;
   });
 
-  options$ = toObservable(this.options);
-  labelProp$ = toObservable(this.labelProp);
-  formatter$ = toObservable(this.formatter);
-  suggestionLimit$ = toObservable(this.suggestionLimit);
-  inputElement = viewChild<ElementRef<HTMLInputElement>>(`inputElement`);
-  inputElement$ = toObservable(this.inputElement).pipe(
+  readonly options$ = toObservable(this.options);
+  readonly labelProp$ = toObservable(this.labelProp);
+  readonly formatter$ = toObservable(this.formatter);
+  readonly suggestionLimit$ = toObservable(this.suggestionLimit);
+  readonly inputElement =
+    viewChild<ElementRef<HTMLInputElement>>(`inputElement`);
+  readonly inputElement$ = toObservable(this.inputElement).pipe(
     map((input) => input?.nativeElement),
     filterNil(),
   );
 
-  focus$ = this.inputElement$.pipe(
+  readonly focus$ = this.inputElement$.pipe(
     switchMap((input) => fromEvent<FocusEvent>(input, 'focus')),
     map((event) => (event.target as HTMLInputElement | null)?.value),
   );
-  click$ = this.inputElement$.pipe(
+  readonly click$ = this.inputElement$.pipe(
     switchMap((input) => fromEvent(input, 'click')),
     map((event) => (event.target as HTMLInputElement | null)?.value),
   );
@@ -97,8 +98,9 @@ export class TypeaheadComponent<T> {
       this.changed.emit(event.item);
     } else {
       this.changed.emit(undefined);
-      event.preventDefault();
     }
+    event.preventDefault();
+    this.typeaheadElement().writeValue('');
   }
 
   clearOnEmptyInput(target: EventTarget | null): void {
@@ -108,12 +110,13 @@ export class TypeaheadComponent<T> {
     }
   }
 
-  resetValueAndText() {
+  resetValueAndText(event: Event) {
+    event.stopPropagation();
     this.resetSelectedValue();
     this.typeaheadElement()?.writeValue('');
   }
 
-  search: OperatorFunction<string, readonly T[]> = (
+  readonly search: OperatorFunction<string, readonly T[]> = (
     searchTrigger$: Observable<string>,
   ) => {
     const searchTerm$ = merge(searchTrigger$, this.focus$, this.click$).pipe(

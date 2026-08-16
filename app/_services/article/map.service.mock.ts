@@ -1,5 +1,5 @@
-import { ExtendedMap } from 'src/app/_models/map';
-import { OverviewItem } from 'src/app/_models/overview';
+import { ExtendedMap } from '../../_models/map';
+import { OverviewItem } from '../../_models/overview';
 import { dummyMarkers } from './marker.service.mock';
 
 export const dummyMap: ExtendedMap = {

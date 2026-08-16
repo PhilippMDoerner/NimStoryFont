@@ -31,9 +31,9 @@ const NODE_MODULE_SEGMENT = 'node_modules';
  */
 const CUSTOM_LICENSE_TEXT = 'SEE LICENSE IN ';
 /**
- * A list of commonly named license files found within packages.
+ * A regular expression for commonly named license files found within packages.
  */
-const LICENSE_FILES = ['LICENSE', 'LICENSE.txt', 'LICENSE.md'];
+const LICENSE_FILE_REGEXP = /^(?:mit-)?licen[cs]e(?:$|[-._])/i;
 /**
  * Header text that will be added to the top of the output license extraction file.
  */
@@ -61,6 +61,7 @@ const EXTRACTION_FILE_SEPARATOR = '-'.repeat(80) + '\n';
 async function extractLicenses(metafile, rootDirectory) {
     let extractedLicenseContent = `${EXTRACTION_FILE_HEADER}\n${EXTRACTION_FILE_SEPARATOR}`;
     const seenPaths = new Set();
+    const seenPackageDirectories = new Set();
     const seenPackages = new Set();
     for (const entry of Object.values(metafile.outputs)) {
         for (const [inputPath, { bytesInOutput }] of Object.entries(entry.inputs)) {
@@ -99,6 +100,10 @@ async function extractLicenses(metafile, rootDirectory) {
                 ? `${nameOrScope}/${nameOrFile}`
                 : nameOrScope;
             const packageDirectory = node_path_1.default.join(baseDirectory, packageName);
+            if (seenPackageDirectories.has(packageDirectory)) {
+                continue;
+            }
+            seenPackageDirectories.add(packageDirectory);
             // Load the package's metadata to find the package's name, version, and license type
             const packageJsonPath = node_path_1.default.join(packageDirectory, 'package.json');
             let packageJson;
@@ -118,10 +123,10 @@ async function extractLicenses(metafile, rootDirectory) {
             // Attempt to find license text inside package
             let licenseText = '';
             if (typeof packageJson.license === 'string' &&
-                packageJson.license.toLowerCase().startsWith(CUSTOM_LICENSE_TEXT)) {
+                packageJson.license.toUpperCase().startsWith(CUSTOM_LICENSE_TEXT)) {
                 // Attempt to load the package's custom license
                 let customLicensePath;
-                const customLicenseFile = node_path_1.default.normalize(packageJson.license.slice(CUSTOM_LICENSE_TEXT.length + 1).trim());
+                const customLicenseFile = node_path_1.default.normalize(packageJson.license.slice(CUSTOM_LICENSE_TEXT.length).trim());
                 if (customLicenseFile.startsWith('..') || node_path_1.default.isAbsolute(customLicenseFile)) {
                     // Path is attempting to access files outside of the package
                     // TODO: Issue warning?
@@ -130,20 +135,22 @@ async function extractLicenses(metafile, rootDirectory) {
                     customLicensePath = node_path_1.default.join(packageDirectory, customLicenseFile);
                     try {
                         licenseText = await (0, promises_1.readFile)(customLicensePath, 'utf-8');
-                        break;
                     }
                     catch { }
                 }
             }
             else {
                 // Search for a license file within the root of the package
-                for (const potentialLicense of LICENSE_FILES) {
-                    const packageLicensePath = node_path_1.default.join(packageDirectory, potentialLicense);
-                    try {
-                        licenseText = await (0, promises_1.readFile)(packageLicensePath, 'utf-8');
-                        break;
+                const entries = await (0, promises_1.readdir)(packageDirectory, { withFileTypes: true }).catch(() => []);
+                for (const entry of entries) {
+                    if ((entry.isFile() || entry.isSymbolicLink()) && LICENSE_FILE_REGEXP.test(entry.name)) {
+                        const packageLicensePath = node_path_1.default.join(packageDirectory, entry.name);
+                        try {
+                            licenseText = await (0, promises_1.readFile)(packageLicensePath, 'utf-8');
+                            break;
+                        }
+                        catch { }
                     }
-                    catch { }
                 }
             }
             // Generate the package's license entry in the output content
@@ -155,3 +162,4 @@ async function extractLicenses(metafile, rootDirectory) {
     }
     return extractedLicenseContent;
 }
+//# sourceMappingURL=license-extractor.js.map

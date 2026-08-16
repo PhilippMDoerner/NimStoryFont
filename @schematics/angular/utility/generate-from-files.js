@@ -48,3 +48,4 @@ function generateFromFiles(options, extraTemplateValues = {}) {
         return (0, schematics_1.chain)([(0, schematics_1.mergeWith)(templateSource)]);
     };
 }
+//# sourceMappingURL=generate-from-files.js.map

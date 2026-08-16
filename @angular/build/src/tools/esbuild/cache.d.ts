@@ -6,10 +6,6 @@
  * found in the LICENSE file at https://angular.dev/license
  */
 /**
- * @fileoverview
- * Provides infrastructure for common caching functionality within the build system.
- */
-/**
  * A backing data store for one or more Cache instances.
  * The interface is intentionally designed to support using a JavaScript
  * Map instance as a potential cache store.
@@ -34,11 +30,20 @@ export interface CacheStore<V> {
     set(key: string, value: V): this | Promise<this>;
 }
 /**
+ * A persistent backing data store that supports namespace partitioning
+ * and manual lifecycle close operations.
+ */
+export interface PersistentCacheStore<V = any> extends CacheStore<V> {
+    createCache<T = V>(namespace: string): Cache<T>;
+    close(): void | Promise<void>;
+}
+/**
  * A cache object that allows accessing and storing key/value pairs in
  * an underlying CacheStore. This class is the primary method for consumers
  * to use a cache.
  */
 export declare class Cache<V, S extends CacheStore<V> = CacheStore<V>> {
+    #private;
     protected readonly store: S;
     readonly namespace?: string | undefined;
     constructor(store: S, namespace?: string | undefined);
@@ -70,6 +75,10 @@ export declare class Cache<V, S extends CacheStore<V> = CacheStore<V>> {
      * @param value A value to put in the cache.
      */
     put(key: string, value: V): Promise<void>;
+    /**
+     * Clears the base class internal state (requests, write counts, and pending gets).
+     */
+    protected clearInternal(): void;
 }
 /**
  * A lightweight in-memory cache implementation based on a JavaScript Map object.
@@ -91,3 +100,12 @@ export declare class MemoryCache<V> extends Cache<V, Map<string, V>> {
      */
     entries(): MapIterator<[string, V]>;
 }
+/**
+ * Creates and returns a persistent cache store.
+ * Attempts to use the native LMDB store first, and falls back to the built-in SQLite store
+ * if LMDB fails to initialize.
+ *
+ * @param baseCachePath The base path of the cache file/directory without suffix/extension.
+ * @returns A promise resolving to a PersistentCacheStore instance.
+ */
+export declare function createPersistentCacheStore(baseCachePath: string): Promise<PersistentCacheStore>;

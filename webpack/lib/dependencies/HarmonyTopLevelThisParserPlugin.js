@@ -16,11 +16,12 @@ const PLUGIN_NAME = "HarmonyTopLevelThisParserPlugin";
 
 class HarmonyTopLevelThisParserPlugin {
 	/**
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {JavascriptParser} parser the parser
 	 * @returns {void}
 	 */
 	apply(parser) {
-		parser.hooks.expression.for("this").tap(PLUGIN_NAME, node => {
+		parser.hooks.expression.for("this").tap(PLUGIN_NAME, (node) => {
 			if (!parser.scope.topLevelScope) return;
 			if (HarmonyExports.isEnabled(parser.state)) {
 				const dep = new ConstDependency(
@@ -28,7 +29,7 @@ class HarmonyTopLevelThisParserPlugin {
 					/** @type {Range} */ (node.range),
 					null
 				);
-				dep.loc = /** @type {DependencyLocation} */ (node.loc);
+				dep.loc = parser.getLocation(node);
 				parser.state.module.addPresentationalDependency(dep);
 				return true;
 			}

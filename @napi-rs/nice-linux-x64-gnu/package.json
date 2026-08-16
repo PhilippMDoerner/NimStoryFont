@@ -1,6 +1,6 @@
 {
   "name": "@napi-rs/nice-linux-x64-gnu",
-  "version": "1.0.1",
+  "version": "1.1.1",
   "cpu": [
     "x64"
   ],
@@ -22,13 +22,13 @@
   "engines": {
     "node": ">= 10"
   },
-  "publishConfig": {
-    "registry": "https://registry.npmjs.org/",
-    "access": "public"
-  },
   "repository": {
     "url": "git+ssh://git@github.com/Brooooooklyn/nice.git",
     "type": "git"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
   },
   "os": [
     "linux"

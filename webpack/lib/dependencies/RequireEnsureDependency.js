@@ -14,11 +14,12 @@ const NullDependency = require("./NullDependency");
 /** @typedef {import("../Dependency")} Dependency */
 /** @typedef {import("../DependencyTemplate").DependencyTemplateContext} DependencyTemplateContext */
 /** @typedef {import("../javascript/JavascriptParser").Range} Range */
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext} ObjectDeserializerContext */
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext} ObjectSerializerContext */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext<[Range, Range, Range | false]>} ObjectDeserializerContext */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext<[Range, Range, Range | false]>} ObjectSerializerContext */
 
 class RequireEnsureDependency extends NullDependency {
 	/**
+	 * Creates an instance of RequireEnsureDependency.
 	 * @param {Range} range range
 	 * @param {Range} contentRange content range
 	 * @param {Range | false} errorHandlerRange error handler range
@@ -36,29 +37,30 @@ class RequireEnsureDependency extends NullDependency {
 	}
 
 	/**
+	 * Serializes this instance into the provided serializer context.
 	 * @param {ObjectSerializerContext} context context
 	 */
 	serialize(context) {
-		const { write } = context;
-
-		write(this.range);
-		write(this.contentRange);
-		write(this.errorHandlerRange);
+		context
+			.write(this.range)
+			.write(this.contentRange)
+			.write(this.errorHandlerRange);
 
 		super.serialize(context);
 	}
 
 	/**
+	 * Restores this instance from the provided deserializer context.
 	 * @param {ObjectDeserializerContext} context context
 	 */
 	deserialize(context) {
-		const { read } = context;
+		this.range = context.read();
+		const c1 = context.rest;
+		this.contentRange = c1.read();
+		const c2 = c1.rest;
+		this.errorHandlerRange = c2.read();
 
-		this.range = read();
-		this.contentRange = read();
-		this.errorHandlerRange = read();
-
-		super.deserialize(context);
+		super.deserialize(c2.rest);
 	}
 }
 
@@ -71,6 +73,7 @@ RequireEnsureDependency.Template = class RequireEnsureDependencyTemplate extends
 	NullDependency.Template
 ) {
 	/**
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Dependency} dependency the dependency for which the template should be applied
 	 * @param {ReplaceSource} source the current replace source which can be modified
 	 * @param {DependencyTemplateContext} templateContext the context object

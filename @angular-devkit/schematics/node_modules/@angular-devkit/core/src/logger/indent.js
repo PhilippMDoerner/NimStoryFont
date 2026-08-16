@@ -38,3 +38,4 @@ class IndentLogger extends logger_1.Logger {
     }
 }
 exports.IndentLogger = IndentLogger;
+//# sourceMappingURL=indent.js.map

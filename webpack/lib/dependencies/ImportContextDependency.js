@@ -10,12 +10,13 @@ const ContextDependency = require("./ContextDependency");
 const ContextDependencyTemplateAsRequireCall = require("./ContextDependencyTemplateAsRequireCall");
 
 /** @typedef {import("../javascript/JavascriptParser").Range} Range */
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext} ObjectDeserializerContext */
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext} ObjectSerializerContext */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext<[Range]>} ObjectDeserializerContext */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext<[Range]>} ObjectSerializerContext */
 /** @typedef {import("./ContextDependency").ContextDependencyOptions} ContextDependencyOptions */
 
 class ImportContextDependency extends ContextDependency {
 	/**
+	 * Creates an instance of ImportContextDependency.
 	 * @param {ContextDependencyOptions} options options
 	 * @param {Range} range range
 	 * @param {Range} valueRange value range
@@ -36,25 +37,37 @@ class ImportContextDependency extends ContextDependency {
 	}
 
 	/**
+	 * Returns an identifier to merge equal requests.
+	 * @returns {string | null} an identifier to merge equal requests
+	 */
+	getResourceIdentifier() {
+		let str = super.getResourceIdentifier();
+
+		if (this.options.attributes) {
+			str += `|attributes${JSON.stringify(this.options.attributes)}`;
+		}
+
+		return str;
+	}
+
+	/**
+	 * Serializes this instance into the provided serializer context.
 	 * @param {ObjectSerializerContext} context context
 	 */
 	serialize(context) {
-		const { write } = context;
-
-		write(this.valueRange);
+		context.write(this.valueRange);
 
 		super.serialize(context);
 	}
 
 	/**
+	 * Restores this instance from the provided deserializer context.
 	 * @param {ObjectDeserializerContext} context context
 	 */
 	deserialize(context) {
-		const { read } = context;
+		this.valueRange = context.read();
 
-		this.valueRange = read();
-
-		super.deserialize(context);
+		super.deserialize(context.rest);
 	}
 }
 

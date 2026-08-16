@@ -7,6 +7,7 @@ declare const baseRule: TSESLint.RuleModule<"unsafeRefs", [], unknown, {
 }>;
 export type Options = InferOptionsTypeFromRule<typeof baseRule>;
 export type MessageIds = InferMessageIdsTypeFromRule<typeof baseRule>;
-declare const _default: TSESLint.RuleModule<"unsafeRefs", [], import("../../rules").ESLintPluginDocs, TSESLint.RuleListener>;
+declare const _default: TSESLint.RuleModule<"unsafeRefs", [], import("../../rules").ESLintPluginDocs, TSESLint.RuleListener> & {
+    name: string;
+};
 export default _default;
-//# sourceMappingURL=no-loop-func.d.ts.map

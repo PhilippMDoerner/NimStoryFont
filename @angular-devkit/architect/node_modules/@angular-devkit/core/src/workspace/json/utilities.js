@@ -110,3 +110,4 @@ function getCurrentValue(target, property) {
     }
     return undefined;
 }
+//# sourceMappingURL=utilities.js.map

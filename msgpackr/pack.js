@@ -123,9 +123,19 @@ export class Packr extends Unpackr {
 				hasSharedUpdate = false
 			let encodingError;
 			try {
-				if (packr.randomAccessStructure && value && value.constructor && value.constructor === Object)
-					writeStruct(value);
-				else
+				// readOnlyStructures: skip the random-access struct write path so NO new struct is
+				// minted. randomAccessStructure stays true (the struct READ path and the struct-safe
+				// integer boundary are preserved, so existing struct data still decodes), but objects
+				// fall through to the normal pack()->writeObject->writeRecord path and are written as
+				// classic shared-structure records (byte range 0x40-0x7f, disjoint from struct headers
+				// at 0x20-0x3f) — the bounded, width-agnostic encoding used before struct mode.
+				if (packr.randomAccessStructure && !packr.readOnlyStructures && value && typeof value === 'object') {
+					if (value.constructor === Object) writeStruct(value); // simple object
+					else if (value.constructor !== Map && !Array.isArray(value) && !extensionClasses.some(extClass => value instanceof extClass)) {
+						// allow user classes, if they don't need special handling (but do use toJSON if available)
+						writeStruct(value.toJSON ? value.toJSON() : value);
+					} else pack(value)
+				} else
 					pack(value)
 				let lastBundle = bundledStrings;
 				if (bundledStrings)
@@ -185,7 +195,14 @@ export class Packr extends Unpackr {
 						let newSharedData = prepareStructures(structures, packr);
 						if (!encodingError) { // TODO: If there is an encoding error, should make the structures as uninitialized so they get rebuilt next time
 							if (packr.saveStructures(newSharedData, newSharedData.isCompatible) === false) {
-								// get updated structures and try again if the update failed
+								// The save was declined (a concurrent writer updated the shared structures,
+								// or the store transaction did not durably commit). Our in-memory
+								// structures + transition trie may now reference record ids that were
+								// never persisted; re-packing as-is would re-emit the same record pointing
+								// at an unpersisted structure (-> "Record id is not defined" on decode).
+								// Mark structures uninitialized so the re-pack reloads durable structures
+								// via getStructures, rebuilds the transition trie, and re-mints + re-saves.
+								structures.uninitialized = true
 								return packr.pack(value, encodeOptions)
 							}
 							packr.lastNamedStructuresLength = sharedLength
@@ -538,22 +555,47 @@ export class Packr extends Unpackr {
 						targetView.setFloat64(position, Number(value))
 					} else if (this.largeBigIntToString) {
 						return pack(value.toString());
-					} else if ((this.useBigIntExtension || this.moreTypes) && value < BigInt(2)**BigInt(1023) && value > -(BigInt(2)**BigInt(1023))) {
-						target[position++] = 0xc7
-						position++;
-						target[position++] = 0x42 // "B" for BigInt
-						let bytes = [];
-						let alignedSign;
-						do {
-							let byte = value & BigInt(0xff);
-							alignedSign = (byte & BigInt(0x80)) === (value < BigInt(0) ? BigInt(0x80) : BigInt(0));
-							bytes.push(byte);
-							value >>= BigInt(8);
-						} while (!((value === BigInt(0) || value === BigInt(-1)) && alignedSign));
-						target[position-2] = bytes.length;
-						for (let i = bytes.length; i > 0;) {
-							target[position++] = Number(bytes[--i]);
+					} else if (this.useBigIntExtension || this.moreTypes) {
+						let empty = value < 0 ? BigInt(-1) : BigInt(0)
+
+						let array
+						if (value >> BigInt(0x10000) === empty) {
+							let mask = BigInt(0x10000000000000000) - BigInt(1) // literal would overflow
+							let chunks = []
+							while (true) {
+								chunks.push(value & mask)
+								if ((value >> BigInt(63)) === empty) break
+								value >>= BigInt(64)
+							}
+
+							array = new Uint8Array(new BigUint64Array(chunks).buffer)
+							array.reverse()
+						} else {
+							let invert = value < 0
+							let string = (invert ? ~value : value).toString(16)
+							if (string.length % 2) {
+								string = '0' + string
+							} else if (parseInt(string.charAt(0), 16) >= 8) {
+								string = '00' + string
+							}
+
+							if (hasNodeBuffer) {
+								array = Buffer.from(string, 'hex')
+							} else {
+								array = new Uint8Array(string.length / 2)
+								for (let i = 0; i < array.length; i++) {
+									array[i] = parseInt(string.slice(i * 2, i * 2 + 2), 16)
+								}
+							}
+
+							if (invert) {
+								for (let i = 0; i < array.length; i++) array[i] = ~array[i]
+							}
 						}
+
+						if (array.length + position > safeEnd)
+							makeRoom(array.length + position)
+						position = writeExtensionData(array, target, position, 0x42)
 						return
 					} else {
 						throw new RangeError(value + ' was too large to fit in MessagePack 64-bit integer format, use' +
@@ -841,6 +883,7 @@ export class Packr extends Unpackr {
 		// this means we are finished using our own buffer and we can write over it safely
 		target = buffer
 		target.dataView || (target.dataView = new DataView(target.buffer, target.byteOffset, target.byteLength))
+		targetView = target.dataView;
 		position = 0
 	}
 	set position (value) {

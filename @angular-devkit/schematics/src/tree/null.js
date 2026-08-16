@@ -37,9 +37,10 @@ class NullTreeDirEntry {
     visit() { }
 }
 exports.NullTreeDirEntry = NullTreeDirEntry;
+// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
 class NullTree {
-    [interface_1.TreeSymbol]() {
-        return this;
+    constructor() {
+        this[interface_1.TreeSymbol] = () => this;
     }
     branch() {
         return new NullTree();
@@ -95,3 +96,4 @@ class NullTree {
     }
 }
 exports.NullTree = NullTree;
+//# sourceMappingURL=null.js.map

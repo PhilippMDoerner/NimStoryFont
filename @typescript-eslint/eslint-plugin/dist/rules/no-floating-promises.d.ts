@@ -10,6 +10,7 @@ export type Options = [
     }
 ];
 export type MessageId = 'floating' | 'floatingFixAwait' | 'floatingFixVoid' | 'floatingPromiseArray' | 'floatingPromiseArrayVoid' | 'floatingUselessRejectionHandler' | 'floatingUselessRejectionHandlerVoid' | 'floatingVoid';
-declare const _default: TSESLint.RuleModule<MessageId, Options, import("../../rules").ESLintPluginDocs, TSESLint.RuleListener>;
+declare const _default: TSESLint.RuleModule<MessageId, Options, import("../../rules").ESLintPluginDocs, TSESLint.RuleListener> & {
+    name: string;
+};
 export default _default;
-//# sourceMappingURL=no-floating-promises.d.ts.map

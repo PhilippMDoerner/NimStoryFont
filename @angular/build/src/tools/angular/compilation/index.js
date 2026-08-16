@@ -15,3 +15,4 @@ var factory_1 = require("./factory");
 Object.defineProperty(exports, "createAngularCompilation", { enumerable: true, get: function () { return factory_1.createAngularCompilation; } });
 var noop_compilation_1 = require("./noop-compilation");
 Object.defineProperty(exports, "NoopCompilation", { enumerable: true, get: function () { return noop_compilation_1.NoopCompilation; } });
+//# sourceMappingURL=index.js.map

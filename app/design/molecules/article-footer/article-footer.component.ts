@@ -22,8 +22,8 @@ import { ButtonComponent } from '../../atoms/button/button.component';
   ],
 })
 export class ArticleFooterComponent {
-  buttonLabel = input.required<string>();
-  buttonLink = input<string | undefined>(undefined);
+  readonly buttonLabel = input.required<string>();
+  readonly buttonLink = input<string | undefined>(undefined);
 
   readonly buttonClick = output<void>();
 }

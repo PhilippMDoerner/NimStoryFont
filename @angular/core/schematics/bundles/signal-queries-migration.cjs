@@ -1,29 +1,26 @@
 'use strict';
 /**
- * @license Angular v20.0.3
- * (c) 2010-2025 Google LLC. https://angular.io/
+ * @license Angular v22.1.1
+ * (c) 2010-2026 Google LLC. https://angular.dev/
  * License: MIT
  */
 'use strict';
 
-var checker = require('./checker-Bu1Wu4f7.cjs');
+var migrations = require('@angular/compiler-cli/private/migrations');
 var ts = require('typescript');
-require('os');
-var index$1 = require('./index-CCX_cTPD.cjs');
-require('path');
-var project_paths = require('./project_paths-BjQra9mv.cjs');
-var apply_import_manager = require('./apply_import_manager-DT15wSJs.cjs');
-var migrate_ts_type_references = require('./migrate_ts_type_references-DSqmdRpG.cjs');
+require('@angular/compiler-cli');
+require('node:path');
+var project_paths = require('./project_paths-LBcwW5BF.cjs');
+var apply_import_manager = require('./apply_import_manager-BsCkDgPj.cjs');
+var migrate_ts_type_references = require('./migrate_ts_type_references-y9gtOKjH.cjs');
 var assert = require('assert');
-var index = require('./index-CAM7Xiu7.cjs');
+var index = require('./index-CYvBVnIF.cjs');
+var compiler = require('@angular/compiler');
 require('@angular-devkit/core');
 require('node:path/posix');
-require('fs');
-require('module');
-require('url');
 require('@angular-devkit/schematics');
-require('./project_tsconfig_paths-CDVxT6Ov.cjs');
-require('./leading_space-D9nQ8UQC.cjs');
+require('./project_tsconfig_paths-BejwmdOG.cjs');
+require('./leading_space-BTPRV0wu.cjs');
 
 /**
  * Phase that migrates Angular host binding references to
@@ -134,7 +131,7 @@ function extractQueryListType(node) {
  *       --> read stays
  *       --> emitDistinctChangesOnly is gone!
  */
-function computeReplacementsToMigrateQuery(node, metadata, importManager, info, printer, options, checker$1) {
+function computeReplacementsToMigrateQuery(node, metadata, importManager, info, printer, options, checker) {
     const sf = node.getSourceFile();
     let newQueryFn = importManager.addImport({
         requestedFile: sf,
@@ -159,7 +156,7 @@ function computeReplacementsToMigrateQuery(node, metadata, importManager, info, 
         }
     }
     if (metadata.queryInfo.read !== null) {
-        assert(metadata.queryInfo.read instanceof checker.WrappedNodeExpr);
+        assert(metadata.queryInfo.read instanceof compiler.WrappedNodeExpr);
         optionProperties.push(ts.factory.createPropertyAssignment('read', metadata.queryInfo.read.node));
     }
     if (metadata.queryInfo.descendants !== defaultDescendants) {
@@ -183,7 +180,7 @@ function computeReplacementsToMigrateQuery(node, metadata, importManager, info, 
         node.initializer === undefined &&
         node.questionToken === undefined &&
         type !== undefined &&
-        !checker$1.isTypeAssignableTo(checker$1.getUndefinedType(), checker$1.getTypeFromTypeNode(type))) {
+        !checker.isTypeAssignableTo(checker.getUndefinedType(), checker.getTypeFromTypeNode(type))) {
         isRequired = true;
     }
     if (isRequired && metadata.queryInfo.first) {
@@ -203,7 +200,7 @@ function computeReplacementsToMigrateQuery(node, metadata, importManager, info, 
     // If the original property type and the read type are matching, we can rely
     // on the TS inference, instead of repeating types, like in `viewChild<Button>(Button)`.
     if (type !== undefined &&
-        resolvedReadType instanceof checker.WrappedNodeExpr &&
+        resolvedReadType instanceof compiler.WrappedNodeExpr &&
         ts.isIdentifier(resolvedReadType.node) &&
         ts.isTypeReferenceNode(type) &&
         ts.isIdentifier(type.typeName) &&
@@ -291,7 +288,7 @@ function extractSourceQueryDefinition(node, reflector, evaluator, info) {
         return null;
     }
     const decorators = reflector.getDecoratorsOfDeclaration(node) ?? [];
-    const ngDecorators = checker.getAngularDecorators(decorators, checker.queryDecoratorNames, /* isCore */ false);
+    const ngDecorators = migrations.getAngularDecorators(decorators, migrations.queryDecoratorNames, /* isCore */ false);
     if (ngDecorators.length === 0) {
         return null;
     }
@@ -318,10 +315,10 @@ function extractSourceQueryDefinition(node, reflector, evaluator, info) {
     }
     let queryInfo = null;
     try {
-        queryInfo = checker.extractDecoratorQueryMetadata(node, decorator.name, decorator.args ?? [], node.name.text, reflector, evaluator);
+        queryInfo = migrations.extractDecoratorQueryMetadata(node, decorator.name, decorator.args ?? [], node.name.text, reflector, evaluator);
     }
     catch (e) {
-        if (!(e instanceof checker.FatalDiagnosticError)) {
+        if (!(e instanceof migrations.FatalDiagnosticError)) {
             throw e;
         }
         console.error(`Skipping query: ${e.node.getSourceFile().fileName}: ${e.toString()}`);
@@ -532,7 +529,7 @@ function checkNonTsReferenceAccessesField(ref, fieldName) {
     if (ref.from.read !== readFromPath) {
         return null;
     }
-    if (!(parentRead instanceof checker.PropertyRead) || parentRead.name !== fieldName) {
+    if (!(parentRead instanceof compiler.PropertyRead) || parentRead.name !== fieldName) {
         return null;
     }
     return parentRead;
@@ -570,7 +567,7 @@ function checkNonTsReferenceCallsField(ref, fieldName) {
         return null;
     }
     const potentialCall = ref.from.readAstPath[accessIdx - 1];
-    if (potentialCall === undefined || !(potentialCall instanceof checker.Call)) {
+    if (potentialCall === undefined || !(potentialCall instanceof compiler.Call)) {
         return null;
     }
     return potentialCall;
@@ -739,9 +736,9 @@ class SignalQueriesMigration extends project_paths.TsurgeComplexMigration {
             templateTypeChecker.generateAllTypeCheckBlocks();
         }
         const { sourceFiles, program } = info;
-        const checker$1 = program.getTypeChecker();
-        const reflector = new checker.TypeScriptReflectionHost(checker$1);
-        const evaluator = new index$1.PartialEvaluator(reflector, checker$1, null);
+        const checker = program.getTypeChecker();
+        const reflector = new migrations.TypeScriptReflectionHost(checker);
+        const evaluator = new migrations.PartialEvaluator(reflector, checker, null);
         const res = {
             knownQueryFields: {},
             potentialProblematicQueries: {},
@@ -789,7 +786,7 @@ class SignalQueriesMigration extends project_paths.TsurgeComplexMigration {
                 }
                 // Migrating fields with `@HostBinding` is incompatible as
                 // the host binding decorator does not invoke the signal.
-                const hostBindingDecorators = checker.getAngularDecorators(extractedQuery.fieldDecorators, ['HostBinding'], 
+                const hostBindingDecorators = migrations.getAngularDecorators(extractedQuery.fieldDecorators, ['HostBinding'], 
                 /* isCore */ false);
                 if (hostBindingDecorators.length > 0) {
                     markFieldIncompatibleInMetadata(res.potentialProblematicQueries, extractedQuery.id, migrate_ts_type_references.FieldIncompatibilityReason.SignalIncompatibleWithHostBinding);
@@ -819,15 +816,15 @@ class SignalQueriesMigration extends project_paths.TsurgeComplexMigration {
                 return descriptor;
             },
         };
-        groupedAstVisitor.register(index.createFindAllSourceFileReferencesVisitor(info, checker$1, reflector, resourceLoader, evaluator, templateTypeChecker, allFieldsOrKnownQueries, 
+        groupedAstVisitor.register(index.createFindAllSourceFileReferencesVisitor(info, checker, reflector, resourceLoader, evaluator, templateTypeChecker, allFieldsOrKnownQueries, 
         // In non-batch mode, we know what inputs exist and can optimize the reference
         // resolution significantly (for e.g. VSCode integration)— as we know what
         // field names may be used to reference potential queries.
         this.config.assumeNonBatch
             ? new Set(Array.from(filteredQueriesForCompilationUnit.values()).map((f) => f.fieldName))
             : null, referenceResult).visitor);
-        const inheritanceGraph = new migrate_ts_type_references.InheritanceGraph(checker$1).expensivePopulate(info.sourceFiles);
-        migrate_ts_type_references.checkIncompatiblePatterns(inheritanceGraph, checker$1, groupedAstVisitor, {
+        const inheritanceGraph = new migrate_ts_type_references.InheritanceGraph(checker).expensivePopulate(info.sourceFiles);
+        migrate_ts_type_references.checkIncompatiblePatterns(inheritanceGraph, checker, groupedAstVisitor, {
             ...allFieldsOrKnownQueries,
             isFieldIncompatible: (f) => res.potentialProblematicQueries[f.key]?.fieldReason !== null ||
                 res.potentialProblematicQueries[f.key]?.classReason !== null,
@@ -927,11 +924,11 @@ class SignalQueriesMigration extends project_paths.TsurgeComplexMigration {
         };
         const resourceLoader = info.ngCompiler?.['resourceManager'] ?? null;
         const { program, sourceFiles } = info;
-        const checker$1 = program.getTypeChecker();
-        const reflector = new checker.TypeScriptReflectionHost(checker$1);
-        const evaluator = new index$1.PartialEvaluator(reflector, checker$1, null);
+        const checker = program.getTypeChecker();
+        const reflector = new migrations.TypeScriptReflectionHost(checker);
+        const evaluator = new migrations.PartialEvaluator(reflector, checker, null);
         const replacements = [];
-        const importManager = new checker.ImportManager();
+        const importManager = new migrations.ImportManager();
         const printer = ts.createPrinter();
         const filesWithSourceQueries = new Map();
         const filesWithIncompleteMigration = new Map();
@@ -980,13 +977,13 @@ class SignalQueriesMigration extends project_paths.TsurgeComplexMigration {
             referenceResult.references = globalMetadata.reusableAnalysisReferences;
         }
         else {
-            groupedAstVisitor.register(index.createFindAllSourceFileReferencesVisitor(info, checker$1, reflector, resourceLoader, evaluator, templateTypeChecker, knownQueries, fieldNamesToConsiderForReferenceLookup, referenceResult).visitor);
+            groupedAstVisitor.register(index.createFindAllSourceFileReferencesVisitor(info, checker, reflector, resourceLoader, evaluator, templateTypeChecker, knownQueries, fieldNamesToConsiderForReferenceLookup, referenceResult).visitor);
         }
         // Check inheritance.
         // NOTE: Inheritance is only checked in the migrate stage as we cannot reliably
         // check during analyze— where we don't know what fields from foreign `.d.ts`
         // files refer to queries or not.
-        const inheritanceGraph = new migrate_ts_type_references.InheritanceGraph(checker$1).expensivePopulate(info.sourceFiles);
+        const inheritanceGraph = new migrate_ts_type_references.InheritanceGraph(checker).expensivePopulate(info.sourceFiles);
         migrate_ts_type_references.checkInheritanceOfKnownFields(inheritanceGraph, metaReader, knownQueries, {
             getFieldsForClass: (n) => knownQueries.getQueryFieldsOfClass(n) ?? [],
             isClassWithKnownFields: (clazz) => knownQueries.getQueryFieldsOfClass(clazz) !== undefined,
@@ -1015,7 +1012,7 @@ class SignalQueriesMigration extends project_paths.TsurgeComplexMigration {
                 updateFileState(filesWithIncompleteMigration, sf, extractedQuery.kind);
                 continue;
             }
-            replacements.push(...computeReplacementsToMigrateQuery(node, extractedQuery, importManager, info, printer, info.userOptions, checker$1));
+            replacements.push(...computeReplacementsToMigrateQuery(node, extractedQuery, importManager, info, printer, info.userOptions, checker));
         }
         // Migrate references.
         const referenceMigrationHost = {
@@ -1026,7 +1023,7 @@ class SignalQueriesMigration extends project_paths.TsurgeComplexMigration {
                 .getQueryFieldsOfClass(clazz)
                 ?.some((q) => !knownQueries.isFieldIncompatible(q)),
         };
-        migrate_ts_type_references.migrateTypeScriptReferences(referenceMigrationHost, referenceResult.references, checker$1, info);
+        migrate_ts_type_references.migrateTypeScriptReferences(referenceMigrationHost, referenceResult.references, checker, info);
         migrateTemplateReferences(referenceMigrationHost, referenceResult.references);
         migrateHostBindings(referenceMigrationHost, referenceResult.references, info);
         migrate_ts_type_references.migrateTypeScriptTypeReferences(referenceMigrationHost, referenceResult.references, importManager, info);

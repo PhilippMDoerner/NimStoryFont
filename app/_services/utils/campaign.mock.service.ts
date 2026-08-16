@@ -2,7 +2,7 @@ import {
   Campaign,
   CampaignOverview,
   WikiStatistics,
-} from 'src/app/_models/campaign';
+} from '../../_models/campaign';
 
 export const dummyCampaigns: CampaignOverview[] = [
   {

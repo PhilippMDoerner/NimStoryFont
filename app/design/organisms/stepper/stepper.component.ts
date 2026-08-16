@@ -10,7 +10,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { map, Subject } from 'rxjs';
-import { componentId } from 'src/utils/DOM';
+import { componentId } from '../../../../utils/DOM';
 import { ButtonComponent } from '../../atoms/button/button.component';
 import { IconComponent } from '../../atoms/icon/icon.component';
 
@@ -44,15 +44,15 @@ const ANIMATION_STATES: {
   },
 })
 export class StepperComponent extends CdkStepper {
-  stepContainer = viewChild.required('stepContentContainer');
+  readonly stepContainer = viewChild.required('stepContentContainer');
 
-  destroyRef = inject(DestroyRef);
+  readonly destroyRef = inject(DestroyRef);
 
-  animationState = signal<'ENTER' | 'EXIT' | 'NONE'>('NONE');
-  animationDirection = signal<'FORWARD' | 'BACKWARD'>('FORWARD');
-  animationEnd$ = new Subject<AnimationState>();
+  readonly animationState = signal<'ENTER' | 'EXIT' | 'NONE'>('NONE');
+  readonly animationDirection = signal<'FORWARD' | 'BACKWARD'>('FORWARD');
+  readonly animationEnd$ = new Subject<AnimationState>();
 
-  private readonly id = componentId();
+  protected readonly id = componentId();
   readonly contentId = `stepper-content-${this.id}`;
 
   constructor() {

@@ -97,17 +97,16 @@ exports.default = (0, util_1.createRule)({
     ],
     create(context, [options]) {
         const services = (0, util_1.getParserServices)(context);
-        const checker = services.program.getTypeChecker();
         return {
             'AwaitExpression, CallExpression, TaggedTemplateExpression'(node) {
-                const type = (0, util_1.getConstrainedTypeAtLocation)(services, node);
-                if (!tsutils.isTypeFlagSet(type, ts.TypeFlags.VoidLike)) {
-                    // not a void expression
-                    return;
-                }
                 const invalidAncestor = findInvalidAncestor(node);
                 if (invalidAncestor == null) {
                     // void expression is in valid position
+                    return;
+                }
+                const type = (0, util_1.getConstrainedTypeAtLocation)(services, node);
+                if (!tsutils.isTypeFlagSet(type, ts.TypeFlags.VoidLike)) {
+                    // not a void expression
                     return;
                 }
                 const wrapVoidFix = (fixer) => {
@@ -236,7 +235,7 @@ exports.default = (0, util_1.createRule)({
          * @returns Invalid ancestor node if it was found. `null` otherwise.
          */
         function findInvalidAncestor(node) {
-            const parent = (0, util_1.nullThrows)(node.parent, util_1.NullThrowsReasons.MissingParent);
+            const parent = node.parent;
             if (parent.type === utils_1.AST_NODE_TYPES.SequenceExpression &&
                 node !== parent.expressions[parent.expressions.length - 1]) {
                 return null;
@@ -282,13 +281,13 @@ exports.default = (0, util_1.createRule)({
         /** Checks whether the return statement is the last statement in a function body. */
         function isFinalReturn(node) {
             // the parent must be a block
-            const block = (0, util_1.nullThrows)(node.parent, util_1.NullThrowsReasons.MissingParent);
+            const block = node.parent;
             if (block.type !== utils_1.AST_NODE_TYPES.BlockStatement) {
                 // e.g. `if (cond) return;` (not in a block)
                 return false;
             }
             // the block's parent must be a function
-            const blockParent = (0, util_1.nullThrows)(block.parent, util_1.NullThrowsReasons.MissingParent);
+            const blockParent = block.parent;
             if (![
                 utils_1.AST_NODE_TYPES.ArrowFunctionExpression,
                 utils_1.AST_NODE_TYPES.FunctionDeclaration,
@@ -327,7 +326,7 @@ exports.default = (0, util_1.createRule)({
             return callSignatures.some(signature => {
                 const returnType = signature.getReturnType();
                 return tsutils
-                    .unionTypeParts(returnType)
+                    .unionConstituents(returnType)
                     .some(tsutils.isIntrinsicVoidType);
             });
         }
@@ -338,18 +337,17 @@ exports.default = (0, util_1.createRule)({
             //   - Otherwise, check if the function is a function-expression or an arrow-function.
             //   -   If it is, get its contextual type and bail if we cannot.
             //   - Return based on whether the contextual type includes `void` or not
-            const functionTSNode = services.esTreeNodeToTSNodeMap.get(functionNode);
-            if (functionTSNode.type) {
-                const returnType = checker.getTypeFromTypeNode(functionTSNode.type);
+            if (functionNode.returnType) {
+                const returnType = services.getTypeFromTypeNode(functionNode.returnType.typeAnnotation);
                 return tsutils
-                    .unionTypeParts(returnType)
+                    .unionConstituents(returnType)
                     .some(tsutils.isIntrinsicVoidType);
             }
-            if (ts.isExpression(functionTSNode)) {
-                const functionType = checker.getContextualType(functionTSNode);
+            if (functionNode.type !== utils_1.AST_NODE_TYPES.FunctionDeclaration) {
+                const functionType = services.getContextualType(functionNode);
                 if (functionType) {
                     return tsutils
-                        .unionTypeParts(functionType)
+                        .unionConstituents(functionType)
                         .some(isFunctionReturnTypeIncludesVoid);
                 }
             }

@@ -6,22 +6,28 @@
 "use strict";
 
 /**
+ * Nested map structure used to index tuple prefixes until the final tuple
+ * element can be stored in a `Set`.
  * @template K
  * @template V
  * @typedef {Map<K, InnerMap<K, V> | Set<V>>} InnerMap
  */
 
 /**
+ * Stores tuples of arbitrary length while preserving efficient prefix lookups
+ * through a tree of maps that ends in a set of final values.
  * @template T
  * @template V
  */
 class TupleSet {
 	/**
+	 * Seeds the tuple set with an optional iterable of tuples.
 	 * @param {Iterable<[T, V, ...EXPECTED_ANY]>=} init init
 	 */
 	constructor(init) {
 		/** @type {InnerMap<T, V>} */
 		this._map = new Map();
+		/** @type {number} */
 		this.size = 0;
 		if (init) {
 			for (const tuple of init) {
@@ -31,6 +37,7 @@ class TupleSet {
 	}
 
 	/**
+	 * Adds a tuple to the set, creating any missing prefix maps along the way.
 	 * @param {[T, V, ...EXPECTED_ANY]} args tuple
 	 * @returns {void}
 	 */
@@ -59,6 +66,7 @@ class TupleSet {
 	}
 
 	/**
+	 * Checks whether the exact tuple is already present in the set.
 	 * @param {[T, V, ...EXPECTED_ANY]} args tuple
 	 * @returns {boolean} true, if the tuple is in the Set
 	 */
@@ -83,6 +91,7 @@ class TupleSet {
 	}
 
 	/**
+	 * Removes a tuple from the set when it is present.
 	 * @param {[T, V, ...EXPECTED_ANY]} args tuple
 	 * @returns {void}
 	 */
@@ -109,12 +118,20 @@ class TupleSet {
 	}
 
 	/**
+	 * Iterates over every stored tuple by walking the nested map structure and
+	 * yielding each complete prefix plus its terminal set value.
 	 * @returns {Iterator<[T, V, ...EXPECTED_ANY]>} iterator
 	 */
 	[Symbol.iterator]() {
+		/**
+		 * Iterator type used while traversing nested tuple-prefix maps.
+		 * @template T, V
+		 * @typedef {MapIterator<[T, InnerMap<T, V> | Set<V>]>} IteratorStack
+		 */
+
 		// This is difficult to type because we can have a map inside a map inside a map, etc. where the end is a set (each key is an argument)
 		// But in basic use we only have 2 arguments in our methods, so we have `Map<K, Set<V>>`
-		/** @type {MapIterator<[T, InnerMap<T, V> | Set<V>]>[]} */
+		/** @type {IteratorStack<T, V>[]} */
 		const iteratorStack = [];
 		/** @type {[T?, V?, ...EXPECTED_ANY]} */
 		const tuple = [];
@@ -122,16 +139,18 @@ class TupleSet {
 		let currentSetIterator;
 
 		/**
-		 * @param {MapIterator<[T, InnerMap<T, V> | Set<V>]>} it iterator
+		 * Advances through nested maps until a terminal value set is reached or
+		 * every remaining branch has been exhausted.
+		 * @param {IteratorStack<T, V>} it iterator
 		 * @returns {boolean} result
 		 */
-		const next = it => {
+		const next = (it) => {
 			const result = it.next();
 			if (result.done) {
 				if (iteratorStack.length === 0) return false;
 				tuple.pop();
 				return next(
-					/** @type {MapIterator<[T, InnerMap<T, V> | Set<V>]>} */
+					/** @type {IteratorStack<T, V>} */
 					(iteratorStack.pop())
 				);
 			}
@@ -155,7 +174,7 @@ class TupleSet {
 						tuple.pop();
 						if (
 							!next(
-								/** @type {MapIterator<[T, InnerMap<T, V> | Set<V>]>} */
+								/** @type {IteratorStack<T, V>} */
 								(iteratorStack.pop())
 							)
 						) {
@@ -165,6 +184,7 @@ class TupleSet {
 						return {
 							done: false,
 							value:
+								/* eslint-disable unicorn/prefer-spread */
 								/** @type {[T, V, ...EXPECTED_ANY]} */
 								(tuple.concat(result.value))
 						};

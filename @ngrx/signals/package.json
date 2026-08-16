@@ -1,6 +1,6 @@
 {
   "name": "@ngrx/signals",
-  "version": "19.2.1",
+  "version": "21.1.1",
   "description": "Reactive Store and Set of Utilities for Angular Signals",
   "repository": {
     "type": "git",
@@ -21,7 +21,7 @@
   },
   "homepage": "https://github.com/ngrx/platform#readme",
   "peerDependencies": {
-    "@angular/core": "^19.0.0",
+    "@angular/core": "^21.0.0",
     "rxjs": "^6.5.3 || ^7.4.0"
   },
   "peerDependenciesMeta": {
@@ -53,29 +53,29 @@
     "tslib": "^2.3.0"
   },
   "module": "fesm2022/ngrx-signals.mjs",
-  "typings": "index.d.ts",
+  "typings": "types/ngrx-signals.d.ts",
   "exports": {
     "./package.json": {
       "default": "./package.json"
     },
     ".": {
-      "types": "./index.d.ts",
+      "types": "./types/ngrx-signals.d.ts",
       "default": "./fesm2022/ngrx-signals.mjs"
     },
+    "./entities": {
+      "types": "./types/ngrx-signals-entities.d.ts",
+      "default": "./fesm2022/ngrx-signals-entities.mjs"
+    },
     "./events": {
-      "types": "./events/index.d.ts",
+      "types": "./types/ngrx-signals-events.d.ts",
       "default": "./fesm2022/ngrx-signals-events.mjs"
     },
     "./rxjs-interop": {
-      "types": "./rxjs-interop/index.d.ts",
+      "types": "./types/ngrx-signals-rxjs-interop.d.ts",
       "default": "./fesm2022/ngrx-signals-rxjs-interop.mjs"
     },
-    "./entities": {
-      "types": "./entities/index.d.ts",
-      "default": "./fesm2022/ngrx-signals-entities.mjs"
-    },
     "./testing": {
-      "types": "./testing/index.d.ts",
+      "types": "./types/ngrx-signals-testing.d.ts",
       "default": "./fesm2022/ngrx-signals-testing.mjs"
     }
   }

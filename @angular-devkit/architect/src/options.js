@@ -27,3 +27,4 @@ function mergeOptions(baseOptions, overrideOptions) {
     }
     return options;
 }
+//# sourceMappingURL=options.js.map

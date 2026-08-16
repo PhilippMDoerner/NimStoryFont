@@ -8,15 +8,17 @@ const utils_1 = require("@typescript-eslint/utils");
  */
 const patchedRuleCreator = (urlCreator) => {
     return function createRule({ name, meta, defaultOptions, create }) {
+        const resolvedDefaultOptions = (defaultOptions ?? []);
         return {
+            name,
             meta: Object.assign(Object.assign({}, meta), {
                 docs: Object.assign(Object.assign({}, meta.docs), {
                     url: urlCreator(name),
                 }),
             }),
-            defaultOptions,
+            defaultOptions: resolvedDefaultOptions,
             create(context) {
-                const optionsWithDefault = utils_1.ESLintUtils.applyDefault(defaultOptions, context.options);
+                const optionsWithDefault = utils_1.ESLintUtils.applyDefault(resolvedDefaultOptions, context.options);
                 return create(context, optionsWithDefault);
             },
         };

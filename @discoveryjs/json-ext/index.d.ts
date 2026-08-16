@@ -1,28 +1,53 @@
 declare module '@discoveryjs/json-ext' {
-    type Chunk = string | Uint8Array | Buffer;
-    type Replacer =
+    export type Chunk = string | Uint8Array | Buffer;
+
+    export type Reviver = (this: any, key: string, value: any) => any;
+    export type ParseChunkedState = {
+        readonly mode: 'json' | 'jsonl';
+        readonly returnValue: any;
+        readonly currentRootValue: any;
+        readonly rootValuesCount: number;
+        readonly consumed: number;
+        readonly parsed: number;
+    };
+    export type OnRootValue = (value: any, state: ParseChunkedState) => void;
+    export type OnChunk = (chunkParsed: number, chunk: string | null, pending: string | null, state: ParseChunkedState) => void;
+    export type ParseOptions = {
+        reviver?: Reviver;
+        mode?: 'json' | 'jsonl' | 'auto';
+        onRootValue?: OnRootValue;
+        onChunk?: OnChunk;
+    };
+
+    export type Replacer =
         | ((this: any, key: string, value: any) => any)
         | (string | number)[]
         | null;
-    type Space = string | number | null;
-    type StringifyOptions = {
+    export type Space = string | number | null;
+    export type StringifyOptions = {
         replacer?: Replacer;
         space?: Space;
+        mode?: 'json' | 'jsonl';
         highWaterMark?: number;
     };
-    type StringifyInfoOptions = {
+    export type StringifyInfoOptions = {
         replacer?: Replacer;
         space?: Space;
+        mode?: 'json' | 'jsonl';
         continueOnCircular?: boolean;
-    }
-    type StringifyInfoResult = {
+    };
+    export type StringifyInfoResult = {
         bytes: number;
         spaceBytes: number;
         circular: object[];
     };
 
-    export function parseChunked(input: Iterable<Chunk> | AsyncIterable<Chunk>): Promise<any>;
-    export function parseChunked(input: () => (Iterable<Chunk> | AsyncIterable<Chunk>)): Promise<any>;
+    export function parseChunked(input: Iterable<Chunk> | AsyncIterable<Chunk>, reviver?: Reviver): Promise<any>;
+    export function parseChunked(input: Iterable<Chunk> | AsyncIterable<Chunk>, options: ParseOptions & { onRootValue: OnRootValue }): Promise<number>;
+    export function parseChunked(input: Iterable<Chunk> | AsyncIterable<Chunk>, options?: ParseOptions): Promise<any>;
+    export function parseChunked(input: () => (Iterable<Chunk> | AsyncIterable<Chunk>), reviver?: Reviver): Promise<any>;
+    export function parseChunked(input: () => (Iterable<Chunk> | AsyncIterable<Chunk>), options: ParseOptions & { onRootValue: OnRootValue }): Promise<number>;
+    export function parseChunked(input: () => (Iterable<Chunk> | AsyncIterable<Chunk>), options?: ParseOptions): Promise<any>;
 
     export function stringifyChunked(value: any, replacer?: Replacer, space?: Space): Generator<string>;
     export function stringifyChunked(value: any, options: StringifyOptions): Generator<string>;

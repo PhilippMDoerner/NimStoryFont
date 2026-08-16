@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CborEncoder = void 0;
-const isFloat32_1 = require("@jsonjoy.com/util/lib/buffers/isFloat32");
+const isFloat32_1 = require("@jsonjoy.com/buffers/lib/isFloat32");
 const JsonPackExtension_1 = require("../JsonPackExtension");
 const CborEncoderFast_1 = require("./CborEncoderFast");
 const JsonPackValue_1 = require("../JsonPackValue");

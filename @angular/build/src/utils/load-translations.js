@@ -43,7 +43,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createTranslationLoader = createTranslationLoader;
 const node_crypto_1 = require("node:crypto");
 const fs = __importStar(require("node:fs"));
-const load_esm_1 = require("./load-esm");
 async function createTranslationLoader() {
     const { parsers, diagnostics } = await importParsers();
     return (path) => {
@@ -75,7 +74,7 @@ async function importParsers() {
         // Load ESM `@angular/localize/tools` using the TypeScript dynamic import workaround.
         // Once TypeScript provides support for keeping the dynamic import this workaround can be
         // changed to a direct dynamic import.
-        const { Diagnostics, ArbTranslationParser, SimpleJsonTranslationParser, Xliff1TranslationParser, Xliff2TranslationParser, XtbTranslationParser, } = await (0, load_esm_1.loadEsmModule)('@angular/localize/tools');
+        const { Diagnostics, ArbTranslationParser, SimpleJsonTranslationParser, Xliff1TranslationParser, Xliff2TranslationParser, XtbTranslationParser, } = await Promise.resolve().then(() => __importStar(require('@angular/localize/tools')));
         const diagnostics = new Diagnostics();
         const parsers = {
             arb: new ArbTranslationParser(),
@@ -91,3 +90,4 @@ async function importParsers() {
         throw new Error(`Unable to load translation file parsers. Please ensure '@angular/localize' is installed.`);
     }
 }
+//# sourceMappingURL=load-translations.js.map

@@ -1,6 +1,6 @@
 {
     "name": "htmlparser2",
-    "version": "10.0.0",
+    "version": "10.1.0",
     "description": "Fast & forgiving HTML/XML parser",
     "keywords": [
         "html",
@@ -55,7 +55,10 @@
     "files": [
         "WritableStream.js",
         "dist",
-        "src"
+        "src",
+        "!**/*.spec.ts",
+        "!**/__fixtures__/*",
+        "!**/__snapshots__/*"
     ],
     "scripts": {
         "build": "tshy",
@@ -77,22 +80,23 @@
     "dependencies": {
         "domelementtype": "^2.3.0",
         "domhandler": "^5.0.3",
-        "domutils": "^3.2.1",
-        "entities": "^6.0.0"
+        "domutils": "^3.2.2",
+        "entities": "^7.0.1"
     },
     "devDependencies": {
-        "@types/node": "^22.10.2",
-        "@typescript-eslint/eslint-plugin": "^8.18.1",
-        "@typescript-eslint/parser": "^8.18.1",
-        "@vitest/coverage-v8": "^2.1.8",
-        "eslint": "^8.57.1",
-        "eslint-config-prettier": "^9.1.0",
-        "eslint-plugin-n": "^17.15.1",
-        "eslint-plugin-unicorn": "^56.0.1",
-        "prettier": "^3.4.2",
-        "tshy": "^3.0.2",
-        "typescript": "^5.7.2",
-        "vitest": "^2.0.2"
+        "@eslint/js": "^9.39.2",
+        "@types/node": "^25.0.9",
+        "@vitest/coverage-v8": "^4.0.17",
+        "eslint": "^9.39.2",
+        "eslint-config-prettier": "^10.1.8",
+        "eslint-plugin-n": "^17.23.2",
+        "eslint-plugin-unicorn": "^62.0.0",
+        "globals": "^17.0.0",
+        "prettier": "^3.8.0",
+        "tshy": "^3.1.0",
+        "typescript": "^5.9.3",
+        "typescript-eslint": "^8.53.1",
+        "vitest": "^4.0.12"
     },
     "tshy": {
         "exclude": [

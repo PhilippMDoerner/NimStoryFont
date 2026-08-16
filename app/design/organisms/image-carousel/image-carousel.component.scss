@@ -8,26 +8,29 @@
   }
 }
 
-.image-container img {
-  object-fit: contain;
-  width: 100%;
-  max-height: 10rem;
+.image-container {
+  img {
+    object-fit: contain;
+    width: 100%;
+    max-height: 10rem;
 
-  @include screen.media-breakpoint-up(md) {
-    max-height: 18rem;
+    @include screen.media-breakpoint-up(md) {
+      max-height: 18rem;
+    }
   }
 }
 
 .image-caption {
   position: absolute;
   background: var(--wiki-bg-transparent);
-  width: 50%;
   text-align: center;
   bottom: 20%;
-  margin-left: auto;
-  margin-right: auto;
-  left: 0;
-  right: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: var(--spacer-3) var(--spacer-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacer-2);
 
   p {
     margin: 0;

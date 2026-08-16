@@ -102,12 +102,12 @@ function xdgConfigHomeOld(home) {
     const p = process.env['XDG_CONFIG_HOME'] || path.join(home, '.config', 'angular');
     return path.join(p, '.angular-config.json');
 }
-function projectFilePath(projectPath) {
+async function projectFilePath(projectPath) {
     // Find the configuration, either where specified, in the Angular CLI project
     // (if it's in node_modules) or from the current process.
-    return ((projectPath && (0, find_up_1.findUp)(configNames, projectPath)) ||
-        (0, find_up_1.findUp)(configNames, process.cwd()) ||
-        (0, find_up_1.findUp)(configNames, __dirname));
+    return ((projectPath && (await (0, find_up_1.findUp)(configNames, projectPath))) ||
+        (await (0, find_up_1.findUp)(configNames, process.cwd())) ||
+        (await (0, find_up_1.findUp)(configNames, __dirname)));
 }
 function globalFilePath() {
     const home = os.homedir();
@@ -175,7 +175,7 @@ async function getWorkspace(level) {
     if (cachedWorkspaces.has(level)) {
         return cachedWorkspaces.get(level);
     }
-    const configPath = level === 'local' ? projectFilePath() : globalFilePath();
+    const configPath = level === 'local' ? await projectFilePath() : globalFilePath();
     if (!configPath) {
         if (level === 'global') {
             // Unlike a local config, a global config is not mandatory.
@@ -193,8 +193,7 @@ async function getWorkspace(level) {
         return workspace;
     }
     catch (error) {
-        throw new Error(`Workspace config file cannot be loaded: ${configPath}` +
-            `\n${error instanceof Error ? error.message : error}`);
+        throw new Error(`Workspace config file cannot be loaded: ${configPath}`, { cause: error });
     }
 }
 /**
@@ -204,7 +203,7 @@ async function getWorkspace(level) {
  * NB: This method is intended to be used only for `ng config`.
  */
 async function getWorkspaceRaw(level = 'local') {
-    let configPath = level === 'local' ? projectFilePath() : globalFilePath();
+    let configPath = level === 'local' ? await projectFilePath() : globalFilePath();
     if (!configPath) {
         if (level === 'global') {
             configPath = defaultGlobalFilePath;
@@ -220,6 +219,9 @@ async function getWorkspaceRaw(level = 'local') {
 }
 async function validateWorkspace(data, isGlobal) {
     const schema = (0, json_file_1.readAndParseJson)(exports.workspaceSchemaPath);
+    if (!isJsonObject(schema)) {
+        throw new Error('Workspace schema is not a JSON object.');
+    }
     // We should eventually have a dedicated global config schema and use that to validate.
     const schemaToValidate = isGlobal
         ? {
@@ -363,3 +365,4 @@ async function isWarningEnabled(warning) {
     // All warnings are enabled by default
     return result ?? true;
 }
+//# sourceMappingURL=config.js.map

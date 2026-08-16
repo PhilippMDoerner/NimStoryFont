@@ -49,3 +49,4 @@ function mergeSchemas(...schemas) {
         }
     }, true);
 }
+//# sourceMappingURL=schema.js.map

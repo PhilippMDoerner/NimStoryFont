@@ -18,7 +18,7 @@ const SerializerMiddleware = require("./SerializerMiddleware");
 const SetObjectSerializer = require("./SetObjectSerializer");
 
 /** @typedef {import("../logging/Logger").Logger} Logger */
-/** @typedef {typeof import("../util/Hash")} Hash */
+/** @typedef {import("../util/Hash").HashFunction} HashFunction */
 /** @typedef {import("./SerializerMiddleware").LazyOptions} LazyOptions */
 /** @typedef {import("./types").ComplexSerializableType} ComplexSerializableType */
 /** @typedef {import("./types").PrimitiveSerializableType} PrimitiveSerializableType */
@@ -48,6 +48,7 @@ Technically any value can be used.
 */
 
 /**
+ * Defines the object serializer snapshot type used by this module.
  * @typedef {object} ObjectSerializerSnapshot
  * @property {number} length
  * @property {number} cycleStackSize
@@ -56,32 +57,54 @@ Technically any value can be used.
  * @property {number} objectTypeLookupSize
  * @property {number} currentPosTypeLookup
  */
-/** @typedef {TODO} Value */
+
 /** @typedef {EXPECTED_OBJECT | string} ReferenceableItem */
 
 /**
+ * First tuple element; element type for an open array; `EXPECTED_ANY` once exhausted.
+ * @template {readonly EXPECTED_ANY[]} T
+ * @typedef {T extends readonly [infer H, ...EXPECTED_ANY[]] ? H : T extends readonly [] ? EXPECTED_ANY : T extends readonly (infer E)[] ? E : never} Head
+ */
+
+/**
+ * Tuple without its first element; unchanged when `T` is an open array.
+ * @template {readonly EXPECTED_ANY[]} T
+ * @typedef {T extends readonly [EXPECTED_ANY, ...infer R] ? R : T} Tail
+ */
+
+/**
+ * Defines the object serializer context type used by this module.
+ * `T` is the tuple of values written in order; each `write` consumes the head.
+ * @template {readonly EXPECTED_ANY[]} [T=readonly EXPECTED_ANY[]]
  * @typedef {object} ObjectSerializerContext
- * @property {(value: Value) => void} write
+ * @property {(value: Head<T>) => ObjectSerializerContext<Tail<T>>} write
  * @property {(value: ReferenceableItem) => void} setCircularReference
  * @property {() => ObjectSerializerSnapshot} snapshot
  * @property {(snapshot: ObjectSerializerSnapshot) => void} rollback
- * @property {((item: Value | (() => Value)) => void)=} writeLazy
- * @property {((item: (Value | (() => Value)), obj: LazyOptions | undefined) => import("./SerializerMiddleware").LazyFunction<EXPECTED_ANY, EXPECTED_ANY, EXPECTED_ANY, LazyOptions>)=} writeSeparate
+ * @property {((item: EXPECTED_ANY | (() => EXPECTED_ANY)) => void)=} writeLazy
+ * @property {((item: (EXPECTED_ANY | (() => EXPECTED_ANY)), obj: LazyOptions | undefined) => import("./SerializerMiddleware").LazyFunction<EXPECTED_ANY, EXPECTED_ANY, EXPECTED_ANY, LazyOptions>)=} writeSeparate
  */
 
 /**
+ * Defines the object deserializer context type used by this module.
+ * `T` is the tuple of values read in order: `read` returns the head, and `rest`
+ * re-types the same context to `Tail<T>` so successive reads stay positional.
+ * @template {readonly EXPECTED_ANY[]} [T=readonly EXPECTED_ANY[]]
  * @typedef {object} ObjectDeserializerContext
- * @property {() => Value} read
+ * @property {() => Head<T>} read
+ * @property {ObjectDeserializerContext<Tail<T>>} rest
  * @property {(value: ReferenceableItem) => void} setCircularReference
  */
 
 /**
+ * Defines the object serializer type used by this module.
  * @typedef {object} ObjectSerializer
- * @property {(value: Value, context: ObjectSerializerContext) => void} serialize
- * @property {(context: ObjectDeserializerContext) => Value} deserialize
+ * @property {(value: EXPECTED_ANY, context: ObjectSerializerContext<EXPECTED_ANY>) => void} serialize
+ * @property {(context: ObjectDeserializerContext<EXPECTED_ANY>) => EXPECTED_ANY} deserialize
  */
 
 /**
+ * Updates set size using the provided set.
  * @template T
  * @param {Set<T>} set set
  * @param {number} size count of items to keep
@@ -96,6 +119,7 @@ const setSetSize = (set, size) => {
 };
 
 /**
+ * Updates map size using the provided map.
  * @template K, X
  * @param {Map<K, X>} map map
  * @param {number} size count of items to keep
@@ -110,14 +134,15 @@ const setMapSize = (map, size) => {
 };
 
 /**
+ * Returns hash.
  * @param {Buffer} buffer buffer
- * @param {string | Hash} hashFunction hash function to use
+ * @param {HashFunction} hashFunction hash function to use
  * @returns {string} hash
  */
 const toHash = (buffer, hashFunction) => {
 	const hash = createHash(hashFunction);
 	hash.update(buffer);
-	return /** @type {string} */ (hash.digest("latin1"));
+	return hash.digest("latin1");
 };
 
 const ESCAPE = null;
@@ -130,7 +155,7 @@ const CURRENT_VERSION = 2;
 /** @typedef {{ request?: string, name?: string | number | null, serializer?: ObjectSerializer }} SerializerConfig */
 /** @typedef {{ request?: string, name?: string | number | null, serializer: ObjectSerializer }} SerializerConfigWithSerializer */
 
-/** @type {Map<Constructor, SerializerConfig>} */
+/** @type {Map<Constructor | null, SerializerConfig>} */
 const serializers = new Map();
 /** @type {Map<string | number, ObjectSerializer>} */
 const serializerInversed = new Map();
@@ -140,6 +165,7 @@ const loadedRequests = new Set();
 
 const NOT_SERIALIZABLE = {};
 
+/** @type {Map<Constructor | null, ObjectSerializer>} */
 const jsTypes = new Map();
 
 jsTypes.set(Object, new PlainObjectSerializer());
@@ -156,11 +182,9 @@ jsTypes.set(ReferenceError, new ErrorObjectSerializer(ReferenceError));
 jsTypes.set(SyntaxError, new ErrorObjectSerializer(SyntaxError));
 jsTypes.set(TypeError, new ErrorObjectSerializer(TypeError));
 
-// @ts-expect-error ES2018 doesn't `AggregateError`, but it can be used by developers
 // eslint-disable-next-line n/no-unsupported-features/es-builtins, n/no-unsupported-features/es-syntax
 if (typeof AggregateError !== "undefined") {
 	jsTypes.set(
-		// @ts-expect-error ES2018 doesn't `AggregateError`, but it can be used by developers
 		// eslint-disable-next-line n/no-unsupported-features/es-builtins, n/no-unsupported-features/es-syntax
 		AggregateError,
 		new AggregateErrorSerializer()
@@ -175,7 +199,7 @@ if (exports.constructor !== Object) {
 	// eslint-disable-next-line n/exports-style
 	const Obj = /** @type {ObjectConstructor} */ (exports.constructor);
 	const Fn = /** @type {FunctionConstructor} */ (Obj.constructor);
-	for (const [type, config] of Array.from(jsTypes)) {
+	for (const [type, config] of jsTypes) {
 		if (type) {
 			const Type = new Fn(`return ${type.name};`)();
 			jsTypes.set(Type, config);
@@ -208,21 +232,28 @@ const loaders = new Map();
 /** @typedef {PrimitiveSerializableType[]} SerializedType */
 /** @typedef {{ logger: Logger }} Context */
 
+/** @typedef {(context: ObjectSerializerContext<EXPECTED_ANY> | ObjectDeserializerContext<EXPECTED_ANY>) => void} ExtendContext */
+
 /**
+ * Represents ObjectMiddleware.
  * @extends {SerializerMiddleware<DeserializedType, SerializedType, Context>}
  */
 class ObjectMiddleware extends SerializerMiddleware {
 	/**
-	 * @param {(context: ObjectSerializerContext | ObjectDeserializerContext) => void} extendContext context extensions
-	 * @param {string | Hash} hashFunction hash function to use
+	 * Creates an instance of ObjectMiddleware.
+	 * @param {ExtendContext} extendContext context extensions
+	 * @param {HashFunction} hashFunction hash function to use
 	 */
 	constructor(extendContext, hashFunction = DEFAULTS.HASH_FUNCTION) {
 		super();
+		/** @type {ExtendContext} */
 		this.extendContext = extendContext;
+		/** @type {HashFunction} */
 		this._hashFunction = hashFunction;
 	}
 
 	/**
+	 * Processes the provided reg exp.
 	 * @param {RegExp} regExp RegExp for which the request is tested
 	 * @param {(request: string) => boolean} loader loader to load the request, returns true when successful
 	 * @returns {void}
@@ -232,6 +263,7 @@ class ObjectMiddleware extends SerializerMiddleware {
 	}
 
 	/**
+	 * Processes the provided constructor.
 	 * @param {Constructor} Constructor the constructor
 	 * @param {string} request the request which will be required when deserializing
 	 * @param {string | null} name the name to make multiple serializer unique when sharing a request
@@ -263,6 +295,7 @@ class ObjectMiddleware extends SerializerMiddleware {
 	}
 
 	/**
+	 * Register not serializable.
 	 * @param {Constructor} Constructor the constructor
 	 * @returns {void}
 	 */
@@ -277,11 +310,13 @@ class ObjectMiddleware extends SerializerMiddleware {
 	}
 
 	/**
-	 * @param {Constructor} object for serialization
+	 * Gets serializer for.
+	 * @param {EXPECTED_ANY} object for serialization
 	 * @returns {SerializerConfigWithSerializer} Serializer config
 	 */
 	static getSerializerFor(object) {
 		const proto = Object.getPrototypeOf(object);
+		/** @type {null | Constructor} */
 		let c;
 		if (proto === null) {
 			// Object created with Object.create(null)
@@ -296,13 +331,18 @@ class ObjectMiddleware extends SerializerMiddleware {
 		}
 		const config = serializers.get(c);
 
-		if (!config) throw new Error(`No serializer registered for ${c.name}`);
+		if (!config) {
+			throw new Error(
+				`No serializer registered for ${/** @type {Constructor} */ (c).name}`
+			);
+		}
 		if (config === NOT_SERIALIZABLE) throw NOT_SERIALIZABLE;
 
 		return /** @type {SerializerConfigWithSerializer} */ (config);
 	}
 
 	/**
+	 * Gets deserializer for.
 	 * @param {string} request request
 	 * @param {string} name name
 	 * @returns {ObjectSerializer} serializer
@@ -319,6 +359,7 @@ class ObjectMiddleware extends SerializerMiddleware {
 	}
 
 	/**
+	 * Get deserializer for without error.
 	 * @param {string} request request
 	 * @param {string} name name
 	 * @returns {ObjectSerializer | undefined} serializer
@@ -330,28 +371,32 @@ class ObjectMiddleware extends SerializerMiddleware {
 	}
 
 	/**
+	 * Serializes this instance into the provided serializer context.
 	 * @param {DeserializedType} data data
 	 * @param {Context} context context object
 	 * @returns {SerializedType | Promise<SerializedType> | null} serialized data
 	 */
 	serialize(data, context) {
-		/** @type {Value[]} */
+		/** @type {PrimitiveSerializableType[]} */
 		let result = [CURRENT_VERSION];
 		let currentPos = 0;
 		/** @type {Map<ReferenceableItem, number>} */
 		let referenceable = new Map();
 		/**
+		 * Adds referenceable.
 		 * @param {ReferenceableItem} item referenceable item
 		 */
-		const addReferenceable = item => {
+		const addReferenceable = (item) => {
 			referenceable.set(item, currentPos++);
 		};
+		/** @type {Map<number, Buffer | [Buffer, Buffer] | Map<string, Buffer>>} */
 		let bufferDedupeMap = new Map();
 		/**
+		 * Returns deduped buffer.
 		 * @param {Buffer} buf buffer
 		 * @returns {Buffer} deduped buffer
 		 */
-		const dedupeBuffer = buf => {
+		const dedupeBuffer = (buf) => {
 			const len = buf.length;
 			const entry = bufferDedupeMap.get(len);
 			if (entry === undefined) {
@@ -367,6 +412,7 @@ class ObjectMiddleware extends SerializerMiddleware {
 					return buf;
 				}
 				const hash = toHash(entry, this._hashFunction);
+				/** @type {Map<string, Buffer>} */
 				const newMap = new Map();
 				newMap.set(hash, entry);
 				bufferDedupeMap.set(len, newMap);
@@ -385,8 +431,10 @@ class ObjectMiddleware extends SerializerMiddleware {
 					entry.push(buf);
 					return buf;
 				}
+				/** @type {Map<string, Buffer>} */
 				const newMap = new Map();
 				const hash = toHash(buf, this._hashFunction);
+				/** @type {undefined | Buffer} */
 				let found;
 				for (const item of entry) {
 					const itemHash = toHash(item, this._hashFunction);
@@ -409,17 +457,20 @@ class ObjectMiddleware extends SerializerMiddleware {
 			return buf;
 		};
 		let currentPosTypeLookup = 0;
+		/** @type {Map<ComplexSerializableType, number>} */
 		let objectTypeLookup = new Map();
+		/** @type {Set<ComplexSerializableType>} */
 		const cycleStack = new Set();
 		/**
-		 * @param {Value} item item to stack
+		 * Returns stack.
+		 * @param {ComplexSerializableType} item item to stack
 		 * @returns {string} stack
 		 */
-		const stackToString = item => {
-			const arr = Array.from(cycleStack);
+		const stackToString = (item) => {
+			const arr = [...cycleStack];
 			arr.push(item);
 			return arr
-				.map(item => {
+				.map((item) => {
 					if (typeof item === "string") {
 						if (item.length > 100) {
 							return `String ${JSON.stringify(item.slice(0, 100)).slice(
@@ -439,13 +490,21 @@ class ObjectMiddleware extends SerializerMiddleware {
 					}
 					if (typeof item === "object" && item !== null) {
 						if (item.constructor) {
-							if (item.constructor === Object)
+							if (item.constructor === Object) {
 								return `Object { ${Object.keys(item).join(", ")} }`;
-							if (item.constructor === Map) return `Map { ${item.size} items }`;
-							if (item.constructor === Array)
-								return `Array { ${item.length} items }`;
-							if (item.constructor === Set) return `Set { ${item.size} items }`;
-							if (item.constructor === RegExp) return item.toString();
+							}
+							if (item.constructor === Map) {
+								return `Map { ${/** @type {Map<EXPECTED_ANY, EXPECTED_ANY>} */ (item).size} items }`;
+							}
+							if (item.constructor === Array) {
+								return `Array { ${/** @type {EXPECTED_ANY[]} */ (item).length} items }`;
+							}
+							if (item.constructor === Set) {
+								return `Set { ${/** @type {Set<EXPECTED_ANY>} */ (item).size} items }`;
+							}
+							if (item.constructor === RegExp) {
+								return /** @type {RegExp} */ (item).toString();
+							}
 							return `${item.constructor.name}`;
 						}
 						return `Object [null prototype] { ${Object.keys(item).join(
@@ -463,25 +522,28 @@ class ObjectMiddleware extends SerializerMiddleware {
 				})
 				.join(" -> ");
 		};
-		/** @type {WeakSet<Error>} */
+		/** @type {undefined | WeakSet<Error>} */
 		let hasDebugInfoAttached;
-		/** @type {ObjectSerializerContext} */
+		/** @type {ObjectSerializerContext<EXPECTED_ANY>} */
 		let ctx = {
 			write(value) {
 				try {
-					process(value);
+					process(/** @type {ComplexSerializableType} */ (value));
 				} catch (err) {
 					if (err !== NOT_SERIALIZABLE) {
-						if (hasDebugInfoAttached === undefined)
+						if (hasDebugInfoAttached === undefined) {
 							hasDebugInfoAttached = new WeakSet();
+						}
 						if (!hasDebugInfoAttached.has(/** @type {Error} */ (err))) {
 							/** @type {Error} */
-							(err).message += `\nwhile serializing ${stackToString(value)}`;
+							(err).message +=
+								`\nwhile serializing ${stackToString(/** @type {ComplexSerializableType} */ (value))}`;
 							hasDebugInfoAttached.add(/** @type {Error} */ (err));
 						}
 					}
 					throw err;
 				}
+				return ctx;
 			},
 			setCircularReference(ref) {
 				addReferenceable(ref);
@@ -508,9 +570,10 @@ class ObjectMiddleware extends SerializerMiddleware {
 		};
 		this.extendContext(ctx);
 		/**
-		 * @param {Value} item item to serialize
+		 * Processes the provided item.
+		 * @param {ComplexSerializableType} item item to serialize
 		 */
-		const process = item => {
+		const process = (item) => {
 			if (Buffer.isBuffer(item)) {
 				// check if we can emit a reference
 				const ref = referenceable.get(item);
@@ -530,7 +593,7 @@ class ObjectMiddleware extends SerializerMiddleware {
 				}
 				addReferenceable(item);
 
-				result.push(item);
+				result.push(/** @type {Buffer} */ (item));
 			} else if (item === ESCAPE) {
 				result.push(ESCAPE, ESCAPE_ESCAPE_VALUE);
 			} else if (
@@ -550,8 +613,10 @@ class ObjectMiddleware extends SerializerMiddleware {
 					);
 				}
 
-				const { request, name, serializer } =
-					ObjectMiddleware.getSerializerFor(item);
+				const { request, name, serializer } = ObjectMiddleware.getSerializerFor(
+					/** @type {Constructor} */
+					(item)
+				);
 				const key = `${request}/${name}`;
 				const lastIndex = objectTypeLookup.get(key);
 
@@ -580,8 +645,19 @@ class ObjectMiddleware extends SerializerMiddleware {
 					// check if we can emit a reference
 					const ref = referenceable.get(item);
 					if (ref !== undefined) {
-						result.push(ESCAPE, ref - currentPos);
-						return;
+						const offset = ref - currentPos;
+						if (
+							// One far ref → 5 bytes (`null` + offset), one near ref -> 2/3 bytes
+							offset >= -32768 ||
+							// long enough that the ref wins, keep it
+							item.length >= 4 ||
+							// multibyte → inline would be even bigger, keep it
+							Buffer.byteLength(item) !== item.length
+						) {
+							// A back-reference is `null` + the offset.
+							result.push(ESCAPE, offset);
+							return;
+						}
 					}
 					addReferenceable(item);
 				}
@@ -596,8 +672,9 @@ class ObjectMiddleware extends SerializerMiddleware {
 
 				result.push(item);
 			} else if (typeof item === "function") {
-				if (!SerializerMiddleware.isLazy(item))
+				if (!SerializerMiddleware.isLazy(item)) {
 					throw new Error(`Unexpected function ${item}`);
+				}
 
 				/** @type {SerializedType | undefined} */
 				const serializedData =
@@ -612,9 +689,13 @@ class ObjectMiddleware extends SerializerMiddleware {
 				} else if (SerializerMiddleware.isLazy(item, this)) {
 					throw new Error("Not implemented");
 				} else {
-					const data = SerializerMiddleware.serializeLazy(item, data =>
-						this.serialize([data], context)
-					);
+					const data =
+						/** @type {() => PrimitiveSerializableType[] | Promise<PrimitiveSerializableType[]>} */
+						(
+							SerializerMiddleware.serializeLazy(item, (data) =>
+								this.serialize([data], context)
+							)
+						);
 					SerializerMiddleware.setLazySerializedValue(item, data);
 					result.push(data);
 				}
@@ -651,6 +732,7 @@ class ObjectMiddleware extends SerializerMiddleware {
 	}
 
 	/**
+	 * Restores this instance from the provided deserializer context.
 	 * @param {SerializedType} data data
 	 * @param {Context} context context object
 	 * @returns {DeserializedType | Promise<DeserializedType>} deserialized data
@@ -658,33 +740,41 @@ class ObjectMiddleware extends SerializerMiddleware {
 	deserialize(data, context) {
 		let currentDataPos = 0;
 		const read = () => {
-			if (currentDataPos >= data.length)
+			if (currentDataPos >= data.length) {
 				throw new Error("Unexpected end of stream");
+			}
 
 			return data[currentDataPos++];
 		};
 
-		if (read() !== CURRENT_VERSION)
+		if (read() !== CURRENT_VERSION) {
 			throw new Error("Version mismatch, serializer changed");
+		}
 
 		let currentPos = 0;
 		/** @type {ReferenceableItem[]} */
 		let referenceable = [];
 		/**
-		 * @param {Value} item referenceable item
+		 * Adds referenceable.
+		 * @param {ReferenceableItem} item referenceable item
 		 */
-		const addReferenceable = item => {
+		const addReferenceable = (item) => {
 			referenceable.push(item);
 			currentPos++;
 		};
 		let currentPosTypeLookup = 0;
 		/** @type {ObjectSerializer[]} */
 		let objectTypeLookup = [];
+		/** @type {ComplexSerializableType[]} */
 		let result = [];
-		/** @type {ObjectDeserializerContext} */
+		/** @type {ObjectDeserializerContext<EXPECTED_ANY>} */
 		let ctx = {
 			read() {
-				return decodeValue();
+				return /** @type {EXPECTED_ANY} */ (decodeValue());
+			},
+			// type-only cursor advance; same object, retyped to the tuple tail
+			get rest() {
+				return ctx;
 			},
 			setCircularReference(ref) {
 				addReferenceable(ref);
@@ -692,6 +782,10 @@ class ObjectMiddleware extends SerializerMiddleware {
 			...context
 		};
 		this.extendContext(ctx);
+		/**
+		 * Decodes the provided value.
+		 * @returns {ComplexSerializableType} deserialize value
+		 */
 		const decodeValue = () => {
 			const item = read();
 
@@ -708,6 +802,7 @@ class ObjectMiddleware extends SerializerMiddleware {
 					);
 				} else {
 					const request = nextItem;
+					/** @type {undefined | ObjectSerializer} */
 					let serializer;
 
 					if (typeof request === "number") {
@@ -773,6 +868,7 @@ class ObjectMiddleware extends SerializerMiddleware {
 						// As this is only for error handling, we omit creating a Map for
 						// faster access to this information, as this would affect performance
 						// in the good case
+						/** @type {undefined | [Constructor | null, SerializerConfig]} */
 						let serializerEntry;
 						for (const entry of serializers) {
 							if (entry[1].serializer === serializer) {
@@ -783,7 +879,7 @@ class ObjectMiddleware extends SerializerMiddleware {
 						const name = !serializerEntry
 							? "unknown"
 							: !serializerEntry[1].request
-								? serializerEntry[0].name
+								? /** @type {Constructor[]} */ (serializerEntry)[0].name
 								: serializerEntry[1].name
 									? `${serializerEntry[1].request} ${serializerEntry[1].name}`
 									: serializerEntry[1].request;
@@ -798,14 +894,16 @@ class ObjectMiddleware extends SerializerMiddleware {
 				}
 
 				return item;
-			} else if (Buffer.isBuffer(item)) {
+			} else if (typeof item === "object") {
+				// Only non-null objects reach here (ESCAPE/null handled above), and
+				// the stream's only object type is Buffer — avoids a Buffer.isBuffer call
 				addReferenceable(item);
 
 				return item;
 			} else if (typeof item === "function") {
 				return SerializerMiddleware.deserializeLazy(
 					item,
-					data =>
+					(data) =>
 						/** @type {[DeserializedType]} */
 						(this.deserialize(data, context))[0]
 				);

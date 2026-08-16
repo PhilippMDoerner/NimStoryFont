@@ -5,9 +5,9 @@ import { fromEvent, map, merge, of, startWith } from 'rxjs';
   providedIn: 'root',
 })
 export class OnlineService {
-  private isInBrowser = !!window;
+  private readonly isInBrowser = !!window;
 
-  public online$ = this.isInBrowser
+  public readonly online$ = this.isInBrowser
     ? merge(
         fromEvent(window, 'online').pipe(map(() => true)),
         fromEvent(window, 'offline').pipe(map(() => false)),

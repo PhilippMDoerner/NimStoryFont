@@ -13,20 +13,26 @@ const util = require("util");
 /** @typedef {import("../../declarations/WebpackOptions").RuleSetRule} RuleSetRule */
 /** @typedef {import("../../declarations/WebpackOptions").RuleSetUse} RuleSetUse */
 /** @typedef {import("../../declarations/WebpackOptions").RuleSetUseItem} RuleSetUseItem */
+/** @typedef {import("../../declarations/WebpackOptions").RuleSetUseFunction} RuleSetUseFunction */
 /** @typedef {import("./RuleSetCompiler")} RuleSetCompiler */
 /** @typedef {import("./RuleSetCompiler").Effect} Effect */
 /** @typedef {import("./RuleSetCompiler").EffectData} EffectData */
+/** @typedef {import("./RuleSetCompiler").EffectUseType} EffectUseType */
+
+const PLUGIN_NAME = "UseEffectRulePlugin";
 
 class UseEffectRulePlugin {
 	/**
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {RuleSetCompiler} ruleSetCompiler the rule set compiler
 	 * @returns {void}
 	 */
 	apply(ruleSetCompiler) {
 		ruleSetCompiler.hooks.rule.tap(
-			"UseEffectRulePlugin",
+			PLUGIN_NAME,
 			(path, rule, unhandledProperties, result, references) => {
 				/**
+				 * Processes the provided property.
 				 * @param {keyof RuleSetRule} property property
 				 * @param {string} correctProperty correct property
 				 */
@@ -50,9 +56,12 @@ class UseEffectRulePlugin {
 					const use = /** @type {RuleSetUse} */ (rule.use);
 					const enforce = rule.enforce;
 
-					const type = enforce ? `use-${enforce}` : "use";
+					const type =
+						/** @type {EffectUseType} */
+						(enforce ? `use-${enforce}` : "use");
 
 					/**
+					 * Returns effect.
 					 * @param {string} path options path
 					 * @param {string} defaultIdent default ident when none is provided
 					 * @param {RuleSetUseItem} item user provided use value
@@ -60,7 +69,7 @@ class UseEffectRulePlugin {
 					 */
 					const useToEffect = (path, defaultIdent, item) => {
 						if (typeof item === "function") {
-							return data =>
+							return (data) =>
 								useToEffectsWithoutIdent(
 									path,
 									/** @type {RuleSetUseItem | RuleSetUseItem[]} */
@@ -71,9 +80,10 @@ class UseEffectRulePlugin {
 					};
 
 					/**
+					 * Returns effect.
 					 * @param {string} path options path
 					 * @param {string} defaultIdent default ident when none is provided
-					 * @param {Exclude<NonNullable<RuleSetUseItem>, EXPECTED_FUNCTION>} item user provided use value
+					 * @param {Exclude<NonNullable<RuleSetUseItem>, RuleSetUseFunction>} item user provided use value
 					 * @returns {Effect} effect
 					 */
 					const useToEffectRaw = (path, defaultIdent, item) => {
@@ -87,7 +97,7 @@ class UseEffectRulePlugin {
 								}
 							};
 						}
-						const loader = item.loader;
+						const loader = /** @type {string} */ (item.loader);
 						const options = item.options;
 						let ident = item.ident;
 						if (options && typeof options === "object") {
@@ -112,6 +122,7 @@ class UseEffectRulePlugin {
 					};
 
 					/**
+					 * Use to effects without ident.
 					 * @param {string} path options path
 					 * @param {RuleSetUseItem | (Falsy | RuleSetUseItem)[]} items user provided use value
 					 * @returns {Effect[]} effects
@@ -122,7 +133,7 @@ class UseEffectRulePlugin {
 								useToEffectRaw(
 									`${path}[${idx}]`,
 									"[[missing ident]]",
-									/** @type {Exclude<RuleSetUseItem, EXPECTED_FUNCTION>} */
+									/** @type {Exclude<RuleSetUseItem, RuleSetUseFunction>} */
 									(item)
 								)
 							);
@@ -131,13 +142,14 @@ class UseEffectRulePlugin {
 							useToEffectRaw(
 								path,
 								"[[missing ident]]",
-								/** @type {Exclude<RuleSetUseItem, EXPECTED_FUNCTION>} */
+								/** @type {Exclude<RuleSetUseItem, RuleSetUseFunction>} */
 								(items)
 							)
 						];
 					};
 
 					/**
+					 * Returns effects.
 					 * @param {string} path current path
 					 * @param {RuleSetUse} items user provided use value
 					 * @returns {(Effect | ((effectData: EffectData) => Effect[]))[]} effects
@@ -160,7 +172,7 @@ class UseEffectRulePlugin {
 					};
 
 					if (typeof use === "function") {
-						result.effects.push(data =>
+						result.effects.push((data) =>
 							useToEffectsWithoutIdent(`${path}.use`, use(data))
 						);
 					} else {
@@ -205,12 +217,15 @@ class UseEffectRulePlugin {
 
 					const ident =
 						options && typeof options === "object" ? path : undefined;
-					references.set(
-						/** @type {TODO} */
-						(ident),
-						/** @type {RuleSetLoaderOptions} */
-						(options)
-					);
+
+					if (ident) {
+						references.set(
+							ident,
+							/** @type {RuleSetLoaderOptions} */
+							(options)
+						);
+					}
+
 					result.effects.push({
 						type: enforce ? `use-${enforce}` : "use",
 						value: {

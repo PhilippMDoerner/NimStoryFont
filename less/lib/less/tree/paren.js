@@ -13,7 +13,11 @@ Paren.prototype = Object.assign(new node_1.default(), {
         output.add(')');
     },
     eval: function (context) {
-        return new Paren(this.value.eval(context));
+        var paren = new Paren(this.value.eval(context));
+        if (this.noSpacing) {
+            paren.noSpacing = true;
+        }
+        return paren;
     }
 });
 exports.default = Paren;

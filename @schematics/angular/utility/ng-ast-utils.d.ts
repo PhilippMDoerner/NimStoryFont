@@ -6,7 +6,7 @@
  * found in the LICENSE file at https://angular.dev/license
  */
 import { Tree } from '@angular-devkit/schematics';
-import * as ts from '../third_party/github.com/Microsoft/TypeScript/lib/typescript';
+import ts from 'typescript';
 export declare function findBootstrapModuleCall(host: Tree, mainPath: string): ts.CallExpression | null;
 export declare function getAppModulePath(host: Tree, mainPath: string): string;
 export declare function isStandaloneApp(host: Tree, mainPath: string): boolean;

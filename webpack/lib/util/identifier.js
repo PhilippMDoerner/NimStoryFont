@@ -6,15 +6,21 @@
 
 const path = require("path");
 
-const WINDOWS_ABS_PATH_REGEXP = /^[a-zA-Z]:[\\/]/;
+// Any absolute path: POSIX (/foo) and every Windows form — drive-letter (C:\,
+// C:/), UNC (\\, //), rooted (\, /); equals posix||win32 isAbsolute.
+const ABSOLUTE_PATH_REGEXP = /^(?:[a-z]:)?[\\/]/i;
+// Windows drive-letter absolute path only (C:\ or C:/), where a leading "/" is
+// NOT absolute — used where POSIX paths must stay relative to a base.
+const WINDOWS_ABS_PATH_REGEXP = /^[a-z]:[\\/]/i;
 const SEGMENTS_SPLIT_REGEXP = /([|!])/;
 const WINDOWS_PATH_SEPARATOR_REGEXP = /\\/g;
 
 /**
+ * Relative path to request.
  * @param {string} relativePath relative path
  * @returns {string} request
  */
-const relativePathToRequest = relativePath => {
+const relativePathToRequest = (relativePath) => {
 	if (relativePath === "") return "./.";
 	if (relativePath === "..") return "../.";
 	if (relativePath.startsWith("../")) return relativePath;
@@ -22,6 +28,7 @@ const relativePathToRequest = relativePath => {
 };
 
 /**
+ * Absolute to request.
  * @param {string} context context for relative path
  * @param {string} maybeAbsolutePath path to make relative
  * @returns {string} relative path in request style
@@ -70,40 +77,47 @@ const absoluteToRequest = (context, maybeAbsolutePath) => {
 };
 
 /**
+ * Request to absolute.
  * @param {string} context context for relative path
  * @param {string} relativePath path
  * @returns {string} absolute path
  */
 const requestToAbsolute = (context, relativePath) => {
-	if (relativePath.startsWith("./") || relativePath.startsWith("../"))
+	if (relativePath.startsWith("./") || relativePath.startsWith("../")) {
 		return path.join(context, relativePath);
+	}
 	return relativePath;
 };
 
 /** @typedef {EXPECTED_OBJECT} AssociatedObjectForCache */
 
 /**
+ * Defines the make cacheable result type used by this module.
  * @template T
  * @typedef {(value: string, cache?: AssociatedObjectForCache) => T} MakeCacheableResult
  */
 
 /**
+ * Defines the bind cache result fn type used by this module.
  * @template T
  * @typedef {(value: string) => T} BindCacheResultFn
  */
 
 /**
+ * Defines the bind cache type used by this module.
  * @template T
  * @typedef {(cache: AssociatedObjectForCache) => BindCacheResultFn<T>} BindCache
  */
 
 /**
+ * Returns } cacheable function.
  * @template T
  * @param {((value: string) => T)} realFn real function
  * @returns {MakeCacheableResult<T> & { bindCache: BindCache<T> }} cacheable function
  */
-const makeCacheable = realFn => {
+const makeCacheable = (realFn) => {
 	/**
+	 * Defines the cache item type used by this module.
 	 * @template T
 	 * @typedef {Map<string, T>} CacheItem
 	 */
@@ -111,10 +125,11 @@ const makeCacheable = realFn => {
 	const cache = new WeakMap();
 
 	/**
+	 * Returns cache item.
 	 * @param {AssociatedObjectForCache} associatedObjectForCache an object to which the cache will be attached
 	 * @returns {CacheItem<T>} cache item
 	 */
-	const getCache = associatedObjectForCache => {
+	const getCache = (associatedObjectForCache) => {
 		const entry = cache.get(associatedObjectForCache);
 		if (entry !== undefined) return entry;
 		/** @type {Map<string, T>} */
@@ -135,13 +150,14 @@ const makeCacheable = realFn => {
 	};
 
 	/** @type {BindCache<T>} */
-	fn.bindCache = associatedObjectForCache => {
+	fn.bindCache = (associatedObjectForCache) => {
 		const cache = getCache(associatedObjectForCache);
 		/**
+		 * Returns value.
 		 * @param {string} str string
 		 * @returns {T} value
 		 */
-		return str => {
+		return (str) => {
 			const entry = cache.get(str);
 			if (entry !== undefined) return entry;
 			const result = realFn(str);
@@ -160,11 +176,13 @@ const makeCacheable = realFn => {
 /** @typedef {(value: string, associatedObjectForCache?: AssociatedObjectForCache) => BindContextCacheForContextResultFn} BindContextCacheForContext */
 
 /**
+ * Creates cacheable with context.
  * @param {(context: string, identifier: string) => string} fn function
  * @returns {MakeCacheableWithContextResult & { bindCache: BindCacheForContext, bindContextCache: BindContextCacheForContext }} cacheable function with context
  */
-const makeCacheableWithContext = fn => {
-	/** @type {WeakMap<AssociatedObjectForCache, Map<string, Map<string, string>>>} */
+const makeCacheableWithContext = (fn) => {
+	/** @typedef {Map<string, Map<string, string>>} InnerCache */
+	/** @type {WeakMap<AssociatedObjectForCache, InnerCache>} */
 	const cache = new WeakMap();
 
 	/** @type {MakeCacheableWithContextResult & { bindCache: BindCacheForContext, bindContextCache: BindContextCacheForContext }} */
@@ -177,6 +195,7 @@ const makeCacheableWithContext = fn => {
 			cache.set(associatedObjectForCache, innerCache);
 		}
 
+		/** @type {undefined | string} */
 		let cachedResult;
 		let innerSubCache = innerCache.get(context);
 		if (innerSubCache === undefined) {
@@ -194,7 +213,8 @@ const makeCacheableWithContext = fn => {
 	};
 
 	/** @type {BindCacheForContext} */
-	cachedFn.bindCache = associatedObjectForCache => {
+	cachedFn.bindCache = (associatedObjectForCache) => {
+		/** @type {undefined | InnerCache} */
 		let innerCache;
 		if (associatedObjectForCache) {
 			innerCache = cache.get(associatedObjectForCache);
@@ -207,11 +227,13 @@ const makeCacheableWithContext = fn => {
 		}
 
 		/**
+		 * Returns the returned relative path.
 		 * @param {string} context context used to create relative path
 		 * @param {string} identifier identifier used to create relative path
 		 * @returns {string} the returned relative path
 		 */
 		const boundFn = (context, identifier) => {
+			/** @type {undefined | string} */
 			let cachedResult;
 			let innerSubCache = innerCache.get(context);
 			if (innerSubCache === undefined) {
@@ -233,6 +255,7 @@ const makeCacheableWithContext = fn => {
 
 	/** @type {BindContextCacheForContext} */
 	cachedFn.bindContextCache = (context, associatedObjectForCache) => {
+		/** @type {undefined | Map<string, string>} */
 		let innerSubCache;
 		if (associatedObjectForCache) {
 			let innerCache = cache.get(associatedObjectForCache);
@@ -250,10 +273,11 @@ const makeCacheableWithContext = fn => {
 		}
 
 		/**
+		 * Returns the returned relative path.
 		 * @param {string} identifier identifier used to create relative path
 		 * @returns {string} the returned relative path
 		 */
-		const boundFn = identifier => {
+		const boundFn = (identifier) => {
 			const cachedResult = innerSubCache.get(identifier);
 			if (cachedResult !== undefined) {
 				return cachedResult;
@@ -270,6 +294,7 @@ const makeCacheableWithContext = fn => {
 };
 
 /**
+ * Make paths relative.
  * @param {string} context context for relative path
  * @param {string} identifier identifier for path
  * @returns {string} a converted relative path
@@ -277,12 +302,11 @@ const makeCacheableWithContext = fn => {
 const _makePathsRelative = (context, identifier) =>
 	identifier
 		.split(SEGMENTS_SPLIT_REGEXP)
-		.map(str => absoluteToRequest(context, str))
+		.map((str) => absoluteToRequest(context, str))
 		.join("");
 
-module.exports.makePathsRelative = makeCacheableWithContext(_makePathsRelative);
-
 /**
+ * Make paths absolute.
  * @param {string} context context for relative path
  * @param {string} identifier identifier for path
  * @returns {string} a converted relative path
@@ -290,12 +314,11 @@ module.exports.makePathsRelative = makeCacheableWithContext(_makePathsRelative);
 const _makePathsAbsolute = (context, identifier) =>
 	identifier
 		.split(SEGMENTS_SPLIT_REGEXP)
-		.map(str => requestToAbsolute(context, str))
+		.map((str) => requestToAbsolute(context, str))
 		.join("");
 
-module.exports.makePathsAbsolute = makeCacheableWithContext(_makePathsAbsolute);
-
 /**
+ * Returns a new request string avoiding absolute paths when possible.
  * @param {string} context absolute context path
  * @param {string} request any request string may containing absolute paths, query string, etc.
  * @returns {string} a new request string avoiding absolute paths when possible
@@ -303,13 +326,13 @@ module.exports.makePathsAbsolute = makeCacheableWithContext(_makePathsAbsolute);
 const _contextify = (context, request) =>
 	request
 		.split("!")
-		.map(r => absoluteToRequest(context, r))
+		.map((r) => absoluteToRequest(context, r))
 		.join("!");
 
 const contextify = makeCacheableWithContext(_contextify);
-module.exports.contextify = contextify;
 
 /**
+ * Returns a new request string using absolute paths when possible.
  * @param {string} context absolute context path
  * @param {string} request any request string
  * @returns {string} a new request string using absolute paths when possible
@@ -317,62 +340,126 @@ module.exports.contextify = contextify;
 const _absolutify = (context, request) =>
 	request
 		.split("!")
-		.map(r => requestToAbsolute(context, r))
+		.map((r) => requestToAbsolute(context, r))
 		.join("!");
 
 const absolutify = makeCacheableWithContext(_absolutify);
-module.exports.absolutify = absolutify;
 
 const PATH_QUERY_FRAGMENT_REGEXP =
 	/^((?:\0.|[^?#\0])*)(\?(?:\0.|[^#\0])*)?(#.*)?$/;
 const PATH_QUERY_REGEXP = /^((?:\0.|[^?\0])*)(\?.*)?$/;
+const ZERO_ESCAPE_REGEXP = /\0(.)/g;
 
 /** @typedef {{ resource: string, path: string, query: string, fragment: string }} ParsedResource */
 /** @typedef {{ resource: string, path: string, query: string }} ParsedResourceWithoutFragment */
 
 /**
+ * Returns parsed parts.
  * @param {string} str the path with query and fragment
  * @returns {ParsedResource} parsed parts
  */
-const _parseResource = str => {
-	const match =
-		/** @type {[string, string, string | undefined, string | undefined]} */
-		(/** @type {unknown} */ (PATH_QUERY_FRAGMENT_REGEXP.exec(str)));
-	return {
-		resource: str,
-		path: match[1].replace(/\0(.)/g, "$1"),
-		query: match[2] ? match[2].replace(/\0(.)/g, "$1") : "",
-		fragment: match[3] || ""
-	};
+const _parseResource = (str) => {
+	const firstEscape = str.indexOf("\0");
+
+	// Handle `\0`
+	if (firstEscape !== -1) {
+		const match = PATH_QUERY_FRAGMENT_REGEXP.exec(str);
+
+		// malformed escaping (e.g. a trailing lone \0) never matches; treat as path
+		if (!match) return { resource: str, path: str, query: "", fragment: "" };
+
+		return {
+			resource: str,
+			path: match[1].replace(ZERO_ESCAPE_REGEXP, "$1"),
+			query: match[2] ? match[2].replace(ZERO_ESCAPE_REGEXP, "$1") : "",
+			fragment: match[3] || ""
+		};
+	}
+
+	/** @type {ParsedResource} */
+	const result = { resource: str, path: "", query: "", fragment: "" };
+	const queryStart = str.indexOf("?");
+	const fragmentStart = str.indexOf("#");
+
+	if (fragmentStart < 0) {
+		if (queryStart < 0) {
+			result.path = result.resource;
+
+			// No fragment, no query
+			return result;
+		}
+
+		result.path = str.slice(0, queryStart);
+		result.query = str.slice(queryStart);
+
+		// Query, no fragment
+		return result;
+	}
+
+	if (queryStart < 0 || fragmentStart < queryStart) {
+		result.path = str.slice(0, fragmentStart);
+		result.fragment = str.slice(fragmentStart);
+
+		// Fragment, no query
+		return result;
+	}
+
+	result.path = str.slice(0, queryStart);
+	result.query = str.slice(queryStart, fragmentStart);
+	result.fragment = str.slice(fragmentStart);
+
+	// Query and fragment
+	return result;
 };
-module.exports.parseResource = makeCacheable(_parseResource);
 
 /**
  * Parse resource, skips fragment part
  * @param {string} str the path with query and fragment
  * @returns {ParsedResourceWithoutFragment} parsed parts
  */
-const _parseResourceWithoutFragment = str => {
-	const match =
-		/** @type {[string, string, string | undefined]} */
-		(/** @type {unknown} */ (PATH_QUERY_REGEXP.exec(str)));
-	return {
-		resource: str,
-		path: match[1].replace(/\0(.)/g, "$1"),
-		query: match[2] ? match[2].replace(/\0(.)/g, "$1") : ""
-	};
+const _parseResourceWithoutFragment = (str) => {
+	const firstEscape = str.indexOf("\0");
+
+	// Handle `\0`
+	if (firstEscape !== -1) {
+		const match = PATH_QUERY_REGEXP.exec(str);
+
+		// malformed escaping (e.g. a trailing lone \0) never matches; treat as path
+		if (!match) return { resource: str, path: str, query: "" };
+
+		return {
+			resource: str,
+			path: match[1].replace(ZERO_ESCAPE_REGEXP, "$1"),
+			query: match[2] ? match[2].replace(ZERO_ESCAPE_REGEXP, "$1") : ""
+		};
+	}
+
+	/** @type {ParsedResourceWithoutFragment} */
+	const result = { resource: str, path: "", query: "" };
+	const queryStart = str.indexOf("?");
+
+	if (queryStart < 0) {
+		result.path = result.resource;
+
+		// No query
+		return result;
+	}
+
+	result.path = str.slice(0, queryStart);
+	result.query = str.slice(queryStart);
+
+	// Query
+	return result;
 };
-module.exports.parseResourceWithoutFragment = makeCacheable(
-	_parseResourceWithoutFragment
-);
 
 /**
+ * Returns repeated ../ to leave the directory of the provided filename to be back on output dir.
  * @param {string} filename the filename which should be undone
  * @param {string} outputPath the output path that is restored (only relevant when filename contains "..")
  * @param {boolean} enforceRelative true returns ./ for empty paths
  * @returns {string} repeated ../ to leave the directory of the provided filename to be back on output dir
  */
-module.exports.getUndoPath = (filename, outputPath, enforceRelative) => {
+const getUndoPath = (filename, outputPath, enforceRelative) => {
 	let depth = -1;
 	let append = "";
 	outputPath = outputPath.replace(/[\\/]$/, "");
@@ -398,3 +485,98 @@ module.exports.getUndoPath = (filename, outputPath, enforceRelative) => {
 			? `./${append}`
 			: append;
 };
+
+const HASH_REGEXP = /(?<!\0)#/g;
+
+/**
+ * Escape `#` characters that appear inside a path request's directory portion
+ * with the `\0#` escape recognized by enhanced-resolve, so a project located at
+ * a path like `/home/user/proj#1/` (or `./proj#1/`) resolves correctly. Applies
+ * to absolute paths (Unix or Windows) and relative paths (starting with `./` or
+ * `../`). Only triggers when a query string is present, because that is the case
+ * where the resolver's parseIdentifier fails (without a `?`, the resolver
+ * handles directory `#` via its own fallback). A `#` after the last path
+ * separator is left alone so that explicit fragment requests like
+ * `/abs/path/file.js#fragment` still behave the same. Bare module specifiers
+ * are not touched. Already-escaped `\0#` sequences are preserved so the
+ * explicit opt-out remains stable.
+ * @param {string} request request to potentially escape
+ * @returns {string} request with directory `#` characters escaped
+ */
+const escapeHashInPathRequest = (request) => {
+	if (request.length === 0) return request;
+	const queryStart = request.indexOf("?");
+	if (queryStart < 0) return request;
+	const hashStart = request.indexOf("#");
+	if (hashStart < 0 || hashStart >= queryStart) return request;
+	const c0 = request.charCodeAt(0);
+	const isAbsolute =
+		c0 === 47 /* "/" */ || WINDOWS_ABS_PATH_REGEXP.test(request);
+	let isRelative = false;
+	if (!isAbsolute && c0 === 46 /* "." */) {
+		const c1 = request.charCodeAt(1);
+		if (c1 === 47 || c1 === 92 /* "/" or "\" */) {
+			isRelative = true;
+		} else if (c1 === 46 /* "." */) {
+			const c2 = request.charCodeAt(2);
+			if (c2 === 47 || c2 === 92) isRelative = true;
+		}
+	}
+	if (!isAbsolute && !isRelative) return request;
+	const lastSep = Math.max(
+		request.lastIndexOf("/", queryStart - 1),
+		request.lastIndexOf("\\", queryStart - 1)
+	);
+	if (hashStart >= lastSep) return request;
+	const pathPart = request.slice(0, lastSep);
+	return pathPart.replace(HASH_REGEXP, "\0#") + request.slice(lastSep);
+};
+
+const makePathsRelative = makeCacheableWithContext(_makePathsRelative);
+
+/**
+ * Turns a source path into a `webpack://`-prefixed, context-relative source
+ * URL, as used for the `sources` of module-level source maps.
+ * @param {string} context absolute context path
+ * @param {string} source a source path
+ * @param {AssociatedObjectForCache=} associatedObjectForCache an object to which the cache will be attached
+ * @returns {string} new source path
+ */
+const contextifySourceUrl = (context, source, associatedObjectForCache) => {
+	if (source.startsWith("webpack://")) return source;
+	return `webpack://${makePathsRelative(
+		context,
+		source,
+		associatedObjectForCache
+	)}`;
+};
+
+const LINE_SEPARATOR_REGEXP = /[\u2028\u2029]/g;
+
+/**
+ * Quotes a string as a JS string literal safe to inline in generated code.
+ * `JSON.stringify` leaves U+2028/U+2029 raw, but both terminate a JS string
+ * literal (valid in JSON, not in JS), so escape them (matches JsonGenerator).
+ * @param {string} str raw string
+ * @returns {string} a quoted, inline-safe JS string literal
+ */
+const toJsStringLiteral = (str) =>
+	JSON.stringify(str).replace(LINE_SEPARATOR_REGEXP, (c) =>
+		c === "\u2029" ? "\\u2029" : "\\u2028"
+	);
+
+module.exports.ABSOLUTE_PATH_REGEXP = ABSOLUTE_PATH_REGEXP;
+module.exports.WINDOWS_ABS_PATH_REGEXP = WINDOWS_ABS_PATH_REGEXP;
+module.exports.absolutify = absolutify;
+module.exports.contextify = contextify;
+module.exports.contextifySourceUrl = contextifySourceUrl;
+module.exports.escapeHashInPathRequest = escapeHashInPathRequest;
+module.exports.getUndoPath = getUndoPath;
+module.exports.makeCacheable = makeCacheable;
+module.exports.makePathsAbsolute = makeCacheableWithContext(_makePathsAbsolute);
+module.exports.makePathsRelative = makePathsRelative;
+module.exports.parseResource = makeCacheable(_parseResource);
+module.exports.parseResourceWithoutFragment = makeCacheable(
+	_parseResourceWithoutFragment
+);
+module.exports.toJsStringLiteral = toJsStringLiteral;

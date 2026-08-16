@@ -1,5 +1,5 @@
-import { ArticleKind } from 'src/app/_models/overview';
-import { Icon } from 'src/app/design/atoms/_models/icon';
+import { ArticleKind } from '../../../_models/overview';
+import { Icon } from '../../atoms/_models/icon';
 
 export interface IconCardEntry {
   entryType: ArticleKind;

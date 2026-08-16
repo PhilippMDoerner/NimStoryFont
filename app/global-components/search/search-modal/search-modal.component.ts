@@ -14,34 +14,34 @@ import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router } from '@angular/router';
 import { NgbModal, NgbTooltip } from '@ng-bootstrap/ng-bootstrap';
 import { filter, map, withLatestFrom } from 'rxjs';
-import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
-import { OverviewItem } from 'src/app/_models/overview';
+import { componentId } from '../../../../utils/DOM';
+import { capitalize } from '../../../../utils/string';
+import { HotkeyDirective } from '../../../_directives/hotkey.directive';
+import { OverviewItem } from '../../../_models/overview';
 import {
   SEARCHABLE_ARTICLE_KINDS,
   SearchableArticleKind,
-} from 'src/app/_models/search';
-import { HotkeyService } from 'src/app/_services/hotkey.service';
-import { OnlineService } from 'src/app/_services/online.service';
-import { Icon } from 'src/app/design/atoms/_models/icon';
-import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
-import { IconComponent } from 'src/app/design/atoms/icon/icon.component';
-import { PlaceholderComponent } from 'src/app/design/atoms/placeholder/placeholder.component';
-import {
-  ListEntry,
-  ListEntryTemplateContext,
-} from 'src/app/design/molecule/list/list.component';
+} from '../../../_models/search';
+import { HotkeyService } from '../../../_services/hotkey.service';
+import { OnlineService } from '../../../_services/online.service';
+import { Icon } from '../../../design/atoms/_models/icon';
+import { ButtonComponent } from '../../../design/atoms/button/button.component';
+import { IconComponent } from '../../../design/atoms/icon/icon.component';
+import { PlaceholderComponent } from '../../../design/atoms/placeholder/placeholder.component';
 import {
   SEARCH_TOGGLES,
   Toggle,
-} from 'src/app/design/molecules/_models/toggle';
-import { OverviewEntryComponent } from 'src/app/design/molecules/overview-entry/overview-entry.component';
-import { ToggleRowComponent } from 'src/app/design/molecules/toggle-row/toggle-row.component';
-import { getMetadataForType } from 'src/app/design/organisms/_model/sidebar';
-import { SearchPageStore } from 'src/app/global-components/search/search-modal/search-page.store';
-import { GlobalStore } from 'src/app/global.store';
-import { componentId } from 'src/utils/DOM';
-import { capitalize } from 'src/utils/string';
+} from '../../../design/molecules/_models/toggle';
+import {
+  ListEntry,
+  ListEntryTemplateContext,
+} from '../../../design/molecules/list/list.component';
+import { OverviewEntryComponent } from '../../../design/molecules/overview-entry/overview-entry.component';
 import { SearchFieldComponent } from '../../../design/molecules/search-field/search-field.component';
+import { ToggleRowComponent } from '../../../design/molecules/toggle-row/toggle-row.component';
+import { getMetadataForType } from '../../../design/organisms/_model/sidebar';
+import { GlobalStore } from '../../../global.store';
+import { SearchPageStore } from './search-page.store';
 
 type SearchEntry = Pick<
   OverviewItem,
@@ -69,27 +69,27 @@ type SearchEntry = Pick<
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SearchModalComponent {
-  modalService = inject(NgbModal);
-  hotkeyService = inject(HotkeyService);
-  globalStore = inject(GlobalStore);
-  onlineService = inject(OnlineService);
-  searchStore = inject(SearchPageStore);
-  router = inject(Router);
-  destroyRef = inject(DestroyRef);
+  readonly modalService = inject(NgbModal);
+  readonly hotkeyService = inject(HotkeyService);
+  readonly globalStore = inject(GlobalStore);
+  readonly onlineService = inject(OnlineService);
+  readonly searchStore = inject(SearchPageStore);
+  readonly router = inject(Router);
+  readonly destroyRef = inject(DestroyRef);
 
   private readonly listElement: Signal<ElementRef<HTMLElement> | undefined> =
     viewChild('list', {
       read: ElementRef<HTMLElement>,
     });
 
-  id = componentId();
-  titleId = `${this.id}-title`;
-  listId = `${this.id}-list`;
-  DEFAULT_URL = 'assets/default_images/icon_default.webp';
+  readonly id = componentId();
+  readonly titleId = `${this.id}-title`;
+  readonly listId = `${this.id}-list`;
+  readonly DEFAULT_URL = 'assets/default_images/icon_default.webp';
 
-  campaignName = this.globalStore.campaignName;
-  activeFilters = signal(SEARCHABLE_ARTICLE_KINDS);
-  filterToggles = computed(() => {
+  readonly campaignName = this.globalStore.campaignName;
+  readonly activeFilters = signal(SEARCHABLE_ARTICLE_KINDS);
+  readonly filterToggles = computed(() => {
     const activeFilterSet = new Set(this.activeFilters());
     return SEARCH_TOGGLES.map((toggle) => ({
       ...toggle,
@@ -98,19 +98,19 @@ export class SearchModalComponent {
       ),
     }));
   });
-  searchString = signal('');
+  readonly searchString = signal('');
 
-  isLoading = computed(
+  readonly isLoading = computed(
     () => this.searchStore.searchArticlesQueryState() === 'loading',
   );
-  isEmptySearch = computed(() => {
+  readonly isEmptySearch = computed(() => {
     const hasEntries =
       (this.searchStore.searchArticles()?.articles?.length ?? 0) > 0;
     const hasLoaded = this.searchStore.searchArticlesQueryState() === 'success';
     return hasLoaded && !hasEntries;
   });
 
-  entries = computed(() => {
+  readonly entries = computed(() => {
     const articles = this.searchStore.searchArticles()?.articles;
     return articles?.map((article) => {
       const metadata = getMetadataForType(article.article_type);

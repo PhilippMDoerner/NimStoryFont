@@ -1,47 +1,32 @@
-"use strict";
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.declare = declare;
-exports.declarePreset = void 0;
 const apiPolyfills = {
   assertVersion: api => range => {
     throwVersionError(range, api.version);
   }
 };
-{
-  Object.assign(apiPolyfills, {
-    targets: () => () => {
-      return {};
-    },
-    assumption: () => () => {
-      return undefined;
-    },
-    addExternalDependency: () => () => {}
-  });
-}
 function declare(builder) {
   return (api, options, dirname) => {
     let clonedApi;
     for (const name of Object.keys(apiPolyfills)) {
       if (api[name]) continue;
-      clonedApi != null ? clonedApi : clonedApi = copyApiObject(api);
+      clonedApi ??= copyApiObject(api);
       clonedApi[name] = apiPolyfills[name](clonedApi);
     }
-    return builder(clonedApi != null ? clonedApi : api, options || {}, dirname);
+    return builder(clonedApi ?? api, options || {}, dirname);
   };
 }
-const declarePreset = exports.declarePreset = declare;
+const declarePreset = declare;
 function copyApiObject(api) {
   let proto = null;
-  if (typeof api.version === "string" && /^7\./.test(api.version)) {
+  if (typeof api.version === "string" && api.version.startsWith("7.")) {
     proto = Object.getPrototypeOf(api);
-    if (proto && (!hasOwnProperty.call(proto, "version") || !hasOwnProperty.call(proto, "transform") || !hasOwnProperty.call(proto, "template") || !hasOwnProperty.call(proto, "types"))) {
+    if (proto && (!Object.hasOwn(proto, "version") || !Object.hasOwn(proto, "transform") || !Object.hasOwn(proto, "template") || !Object.hasOwn(proto, "types"))) {
       proto = null;
     }
   }
-  return Object.assign({}, proto, api);
+  return {
+    ...proto,
+    ...api
+  };
 }
 function throwVersionError(range, version) {
   if (typeof range === "number") {
@@ -58,7 +43,7 @@ function throwVersionError(range, version) {
     Error.stackTraceLimit = 25;
   }
   let err;
-  if (version.slice(0, 2) === "7.") {
+  if (version.startsWith("7.")) {
     err = new Error(`Requires Babel "^7.0.0-beta.41", but was loaded with "${version}". ` + `You'll need to update your @babel/core version.`);
   } else {
     err = new Error(`Requires Babel "${range}", but was loaded with "${version}". ` + `If you are sure you have a compatible version of @babel/core, ` + `it is likely that something in your build process is loading the ` + `wrong version. Inspect the stack trace of this error to look for ` + `the first entry that doesn't mention "@babel/core" or "babel-core" ` + `to see what is calling Babel.`);
@@ -73,4 +58,5 @@ function throwVersionError(range, version) {
   });
 }
 
+export { declare, declarePreset };
 //# sourceMappingURL=index.js.map

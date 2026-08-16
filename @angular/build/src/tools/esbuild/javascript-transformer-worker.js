@@ -46,9 +46,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = transformJavaScript;
 const core_1 = require("@babel/core");
 const node_fs_1 = __importDefault(require("node:fs"));
+const node_module_1 = require("node:module");
 const node_path_1 = __importDefault(require("node:path"));
 const piscina_1 = __importDefault(require("piscina"));
-const load_esm_1 = require("../../utils/load-esm");
+const source_map_1 = require("../../utils/source-map");
 const textDecoder = new TextDecoder();
 const textEncoder = new TextEncoder();
 /**
@@ -61,7 +62,7 @@ const LINKER_DECLARATION_PREFIX = 'ɵɵngDeclare';
 async function transformJavaScript(request) {
     const { filename, data, ...options } = request;
     const textData = typeof data === 'string' ? data : textDecoder.decode(data);
-    const transformedData = await transformWithBabel(filename, textData, options);
+    const transformedData = await transformJavaScriptImpl(filename, textData, options);
     // Transfer the data via `move` instead of cloning
     return piscina_1.default.move(textEncoder.encode(transformedData));
 }
@@ -69,53 +70,75 @@ async function transformJavaScript(request) {
  * Cached instance of the compiler-cli linker's createEs2015LinkerPlugin function.
  */
 let linkerPluginCreator;
-async function transformWithBabel(filename, data, options) {
+async function transformJavaScriptImpl(filename, data, options) {
     const shouldLink = !options.skipLinker && (await requiresLinking(filename, data));
     const useInputSourcemap = options.sourcemap &&
         (!!options.thirdPartySourcemaps || !/[\\/]node_modules[\\/]/.test(filename));
-    const plugins = [];
+    const babelPlugins = [];
     if (options.instrumentForCoverage) {
-        const { default: coveragePlugin } = await Promise.resolve().then(() => __importStar(require('../babel/plugins/add-code-coverage.js')));
-        plugins.push(coveragePlugin);
+        try {
+            let resolvedPath = 'istanbul-lib-instrument';
+            try {
+                const requireFn = (0, node_module_1.createRequire)(filename);
+                resolvedPath = requireFn.resolve('istanbul-lib-instrument');
+            }
+            catch {
+                // Fallback to pool worker import traversal
+            }
+            const istanbul = await Promise.resolve(`${resolvedPath}`).then(s => __importStar(require(s)));
+            const programVisitor = istanbul.programVisitor ?? istanbul.default?.programVisitor;
+            if (!programVisitor) {
+                throw new Error('programVisitor is not available in istanbul-lib-instrument.');
+            }
+            const { default: coveragePluginFactory } = await Promise.resolve().then(() => __importStar(require('../babel/plugins/add-code-coverage.js')));
+            babelPlugins.push(coveragePluginFactory(programVisitor));
+        }
+        catch (error) {
+            throw new Error(`The 'istanbul-lib-instrument' package is required for code coverage but was not found. Please install the package.`, { cause: error });
+        }
     }
     if (shouldLink) {
         // Lazy load the linker plugin only when linking is required
         const linkerPlugin = await createLinkerPlugin(options);
-        plugins.push(linkerPlugin);
+        babelPlugins.push(linkerPlugin);
     }
+    let code = data;
+    // If Babel is needed, run it first
+    if (babelPlugins.length > 0) {
+        const result = await (0, core_1.transformAsync)(code, {
+            filename,
+            inputSourceMap: (useInputSourcemap ? undefined : false),
+            sourceMaps: useInputSourcemap ? 'inline' : false,
+            compact: false,
+            configFile: false,
+            babelrc: false,
+            browserslistConfigFile: false,
+            plugins: babelPlugins,
+        });
+        code = result?.code ?? code;
+    }
+    // Run advanced optimizations using our fast oxc-transform
     if (options.advancedOptimizations) {
+        const { transform } = await Promise.resolve().then(() => __importStar(require('../babel/plugins/oxc-transform.js')));
         const sideEffectFree = options.sideEffects === false;
         const safeAngularPackage = sideEffectFree && /[\\/]node_modules[\\/]@angular[\\/]/.test(filename);
-        const { adjustStaticMembers, adjustTypeScriptEnums, elideAngularMetadata, markTopLevelPure } = await Promise.resolve().then(() => __importStar(require('../babel/plugins')));
-        if (safeAngularPackage) {
-            plugins.push(markTopLevelPure);
+        const topLevelSafeMode = !safeAngularPackage;
+        const result = transform(filename, code, {
+            sourcemap: useInputSourcemap,
+            sideEffects: options.sideEffects,
+            jit: options.jit,
+            topLevelSafeMode,
+        });
+        code = result.code;
+        if (useInputSourcemap && result.map) {
+            // Strip old source map comment if Babel added one
+            code = (0, source_map_1.removeSourceMappingURL)(code);
+            const base64Map = Buffer.from(result.map).toString('base64');
+            code += `\n//# sourceMappingURL=data:application/json;charset=utf-8;base64,${base64Map}`;
         }
-        plugins.push(elideAngularMetadata, adjustTypeScriptEnums, [
-            adjustStaticMembers,
-            { wrapDecorators: sideEffectFree },
-        ]);
     }
-    // If no additional transformations are needed, return the data directly
-    if (plugins.length === 0) {
-        // Strip sourcemaps if they should not be used
-        return useInputSourcemap ? data : data.replace(/^\/\/# sourceMappingURL=[^\r\n]*/gm, '');
-    }
-    const result = await (0, core_1.transformAsync)(data, {
-        filename,
-        inputSourceMap: (useInputSourcemap ? undefined : false),
-        sourceMaps: useInputSourcemap ? 'inline' : false,
-        compact: false,
-        configFile: false,
-        babelrc: false,
-        browserslistConfigFile: false,
-        plugins,
-    });
-    const outputCode = result?.code ?? data;
-    // Strip sourcemaps if they should not be used.
-    // Babel will keep the original comments even if sourcemaps are disabled.
-    return useInputSourcemap
-        ? outputCode
-        : outputCode.replace(/^\/\/# sourceMappingURL=[^\r\n]*/gm, '');
+    // Strip sourcemaps if they should not be used
+    return useInputSourcemap ? code : (0, source_map_1.removeSourceMappingURL)(code);
 }
 async function requiresLinking(path, source) {
     // @angular/core and @angular/compiler will cause false positives
@@ -129,7 +152,8 @@ async function requiresLinking(path, source) {
     return source.includes(LINKER_DECLARATION_PREFIX);
 }
 async function createLinkerPlugin(options) {
-    linkerPluginCreator ??= (await (0, load_esm_1.loadEsmModule)('@angular/compiler-cli/linker/babel')).createEs2015LinkerPlugin;
+    linkerPluginCreator ??= (await Promise.resolve().then(() => __importStar(require('@angular/compiler-cli/linker/babel'))))
+        .createEs2015LinkerPlugin;
     const linkerPlugin = linkerPluginCreator({
         linkerJitMode: options.jit,
         // This is a workaround until https://github.com/angular/angular/issues/42769 is fixed.
@@ -165,3 +189,4 @@ async function createLinkerPlugin(options) {
     });
     return linkerPlugin;
 }
+//# sourceMappingURL=javascript-transformer-worker.js.map

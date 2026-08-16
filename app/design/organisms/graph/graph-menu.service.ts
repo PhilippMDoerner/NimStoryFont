@@ -2,9 +2,9 @@ import { inject, Injectable, OnDestroy } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { select, selectAll, Selection } from 'd3';
 import { filter, Subject, take } from 'rxjs';
-import { ArticleNode, ArticleNodeKind, NodeLink } from 'src/app/_models/graph';
-import { ArticleService } from 'src/app/_services/article/article.service';
-import { ellipsize } from 'src/utils/string';
+import { ellipsize } from '../../../../utils/string';
+import { ArticleNode, ArticleNodeKind, NodeLink } from '../../../_models/graph';
+import { ArticleService } from '../../../_services/article/article.service';
 import { LinkClickEvent, SELECTORS } from '../_model/graph';
 import { ARTICLE_META_ENTRIES } from '../_model/sidebar';
 
@@ -29,11 +29,11 @@ const INTERACTABLE_ELEMENT_SELECTORS = [
 
 @Injectable()
 export class GraphMenuService implements OnDestroy {
-  articleService = inject(ArticleService);
+  readonly articleService = inject(ArticleService);
 
-  allGraphClickEvents$ = new Subject<MouseEvent>(); //All click events the graph registered
+  readonly allGraphClickEvents$ = new Subject<MouseEvent>(); //All click events the graph registered
 
-  private directGraphClickEvents$ = this.allGraphClickEvents$.pipe(
+  private readonly directGraphClickEvents$ = this.allGraphClickEvents$.pipe(
     filter((event) => {
       const clickTarget = event.target as Element;
       const isClickOnGraph = !INTERACTABLE_ELEMENT_SELECTORS.some(
@@ -42,12 +42,12 @@ export class GraphMenuService implements OnDestroy {
       return isClickOnGraph;
     }),
   );
-  private nodeMenuElementCreatedEvent$ = new Subject<void>();
-  private linkMenuElementCreatedEvent$ = new Subject<void>();
-  private nodeMenuClickEvents$ = new Subject<NodeMenuClickEvent>();
-  private linkMenuClickEvents$ = new Subject<LinkClickEvent>();
+  private readonly nodeMenuElementCreatedEvent$ = new Subject<void>();
+  private readonly linkMenuElementCreatedEvent$ = new Subject<void>();
+  private readonly nodeMenuClickEvents$ = new Subject<NodeMenuClickEvent>();
+  private readonly linkMenuClickEvents$ = new Subject<LinkClickEvent>();
 
-  linkDeleteEvents$ = this.linkMenuClickEvents$.pipe(
+  readonly linkDeleteEvents$ = this.linkMenuClickEvents$.pipe(
     filter((event) => {
       const clickTarget = event.event.target as Element;
       const isClickOnDeleteOption = !!clickTarget.closest(
@@ -143,7 +143,7 @@ export class GraphMenuService implements OnDestroy {
       .append('div')
       .attr(
         'class',
-        'bg-secondary-subtle p-3 border border-info my-body rounded text-dark w-50 h-25',
+        'bg-secondary-subtle p-3 border border-info my-body rounded text-dark w-50 clamp-to-9-lines',
       )
       .attr('id', SELECTORS.nodeMenuId);
 
@@ -153,7 +153,6 @@ export class GraphMenuService implements OnDestroy {
       .style('top', `${position.y}px`)
       .style('min-width', '300px')
       .style('max-width', '600px')
-      .style('min-height', '200px')
       .style('overflow', 'auto')
       .style('position', 'absolute')
       .style('display', 'block')
@@ -238,17 +237,20 @@ export class GraphMenuService implements OnDestroy {
 
   private getMenuPosition(event: MouseEvent): { x: number; y: number } {
     const halfScreenWidth = window.innerWidth / 2;
+    const minElementWidth = 300;
+    const expectedElementWidth = Math.max(minElementWidth, halfScreenWidth);
+
     const defaultX = event.pageX - 2;
-    const isOverflowingX = defaultX + halfScreenWidth > window.innerWidth;
+    const isOverflowingX = defaultX + expectedElementWidth > window.innerWidth;
     const safeX = isOverflowingX
-      ? window.innerWidth - halfScreenWidth
+      ? window.innerWidth - expectedElementWidth
       : defaultX;
 
-    const quarterScreenHeight = window.innerHeight / 4;
+    const halfScreenHeight = window.innerHeight / 2;
     const defaultY = event.pageY - 2;
-    const isOverflowingY = defaultY + quarterScreenHeight > window.innerHeight;
+    const isOverflowingY = defaultY + halfScreenHeight > window.innerHeight;
     const safeY = isOverflowingY
-      ? window.innerHeight - quarterScreenHeight
+      ? window.innerHeight - halfScreenHeight
       : defaultY;
 
     return {

@@ -2,13 +2,13 @@ import { inject } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { patchState, signalStore, withMethods, withState } from '@ngrx/signals';
 import { switchMap, take } from 'rxjs';
-import { Map, MapRaw } from 'src/app/_models/map';
-import { MapService } from 'src/app/_services/article/map.service';
-import { GlobalStore } from 'src/app/global.store';
-import { filterNil } from 'src/utils/rxjs-operators';
-import { RequestState } from 'src/utils/store/factory-types';
-import { withQueries } from 'src/utils/store/withQueries';
-import { withUpdates } from 'src/utils/store/withUpdates';
+import { filterNil } from '../../../../utils/rxjs-operators';
+import { RequestState } from '../../../../utils/store/factory-types';
+import { withQueries } from '../../../../utils/store/withQueries';
+import { withUpdates } from '../../../../utils/store/withUpdates';
+import { Map, MapRaw } from '../../../_models/map';
+import { MapService } from '../../../_services/article/map.service';
+import { GlobalStore } from '../../../global.store';
 
 interface MapCreateUpdateState {
   mapCreateState: RequestState;

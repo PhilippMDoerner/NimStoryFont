@@ -26,6 +26,9 @@ import {
   take,
   withLatestFrom,
 } from 'rxjs';
+import { sortAlphabetically } from '../../../../utils/array';
+import { filterNil } from '../../../../utils/rxjs-operators';
+import { capitalize } from '../../../../utils/string';
 import {
   ArticleNode,
   DEFAULT_LINK_CATEGORY_COLOR,
@@ -37,31 +40,30 @@ import {
   NodeMap,
   ParsedNodeMap,
   toGroupLabel,
-} from 'src/app/_models/graph';
-import { ARTICLE_COLORS, ARTICLE_ICONS } from 'src/app/_models/overview';
-import { FormlyService } from 'src/app/_services/formly/formly-service.service';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { CardComponent } from 'src/app/design//atoms/card/card.component';
-import { InfoCircleTooltipComponent } from 'src/app/design//atoms/info-circle-tooltip/info-circle-tooltip.component';
-import { PlaceholderComponent } from 'src/app/design//atoms/placeholder/placeholder.component';
-import { ArticleFooterComponent } from 'src/app/design//molecules/article-footer/article-footer.component';
-import { CollapsiblePanelComponent } from 'src/app/design//molecules/collapsible-panel/collapsible-panel.component';
-import { ConfirmationToggleButtonComponent } from 'src/app/design//molecules/confirmation-toggle-button/confirmation-toggle-button.component';
-import { FormComponent } from 'src/app/design//molecules/form/form.component';
-import { SearchFieldComponent } from 'src/app/design//molecules/search-field/search-field.component';
-import { GraphComponent } from 'src/app/design//organisms/graph/graph.component';
-import { PageContainerComponent } from 'src/app/design//organisms/page-container/page-container.component';
-import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
-import { NODE_TYPE_OPTIONS } from 'src/app/design/molecules/_models/search-preferences';
-import { Toggle } from 'src/app/design/molecules/_models/toggle';
-import { ToggleRowComponent } from 'src/app/design/molecules/toggle-row/toggle-row.component';
-import { GRAPH_SETTINGS } from 'src/app/design/organisms/_model/graph';
-import { GraphMenuService } from 'src/app/design/organisms/graph/graph-menu.service';
-import { GraphService } from 'src/app/design/organisms/graph/graph.service';
-import { GlobalStore } from 'src/app/global.store';
-import { sortAlphabetically } from 'src/utils/array';
-import { filterNil } from 'src/utils/rxjs-operators';
-import { capitalize } from 'src/utils/string';
+} from '../../../_models/graph';
+import { ARTICLE_COLORS, ARTICLE_ICONS } from '../../../_models/overview';
+import { FormlyService } from '../../../_services/formly/formly-service.service';
+import { RoutingService } from '../../../_services/routing.service';
+import { ButtonComponent } from '../../../design/atoms/button/button.component';
+import { CardComponent } from '../../../design/atoms/card/card.component';
+import { InfoCircleTooltipComponent } from '../../../design/atoms/info-circle-tooltip/info-circle-tooltip.component';
+import { PlaceholderComponent } from '../../../design/atoms/placeholder/placeholder.component';
+import {
+  ArticleFooterComponent,
+  CollapsiblePanelComponent,
+  ConfirmationToggleButtonComponent,
+  FormComponent,
+  SearchFieldComponent,
+} from '../../../design/molecules';
+import { NODE_TYPE_OPTIONS } from '../../../design/molecules/_models/search-preferences';
+import { Toggle } from '../../../design/molecules/_models/toggle';
+import { ToggleRowComponent } from '../../../design/molecules/toggle-row/toggle-row.component';
+import { GRAPH_SETTINGS } from '../../../design/organisms/_model/graph';
+import { GraphMenuService } from '../../../design/organisms/graph/graph-menu.service';
+import { GraphComponent } from '../../../design/organisms/graph/graph.component';
+import { GraphService } from '../../../design/organisms/graph/graph.service';
+import { PageContainerComponent } from '../../../design/organisms/page-container/page-container.component';
+import { GlobalStore } from '../../../global.store';
 import { GraphHelpModalComponent } from '../../components/graph-help-modal/graph-help-modal.component';
 import { GraphSettingsModalComponent } from '../../components/graph-settings-modal/graph-settings-modal.component';
 import { GraphPageStore } from './graph-page.store';
@@ -93,28 +95,28 @@ import { GraphPageStore } from './graph-page.store';
   providers: [GraphMenuService, GraphService],
 })
 export class GraphPageComponent {
-  EMPTY_LABEL = '<label>';
-  globalStore = inject(GlobalStore);
-  store = inject(GraphPageStore);
-  routingService = inject(RoutingService);
-  formlyService = inject(FormlyService);
-  graphService = inject(GraphService);
-  graphMenuService = inject(GraphMenuService);
+  readonly EMPTY_LABEL = '<label>';
+  readonly globalStore = inject(GlobalStore);
+  readonly store = inject(GraphPageStore);
+  readonly routingService = inject(RoutingService);
+  readonly formlyService = inject(FormlyService);
+  readonly graphService = inject(GraphService);
+  readonly graphMenuService = inject(GraphMenuService);
 
-  selectedNodes = toSignal(this.graphService.nodeSelectionChanged$);
-  firstSelectedNode = computed(() => this.selectedNodes()?.[0]);
-  secondSelectedNode = computed(() => this.selectedNodes()?.[1]);
-  nodeQuery$ = new Subject<string>();
-  graphData = computed<ParsedNodeMap | undefined>(() => {
+  readonly selectedNodes = toSignal(this.graphService.nodeSelectionChanged$);
+  readonly firstSelectedNode = computed(() => this.selectedNodes()?.[0]);
+  readonly secondSelectedNode = computed(() => this.selectedNodes()?.[1]);
+  readonly nodeQuery$ = new Subject<string>();
+  readonly graphData = computed<ParsedNodeMap | undefined>(() => {
     return this.filterGraphData(
       this.store.graph(),
       this.activeNodeCategories(),
       this.activeLinkCategories(),
     );
   });
-  graphData$ = toObservable(this.graphData);
-  customLinkTypes$ = toObservable(this.store.customLinkTypes);
-  searchedNode$ = this.nodeQuery$.pipe(
+  readonly graphData$ = toObservable(this.graphData);
+  readonly customLinkTypes$ = toObservable(this.store.customLinkTypes);
+  readonly searchedNode$ = this.nodeQuery$.pipe(
     withLatestFrom(this.graphData$.pipe(map((graphData) => graphData?.nodes))),
     filter(([query, nodes]) => query.length >= 3 && !!nodes),
     map(([query, nodes]) =>
@@ -124,12 +126,12 @@ export class GraphPageComponent {
     ),
     shareReplay(1),
   );
-  graphSettings = signal(GRAPH_SETTINGS);
+  readonly graphSettings = signal(GRAPH_SETTINGS);
 
-  pageState = signal<'DISPLAY' | 'CREATE'>('DISPLAY');
-  isPanelOpen = signal<boolean>(false);
+  readonly pageState = signal<'DISPLAY' | 'CREATE'>('DISPLAY');
+  readonly isPanelOpen = signal<boolean>(false);
 
-  formlyFields = computed<FormlyFieldConfig[]>(() => [
+  readonly formlyFields = computed<FormlyFieldConfig[]>(() => [
     this.formlyService.buildInputConfig<NodeLinkRaw>({
       inputKind: 'NAME',
       key: 'label',
@@ -147,14 +149,14 @@ export class GraphPageComponent {
       valueProp: 'id',
     }),
   ]);
-  userModel = signal<Partial<NodeLinkRaw>>({});
-  createLabel = signal<string>(this.EMPTY_LABEL);
-  formTitle = computed(
+  readonly userModel = signal<Partial<NodeLinkRaw>>({});
+  readonly createLabel = signal<string>(this.EMPTY_LABEL);
+  readonly formTitle = computed(
     () =>
       `${this.firstSelectedNode()?.record.name} ${this.createLabel()} ${this.secondSelectedNode()?.record.name}`,
   );
 
-  homeUrl = computed(() =>
+  readonly homeUrl = computed(() =>
     this.routingService.getRoutePath('home', {
       campaign: this.globalStore.campaignName(),
     }),
@@ -163,44 +165,47 @@ export class GraphPageComponent {
   private readonly isPageLoading: Observable<boolean> | Signal<boolean> =
     computed(() => this.graphData() == null);
 
-  private activeNodeCategories = signal(
+  private readonly activeNodeCategories = signal(
     new Set<string>(NODE_TYPE_OPTIONS.map((option) => option.value)),
   );
-  nodeToggles = computed<Toggle<(typeof NODE_TYPE_OPTIONS)[number]['value']>[]>(
-    () =>
-      NODE_TYPE_OPTIONS.map((option) => ({
-        value: option.value,
-        active: this.activeNodeCategories().has(option.value),
-        color:
-          ARTICLE_COLORS[
-            option.value.toUpperCase() as Uppercase<
-              (typeof NODE_TYPE_OPTIONS)[number]['value']
-            >
-          ],
-        text: option.label,
-        icon: ARTICLE_ICONS[
+  readonly nodeToggles = computed<
+    Toggle<(typeof NODE_TYPE_OPTIONS)[number]['value']>[]
+  >(() =>
+    NODE_TYPE_OPTIONS.map((option) => ({
+      value: option.value,
+      active: this.activeNodeCategories().has(option.value),
+      color:
+        ARTICLE_COLORS[
           option.value.toUpperCase() as Uppercase<
             (typeof NODE_TYPE_OPTIONS)[number]['value']
           >
         ],
-      })),
+      text: option.label,
+      icon: ARTICLE_ICONS[
+        option.value.toUpperCase() as Uppercase<
+          (typeof NODE_TYPE_OPTIONS)[number]['value']
+        >
+      ],
+    })),
   );
 
-  private linkToggles = computed<Toggle<LinkGroup>[] | undefined>(() => {
-    return this.store.graph()?.links.map((linkGroup) => {
-      const firstLink: NodeLink | undefined = linkGroup.links[0];
-      return {
-        active: false,
-        color: firstLink?.color ?? DEFAULT_LINK_CATEGORY_COLOR,
-        value: linkGroup,
-        icon: firstLink.icon ?? undefined,
-        text: toGroupLabel(linkGroup.name),
-      };
-    });
-  });
-  private activeLinkCategories$ = new ReplaySubject<Set<LinkKind>>(1);
-  private activeLinkCategories = toSignal(this.activeLinkCategories$);
-  linkCategories$: Observable<Toggle<LinkGroup>[] | undefined> =
+  private readonly linkToggles = computed<Toggle<LinkGroup>[] | undefined>(
+    () => {
+      return this.store.graph()?.links.map((linkGroup) => {
+        const firstLink: NodeLink | undefined = linkGroup.links[0];
+        return {
+          active: false,
+          color: firstLink?.color ?? DEFAULT_LINK_CATEGORY_COLOR,
+          value: linkGroup,
+          icon: firstLink.icon ?? undefined,
+          text: toGroupLabel(linkGroup.name),
+        };
+      });
+    },
+  );
+  private readonly activeLinkCategories$ = new ReplaySubject<Set<LinkKind>>(1);
+  private readonly activeLinkCategories = toSignal(this.activeLinkCategories$);
+  readonly linkCategories$: Observable<Toggle<LinkGroup>[] | undefined> =
     this.activeLinkCategories$.pipe(
       map((activeLinkCategories) => {
         const linkTypeOptions = this.linkToggles();
@@ -214,9 +219,9 @@ export class GraphPageComponent {
           .sort((a, b) => sortAlphabetically(a.text, b.text));
       }),
     );
-  linkCategoryFallbackList = Array(6).fill(0); // Any nodemap is guaranteed to have at least 6 entries
-  private createLinkState$ = toObservable(this.store.createLinkState);
-  private destructor = inject(DestroyRef);
+  readonly linkCategoryFallbackList = Array(6).fill(0); // Any nodemap is guaranteed to have at least 6 entries
+  private readonly createLinkState$ = toObservable(this.store.createLinkState);
+  private readonly destructor = inject(DestroyRef);
 
   constructor() {
     this.globalStore.trackIsPageLoading(this.isPageLoading);

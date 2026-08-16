@@ -10,15 +10,16 @@ const UnsupportedWebAssemblyFeatureError = require("../wasm-sync/UnsupportedWebA
 const ModuleDependency = require("./ModuleDependency");
 
 /** @typedef {import("@webassemblyjs/ast").ModuleImportDescription} ModuleImportDescription */
-/** @typedef {import("../Dependency").ReferencedExport} ReferencedExport */
+/** @typedef {import("../Dependency").ReferencedExports} ReferencedExports */
 /** @typedef {import("../ModuleGraph")} ModuleGraph */
-/** @typedef {import("../WebpackError")} WebpackError */
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext} ObjectDeserializerContext */
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext} ObjectSerializerContext */
+/** @typedef {import("../errors/WebpackError")} WebpackError */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext<[string, ModuleImportDescription, false | string]>} ObjectDeserializerContext */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext<[string, ModuleImportDescription, false | string]>} ObjectSerializerContext */
 /** @typedef {import("../util/runtime").RuntimeSpec} RuntimeSpec */
 
 class WebAssemblyImportDependency extends ModuleDependency {
 	/**
+	 * Creates an instance of WebAssemblyImportDependency.
 	 * @param {string} request the request
 	 * @param {string} name the imported name
 	 * @param {ModuleImportDescription} description the WASM ast node
@@ -46,14 +47,15 @@ class WebAssemblyImportDependency extends ModuleDependency {
 	 * Returns list of exports referenced by this dependency
 	 * @param {ModuleGraph} moduleGraph module graph
 	 * @param {RuntimeSpec} runtime the runtime for which the module is analysed
-	 * @returns {(string[] | ReferencedExport)[]} referenced exports
+	 * @returns {ReferencedExports} referenced exports
 	 */
 	getReferencedExports(moduleGraph, runtime) {
-		return [[this.name]];
+		// wasm import glue needs the real binding, never an inlined literal
+		return [{ name: [this.name], canInline: false }];
 	}
 
 	/**
-	 * Returns errors
+	 * Returns errors.
 	 * @param {ModuleGraph} moduleGraph module graph
 	 * @returns {WebpackError[] | null | undefined} errors
 	 */
@@ -74,29 +76,28 @@ class WebAssemblyImportDependency extends ModuleDependency {
 	}
 
 	/**
+	 * Serializes this instance into the provided serializer context.
 	 * @param {ObjectSerializerContext} context context
 	 */
 	serialize(context) {
-		const { write } = context;
-
-		write(this.name);
-		write(this.description);
-		write(this.onlyDirectImport);
-
+		context
+			.write(this.name)
+			.write(this.description)
+			.write(this.onlyDirectImport);
 		super.serialize(context);
 	}
 
 	/**
+	 * Restores this instance from the provided deserializer context.
 	 * @param {ObjectDeserializerContext} context context
 	 */
 	deserialize(context) {
-		const { read } = context;
-
-		this.name = read();
-		this.description = read();
-		this.onlyDirectImport = read();
-
-		super.deserialize(context);
+		this.name = context.read();
+		const c1 = context.rest;
+		this.description = c1.read();
+		const c2 = c1.rest;
+		this.onlyDirectImport = c2.read();
+		super.deserialize(c2.rest);
 	}
 }
 

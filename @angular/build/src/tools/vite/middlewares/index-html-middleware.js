@@ -44,3 +44,4 @@ function createAngularIndexHtmlMiddleware(server, outputFiles, resetComponentUpd
             .catch((error) => next(error));
     };
 }
+//# sourceMappingURL=index-html-middleware.js.map

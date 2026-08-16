@@ -7,11 +7,11 @@ import {
 } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { Observable } from 'rxjs';
-import { Campaign, CampaignRaw } from 'src/app/_models/campaign';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { CampaignUpdateComponent } from 'src/app/design//templates/campaign-update/campaign-update.component';
-import { GlobalStore } from 'src/app/global.store';
-import { takeFirstNonNil } from 'src/utils/rxjs-operators';
+import { takeFirstNonNil } from '../../../../utils/rxjs-operators';
+import { Campaign, CampaignRaw } from '../../../_models/campaign';
+import { RoutingService } from '../../../_services/routing.service';
+import { CampaignUpdateComponent } from '../../../design//templates/campaign-update/campaign-update.component';
+import { GlobalStore } from '../../../global.store';
 import { CampaignUpdatePageStore } from './campaign-update-page.store';
 
 @Component({
@@ -23,14 +23,14 @@ import { CampaignUpdatePageStore } from './campaign-update-page.store';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CampaignUpdatePageComponent {
-  globalStore = inject(GlobalStore);
-  campaignUpdatePageStore = inject(CampaignUpdatePageStore);
+  readonly globalStore = inject(GlobalStore);
+  readonly campaignUpdatePageStore = inject(CampaignUpdatePageStore);
 
-  serverUrl = '';
-  campaign = this.campaignUpdatePageStore.campaign;
-  campaign$ = toObservable(this.campaign);
-  mapOptions = this.campaignUpdatePageStore.mapOptions;
-  serverModel = this.campaignUpdatePageStore.serverModel;
+  readonly serverUrl = '';
+  readonly campaign = this.campaignUpdatePageStore.campaign;
+  readonly campaign$ = toObservable(this.campaign);
+  readonly mapOptions = this.campaignUpdatePageStore.mapOptions;
+  readonly serverModel = this.campaignUpdatePageStore.serverModel;
   private readonly isPageLoading: Observable<boolean> | Signal<boolean> =
     computed(() => this.campaignUpdatePageStore.campaign() == null);
 

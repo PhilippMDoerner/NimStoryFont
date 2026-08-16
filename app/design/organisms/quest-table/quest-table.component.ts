@@ -8,10 +8,10 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { OverviewItem } from 'src/app/_models/overview';
-import { Icon } from 'src/app/design/atoms/_models/icon';
-import { IconComponent } from 'src/app/design/atoms/icon/icon.component';
-import { withViewTransition } from 'src/utils/animation';
+import { withViewTransition } from '../../../../utils/animation';
+import { OverviewItem } from '../../../_models/overview';
+import { Icon } from '../../atoms/_models/icon';
+import { IconComponent } from '../../atoms/icon/icon.component';
 import { MenuItem } from '../../molecules/_models/menu';
 import { ContextMenuComponent } from '../../molecules/context-menu/context-menu.component';
 
@@ -39,10 +39,10 @@ type DisplayState = (typeof DISPLAY_STATES)[number];
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class QuestTableComponent {
-  questTaker = input.required<string>();
-  quests = input.required<OverviewItem[]>();
+  readonly questTaker = input.required<string>();
+  readonly quests = input.required<OverviewItem[]>();
 
-  menuItems = computed<MenuItem[]>(() =>
+  readonly menuItems = computed<MenuItem[]>(() =>
     DISPLAY_STATES.map(
       (state): MenuItem => ({
         kind: 'BUTTON',
@@ -53,22 +53,22 @@ export class QuestTableComponent {
       }),
     ),
   );
-  state = signal<DisplayState>('Default');
+  readonly state = signal<DisplayState>('Default');
 
-  displayQuests = computed<OverviewItem[]>(() =>
+  readonly displayQuests = computed<OverviewItem[]>(() =>
     this.quests().filter((quest) =>
       this.shouldDisplayQuest(quest, this.state()),
     ),
   );
 
-  STATE_ICON_MAPPING: { [key: string]: Icon } = {
+  readonly STATE_ICON_MAPPING: { [key: string]: Icon } = {
     Completed: 'square-check',
     'On hold': 'hourglass-half',
     Failed: 'times',
     'In progress': 'spinner',
   };
 
-  STATE_TABLE_TYPE_MAPPING: { [key: string]: string } = {
+  readonly STATE_TABLE_TYPE_MAPPING: { [key: string]: string } = {
     Completed: 'success',
     'On hold': 'warning',
     Failed: 'danger',

@@ -9,19 +9,20 @@ const { AsyncParallelHook, AsyncSeriesBailHook, SyncHook } = require("tapable");
 const {
 	makeWebpackError,
 	makeWebpackErrorCallback
-} = require("./HookWebpackError");
-
-/** @typedef {import("./WebpackError")} WebpackError */
+} = require("./errors/HookWebpackError");
 
 /**
+ * Cache validation token whose string representation identifies the build
+ * inputs associated with a cached value.
  * @typedef {object} Etag
  * @property {() => string} toString
  */
 
 /**
+ * Completion callback used by cache operations that either fail with a `Error` or resolve with a typed result.
  * @template T
  * @callback CallbackCache
- * @param {WebpackError | null} err
+ * @param {Error | null} err
  * @param {T=} result
  * @returns {void}
  */
@@ -29,18 +30,23 @@ const {
 /** @typedef {EXPECTED_ANY} Data */
 
 /**
+ * Handler invoked after a cache read succeeds so additional cache layers can
+ * react to the retrieved value.
+ * @template T
  * @callback GotHandler
- * @param {TODO} result
- * @param {(err?: Error) => void} callback
+ * @param {T} result
+ * @param {() => void} callback
  * @returns {void}
  */
 
 /**
+ * Creates a callback wrapper that waits for a fixed number of completions and
+ * forwards the first error immediately.
  * @param {number} times times
- * @param {(err?: Error) => void} callback callback
- * @returns {(err?: Error) => void} callback
+ * @param {(err?: Error | null) => void} callback callback
+ * @returns {(err?: Error | null) => void} callback
  */
-const needCalls = (times, callback) => err => {
+const needCalls = (times, callback) => (err) => {
 	if (--times === 0) {
 		return callback(err);
 	}
@@ -50,10 +56,17 @@ const needCalls = (times, callback) => err => {
 	}
 };
 
+/**
+ * Abstract cache interface backed by tapable hooks for reading, writing, idle
+ * transitions, and shutdown across webpack cache implementations.
+ */
 class Cache {
+	/**
+	 * Initializes the cache lifecycle hooks implemented by cache backends.
+	 */
 	constructor() {
 		this.hooks = {
-			/** @type {AsyncSeriesBailHook<[string, Etag | null, GotHandler[]], Data>} */
+			/** @type {AsyncSeriesBailHook<[string, Etag | null, GotHandler<EXPECTED_ANY>[]], Data>} */
 			get: new AsyncSeriesBailHook(["identifier", "etag", "gotHandlers"]),
 			/** @type {AsyncParallelHook<[string, Etag | null, Data]>} */
 			store: new AsyncParallelHook(["identifier", "etag", "data"]),
@@ -69,6 +82,8 @@ class Cache {
 	}
 
 	/**
+	 * Retrieves a cached value and lets registered `gotHandlers` observe the
+	 * result before the caller receives it.
 	 * @template T
 	 * @param {string} identifier the cache identifier
 	 * @param {Etag | null} etag the etag
@@ -76,7 +91,7 @@ class Cache {
 	 * @returns {void}
 	 */
 	get(identifier, etag, callback) {
-		/** @type {GotHandler[]} */
+		/** @type {GotHandler<T>[]} */
 		const gotHandlers = [];
 		this.hooks.get.callAsync(identifier, etag, gotHandlers, (err, result) => {
 			if (err) {
@@ -102,6 +117,8 @@ class Cache {
 	}
 
 	/**
+	 * Stores a cache entry for the identifier and etag through the registered
+	 * cache backend hooks.
 	 * @template T
 	 * @param {string} identifier the cache identifier
 	 * @param {Etag | null} etag the etag
@@ -119,7 +136,8 @@ class Cache {
 	}
 
 	/**
-	 * After this method has succeeded the cache can only be restored when build dependencies are
+	 * Persists the set of build dependencies required to determine whether the
+	 * cache can be restored in a future compilation.
 	 * @param {Iterable<string>} dependencies list of all build dependencies
 	 * @param {CallbackCache<void>} callback signals when the dependencies are stored
 	 * @returns {void}
@@ -132,6 +150,8 @@ class Cache {
 	}
 
 	/**
+	 * Signals that webpack is entering an idle phase and cache backends may flush
+	 * or compact pending work.
 	 * @returns {void}
 	 */
 	beginIdle() {
@@ -139,6 +159,8 @@ class Cache {
 	}
 
 	/**
+	 * Signals that webpack is leaving the idle phase and waits for cache
+	 * backends to finish any asynchronous resume work.
 	 * @param {CallbackCache<void>} callback signals when the call finishes
 	 * @returns {void}
 	 */
@@ -149,6 +171,7 @@ class Cache {
 	}
 
 	/**
+	 * Shuts down every registered cache backend and waits for cleanup to finish.
 	 * @param {CallbackCache<void>} callback signals when the call finishes
 	 * @returns {void}
 	 */

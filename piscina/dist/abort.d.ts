@@ -16,5 +16,5 @@ export declare class AbortError extends Error {
     constructor(reason?: AbortSignalEventTarget['reason']);
     get name(): string;
 }
-export declare function onabort(abortSignal: AbortSignalAny, listener: () => void): void;
+export declare function onabort(abortSignal: AbortSignalAny, listener: () => void): () => void;
 export {};

@@ -10,17 +10,17 @@ import {
 } from '@ngrx/signals';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
 import { map, pipe, switchMap, tap } from 'rxjs';
-import { toBoolean } from 'src/utils/bool';
-import { filterNil } from 'src/utils/rxjs-operators';
-import { RequestState } from 'src/utils/store/factory-types';
-import { withQueries } from 'src/utils/store/withQueries';
+import { toBoolean } from '../utils/bool';
+import { filterNil } from '../utils/rxjs-operators';
+import { RequestState } from '../utils/store/factory-types';
+import { withQueries } from '../utils/store/withQueries';
 import { encodeKeyCombination } from './_functions/keyMapper';
 import {
-  DEFAULT_MAPPINGS,
+  DEFAULT_HOTKEY_MAPPINGS,
+  HotkeyAction,
+  HotkeyMapping,
   KeyCombination,
   parseKeyCombinationStr,
-  ShortcutAction,
-  ShortcutMapping,
 } from './_models/hotkey';
 import { httpErrorToast } from './_models/toast';
 import {
@@ -33,13 +33,13 @@ import { PreferencesService } from './_services/utils/preferences.service';
 import { ToastService } from './design/organisms/toast-overlay/toast.service';
 
 export interface UserPreferencesState {
-  updateShortcutsState: RequestState;
-  deleteShortcutsState: RequestState;
+  updateHotkeysState: RequestState;
+  deleteHotkeysState: RequestState;
 }
 
 const initialState: UserPreferencesState = {
-  updateShortcutsState: 'init',
-  deleteShortcutsState: 'init',
+  updateHotkeysState: 'init',
+  deleteHotkeysState: 'init',
 };
 
 export const UserPreferencesStore = signalStore(
@@ -50,23 +50,23 @@ export const UserPreferencesStore = signalStore(
 
     return {
       general: () => preferencesService.getGeneralUserMetadata(),
-      shortcutEntries: () => preferencesService.getUserShortcuts(),
+      hotkeyEntries: () => preferencesService.getUserHotkeys(),
     };
   }),
   withComputed((state) => {
     return {
-      shortcutMappings: computed(() => {
-        const shortcutEntries = state.shortcutEntries();
-        const modifiedShortcuts = shortcutEntries?.reduce((acc, entry) => {
-          acc[entry.name as ShortcutAction] = {
+      hotkeyMappings: computed(() => {
+        const hotkeyEntries = state.hotkeyEntries();
+        const modifiedHotkeys = hotkeyEntries?.reduce((acc, entry) => {
+          acc[entry.name as HotkeyAction] = {
             keys: entry.value,
             modified: true,
           };
           return acc;
-        }, {} as ShortcutMapping);
+        }, {} as HotkeyMapping);
         return {
-          ...DEFAULT_MAPPINGS,
-          ...modifiedShortcuts,
+          ...DEFAULT_HOTKEY_MAPPINGS,
+          ...modifiedHotkeys,
         };
       }),
     };
@@ -97,6 +97,9 @@ export const UserPreferencesStore = signalStore(
                 case 'shortcut': {
                   break;
                 }
+                case 'editor-shortcuts': {
+                  break;
+                }
               }
             },
             error: (err: HttpErrorResponse) => {
@@ -108,11 +111,11 @@ export const UserPreferencesStore = signalStore(
           }),
         ),
       ),
-      updateShortcut: rxMethod<{ action: string; keys: KeyCombination }>(
+      updateHotkey: rxMethod<{ action: string; keys: KeyCombination }>(
         pipe(
           map(({ action, keys }): MetaDataEntry => {
             const entry = store
-              .shortcutEntries()
+              .hotkeyEntries()
               ?.find((entry) => entry.name === action) as ShortcutMetadataEntry;
 
             return {
@@ -123,7 +126,7 @@ export const UserPreferencesStore = signalStore(
               user_id: entry?.user_id,
             };
           }),
-          tap(() => patchState(store, { updateShortcutsState: 'loading' })),
+          tap(() => patchState(store, { updateHotkeysState: 'loading' })),
           switchMap((entry) => {
             const isNewEntry = entry.id == undefined;
             if (isNewEntry) {
@@ -140,14 +143,14 @@ export const UserPreferencesStore = signalStore(
           ),
           tapResponse({
             next: (newEntry) => {
-              const oldList = store.shortcutEntries();
+              const oldList = store.hotkeyEntries();
               const newList = oldList?.filter(
                 (entry) => entry.name !== newEntry.name,
               );
               newList?.push(newEntry);
               patchState(store, {
-                shortcutEntries: newList,
-                updateShortcutsState: 'success',
+                hotkeyEntries: newList,
+                updateHotkeysState: 'success',
               });
             },
             error: (err: HttpErrorResponse) => {
@@ -155,20 +158,19 @@ export const UserPreferencesStore = signalStore(
               if (!isBadRequest) {
                 toastService.addToast(httpErrorToast(err));
               }
-              patchState(store, { updateShortcutsState: 'error' });
+              patchState(store, { updateHotkeysState: 'error' });
             },
           }),
         ),
       ),
-      resetShortcut: rxMethod<ShortcutAction>(
+      resetShortcut: rxMethod<HotkeyAction>(
         pipe(
           map(
             (action) =>
-              store.shortcutEntries()?.find((entry) => entry.name === action)
-                ?.id,
+              store.hotkeyEntries()?.find((entry) => entry.name === action)?.id,
           ),
           filterNil(),
-          tap(() => patchState(store, { deleteShortcutsState: 'loading' })),
+          tap(() => patchState(store, { deleteHotkeysState: 'loading' })),
           switchMap((entryId) =>
             preferencesService
               .deleteUserMetadataEntry(entryId)
@@ -176,11 +178,11 @@ export const UserPreferencesStore = signalStore(
           ),
           tapResponse({
             next: (entryId) => {
-              const oldList = store.shortcutEntries();
+              const oldList = store.hotkeyEntries();
               const newList = oldList?.filter((entry) => entry.id !== entryId);
               patchState(store, {
-                shortcutEntries: newList,
-                deleteShortcutsState: 'success',
+                hotkeyEntries: newList,
+                deleteHotkeysState: 'success',
               });
             },
             error: (err: HttpErrorResponse) => {
@@ -188,7 +190,7 @@ export const UserPreferencesStore = signalStore(
               if (!isBadRequest) {
                 toastService.addToast(httpErrorToast(err));
               }
-              patchState(store, { deleteShortcutsState: 'error' });
+              patchState(store, { deleteHotkeysState: 'error' });
             },
           }),
         ),

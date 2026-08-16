@@ -6,19 +6,19 @@
 "use strict";
 
 const Generator = require("../Generator");
+const {
+	JAVASCRIPT_TYPE,
+	WEBASSEMBLY_TYPE
+} = require("../ModuleSourceTypeConstants");
 const { WEBASSEMBLY_MODULE_TYPE_SYNC } = require("../ModuleTypeConstants");
 const WebAssemblyExportImportedDependency = require("../dependencies/WebAssemblyExportImportedDependency");
 const WebAssemblyImportDependency = require("../dependencies/WebAssemblyImportDependency");
-const { compareModulesByIdOrIdentifier } = require("../util/comparators");
+const { compareModulesByFullName } = require("../util/comparators");
 const memoize = require("../util/memoize");
 const WebAssemblyInInitialChunkError = require("./WebAssemblyInInitialChunkError");
 
-/** @typedef {import("webpack-sources").Source} Source */
-/** @typedef {import("../../declarations/WebpackOptions").OutputNormalized} OutputOptions */
 /** @typedef {import("../Compiler")} Compiler */
 /** @typedef {import("../Module")} Module */
-/** @typedef {import("../ModuleTemplate")} ModuleTemplate */
-/** @typedef {import("../javascript/JavascriptModulesPlugin").RenderContext} RenderContext */
 
 const getWebAssemblyGenerator = memoize(() =>
 	require("./WebAssemblyGenerator")
@@ -27,24 +27,35 @@ const getWebAssemblyJavascriptGenerator = memoize(() =>
 	require("./WebAssemblyJavascriptGenerator")
 );
 const getWebAssemblyParser = memoize(() => require("./WebAssemblyParser"));
+const getSyncWasmModule = memoize(() => require("./SyncWasmModule"));
 
 const PLUGIN_NAME = "WebAssemblyModulesPlugin";
 
 /**
+ * Options that influence how synchronous WebAssembly modules are transformed
+ * and emitted.
  * @typedef {object} WebAssemblyModulesPluginOptions
  * @property {boolean=} mangleImports mangle imports
  */
 
+/**
+ * Adds parser, generator, manifest, and validation support for synchronous
+ * WebAssembly modules in the compilation pipeline.
+ */
 class WebAssemblyModulesPlugin {
 	/**
+	 * Stores options that affect generated synchronous WebAssembly output.
 	 * @param {WebAssemblyModulesPluginOptions} options options
 	 */
 	constructor(options) {
+		/** @type {WebAssemblyModulesPluginOptions} */
 		this.options = options;
 	}
 
 	/**
-	 * Apply the plugin
+	 * Registers compilation hooks that parse and generate sync WebAssembly
+	 * modules, emit their binary assets, and report invalid placement in initial
+	 * chunks.
 	 * @param {Compiler} compiler the compiler instance
 	 * @returns {void}
 	 */
@@ -62,6 +73,14 @@ class WebAssemblyModulesPlugin {
 					normalModuleFactory
 				);
 
+				normalModuleFactory.hooks.createModuleClass
+					.for(WEBASSEMBLY_MODULE_TYPE_SYNC)
+					.tap(PLUGIN_NAME, (createData, _resolveData) => {
+						const SyncWasmModule = getSyncWasmModule();
+
+						return new SyncWasmModule(createData);
+					});
+
 				normalModuleFactory.hooks.createParser
 					.for(WEBASSEMBLY_MODULE_TYPE_SYNC)
 					.tap(PLUGIN_NAME, () => {
@@ -78,8 +97,8 @@ class WebAssemblyModulesPlugin {
 						const WebAssemblyGenerator = getWebAssemblyGenerator();
 
 						return Generator.byType({
-							javascript: new WebAssemblyJavascriptGenerator(),
-							webassembly: new WebAssemblyGenerator(this.options)
+							[JAVASCRIPT_TYPE]: new WebAssemblyJavascriptGenerator(),
+							[WEBASSEMBLY_TYPE]: new WebAssemblyGenerator(this.options)
 						});
 					});
 
@@ -89,12 +108,10 @@ class WebAssemblyModulesPlugin {
 
 					for (const module of chunkGraph.getOrderedChunkModulesIterable(
 						chunk,
-						compareModulesByIdOrIdentifier(chunkGraph)
+						compareModulesByFullName(compiler)
 					)) {
 						if (module.type === WEBASSEMBLY_MODULE_TYPE_SYNC) {
-							const filenameTemplate =
-								/** @type {NonNullable<OutputOptions["webassemblyModuleFilename"]>} */
-								(outputOptions.webassemblyModuleFilename);
+							const filenameTemplate = outputOptions.webassemblyModuleFilename;
 
 							result.push({
 								render: () =>
@@ -123,6 +140,7 @@ class WebAssemblyModulesPlugin {
 
 				compilation.hooks.afterChunks.tap(PLUGIN_NAME, () => {
 					const chunkGraph = compilation.chunkGraph;
+					/** @type {Set<Module>} */
 					const initialWasmModules = new Set();
 					for (const chunk of compilation.chunks) {
 						if (chunk.canBeInitial()) {

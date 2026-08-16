@@ -1,0 +1,291 @@
+"use strict";
+/**
+ * @license
+ * Copyright Google LLC All Rights Reserved.
+ *
+ * Use of this source code is governed by an MIT-style license that can be
+ * found in the LICENSE file at https://angular.dev/license
+ */
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.getVitestBuildOptions = getVitestBuildOptions;
+/**
+ * @fileoverview
+ * Provides Vitest-specific build options and virtual file contents for Angular unit testing.
+ */
+const node_path_1 = __importDefault(require("node:path"));
+const path_1 = require("../../../../utils/path");
+const resolve_project_1 = require("../../../../utils/resolve-project");
+const schema_1 = require("../../../application/schema");
+const test_discovery_1 = require("../../test-discovery");
+/**
+ * Creates the virtual file contents to initialize the Angular testing environment (TestBed).
+ *
+ * @param providersFile Optional path to a file that exports default providers.
+ * @param projectSourceRoot The root directory of the project source.
+ * @param teardown Whether to configure TestBed to destroy after each test.
+ * @param zoneTestingStrategy How zone.js should be loaded during initialization.
+ * @returns The string content of the virtual initialization file.
+ */
+function createTestBedInitVirtualFile(providersFile, projectSourceRoot, teardown, zoneTestingStrategy, hasLocalize) {
+    let providersImport = 'const providers = [];';
+    if (providersFile) {
+        const relativePath = node_path_1.default.relative(projectSourceRoot, providersFile);
+        const { dir, name } = node_path_1.default.parse(relativePath);
+        const importPath = (0, path_1.toPosixPath)(node_path_1.default.join(dir, name));
+        providersImport = `import providers from './${importPath}';`;
+    }
+    let zoneTestingSnippet = '';
+    if (zoneTestingStrategy === 'static') {
+        zoneTestingSnippet = `import 'zone.js/testing';`;
+    }
+    else if (zoneTestingStrategy === 'dynamic') {
+        zoneTestingSnippet = `if (typeof Zone !== 'undefined') {
+      // 'zone.js/testing' is used to initialize the ZoneJS testing environment.
+      // It must be imported dynamically to avoid a static dependency on 'zone.js'.
+      await import('zone.js/testing');
+    }`;
+    }
+    else if (zoneTestingStrategy === 'dynamic-zone') {
+        zoneTestingSnippet = `
+      await import('zone.js');
+      await import('zone.js/testing');`;
+    }
+    // The DynamicDOMTestComponentRenderer is used to avoid stale document references
+    // when running Vitest in non-isolated mode with JSDOM. It looks up the
+    // document dynamically on every operation instead of caching it.
+    return `
+    ${hasLocalize ? "import '@angular/localize/init';" : ''}
+    // Initialize the Angular testing environment
+    import { NgModule, provideZoneChangeDetection } from '@angular/core';
+    import { getTestBed, ɵgetCleanupHook as getCleanupHook, TestComponentRenderer } from '@angular/core/testing';
+    import { BrowserTestingModule, platformBrowserTesting } from '@angular/platform-browser/testing';
+    import { ɵgetDOM } from '@angular/common';
+    import { afterEach, beforeEach } from 'vitest';
+    ${providersImport}
+
+    ${zoneTestingSnippet}
+
+    // The beforeEach and afterEach hooks are registered outside the globalThis guard.
+    // This ensures that the hooks are always applied, even in non-isolated browser environments.
+    // Same as https://github.com/angular/angular/blob/05a03d3f975771bb59c7eefd37c01fa127ee2229/packages/core/testing/srcs/test_hooks.ts#L21-L29
+    beforeEach(getCleanupHook(false));
+    afterEach(getCleanupHook(true));
+
+    class DynamicDOMTestComponentRenderer extends TestComponentRenderer {
+      insertRootElement(rootElId, tagName = 'div') {
+        this.removeAllRootElements();
+
+        const dom = ɵgetDOM();
+        const doc = dom.getDefaultDocument();
+        if (doc && doc.body) {
+          const rootElement = doc.createElement(tagName);
+          rootElement.setAttribute('id', rootElId);
+          doc.body.appendChild(rootElement);
+        }
+      }
+
+      removeAllRootElements() {
+        const dom = ɵgetDOM();
+        const doc = dom.getDefaultDocument();
+        if (doc && typeof doc.querySelectorAll === 'function') {
+          const oldRoots = doc.querySelectorAll('[id^=root]');
+          for (let i = 0; i < oldRoots.length; i++) {
+            dom.remove(oldRoots[i]);
+          }
+        }
+      }
+    }
+
+    const ANGULAR_TESTBED_SETUP = Symbol.for('@angular/cli/testbed-setup');
+    if (!globalThis[ANGULAR_TESTBED_SETUP]) {
+      globalThis[ANGULAR_TESTBED_SETUP] = true;
+
+      // The Angular TestBed needs to be initialized before any tests are run.
+      // In a non-isolated environment, this setup file can be executed multiple times.
+      // The guard condition above ensures that the setup is only performed once.
+
+      @NgModule({
+        providers: [
+          ...(typeof Zone !== 'undefined' ? [provideZoneChangeDetection()] : []),
+          ...providers,
+          { provide: TestComponentRenderer, useClass: DynamicDOMTestComponentRenderer },
+        ],
+      })
+      class TestModule {}
+
+      getTestBed().initTestEnvironment([BrowserTestingModule, TestModule], platformBrowserTesting(), {
+        errorOnUnknownElements: true,
+        errorOnUnknownProperties: true,
+        ${teardown === false ? 'teardown: { destroyAfterEach: false },' : ''}
+      });
+    }
+  `;
+}
+/**
+ * Adjusts output hashing settings for testing purposes. For example, ensuring media
+ * is continued to be hashed to avoid overwriting assets, but turning off JavaScript hashing.
+ *
+ * @param hashing The original OutputHashing configuration.
+ * @returns The adjusted OutputHashing configuration.
+ */
+function adjustOutputHashing(hashing) {
+    switch (hashing) {
+        case schema_1.OutputHashing.All:
+        case schema_1.OutputHashing.Media:
+            // Ensure media is continued to be hashed to avoid overwriting of output media files
+            return schema_1.OutputHashing.Media;
+        default:
+            return schema_1.OutputHashing.None;
+    }
+}
+/**
+ * Resolves the Zone.js testing strategy by inspecting polyfills and resolving zone.js package.
+ *
+ * @param buildOptions The partial application builder options.
+ * @param projectSourceRoot The root directory of the project source.
+ * @returns The resolved zone testing strategy ('none', 'static', 'dynamic', 'dynamic-zone').
+ */
+function getZoneTestingStrategy(buildOptions, projectSourceRoot) {
+    if (buildOptions.polyfills?.includes('zone.js/testing')) {
+        return 'none';
+    }
+    if (buildOptions.polyfills?.includes('zone.js')) {
+        return 'static';
+    }
+    try {
+        const projectResolve = (0, resolve_project_1.createProjectResolver)(projectSourceRoot);
+        projectResolve('zone.js');
+        // If polyfills is undefined (e.g. library build target), load zone.js dynamically.
+        // If polyfills is defined but doesn't include zone.js (e.g. zoneless application), do NOT load zone.js.
+        if (buildOptions.polyfills === undefined) {
+            return 'dynamic-zone';
+        }
+        return 'dynamic';
+    }
+    catch {
+        return 'none';
+    }
+}
+/**
+ * Generates options and virtual files for the Vitest test runner.
+ *
+ * Discovers specs matchers, creates entry points, decides polyfills strategy, and orchestrates
+ * internal ApplicationBuilder options.
+ *
+ * @param options The normalized unit test builder options.
+ * @param baseBuildOptions The base build config to derive testing config from.
+ * @returns An async RunnerOptions configuration.
+ */
+async function getVitestBuildOptions(options, baseBuildOptions) {
+    const { workspaceRoot, projectSourceRoot, include, exclude = [], watch, providersFile } = options;
+    // Find test files
+    const testFiles = await (0, test_discovery_1.findTests)(include, exclude, workspaceRoot, projectSourceRoot);
+    if (testFiles.length === 0) {
+        throw new Error('No tests found matching the following patterns:\n' +
+            `- Included: ${include.join(', ')}\n` +
+            (exclude.length ? `- Excluded: ${exclude.join(', ')}\n` : '') +
+            `\nPlease check the 'test' target configuration in your project's 'angular.json' file.`);
+    }
+    const entryPoints = (0, test_discovery_1.getTestEntrypoints)(testFiles, {
+        projectSourceRoot,
+        workspaceRoot,
+        removeTestExtension: true,
+    });
+    if (options.setupFiles?.length) {
+        const setupEntryPoints = (0, test_discovery_1.getTestEntrypoints)(options.setupFiles, {
+            projectSourceRoot,
+            workspaceRoot,
+            removeTestExtension: false,
+            prefix: 'setup',
+        });
+        for (const [entryPoint, setupFile] of setupEntryPoints) {
+            entryPoints.set(entryPoint, setupFile);
+        }
+    }
+    entryPoints.set('init-testbed', 'angular:test-bed-init');
+    entryPoints.set('vitest-mock-patch', 'angular:vitest-mock-patch');
+    // The 'vitest' package is always external for testing purposes
+    const externalDependencies = ['vitest'];
+    if (baseBuildOptions.externalDependencies) {
+        externalDependencies.push(...baseBuildOptions.externalDependencies);
+    }
+    const buildOptions = {
+        ...baseBuildOptions,
+        watch,
+        incrementalResults: watch,
+        index: false,
+        browser: undefined,
+        server: undefined,
+        outputMode: undefined,
+        localize: false,
+        budgets: [],
+        serviceWorker: false,
+        appShell: false,
+        ssr: false,
+        prerender: false,
+        sourceMap: { scripts: true, vendor: false, styles: false },
+        outputHashing: adjustOutputHashing(baseBuildOptions.outputHashing),
+        optimization: false,
+        entryPoints,
+        // Enable support for vitest browser prebundling. Excludes can be controlled with a runnerConfig
+        // and the `optimizeDeps.exclude` option.
+        externalPackages: true,
+        externalDependencies,
+    };
+    // Inject the zone.js testing polyfill if Zone.js is installed.
+    const zoneTestingStrategy = getZoneTestingStrategy(buildOptions, projectSourceRoot);
+    let hasLocalize = false;
+    try {
+        const projectResolve = (0, resolve_project_1.createProjectResolver)(projectSourceRoot);
+        projectResolve('@angular/localize');
+        hasLocalize = true;
+    }
+    catch { }
+    const testBedInitContents = createTestBedInitVirtualFile(providersFile, projectSourceRoot, !options.debug, zoneTestingStrategy, hasLocalize);
+    const mockPatchContents = `
+    import { vi } from 'vitest';
+
+    const ANGULAR_VITEST_MOCK_PATCH = Symbol.for('@angular/cli/vitest-mock-patch');
+    if (!globalThis[ANGULAR_VITEST_MOCK_PATCH]) {
+      globalThis[ANGULAR_VITEST_MOCK_PATCH] = true;
+
+      const error = new Error(
+        'The "vi.mock" and related methods are not supported for relative imports with the Angular unit-test system. ' +
+        'Please use Angular TestBed for mocking dependencies.'
+      );
+
+      // Store original implementations
+      const { mock, doMock, importMock, unmock, doUnmock } = vi;
+
+      function patch(original) {
+        return (path, ...args) => {
+          // Check if the path is a string and starts with a character that indicates a relative path.
+          if (typeof path === 'string' && /^[./]/.test(path)) {
+            throw error;
+          }
+
+          // Call the original function for non-relative paths.
+          return original(path, ...args);
+        };
+      }
+
+      vi.mock = patch(mock);
+      vi.doMock = patch(doMock);
+      vi.importMock = patch(importMock);
+      vi.unmock = patch(unmock);
+      vi.doUnmock = patch(doUnmock);
+    }
+  `;
+    return {
+        buildOptions,
+        virtualFiles: {
+            'angular:test-bed-init': testBedInitContents,
+            'angular:vitest-mock-patch': mockPatchContents,
+        },
+        testEntryPointMappings: entryPoints,
+    };
+}
+//# sourceMappingURL=build-options.js.map

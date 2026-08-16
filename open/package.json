@@ -1,6 +1,6 @@
 {
 	"name": "open",
-	"version": "10.1.2",
+	"version": "11.0.0",
 	"description": "Open stuff like URLs, files, executables. Cross-platform.",
 	"license": "MIT",
 	"repository": "sindresorhus/open",
@@ -17,7 +17,7 @@
 	},
 	"sideEffects": false,
 	"engines": {
-		"node": ">=18"
+		"node": ">=20"
 	},
 	"scripts": {
 		"test": "xo && tsd"
@@ -54,15 +54,17 @@
 		"file"
 	],
 	"dependencies": {
-		"default-browser": "^5.2.1",
+		"default-browser": "^5.4.0",
 		"define-lazy-prop": "^3.0.0",
+		"is-in-ssh": "^1.0.0",
 		"is-inside-container": "^1.0.0",
-		"is-wsl": "^3.1.0"
+		"powershell-utils": "^0.1.0",
+		"wsl-utils": "^0.3.0"
 	},
 	"devDependencies": {
-		"@types/node": "^20.10.5",
-		"ava": "^6.0.1",
-		"tsd": "^0.30.1",
-		"xo": "^0.56.0"
+		"@types/node": "^24.10.1",
+		"ava": "^6.4.1",
+		"tsd": "^0.33.0",
+		"xo": "^1.2.3"
 	}
 }

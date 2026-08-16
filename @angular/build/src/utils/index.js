@@ -25,3 +25,5 @@ __exportStar(require("./normalize-asset-patterns"), exports);
 __exportStar(require("./normalize-optimization"), exports);
 __exportStar(require("./normalize-source-maps"), exports);
 __exportStar(require("./load-proxy-config"), exports);
+__exportStar(require("./source-map"), exports);
+//# sourceMappingURL=index.js.map

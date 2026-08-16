@@ -1,7 +1,7 @@
 /*
   @license
-	Rollup.js v4.40.2
-	Tue, 06 May 2025 07:26:21 GMT - commit 02da7efedcf373f0f819b78e3acbe50de05d9a5b
+	Rollup.js v4.62.4
+	Sat, 01 Aug 2026 05:20:25 GMT - commit ddc4ffab628944e45dbb8d66d58aae818015440f
 
 	https://github.com/rollup/rollup
 
@@ -393,7 +393,7 @@ async function loadAndRegisterPlugin(inputOptions, pluginText) {
                 plugin = await requireOrImport(pluginText);
             }
             catch (error) {
-                throw new Error(`Cannot load plugin "${pluginText}": ${error.message}.`);
+                throw new Error(`Cannot load plugin "${pluginText}": ${error.message}.`, { cause: error });
             }
         }
     }
@@ -457,7 +457,8 @@ async function getConfigFileExport(fileName, commandOptions, watchMode) {
     }
     let cannotLoadEsm = false;
     const handleWarning = (warning) => {
-        if (warning.message.includes('To load an ES module')) {
+        if (warning.message?.includes('To load an ES module') ||
+            warning.message?.includes('Failed to load the ES module')) {
             cannotLoadEsm = true;
         }
     };
@@ -495,13 +496,25 @@ async function loadTranspiledConfigFile(fileName, commandOptions) {
     const { bundleConfigAsCjs, configPlugin, configImportAttributesKey, silent } = commandOptions;
     const warnings = batchWarnings(commandOptions);
     const inputOptions = {
-        external: (id) => (id[0] !== '.' && !path.isAbsolute(id)) || id.slice(-5) === '.json',
+        // Do *not* specify external callback here - instead, perform the externality check it via fallback-plugin just below this comment.
+        // This allows config plugin to first decide whether some import is external or not, and only then trigger the check in fallback-plugin.
+        // Since the check is ultra-simple during this stage of transforming the config file itself, it should be fallback instead of primary check.
+        // That way, e.g. importing workspace packages will work as expected - the workspace package will be bundled.
         input: fileName,
         onwarn: warnings.add,
         plugins: [],
         treeshake: false
     };
     await addPluginsFromCommandOption(configPlugin, inputOptions);
+    // Add plugin as *last* item after addPluginsFromCommandOption is complete.
+    // This plugin will trigger for imports not resolved by config plugin, and mark all non-relative imports as external.
+    inputOptions.plugins.push({
+        name: 'external-fallback',
+        resolveId: source => {
+            const looksLikeExternal = (source[0] !== '.' && !path.isAbsolute(source)) || source.slice(-5) === '.json';
+            return looksLikeExternal ? false : null;
+        }
+    });
     const bundle = await rollup.rollup(inputOptions);
     const { output: [{ code }] } = await bundle.generate({
         exports: 'named',

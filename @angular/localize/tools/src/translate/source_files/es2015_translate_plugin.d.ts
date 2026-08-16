@@ -6,8 +6,8 @@
  * found in the LICENSE file at https://angular.dev/license
  */
 import { PathManipulation } from '@angular/compiler-cli/private/localize';
+import { PluginObject } from '@babel/core';
 import { ɵParsedTranslation } from '../../../../index';
-import { PluginObj } from '@babel/core';
 import { Diagnostics } from '../../diagnostics';
 import { TranslatePluginOptions } from '../../source_file_utils';
 /**
@@ -16,4 +16,4 @@ import { TranslatePluginOptions } from '../../source_file_utils';
  *
  * @publicApi used by CLI
  */
-export declare function makeEs2015TranslatePlugin(diagnostics: Diagnostics, translations: Record<string, ɵParsedTranslation>, { missingTranslation, localizeName }?: TranslatePluginOptions, fs?: PathManipulation): PluginObj;
+export declare function makeEs2015TranslatePlugin(diagnostics: Diagnostics, translations: Record<string, ɵParsedTranslation>, { missingTranslation, localizeName }?: TranslatePluginOptions, fs?: PathManipulation): PluginObject;

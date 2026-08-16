@@ -13,22 +13,24 @@ const PLUGIN_NAME = "LoaderTargetPlugin";
 
 class LoaderTargetPlugin {
 	/**
+	 * Creates an instance of LoaderTargetPlugin.
 	 * @param {string} target the target
 	 */
 	constructor(target) {
+		/** @type {string} */
 		this.target = target;
 	}
 
 	/**
-	 * Apply the plugin
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Compiler} compiler the compiler instance
 	 * @returns {void}
 	 */
 	apply(compiler) {
-		compiler.hooks.compilation.tap(PLUGIN_NAME, compilation => {
+		compiler.hooks.compilation.tap(PLUGIN_NAME, (compilation) => {
 			NormalModule.getCompilationHooks(compilation).loader.tap(
 				PLUGIN_NAME,
-				loaderContext => {
+				(loaderContext) => {
 					loaderContext.target = this.target;
 				}
 			);

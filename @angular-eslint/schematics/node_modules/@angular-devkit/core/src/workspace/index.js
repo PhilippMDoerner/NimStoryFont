@@ -29,3 +29,4 @@ var core_1 = require("./core");
 Object.defineProperty(exports, "WorkspaceFormat", { enumerable: true, get: function () { return core_1.WorkspaceFormat; } });
 Object.defineProperty(exports, "readWorkspace", { enumerable: true, get: function () { return core_1.readWorkspace; } });
 Object.defineProperty(exports, "writeWorkspace", { enumerable: true, get: function () { return core_1.writeWorkspace; } });
+//# sourceMappingURL=index.js.map

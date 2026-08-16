@@ -8,17 +8,23 @@
 const util = require("util");
 const Watchpack = require("watchpack");
 
-/** @typedef {import("../../declarations/WebpackOptions").WatchOptions} WatchOptions */
-/** @typedef {import("../FileSystemInfo").FileSystemInfoEntry} FileSystemInfoEntry */
+/** @typedef {InstanceType<import("watchpack")>} Watchpack */
+/** @typedef {import("watchpack").TimeInfoEntries} TimeInfoEntries */
+/** @typedef {import("watchpack").WatchOptions} WatchOptions */
 /** @typedef {import("../util/fs").InputFileSystem} InputFileSystem */
 /** @typedef {import("../util/fs").WatchMethod} WatchMethod */
+/** @typedef {import("../util/fs").Changes} Changes */
+/** @typedef {import("../util/fs").Removals} Removals */
 
 class NodeWatchFileSystem {
 	/**
+	 * Creates an instance of NodeWatchFileSystem.
 	 * @param {InputFileSystem} inputFileSystem input filesystem
 	 */
 	constructor(inputFileSystem) {
+		/** @type {InputFileSystem} */
 		this.inputFileSystem = inputFileSystem;
+		/** @type {WatchOptions} */
 		this.watcherOptions = {
 			aggregateTimeout: 0
 		};
@@ -65,7 +71,9 @@ class NodeWatchFileSystem {
 		}
 
 		const fetchTimeInfo = () => {
+			/** @type {TimeInfoEntries} */
 			const fileTimeInfoEntries = new Map();
+			/** @type {TimeInfoEntries} */
 			const contextTimeInfoEntries = new Map();
 			if (this.watcher) {
 				this.watcher.collectTimeInfoEntries(
@@ -75,26 +83,54 @@ class NodeWatchFileSystem {
 			}
 			return { fileTimeInfoEntries, contextTimeInfoEntries };
 		};
+		const directoriesSet =
+			directories instanceof Set ? directories : new Set(directories);
+
+		// Watchpack reports a watched directory (a context dependency) in
+		// `changes` whenever its contents change, alongside the individual
+		// file events. The default `fs.purge(dir)` matches cache keys by
+		// prefix, so it would wipe the stat cache of every file inside the
+		// directory even though only file-level events actually invalidate
+		// file stats. For directories we explicitly watch, purge only the
+		// directory's own entry (`{ exact: true }`, enhanced-resolve >=
+		// 5.22.0); file-level events in the same aggregated batch still
+		// handle file stats and the parent readdir invalidation.
+		/**
+		 * @param {Changes | null | undefined} changes changes set
+		 * @param {Removals | null | undefined} removals removals set
+		 */
+		const purgeChanges = (changes, removals) => {
+			const fs = this.inputFileSystem;
+			if (!fs || !fs.purge) return;
+			if (changes) {
+				for (const item of changes) {
+					if (directoriesSet.has(item)) {
+						fs.purge(item, { exact: true });
+					} else {
+						fs.purge(item);
+					}
+				}
+			}
+			if (removals) {
+				for (const item of removals) {
+					fs.purge(item);
+				}
+			}
+		};
+
 		this.watcher.once(
 			"aggregated",
 			/**
-			 * @param {Set<string>} changes changes
-			 * @param {Set<string>} removals removals
+			 * Handles the callback logic for this hook.
+			 * @param {Changes} changes changes
+			 * @param {Removals} removals removals
 			 */
 			(changes, removals) => {
 				// pause emitting events (avoids clearing aggregated changes and removals on timeout)
 				/** @type {Watchpack} */
 				(this.watcher).pause();
 
-				const fs = this.inputFileSystem;
-				if (fs && fs.purge) {
-					for (const item of changes) {
-						fs.purge(item);
-					}
-					for (const item of removals) {
-						fs.purge(item);
-					}
-				}
+				purgeChanges(changes, removals);
 				const { fileTimeInfoEntries, contextTimeInfoEntries } = fetchTimeInfo();
 				callback(
 					null,
@@ -164,19 +200,7 @@ class NodeWatchFileSystem {
 			getInfo: () => {
 				const removals = this.watcher && this.watcher.aggregatedRemovals;
 				const changes = this.watcher && this.watcher.aggregatedChanges;
-				const fs = this.inputFileSystem;
-				if (fs && fs.purge) {
-					if (removals) {
-						for (const item of removals) {
-							fs.purge(item);
-						}
-					}
-					if (changes) {
-						for (const item of changes) {
-							fs.purge(item);
-						}
-					}
-				}
+				purgeChanges(changes, removals);
 				const { fileTimeInfoEntries, contextTimeInfoEntries } = fetchTimeInfo();
 				return {
 					changes,

@@ -91,3 +91,4 @@ function createWorkerTransformer(fileProcessor) {
         };
     };
 }
+//# sourceMappingURL=web-worker-transformer.js.map

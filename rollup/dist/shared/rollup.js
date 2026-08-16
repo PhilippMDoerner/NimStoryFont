@@ -1,7 +1,7 @@
 /*
   @license
-	Rollup.js v4.40.2
-	Tue, 06 May 2025 07:26:21 GMT - commit 02da7efedcf373f0f819b78e3acbe50de05d9a5b
+	Rollup.js v4.62.4
+	Sat, 01 Aug 2026 05:20:25 GMT - commit ddc4ffab628944e45dbb8d66d58aae818015440f
 
 	https://github.com/rollup/rollup
 
@@ -17,7 +17,34 @@ const native_js = require('../native.js');
 const node_perf_hooks = require('node:perf_hooks');
 const promises = require('node:fs/promises');
 
-var version = "4.40.2";
+function _interopNamespaceDefault(e) {
+  const n = Object.create(null, { [Symbol.toStringTag]: { value: 'Module' } });
+  if (e) {
+    for (const k in e) {
+      n[k] = e[k];
+    }
+  }
+  n.default = e;
+  return n;
+}
+
+function _mergeNamespaces(n, m) {
+  for (var i = 0; i < m.length; i++) {
+    const e = m[i];
+    if (typeof e !== 'string' && !Array.isArray(e)) { for (const k in e) {
+      if (k !== 'default' && !(k in n)) {
+        n[k] = e[k];
+      }
+    } }
+  }
+  return Object.defineProperty(n, Symbol.toStringTag, { value: 'Module' });
+}
+
+const promises__namespace = /*#__PURE__*/_interopNamespaceDefault(promises);
+
+var version = "4.62.4";
+const package_ = {
+	version: version};
 
 function ensureArray$1(items) {
     if (Array.isArray(items)) {
@@ -28,6 +55,170 @@ function ensureArray$1(items) {
     }
     return [];
 }
+
+const doNothing = () => { };
+
+async function asyncFlatten(array) {
+    do {
+        array = (await Promise.all(array)).flat(Infinity);
+    } while (array.some((v) => v?.then));
+    return array;
+}
+
+const getOnLog = (config, logLevel, printLog = defaultPrintLog) => {
+    const { onwarn, onLog } = config;
+    const defaultOnLog = getDefaultOnLog(printLog, onwarn);
+    if (onLog) {
+        const minimalPriority = parseAst_js.logLevelPriority[logLevel];
+        return (level, log) => onLog(level, addLogToString(log), (level, handledLog) => {
+            if (level === parseAst_js.LOGLEVEL_ERROR) {
+                return parseAst_js.error(normalizeLog(handledLog));
+            }
+            if (parseAst_js.logLevelPriority[level] >= minimalPriority) {
+                defaultOnLog(level, normalizeLog(handledLog));
+            }
+        });
+    }
+    return defaultOnLog;
+};
+const getDefaultOnLog = (printLog, onwarn) => onwarn
+    ? (level, log) => {
+        if (level === parseAst_js.LOGLEVEL_WARN) {
+            onwarn(addLogToString(log), warning => printLog(parseAst_js.LOGLEVEL_WARN, normalizeLog(warning)));
+        }
+        else {
+            printLog(level, log);
+        }
+    }
+    : printLog;
+const addLogToString = (log) => {
+    Object.defineProperty(log, 'toString', {
+        value: () => log.message,
+        writable: true
+    });
+    return log;
+};
+const normalizeLog = (log) => typeof log === 'string'
+    ? { message: log }
+    : typeof log === 'function'
+        ? normalizeLog(log())
+        : log;
+const defaultPrintLog = (level, { message }) => {
+    switch (level) {
+        case parseAst_js.LOGLEVEL_WARN: {
+            return console.warn(message);
+        }
+        case parseAst_js.LOGLEVEL_DEBUG: {
+            return console.debug(message);
+        }
+        default: {
+            return console.info(message);
+        }
+    }
+};
+function warnUnknownOptions(passedOptions, validOptions, optionType, log, ignoredKeys = /$./) {
+    const validOptionSet = new Set(validOptions);
+    const unknownOptions = Object.keys(passedOptions).filter(key => !(validOptionSet.has(key) || ignoredKeys.test(key)));
+    if (unknownOptions.length > 0) {
+        log(parseAst_js.LOGLEVEL_WARN, parseAst_js.logUnknownOption(optionType, unknownOptions, [...validOptionSet].sort()));
+    }
+}
+const treeshakePresets = {
+    recommended: {
+        annotations: true,
+        correctVarValueBeforeDeclaration: false,
+        manualPureFunctions: parseAst_js.EMPTY_ARRAY,
+        moduleSideEffects: () => true,
+        propertyReadSideEffects: true,
+        tryCatchDeoptimization: true,
+        unknownGlobalSideEffects: false
+    },
+    safest: {
+        annotations: true,
+        correctVarValueBeforeDeclaration: true,
+        manualPureFunctions: parseAst_js.EMPTY_ARRAY,
+        moduleSideEffects: () => true,
+        propertyReadSideEffects: true,
+        tryCatchDeoptimization: true,
+        unknownGlobalSideEffects: true
+    },
+    smallest: {
+        annotations: true,
+        correctVarValueBeforeDeclaration: false,
+        manualPureFunctions: parseAst_js.EMPTY_ARRAY,
+        moduleSideEffects: () => false,
+        propertyReadSideEffects: false,
+        tryCatchDeoptimization: false,
+        unknownGlobalSideEffects: false
+    }
+};
+const jsxPresets = {
+    preserve: {
+        factory: null,
+        fragment: null,
+        importSource: null,
+        mode: 'preserve'
+    },
+    'preserve-react': {
+        factory: 'React.createElement',
+        fragment: 'React.Fragment',
+        importSource: 'react',
+        mode: 'preserve'
+    },
+    react: {
+        factory: 'React.createElement',
+        fragment: 'React.Fragment',
+        importSource: 'react',
+        mode: 'classic'
+    },
+    'react-jsx': {
+        factory: 'React.createElement',
+        importSource: 'react',
+        jsxImportSource: 'react/jsx-runtime',
+        mode: 'automatic'
+    }
+};
+const generatedCodePresets = {
+    es2015: {
+        arrowFunctions: true,
+        constBindings: true,
+        objectShorthand: true,
+        reservedNamesAsProps: true,
+        symbols: true
+    },
+    es5: {
+        arrowFunctions: false,
+        constBindings: false,
+        objectShorthand: false,
+        reservedNamesAsProps: true,
+        symbols: false
+    }
+};
+const objectifyOption = (value) => value && typeof value === 'object' ? value : {};
+const objectifyOptionWithPresets = (presets, optionName, urlSnippet, additionalValues) => (value) => {
+    if (typeof value === 'string') {
+        const preset = presets[value];
+        if (preset) {
+            return preset;
+        }
+        parseAst_js.error(parseAst_js.logInvalidOption(optionName, urlSnippet, `valid values are ${additionalValues}${parseAst_js.printQuotedStringList(Object.keys(presets))}. You can also supply an object for more fine-grained control`, value));
+    }
+    return objectifyOption(value);
+};
+const getOptionWithPreset = (value, presets, optionName, urlSnippet, additionalValues) => {
+    const presetName = value?.preset;
+    if (presetName) {
+        const preset = presets[presetName];
+        if (preset) {
+            return { ...preset, ...value };
+        }
+        else {
+            parseAst_js.error(parseAst_js.logInvalidOption(`${optionName}.preset`, urlSnippet, `valid values are ${parseAst_js.printQuotedStringList(Object.keys(presets))}`, presetName));
+        }
+    }
+    return objectifyOptionWithPresets(presets, optionName, urlSnippet, additionalValues)(value);
+};
+const normalizePluginOption = async (plugins) => (await asyncFlatten([plugins])).filter(Boolean);
 
 var BuildPhase;
 (function (BuildPhase) {
@@ -185,10 +376,15 @@ function renderNamePattern(pattern, patternName, replacements) {
 function makeUnique(name, { [lowercaseBundleKeys]: reservedLowercaseBundleKeys }) {
     if (!reservedLowercaseBundleKeys.has(name.toLowerCase()))
         return name;
-    const extension = path.extname(name);
-    name = name.slice(0, Math.max(0, name.length - extension.length));
+    const slashIndex = Math.max(name.lastIndexOf('/'), name.lastIndexOf('\\'));
+    // This will also handle -1 correctly
+    const directory = name.slice(0, slashIndex + 1);
+    const fileName = name.slice(slashIndex + 1);
+    const dotIndex = fileName.indexOf('.', 1);
+    const base = directory + (dotIndex === -1 ? fileName : fileName.slice(0, dotIndex));
+    const extension = dotIndex === -1 ? '' : fileName.slice(dotIndex);
     let uniqueName, uniqueIndex = 1;
-    while (reservedLowercaseBundleKeys.has((uniqueName = name + ++uniqueIndex + extension).toLowerCase()))
+    while (reservedLowercaseBundleKeys.has((uniqueName = base + ++uniqueIndex + extension).toLowerCase()))
         ;
     return uniqueName;
 }
@@ -344,7 +540,7 @@ class FileEmitter {
                     }
                     else {
                         const sourceHash = getHash(consumedFile.source);
-                        getOrCreate(consumedAssetsByHash, sourceHash, () => []).push(consumedFile);
+                        getOrCreate(consumedAssetsByHash, sourceHash, getNewArray).push(consumedFile);
                     }
                 }
                 else if (consumedFile.type === 'prebuilt-chunk') {
@@ -588,170 +784,6 @@ function getNamesFromAssets(consumedFiles) {
     return { names, originalFileNames };
 }
 
-const doNothing = () => { };
-
-async function asyncFlatten(array) {
-    do {
-        array = (await Promise.all(array)).flat(Infinity);
-    } while (array.some((v) => v?.then));
-    return array;
-}
-
-const getOnLog = (config, logLevel, printLog = defaultPrintLog) => {
-    const { onwarn, onLog } = config;
-    const defaultOnLog = getDefaultOnLog(printLog, onwarn);
-    if (onLog) {
-        const minimalPriority = parseAst_js.logLevelPriority[logLevel];
-        return (level, log) => onLog(level, addLogToString(log), (level, handledLog) => {
-            if (level === parseAst_js.LOGLEVEL_ERROR) {
-                return parseAst_js.error(normalizeLog(handledLog));
-            }
-            if (parseAst_js.logLevelPriority[level] >= minimalPriority) {
-                defaultOnLog(level, normalizeLog(handledLog));
-            }
-        });
-    }
-    return defaultOnLog;
-};
-const getDefaultOnLog = (printLog, onwarn) => onwarn
-    ? (level, log) => {
-        if (level === parseAst_js.LOGLEVEL_WARN) {
-            onwarn(addLogToString(log), warning => printLog(parseAst_js.LOGLEVEL_WARN, normalizeLog(warning)));
-        }
-        else {
-            printLog(level, log);
-        }
-    }
-    : printLog;
-const addLogToString = (log) => {
-    Object.defineProperty(log, 'toString', {
-        value: () => log.message,
-        writable: true
-    });
-    return log;
-};
-const normalizeLog = (log) => typeof log === 'string'
-    ? { message: log }
-    : typeof log === 'function'
-        ? normalizeLog(log())
-        : log;
-const defaultPrintLog = (level, { message }) => {
-    switch (level) {
-        case parseAst_js.LOGLEVEL_WARN: {
-            return console.warn(message);
-        }
-        case parseAst_js.LOGLEVEL_DEBUG: {
-            return console.debug(message);
-        }
-        default: {
-            return console.info(message);
-        }
-    }
-};
-function warnUnknownOptions(passedOptions, validOptions, optionType, log, ignoredKeys = /$./) {
-    const validOptionSet = new Set(validOptions);
-    const unknownOptions = Object.keys(passedOptions).filter(key => !(validOptionSet.has(key) || ignoredKeys.test(key)));
-    if (unknownOptions.length > 0) {
-        log(parseAst_js.LOGLEVEL_WARN, parseAst_js.logUnknownOption(optionType, unknownOptions, [...validOptionSet].sort()));
-    }
-}
-const treeshakePresets = {
-    recommended: {
-        annotations: true,
-        correctVarValueBeforeDeclaration: false,
-        manualPureFunctions: parseAst_js.EMPTY_ARRAY,
-        moduleSideEffects: () => true,
-        propertyReadSideEffects: true,
-        tryCatchDeoptimization: true,
-        unknownGlobalSideEffects: false
-    },
-    safest: {
-        annotations: true,
-        correctVarValueBeforeDeclaration: true,
-        manualPureFunctions: parseAst_js.EMPTY_ARRAY,
-        moduleSideEffects: () => true,
-        propertyReadSideEffects: true,
-        tryCatchDeoptimization: true,
-        unknownGlobalSideEffects: true
-    },
-    smallest: {
-        annotations: true,
-        correctVarValueBeforeDeclaration: false,
-        manualPureFunctions: parseAst_js.EMPTY_ARRAY,
-        moduleSideEffects: () => false,
-        propertyReadSideEffects: false,
-        tryCatchDeoptimization: false,
-        unknownGlobalSideEffects: false
-    }
-};
-const jsxPresets = {
-    preserve: {
-        factory: null,
-        fragment: null,
-        importSource: null,
-        mode: 'preserve'
-    },
-    'preserve-react': {
-        factory: 'React.createElement',
-        fragment: 'React.Fragment',
-        importSource: 'react',
-        mode: 'preserve'
-    },
-    react: {
-        factory: 'React.createElement',
-        fragment: 'React.Fragment',
-        importSource: 'react',
-        mode: 'classic'
-    },
-    'react-jsx': {
-        factory: 'React.createElement',
-        importSource: 'react',
-        jsxImportSource: 'react/jsx-runtime',
-        mode: 'automatic'
-    }
-};
-const generatedCodePresets = {
-    es2015: {
-        arrowFunctions: true,
-        constBindings: true,
-        objectShorthand: true,
-        reservedNamesAsProps: true,
-        symbols: true
-    },
-    es5: {
-        arrowFunctions: false,
-        constBindings: false,
-        objectShorthand: false,
-        reservedNamesAsProps: true,
-        symbols: false
-    }
-};
-const objectifyOption = (value) => value && typeof value === 'object' ? value : {};
-const objectifyOptionWithPresets = (presets, optionName, urlSnippet, additionalValues) => (value) => {
-    if (typeof value === 'string') {
-        const preset = presets[value];
-        if (preset) {
-            return preset;
-        }
-        parseAst_js.error(parseAst_js.logInvalidOption(optionName, urlSnippet, `valid values are ${additionalValues}${parseAst_js.printQuotedStringList(Object.keys(presets))}. You can also supply an object for more fine-grained control`, value));
-    }
-    return objectifyOption(value);
-};
-const getOptionWithPreset = (value, presets, optionName, urlSnippet, additionalValues) => {
-    const presetName = value?.preset;
-    if (presetName) {
-        const preset = presets[presetName];
-        if (preset) {
-            return { ...preset, ...value };
-        }
-        else {
-            parseAst_js.error(parseAst_js.logInvalidOption(`${optionName}.preset`, urlSnippet, `valid values are ${parseAst_js.printQuotedStringList(Object.keys(presets))}`, presetName));
-        }
-    }
-    return objectifyOptionWithPresets(presets, optionName, urlSnippet, additionalValues)(value);
-};
-const normalizePluginOption = async (plugins) => (await asyncFlatten([plugins])).filter(Boolean);
-
 function getLogHandler(level, code, logger, pluginName, logLevel) {
     if (parseAst_js.logLevelPriority[level] < parseAst_js.logLevelPriority[logLevel]) {
         return doNothing;
@@ -853,6 +885,7 @@ function getCacheForUncacheablePlugin(pluginName) {
     };
 }
 
+const rollupVersion$2 = package_.version;
 function getPluginContext(plugin, pluginCache, graph, options, fileEmitter, existingPluginNames) {
     const { logLevel, onLog } = options;
     let cacheable = true;
@@ -887,6 +920,7 @@ function getPluginContext(plugin, pluginCache, graph, options, fileEmitter, exis
         error(error_) {
             return parseAst_js.error(parseAst_js.logPluginError(normalizeLog(error_), plugin.name));
         },
+        fs: options.fs,
         getFileName: fileEmitter.getFileName,
         getModuleIds: () => graph.modulesById.keys(),
         getModuleInfo: graph.getModuleInfo,
@@ -896,13 +930,13 @@ function getPluginContext(plugin, pluginCache, graph, options, fileEmitter, exis
             return graph.moduleLoader.preloadModule(resolvedId);
         },
         meta: {
-            rollupVersion: version,
+            rollupVersion: rollupVersion$2,
             watchMode: graph.watchMode
         },
         parse: parseAst_js.parseAst,
-        resolve(source, importer, { attributes, custom, isEntry, skipSelf } = parseAst_js.BLANK) {
+        resolve(source, importer, { attributes, custom, isEntry, skipSelf, importerAttributes } = parseAst_js.BLANK) {
             skipSelf ??= true;
-            return graph.moduleLoader.resolveId(source, importer, custom, isEntry, attributes || parseAst_js.EMPTY_OBJECT, skipSelf ? [{ importer, plugin, source }] : null);
+            return graph.moduleLoader.resolveId(source, importer, custom, isEntry, attributes || parseAst_js.EMPTY_OBJECT, importerAttributes, skipSelf ? [{ importer, plugin, source }] : null);
         },
         setAssetSource: fileEmitter.setAssetSource,
         warn: getLogHandler(parseAst_js.LOGLEVEL_WARN, 'PLUGIN_WARNING', onLog, plugin.name, logLevel)
@@ -918,7 +952,11 @@ function getAugmentedNamespace(n) {
   var f = n.default;
 	if (typeof f == "function") {
 		var a = function a () {
-			if (this instanceof a) {
+			var isInstance = false;
+      try {
+        isInstance = this instanceof a;
+      } catch (e) {}
+			if (isInstance) {
         return Reflect.construct(f, arguments, this.constructor);
 			}
 			return f.apply(this, arguments);
@@ -949,6 +987,8 @@ function requireConstants () {
 
 	const WIN_SLASH = '\\\\/';
 	const WIN_NO_SLASH = `[^${WIN_SLASH}]`;
+
+	const DEFAULT_MAX_EXTGLOB_RECURSION = 0;
 
 	/**
 	 * Posix glob regex
@@ -1016,6 +1056,7 @@ function requireConstants () {
 	 */
 
 	const POSIX_REGEX_SOURCE = {
+	  __proto__: null,
 	  alnum: 'a-zA-Z0-9',
 	  alpha: 'a-zA-Z',
 	  ascii: '\\x00-\\x7F',
@@ -1033,6 +1074,7 @@ function requireConstants () {
 	};
 
 	constants = {
+	  DEFAULT_MAX_EXTGLOB_RECURSION,
 	  MAX_LENGTH: 1024 * 64,
 	  POSIX_REGEX_SOURCE,
 
@@ -1046,6 +1088,7 @@ function requireConstants () {
 
 	  // Replace globs with equivalent patterns to reduce parsing time.
 	  REPLACEMENTS: {
+	    __proto__: null,
 	    '***': '*',
 	    '**/**': '**',
 	    '**/**/**': '**'
@@ -1653,6 +1696,307 @@ function requireParse () {
 	  return `Missing ${type}: "${char}" - use "\\\\${char}" to match literal characters`;
 	};
 
+	const splitTopLevel = input => {
+	  const parts = [];
+	  let bracket = 0;
+	  let paren = 0;
+	  let quote = 0;
+	  let value = '';
+	  let escaped = false;
+
+	  for (const ch of input) {
+	    if (escaped === true) {
+	      value += ch;
+	      escaped = false;
+	      continue;
+	    }
+
+	    if (ch === '\\') {
+	      value += ch;
+	      escaped = true;
+	      continue;
+	    }
+
+	    if (ch === '"') {
+	      quote = quote === 1 ? 0 : 1;
+	      value += ch;
+	      continue;
+	    }
+
+	    if (quote === 0) {
+	      if (ch === '[') {
+	        bracket++;
+	      } else if (ch === ']' && bracket > 0) {
+	        bracket--;
+	      } else if (bracket === 0) {
+	        if (ch === '(') {
+	          paren++;
+	        } else if (ch === ')' && paren > 0) {
+	          paren--;
+	        } else if (ch === '|' && paren === 0) {
+	          parts.push(value);
+	          value = '';
+	          continue;
+	        }
+	      }
+	    }
+
+	    value += ch;
+	  }
+
+	  parts.push(value);
+	  return parts;
+	};
+
+	const isPlainBranch = branch => {
+	  let escaped = false;
+
+	  for (const ch of branch) {
+	    if (escaped === true) {
+	      escaped = false;
+	      continue;
+	    }
+
+	    if (ch === '\\') {
+	      escaped = true;
+	      continue;
+	    }
+
+	    if (/[?*+@!()[\]{}]/.test(ch)) {
+	      return false;
+	    }
+	  }
+
+	  return true;
+	};
+
+	const normalizeSimpleBranch = branch => {
+	  let value = branch.trim();
+	  let changed = true;
+
+	  while (changed === true) {
+	    changed = false;
+
+	    if (/^@\([^\\()[\]{}|]+\)$/.test(value)) {
+	      value = value.slice(2, -1);
+	      changed = true;
+	    }
+	  }
+
+	  if (!isPlainBranch(value)) {
+	    return;
+	  }
+
+	  return value.replace(/\\(.)/g, '$1');
+	};
+
+	const hasRepeatedCharPrefixOverlap = branches => {
+	  const values = branches.map(normalizeSimpleBranch).filter(Boolean);
+
+	  for (let i = 0; i < values.length; i++) {
+	    for (let j = i + 1; j < values.length; j++) {
+	      const a = values[i];
+	      const b = values[j];
+	      const char = a[0];
+
+	      if (!char || a !== char.repeat(a.length) || b !== char.repeat(b.length)) {
+	        continue;
+	      }
+
+	      if (a === b || a.startsWith(b) || b.startsWith(a)) {
+	        return true;
+	      }
+	    }
+	  }
+
+	  return false;
+	};
+
+	const parseRepeatedExtglob = (pattern, requireEnd = true) => {
+	  if ((pattern[0] !== '+' && pattern[0] !== '*') || pattern[1] !== '(') {
+	    return;
+	  }
+
+	  let bracket = 0;
+	  let paren = 0;
+	  let quote = 0;
+	  let escaped = false;
+
+	  for (let i = 1; i < pattern.length; i++) {
+	    const ch = pattern[i];
+
+	    if (escaped === true) {
+	      escaped = false;
+	      continue;
+	    }
+
+	    if (ch === '\\') {
+	      escaped = true;
+	      continue;
+	    }
+
+	    if (ch === '"') {
+	      quote = quote === 1 ? 0 : 1;
+	      continue;
+	    }
+
+	    if (quote === 1) {
+	      continue;
+	    }
+
+	    if (ch === '[') {
+	      bracket++;
+	      continue;
+	    }
+
+	    if (ch === ']' && bracket > 0) {
+	      bracket--;
+	      continue;
+	    }
+
+	    if (bracket > 0) {
+	      continue;
+	    }
+
+	    if (ch === '(') {
+	      paren++;
+	      continue;
+	    }
+
+	    if (ch === ')') {
+	      paren--;
+
+	      if (paren === 0) {
+	        if (requireEnd === true && i !== pattern.length - 1) {
+	          return;
+	        }
+
+	        return {
+	          type: pattern[0],
+	          body: pattern.slice(2, i),
+	          end: i
+	        };
+	      }
+	    }
+	  }
+	};
+
+	const buildCharClassStar = chars => {
+	  const source = chars.length === 1
+	    ? utils.escapeRegex(chars[0])
+	    : `[${chars.map(ch => utils.escapeRegex(ch)).join('')}]`;
+
+	  return `${source}*`;
+	};
+
+	const getStarExtglobSequenceChars = pattern => {
+	  let index = 0;
+	  const chars = [];
+
+	  while (index < pattern.length) {
+	    const match = parseRepeatedExtglob(pattern.slice(index), false);
+
+	    if (!match || match.type !== '*') {
+	      return;
+	    }
+
+	    const branches = splitTopLevel(match.body).map(branch => branch.trim());
+	    if (branches.length !== 1) {
+	      return;
+	    }
+
+	    const branch = normalizeSimpleBranch(branches[0]);
+	    if (!branch || branch.length !== 1) {
+	      return;
+	    }
+
+	    chars.push(branch);
+	    index += match.end + 1;
+	  }
+
+	  if (chars.length < 1) {
+	    return;
+	  }
+
+	  return chars;
+	};
+
+	const repeatedExtglobRecursion = pattern => {
+	  let depth = 0;
+	  let value = pattern.trim();
+	  let match = parseRepeatedExtglob(value);
+
+	  while (match) {
+	    depth++;
+	    value = match.body.trim();
+	    match = parseRepeatedExtglob(value);
+	  }
+
+	  return depth;
+	};
+
+	const analyzeRepeatedExtglob = (body, options) => {
+	  if (options.maxExtglobRecursion === false) {
+	    return { risky: false };
+	  }
+
+	  const max =
+	    typeof options.maxExtglobRecursion === 'number'
+	      ? options.maxExtglobRecursion
+	      : constants.DEFAULT_MAX_EXTGLOB_RECURSION;
+
+	  const branches = splitTopLevel(body).map(branch => branch.trim());
+
+	  if (branches.length > 1) {
+	    if (
+	      branches.some(branch => branch === '') ||
+	      branches.some(branch => /^[*?]+$/.test(branch)) ||
+	      hasRepeatedCharPrefixOverlap(branches)
+	    ) {
+	      return { risky: true };
+	    }
+	  }
+
+	  // A repeated extglob is "risky" (prone to catastrophic backtracking) when a
+	  // branch is itself a `*(...)` sequence, since that nests an unbounded quantifier
+	  // inside the outer `+(...)`/`*(...)`. When *every* branch reduces to single
+	  // characters we can emit one flat, ReDoS-safe character class that preserves the
+	  // meaning of ALL branches (e.g. `+(*(a)|*(b))` -> `[ab]*`), rather than dropping
+	  // every branch but the first.
+	  const safeChars = [];
+	  let sawStarSequence = false;
+	  let combinable = true;
+
+	  for (const branch of branches) {
+	    const chars = getStarExtglobSequenceChars(branch);
+	    if (chars) {
+	      sawStarSequence = true;
+	      safeChars.push(...chars);
+	      continue;
+	    }
+
+	    const literal = normalizeSimpleBranch(branch);
+	    if (literal && literal.length === 1) {
+	      safeChars.push(literal);
+	      continue;
+	    }
+
+	    combinable = false;
+
+	    if (repeatedExtglobRecursion(branch) > max) {
+	      return { risky: true };
+	    }
+	  }
+
+	  if (sawStarSequence) {
+	    return combinable
+	      ? { risky: true, safeOutput: buildCharClassStar([...new Set(safeChars)]) }
+	      : { risky: true };
+	  }
+
+	  return { risky: false };
+	};
+
 	/**
 	 * Parse the given input string.
 	 * @param {String} input
@@ -1833,6 +2177,8 @@ function requireParse () {
 	    token.prev = prev;
 	    token.parens = state.parens;
 	    token.output = state.output;
+	    token.startIndex = state.index;
+	    token.tokensIndex = tokens.length;
 	    const output = (opts.capture ? '(' : '') + token.open;
 
 	    increment('parens');
@@ -1842,6 +2188,34 @@ function requireParse () {
 	  };
 
 	  const extglobClose = token => {
+	    const literal = input.slice(token.startIndex, state.index + 1);
+	    const body = input.slice(token.startIndex + 2, state.index);
+	    const analysis = analyzeRepeatedExtglob(body, opts);
+
+	    if ((token.type === 'plus' || token.type === 'star') && analysis.risky) {
+	      const safeOutput = analysis.safeOutput
+	        ? (token.output ? '' : ONE_CHAR) + (opts.capture ? `(${analysis.safeOutput})` : analysis.safeOutput)
+	        : undefined;
+	      const open = tokens[token.tokensIndex];
+
+	      open.type = 'text';
+	      open.value = literal;
+	      open.output = safeOutput || utils.escapeRegex(literal);
+
+	      for (let i = token.tokensIndex + 1; i < tokens.length; i++) {
+	        tokens[i].value = '';
+	        tokens[i].output = '';
+	        delete tokens[i].suffix;
+	      }
+
+	      state.output = token.output + open.output;
+	      state.backtrack = true;
+
+	      push({ type: 'paren', extglob: true, value, output: '' });
+	      decrement('parens');
+	      return;
+	    }
+
 	    let output = token.close + (opts.capture ? ')' : '');
 	    let rest;
 
@@ -2721,6 +3095,18 @@ function requirePicomatch$1 () {
 	 * const isMatch = picomatch('*.!(*a)');
 	 * console.log(isMatch('a.a')); //=> false
 	 * console.log(isMatch('a.b')); //=> true
+	 *
+	 * // For environments without `node.js`, `picomatch/posix` provides you a dependency-free matcher, without automatic OS detection.
+	 * const picomatch = require('picomatch/posix');
+	 * // the same API, defaulting to posix paths
+	 * const isMatch = picomatch('a/*');
+	 * console.log(isMatch('a\\b')); //=> false
+	 * console.log(isMatch('a/b')); //=> true
+	 *
+	 * // you can still configure the matcher function to accept windows paths
+	 * const isMatch = picomatch('a/*', { options: windows });
+	 * console.log(isMatch('a\\b')); //=> true
+	 * console.log(isMatch('a/b')); //=> true
 	 * ```
 	 * @name picomatch
 	 * @param {String|Array} `globs` One or more glob patterns.
@@ -2858,9 +3244,9 @@ function requirePicomatch$1 () {
 	 * @api public
 	 */
 
-	picomatch.matchBase = (input, glob, options) => {
+	picomatch.matchBase = (input, glob, options, posix = options && options.windows) => {
 	  const regex = glob instanceof RegExp ? glob : picomatch.makeRe(glob, options);
-	  return regex.test(utils.basename(input));
+	  return regex.test(utils.basename(input, { windows: posix }));
 	};
 
 	/**
@@ -2934,6 +3320,14 @@ function requirePicomatch$1 () {
 	 * Compile a regular expression from the `state` object returned by the
 	 * [parse()](#parse) method.
 	 *
+	 * ```js
+	 * const picomatch = require('picomatch');
+	 * const state = picomatch.parse('*.js');
+	 * // picomatch.compileRe(state[, options]);
+	 *
+	 * console.log(picomatch.compileRe(state));
+	 * //=> /^(?:(?!\.)(?=.)[^/]*?\.js)$/
+	 * ```
 	 * @param {Object} `state`
 	 * @param {Object} `options`
 	 * @param {Boolean} `returnOutput` Intended for implementors, this argument allows you to return the raw output from the parser.
@@ -2969,10 +3363,10 @@ function requirePicomatch$1 () {
 	 *
 	 * ```js
 	 * const picomatch = require('picomatch');
-	 * const state = picomatch.parse('*.js');
-	 * // picomatch.compileRe(state[, options]);
+	 * // picomatch.makeRe(state[, options]);
 	 *
-	 * console.log(picomatch.compileRe(state));
+	 * const result = picomatch.makeRe('*.js');
+	 * console.log(result);
 	 * //=> /^(?:(?!\.)(?=.)[^/]*?\.js)$/
 	 * ```
 	 * @param {String} `state` The object returned from the `.parse` method.
@@ -3391,7 +3785,7 @@ class PluginDriver {
      * Run a sync plugin hook and return the result.
      * @param hookName Name of the plugin hook. Must be in `PluginHooks`.
      * @param args Arguments passed to the plugin hook.
-     * @param plugin The acutal plugin
+     * @param plugin The actual plugin
      * @param replaceContext When passed, the plugin context can be overridden.
      */
     runHookSync(hookName, parameters, plugin, replaceContext) {
@@ -3448,6 +3842,7 @@ function validateAddonPluginHandler(handler, hookName, plugin) {
 }
 function noReturn() { }
 
+const rollupVersion$1 = package_.version;
 function getLogger(plugins, onLog, watchMode, logLevel) {
     plugins = getSortedValidatedPlugins('onLog', plugins);
     const minimalPriority = parseAst_js.logLevelPriority[logLevel];
@@ -3472,7 +3867,7 @@ function getLogger(plugins, onLog, watchMode, logLevel) {
                 debug: getLogHandler(parseAst_js.LOGLEVEL_DEBUG),
                 error: (log) => parseAst_js.error(normalizeLog(log)),
                 info: getLogHandler(parseAst_js.LOGLEVEL_INFO),
-                meta: { rollupVersion: version, watchMode },
+                meta: { rollupVersion: rollupVersion$1, watchMode },
                 warn: getLogHandler(parseAst_js.LOGLEVEL_WARN)
             }, level, log) === false) {
                 return;
@@ -3514,7 +3909,7 @@ async function mergeOptions(config, watchMode, rawCommandOptions = EMPTY_COMMAND
         outputOptionsArray.push({});
     const outputOptions = await Promise.all(outputOptionsArray.map(singleOutputOptions => mergeOutputOptions(singleOutputOptions, command, log)));
     warnUnknownOptions(command, [
-        ...Object.keys(inputOptions),
+        ...Object.keys(inputOptions).filter(option => option !== 'fs'),
         ...Object.keys(outputOptions[0]).filter(option => option !== 'sourcemapIgnoreList' && option !== 'sourcemapPathTransform'),
         ...Object.keys(commandAliases),
         'bundleConfigAsCjs',
@@ -3560,6 +3955,7 @@ function mergeInputOptions(config, overrides, plugins, log, onLog) {
         experimentalCacheExpiry: getOption('experimentalCacheExpiry'),
         experimentalLogSideEffects: getOption('experimentalLogSideEffects'),
         external: getExternal(config, overrides),
+        fs: getOption('fs'),
         input: getOption('input') || [],
         jsx: getObjectOption(config, overrides, 'jsx', objectifyOptionWithPresets(jsxPresets, 'jsx', parseAst_js.URL_JSX, 'false, ')),
         logLevel: getOption('logLevel'),
@@ -3645,6 +4041,7 @@ async function mergeOutputOptions(config, overrides, log) {
         minifyInternalExports: getOption('minifyInternalExports'),
         name: getOption('name'),
         noConflict: getOption('noConflict'),
+        onlyExplicitManualChunks: getOption('onlyExplicitManualChunks'),
         outro: getOption('outro'),
         paths: getOption('paths'),
         plugins: await normalizePluginOption(config.plugins),
@@ -3803,399 +4200,330 @@ function handleError(error, recover = false) {
         process$1.exit(1);
 }
 
-const comma = ','.charCodeAt(0);
-const semicolon = ';'.charCodeAt(0);
-const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-const intToChar = new Uint8Array(64); // 64 possible chars.
-const charToInt = new Uint8Array(128); // z is 122 in ASCII
+// src/vlq.ts
+var comma = ",".charCodeAt(0);
+var semicolon = ";".charCodeAt(0);
+var chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+var intToChar = new Uint8Array(64);
+var charToInt = new Uint8Array(128);
 for (let i = 0; i < chars.length; i++) {
-    const c = chars.charCodeAt(i);
-    intToChar[i] = c;
-    charToInt[c] = i;
+  const c = chars.charCodeAt(i);
+  intToChar[i] = c;
+  charToInt[c] = i;
 }
 function decodeInteger(reader, relative) {
-    let value = 0;
-    let shift = 0;
-    let integer = 0;
-    do {
-        const c = reader.next();
-        integer = charToInt[c];
-        value |= (integer & 31) << shift;
-        shift += 5;
-    } while (integer & 32);
-    const shouldNegate = value & 1;
-    value >>>= 1;
-    if (shouldNegate) {
-        value = -2147483648 | -value;
-    }
-    return relative + value;
+  let value = 0;
+  let shift = 0;
+  let integer = 0;
+  do {
+    const c = reader.next();
+    integer = charToInt[c];
+    value |= (integer & 31) << shift;
+    shift += 5;
+  } while (integer & 32);
+  const shouldNegate = value & 1;
+  value >>>= 1;
+  if (shouldNegate) {
+    value = -2147483648 | -value;
+  }
+  return relative + value;
 }
 function encodeInteger(builder, num, relative) {
-    let delta = num - relative;
-    delta = delta < 0 ? (-delta << 1) | 1 : delta << 1;
-    do {
-        let clamped = delta & 0b011111;
-        delta >>>= 5;
-        if (delta > 0)
-            clamped |= 0b100000;
-        builder.write(intToChar[clamped]);
-    } while (delta > 0);
-    return num;
+  let delta = num - relative;
+  delta = delta < 0 ? -delta << 1 | 1 : delta << 1;
+  do {
+    let clamped = delta & 31;
+    delta >>>= 5;
+    if (delta > 0) clamped |= 32;
+    builder.write(intToChar[clamped]);
+  } while (delta > 0);
+  return num;
 }
 function hasMoreVlq(reader, max) {
-    if (reader.pos >= max)
-        return false;
-    return reader.peek() !== comma;
+  if (reader.pos >= max) return false;
+  return reader.peek() !== comma;
 }
 
-const bufLength = 1024 * 16;
-// Provide a fallback for older environments.
-const td = typeof TextDecoder !== 'undefined'
-    ? /* #__PURE__ */ new TextDecoder()
-    : typeof Buffer !== 'undefined'
-        ? {
-            decode(buf) {
-                const out = Buffer.from(buf.buffer, buf.byteOffset, buf.byteLength);
-                return out.toString();
-            },
-        }
-        : {
-            decode(buf) {
-                let out = '';
-                for (let i = 0; i < buf.length; i++) {
-                    out += String.fromCharCode(buf[i]);
-                }
-                return out;
-            },
-        };
-class StringWriter {
-    constructor() {
-        this.pos = 0;
-        this.out = '';
-        this.buffer = new Uint8Array(bufLength);
+// src/strings.ts
+var bufLength = 1024 * 16;
+var td = typeof TextDecoder !== "undefined" ? /* @__PURE__ */ new TextDecoder() : typeof Buffer !== "undefined" ? {
+  decode(buf) {
+    const out = Buffer.from(buf.buffer, buf.byteOffset, buf.byteLength);
+    return out.toString();
+  }
+} : {
+  decode(buf) {
+    let out = "";
+    for (let i = 0; i < buf.length; i++) {
+      out += String.fromCharCode(buf[i]);
     }
-    write(v) {
-        const { buffer } = this;
-        buffer[this.pos++] = v;
-        if (this.pos === bufLength) {
-            this.out += td.decode(buffer);
-            this.pos = 0;
-        }
+    return out;
+  }
+};
+var StringWriter = class {
+  constructor() {
+    this.pos = 0;
+    this.out = "";
+    this.buffer = new Uint8Array(bufLength);
+  }
+  write(v) {
+    const { buffer } = this;
+    buffer[this.pos++] = v;
+    if (this.pos === bufLength) {
+      this.out += td.decode(buffer);
+      this.pos = 0;
     }
-    flush() {
-        const { buffer, out, pos } = this;
-        return pos > 0 ? out + td.decode(buffer.subarray(0, pos)) : out;
-    }
-}
-class StringReader {
-    constructor(buffer) {
-        this.pos = 0;
-        this.buffer = buffer;
-    }
-    next() {
-        return this.buffer.charCodeAt(this.pos++);
-    }
-    peek() {
-        return this.buffer.charCodeAt(this.pos);
-    }
-    indexOf(char) {
-        const { buffer, pos } = this;
-        const idx = buffer.indexOf(char, pos);
-        return idx === -1 ? buffer.length : idx;
-    }
-}
+  }
+  flush() {
+    const { buffer, out, pos } = this;
+    return pos > 0 ? out + td.decode(buffer.subarray(0, pos)) : out;
+  }
+};
+var StringReader = class {
+  constructor(buffer) {
+    this.pos = 0;
+    this.buffer = buffer;
+  }
+  next() {
+    return this.buffer.charCodeAt(this.pos++);
+  }
+  peek() {
+    return this.buffer.charCodeAt(this.pos);
+  }
+  indexOf(char) {
+    const { buffer, pos } = this;
+    const idx = buffer.indexOf(char, pos);
+    return idx === -1 ? buffer.length : idx;
+  }
+};
 
+// src/sourcemap-codec.ts
 function decode(mappings) {
-    const { length } = mappings;
-    const reader = new StringReader(mappings);
-    const decoded = [];
-    let genColumn = 0;
-    let sourcesIndex = 0;
-    let sourceLine = 0;
-    let sourceColumn = 0;
-    let namesIndex = 0;
-    do {
-        const semi = reader.indexOf(';');
-        const line = [];
-        let sorted = true;
-        let lastCol = 0;
-        genColumn = 0;
-        while (reader.pos < semi) {
-            let seg;
-            genColumn = decodeInteger(reader, genColumn);
-            if (genColumn < lastCol)
-                sorted = false;
-            lastCol = genColumn;
-            if (hasMoreVlq(reader, semi)) {
-                sourcesIndex = decodeInteger(reader, sourcesIndex);
-                sourceLine = decodeInteger(reader, sourceLine);
-                sourceColumn = decodeInteger(reader, sourceColumn);
-                if (hasMoreVlq(reader, semi)) {
-                    namesIndex = decodeInteger(reader, namesIndex);
-                    seg = [genColumn, sourcesIndex, sourceLine, sourceColumn, namesIndex];
-                }
-                else {
-                    seg = [genColumn, sourcesIndex, sourceLine, sourceColumn];
-                }
-            }
-            else {
-                seg = [genColumn];
-            }
-            line.push(seg);
-            reader.pos++;
+  const { length } = mappings;
+  const reader = new StringReader(mappings);
+  const decoded = [];
+  let genColumn = 0;
+  let sourcesIndex = 0;
+  let sourceLine = 0;
+  let sourceColumn = 0;
+  let namesIndex = 0;
+  do {
+    const semi = reader.indexOf(";");
+    const line = [];
+    let sorted = true;
+    let lastCol = 0;
+    genColumn = 0;
+    while (reader.pos < semi) {
+      let seg;
+      genColumn = decodeInteger(reader, genColumn);
+      if (genColumn < lastCol) sorted = false;
+      lastCol = genColumn;
+      if (hasMoreVlq(reader, semi)) {
+        sourcesIndex = decodeInteger(reader, sourcesIndex);
+        sourceLine = decodeInteger(reader, sourceLine);
+        sourceColumn = decodeInteger(reader, sourceColumn);
+        if (hasMoreVlq(reader, semi)) {
+          namesIndex = decodeInteger(reader, namesIndex);
+          seg = [genColumn, sourcesIndex, sourceLine, sourceColumn, namesIndex];
+        } else {
+          seg = [genColumn, sourcesIndex, sourceLine, sourceColumn];
         }
-        if (!sorted)
-            sort(line);
-        decoded.push(line);
-        reader.pos = semi + 1;
-    } while (reader.pos <= length);
-    return decoded;
+      } else {
+        seg = [genColumn];
+      }
+      line.push(seg);
+      reader.pos++;
+    }
+    if (!sorted) sort(line);
+    decoded.push(line);
+    reader.pos = semi + 1;
+  } while (reader.pos <= length);
+  return decoded;
 }
 function sort(line) {
-    line.sort(sortComparator);
+  line.sort(sortComparator);
 }
 function sortComparator(a, b) {
-    return a[0] - b[0];
+  return a[0] - b[0];
 }
 function encode(decoded) {
-    const writer = new StringWriter();
-    let sourcesIndex = 0;
-    let sourceLine = 0;
-    let sourceColumn = 0;
-    let namesIndex = 0;
-    for (let i = 0; i < decoded.length; i++) {
-        const line = decoded[i];
-        if (i > 0)
-            writer.write(semicolon);
-        if (line.length === 0)
-            continue;
-        let genColumn = 0;
-        for (let j = 0; j < line.length; j++) {
-            const segment = line[j];
-            if (j > 0)
-                writer.write(comma);
-            genColumn = encodeInteger(writer, segment[0], genColumn);
-            if (segment.length === 1)
-                continue;
-            sourcesIndex = encodeInteger(writer, segment[1], sourcesIndex);
-            sourceLine = encodeInteger(writer, segment[2], sourceLine);
-            sourceColumn = encodeInteger(writer, segment[3], sourceColumn);
-            if (segment.length === 4)
-                continue;
-            namesIndex = encodeInteger(writer, segment[4], namesIndex);
-        }
+  const writer = new StringWriter();
+  let sourcesIndex = 0;
+  let sourceLine = 0;
+  let sourceColumn = 0;
+  let namesIndex = 0;
+  for (let i = 0; i < decoded.length; i++) {
+    const line = decoded[i];
+    if (i > 0) writer.write(semicolon);
+    if (line.length === 0) continue;
+    let genColumn = 0;
+    for (let j = 0; j < line.length; j++) {
+      const segment = line[j];
+      if (j > 0) writer.write(comma);
+      genColumn = encodeInteger(writer, segment[0], genColumn);
+      if (segment.length === 1) continue;
+      sourcesIndex = encodeInteger(writer, segment[1], sourcesIndex);
+      sourceLine = encodeInteger(writer, segment[2], sourceLine);
+      sourceColumn = encodeInteger(writer, segment[3], sourceColumn);
+      if (segment.length === 4) continue;
+      namesIndex = encodeInteger(writer, segment[4], namesIndex);
     }
-    return writer.flush();
+  }
+  return writer.flush();
 }
 
-class BitSet {
+//#region src/BitSet.ts
+var BitSet = class BitSet {
 	constructor(arg) {
 		this.bits = arg instanceof BitSet ? arg.bits.slice() : [];
 	}
-
 	add(n) {
 		this.bits[n >> 5] |= 1 << (n & 31);
 	}
-
 	has(n) {
-		return !!(this.bits[n >> 5] & (1 << (n & 31)));
+		return !!(this.bits[n >> 5] & 1 << (n & 31));
 	}
-}
-
-let Chunk$1 = class Chunk {
+};
+//#endregion
+//#region src/Chunk.ts
+var Chunk$1 = class Chunk {
 	constructor(start, end, content) {
 		this.start = start;
 		this.end = end;
 		this.original = content;
-
-		this.intro = '';
-		this.outro = '';
-
+		this.intro = "";
+		this.outro = "";
 		this.content = content;
 		this.storeName = false;
 		this.edited = false;
-
-		{
-			this.previous = null;
-			this.next = null;
-		}
+		this.previous = null;
+		this.next = null;
 	}
-
 	appendLeft(content) {
 		this.outro += content;
 	}
-
 	appendRight(content) {
 		this.intro = this.intro + content;
 	}
-
 	clone() {
 		const chunk = new Chunk(this.start, this.end, this.original);
-
 		chunk.intro = this.intro;
 		chunk.outro = this.outro;
 		chunk.content = this.content;
 		chunk.storeName = this.storeName;
 		chunk.edited = this.edited;
-
 		return chunk;
 	}
-
 	contains(index) {
 		return this.start < index && index < this.end;
 	}
-
 	eachNext(fn) {
-		let chunk = this;
+		fn(this);
+		let chunk = this.next;
 		while (chunk) {
 			fn(chunk);
 			chunk = chunk.next;
 		}
 	}
-
 	eachPrevious(fn) {
-		let chunk = this;
+		fn(this);
+		let chunk = this.previous;
 		while (chunk) {
 			fn(chunk);
 			chunk = chunk.previous;
 		}
 	}
-
 	edit(content, storeName, contentOnly) {
 		this.content = content;
 		if (!contentOnly) {
-			this.intro = '';
-			this.outro = '';
+			this.intro = "";
+			this.outro = "";
 		}
 		this.storeName = storeName;
-
 		this.edited = true;
-
 		return this;
 	}
-
 	prependLeft(content) {
 		this.outro = content + this.outro;
 	}
-
 	prependRight(content) {
 		this.intro = content + this.intro;
 	}
-
 	reset() {
-		this.intro = '';
-		this.outro = '';
+		this.intro = "";
+		this.outro = "";
 		if (this.edited) {
 			this.content = this.original;
 			this.storeName = false;
 			this.edited = false;
 		}
 	}
-
 	split(index) {
 		const sliceIndex = index - this.start;
-
 		const originalBefore = this.original.slice(0, sliceIndex);
 		const originalAfter = this.original.slice(sliceIndex);
-
 		this.original = originalBefore;
-
 		const newChunk = new Chunk(index, this.end, originalAfter);
 		newChunk.outro = this.outro;
-		this.outro = '';
-
+		this.outro = "";
 		this.end = index;
-
 		if (this.edited) {
-			// after split we should save the edit content record into the correct chunk
-			// to make sure sourcemap correct
-			// For example:
-			// '  test'.trim()
-			//     split   -> '  ' + 'test'
-			//   ✔️ edit    -> '' + 'test'
-			//   ✖️ edit    -> 'test' + ''
-			// TODO is this block necessary?...
-			newChunk.edit('', false);
-			this.content = '';
-		} else {
-			this.content = originalBefore;
-		}
-
+			newChunk.edit("", false);
+			this.content = "";
+		} else this.content = originalBefore;
 		newChunk.next = this.next;
 		if (newChunk.next) newChunk.next.previous = newChunk;
 		newChunk.previous = this;
 		this.next = newChunk;
-
 		return newChunk;
 	}
-
 	toString() {
 		return this.intro + this.content + this.outro;
 	}
-
 	trimEnd(rx) {
-		this.outro = this.outro.replace(rx, '');
+		this.outro = this.outro.replace(rx, "");
 		if (this.outro.length) return true;
-
-		const trimmed = this.content.replace(rx, '');
-
+		const trimmed = this.content.replace(rx, "");
 		if (trimmed.length) {
-			if (trimmed !== this.content) {
-				this.split(this.start + trimmed.length).edit('', undefined, true);
-				if (this.edited) {
-					// save the change, if it has been edited
-					this.edit(trimmed, this.storeName, true);
-				}
-			}
+			if (trimmed !== this.content) if (this.edited) this.edit(trimmed, this.storeName, true);
+			else this.split(this.start + trimmed.length).edit("", void 0, true);
 			return true;
 		} else {
-			this.edit('', undefined, true);
-
-			this.intro = this.intro.replace(rx, '');
+			this.edit("", void 0, true);
+			this.intro = this.intro.replace(rx, "");
 			if (this.intro.length) return true;
 		}
 	}
-
 	trimStart(rx) {
-		this.intro = this.intro.replace(rx, '');
+		this.intro = this.intro.replace(rx, "");
 		if (this.intro.length) return true;
-
-		const trimmed = this.content.replace(rx, '');
-
+		const trimmed = this.content.replace(rx, "");
 		if (trimmed.length) {
-			if (trimmed !== this.content) {
-				const newChunk = this.split(this.end - trimmed.length);
-				if (this.edited) {
-					// save the change, if it has been edited
-					newChunk.edit(trimmed, this.storeName, true);
-				}
-				this.edit('', undefined, true);
+			if (trimmed !== this.content) if (this.edited) this.edit(trimmed, this.storeName, true);
+			else {
+				this.split(this.end - trimmed.length);
+				this.edit("", void 0, true);
 			}
 			return true;
 		} else {
-			this.edit('', undefined, true);
-
-			this.outro = this.outro.replace(rx, '');
+			this.edit("", void 0, true);
+			this.outro = this.outro.replace(rx, "");
 			if (this.outro.length) return true;
 		}
 	}
 };
-
+//#endregion
+//#region src/SourceMap.ts
 function getBtoa() {
-	if (typeof globalThis !== 'undefined' && typeof globalThis.btoa === 'function') {
-		return (str) => globalThis.btoa(unescape(encodeURIComponent(str)));
-	} else if (typeof Buffer === 'function') {
-		return (str) => Buffer.from(str, 'utf-8').toString('base64');
-	} else {
-		return () => {
-			throw new Error('Unsupported environment: `window.btoa` or `Buffer` should be supported.');
-		};
-	}
+	if (typeof globalThis !== "undefined" && typeof globalThis.btoa === "function") return (str) => globalThis.btoa(unescape(encodeURIComponent(str)));
+	const buffer = globalThis["Buffer"];
+	if (buffer) return (str) => buffer.from(str, "utf-8").toString("base64");
+	return () => {
+		throw new Error("Unsupported environment: `window.btoa` or `Buffer` should be supported.");
+	};
 }
-
-const btoa = /*#__PURE__*/ getBtoa();
-
-class SourceMap {
+const btoa = /* #__PURE__ */ getBtoa();
+var SourceMap = class {
 	constructor(properties) {
 		this.version = 3;
 		this.file = properties.file;
@@ -4203,103 +4531,87 @@ class SourceMap {
 		this.sourcesContent = properties.sourcesContent;
 		this.names = properties.names;
 		this.mappings = encode(properties.mappings);
-		if (typeof properties.x_google_ignoreList !== 'undefined') {
-			this.x_google_ignoreList = properties.x_google_ignoreList;
-		}
-		if (typeof properties.debugId !== 'undefined') {
-			this.debugId = properties.debugId;
-		}
+		if (typeof properties.x_google_ignoreList !== "undefined") this.x_google_ignoreList = properties.x_google_ignoreList;
+		if (typeof properties.debugId !== "undefined") this.debugId = properties.debugId;
 	}
-
+	/**
+	* Returns the equivalent of `JSON.stringify(map)`
+	*/
 	toString() {
 		return JSON.stringify(this);
 	}
-
+	/**
+	* Returns a DataURI containing the sourcemap. Useful for doing this sort of thing:
+	* `generateMap(options?: SourceMapOptions): SourceMap;`
+	*/
 	toUrl() {
-		return 'data:application/json;charset=utf-8;base64,' + btoa(this.toString());
+		return `data:application/json;charset=utf-8;base64,${btoa(this.toString())}`;
 	}
-}
-
-function guessIndent(code) {
-	const lines = code.split('\n');
-
-	const tabbed = lines.filter((line) => /^\t+/.test(line));
-	const spaced = lines.filter((line) => /^ {2,}/.test(line));
-
-	if (tabbed.length === 0 && spaced.length === 0) {
-		return null;
-	}
-
-	// More lines tabbed than spaced? Assume tabs, and
-	// default to tabs in the case of a tie (or nothing
-	// to go on)
-	if (tabbed.length >= spaced.length) {
-		return '\t';
-	}
-
-	// Otherwise, we need to guess the multiple
-	const min = spaced.reduce((previous, current) => {
-		const numSpaces = /^ +/.exec(current)[0].length;
-		return Math.min(numSpaces, previous);
-	}, Infinity);
-
-	return new Array(min + 1).join(' ');
-}
-
-function getRelativePath(from, to) {
-	const fromParts = from.split(/[/\\]/);
-	const toParts = to.split(/[/\\]/);
-
-	fromParts.pop(); // get dirname
-
-	while (fromParts[0] === toParts[0]) {
-		fromParts.shift();
-		toParts.shift();
-	}
-
-	if (fromParts.length) {
-		let i = fromParts.length;
-		while (i--) fromParts[i] = '..';
-	}
-
-	return fromParts.concat(toParts).join('/');
-}
-
-const toString = Object.prototype.toString;
-
-function isObject(thing) {
-	return toString.call(thing) === '[object Object]';
-}
-
+};
+//#endregion
+//#region src/utils/getLocator.ts
 function getLocator(source) {
-	const originalLines = source.split('\n');
+	const originalLines = source.split("\n");
 	const lineOffsets = [];
-
 	for (let i = 0, pos = 0; i < originalLines.length; i++) {
 		lineOffsets.push(pos);
 		pos += originalLines[i].length + 1;
 	}
-
 	return function locate(index) {
 		let i = 0;
 		let j = lineOffsets.length;
 		while (i < j) {
-			const m = (i + j) >> 1;
-			if (index < lineOffsets[m]) {
-				j = m;
-			} else {
-				i = m + 1;
-			}
+			const m = i + j >> 1;
+			if (index < lineOffsets[m]) j = m;
+			else i = m + 1;
 		}
 		const line = i - 1;
-		const column = index - lineOffsets[line];
-		return { line, column };
+		return {
+			line,
+			column: index - lineOffsets[line]
+		};
 	};
 }
-
+//#endregion
+//#region src/utils/getRelativePath.ts
+function getRelativePath(from, to) {
+	const fromParts = from.split(/[/\\]/);
+	const toParts = to.split(/[/\\]/);
+	fromParts.pop();
+	while (fromParts[0] === toParts[0]) {
+		fromParts.shift();
+		toParts.shift();
+	}
+	if (fromParts.length) {
+		let i = fromParts.length;
+		while (i--) fromParts[i] = "..";
+	}
+	return fromParts.concat(toParts).join("/");
+}
+//#endregion
+//#region src/utils/guessIndent.ts
+function guessIndent(code) {
+	const lines = code.split("\n");
+	const tabbed = lines.filter((line) => /^\t+/.test(line));
+	const spaced = lines.filter((line) => /^ {2,}/.test(line));
+	if (tabbed.length === 0 && spaced.length === 0) return null;
+	if (tabbed.length >= spaced.length) return "	";
+	const min = spaced.reduce((previous, current) => {
+		const numSpaces = /^ +/.exec(current)[0].length;
+		return Math.min(numSpaces, previous);
+	}, Infinity);
+	return " ".repeat(min);
+}
+//#endregion
+//#region src/utils/isObject.ts
+const toString = Object.prototype.toString;
+function isObject(thing) {
+	return toString.call(thing) === "[object Object]";
+}
+//#endregion
+//#region src/utils/Mappings.ts
 const wordRegex = /\w/;
-
-class Mappings {
+var Mappings = class {
 	constructor(hires) {
 		this.hires = hires;
 		this.generatedCodeLine = 0;
@@ -4308,52 +4620,47 @@ class Mappings {
 		this.rawSegments = this.raw[this.generatedCodeLine] = [];
 		this.pending = null;
 	}
-
 	addEdit(sourceIndex, content, loc, nameIndex) {
 		if (content.length) {
 			const contentLengthMinusOne = content.length - 1;
-			let contentLineEnd = content.indexOf('\n', 0);
+			let contentLineEnd = content.indexOf("\n", 0);
 			let previousContentLineEnd = -1;
-			// Loop through each line in the content and add a segment, but stop if the last line is empty,
-			// else code afterwards would fill one line too many
 			while (contentLineEnd >= 0 && contentLengthMinusOne > contentLineEnd) {
-				const segment = [this.generatedCodeColumn, sourceIndex, loc.line, loc.column];
-				if (nameIndex >= 0) {
-					segment.push(nameIndex);
-				}
+				const segment = [
+					this.generatedCodeColumn,
+					sourceIndex,
+					loc.line,
+					loc.column
+				];
+				if (nameIndex >= 0) segment.push(nameIndex);
 				this.rawSegments.push(segment);
-
 				this.generatedCodeLine += 1;
 				this.raw[this.generatedCodeLine] = this.rawSegments = [];
 				this.generatedCodeColumn = 0;
-
 				previousContentLineEnd = contentLineEnd;
-				contentLineEnd = content.indexOf('\n', contentLineEnd + 1);
+				contentLineEnd = content.indexOf("\n", contentLineEnd + 1);
 			}
-
-			const segment = [this.generatedCodeColumn, sourceIndex, loc.line, loc.column];
-			if (nameIndex >= 0) {
-				segment.push(nameIndex);
-			}
+			const segment = [
+				this.generatedCodeColumn,
+				sourceIndex,
+				loc.line,
+				loc.column
+			];
+			if (nameIndex >= 0) segment.push(nameIndex);
 			this.rawSegments.push(segment);
-
 			this.advance(content.slice(previousContentLineEnd + 1));
 		} else if (this.pending) {
 			this.rawSegments.push(this.pending);
 			this.advance(content);
 		}
-
 		this.pending = null;
 	}
-
 	addUneditedChunk(sourceIndex, chunk, original, loc, sourcemapLocations) {
 		let originalCharIndex = chunk.start;
 		let first = true;
-		// when iterating each char, check if it's in a word boundary
 		let charInHiresBoundary = false;
-
 		while (originalCharIndex < chunk.end) {
-			if (original[originalCharIndex] === '\n') {
+			if (original[originalCharIndex] === "\n") {
 				loc.line += 1;
 				loc.column = 0;
 				this.generatedCodeLine += 1;
@@ -4363,42 +4670,34 @@ class Mappings {
 				charInHiresBoundary = false;
 			} else {
 				if (this.hires || first || sourcemapLocations.has(originalCharIndex)) {
-					const segment = [this.generatedCodeColumn, sourceIndex, loc.line, loc.column];
-
-					if (this.hires === 'boundary') {
-						// in hires "boundary", group segments per word boundary than per char
-						if (wordRegex.test(original[originalCharIndex])) {
-							// for first char in the boundary found, start the boundary by pushing a segment
-							if (!charInHiresBoundary) {
-								this.rawSegments.push(segment);
-								charInHiresBoundary = true;
-							}
-						} else {
-							// for non-word char, end the boundary by pushing a segment
+					const segment = [
+						this.generatedCodeColumn,
+						sourceIndex,
+						loc.line,
+						loc.column
+					];
+					if (this.hires === "boundary") if (wordRegex.test(original[originalCharIndex])) {
+						if (!charInHiresBoundary) {
 							this.rawSegments.push(segment);
-							charInHiresBoundary = false;
+							charInHiresBoundary = true;
 						}
 					} else {
 						this.rawSegments.push(segment);
+						charInHiresBoundary = false;
 					}
+					else this.rawSegments.push(segment);
 				}
-
 				loc.column += 1;
 				this.generatedCodeColumn += 1;
 				first = false;
 			}
-
 			originalCharIndex += 1;
 		}
-
 		this.pending = null;
 	}
-
 	advance(str) {
 		if (!str) return;
-
-		const lines = str.split('\n');
-
+		const lines = str.split("\n");
 		if (lines.length > 1) {
 			for (let i = 0; i < lines.length - 1; i++) {
 				this.generatedCodeLine++;
@@ -4406,1010 +4705,872 @@ class Mappings {
 			}
 			this.generatedCodeColumn = 0;
 		}
-
 		this.generatedCodeColumn += lines[lines.length - 1].length;
 	}
-}
-
-const n = '\n';
-
+};
+//#endregion
+//#region src/MagicString.ts
+const n = "\n";
+const NEWLINE_CHAR = "\n".charCodeAt(0);
+const CR_CHAR = "\r".charCodeAt(0);
 const warned = {
 	insertLeft: false,
 	insertRight: false,
-	storeName: false,
+	storeName: false
 };
-
-class MagicString {
+var MagicString = class MagicString {
 	constructor(string, options = {}) {
 		const chunk = new Chunk$1(0, string.length, string);
-
 		Object.defineProperties(this, {
-			original: { writable: true, value: string },
-			outro: { writable: true, value: '' },
-			intro: { writable: true, value: '' },
-			firstChunk: { writable: true, value: chunk },
-			lastChunk: { writable: true, value: chunk },
-			lastSearchedChunk: { writable: true, value: chunk },
-			byStart: { writable: true, value: {} },
-			byEnd: { writable: true, value: {} },
-			filename: { writable: true, value: options.filename },
-			indentExclusionRanges: { writable: true, value: options.indentExclusionRanges },
-			sourcemapLocations: { writable: true, value: new BitSet() },
-			storedNames: { writable: true, value: {} },
-			indentStr: { writable: true, value: undefined },
-			ignoreList: { writable: true, value: options.ignoreList },
-			offset: { writable: true, value: options.offset || 0 },
+			original: {
+				writable: true,
+				value: string
+			},
+			outro: {
+				writable: true,
+				value: ""
+			},
+			intro: {
+				writable: true,
+				value: ""
+			},
+			firstChunk: {
+				writable: true,
+				value: chunk
+			},
+			lastChunk: {
+				writable: true,
+				value: chunk
+			},
+			lastSearchedChunk: {
+				writable: true,
+				value: chunk
+			},
+			byStart: {
+				writable: true,
+				value: {}
+			},
+			byEnd: {
+				writable: true,
+				value: {}
+			},
+			filename: {
+				writable: true,
+				value: options.filename
+			},
+			indentExclusionRanges: {
+				writable: true,
+				value: options.indentExclusionRanges
+			},
+			sourcemapLocations: {
+				writable: true,
+				value: new BitSet()
+			},
+			storedNames: {
+				writable: true,
+				value: {}
+			},
+			indentStr: {
+				writable: true,
+				value: void 0
+			},
+			ignoreList: {
+				writable: true,
+				value: options.ignoreList
+			},
+			offset: {
+				writable: true,
+				value: options.offset || 0
+			}
 		});
-
-		this.byStart[0] = chunk;
-		this.byEnd[string.length] = chunk;
+		this.byStart = /* @__PURE__ */ new Map([[0, chunk]]);
+		this.byEnd = /* @__PURE__ */ new Map([[string.length, chunk]]);
 	}
-
+	/**
+	* Adds the specified character index (with respect to the original string) to sourcemap mappings, if `hires` is false.
+	*/
 	addSourcemapLocation(char) {
 		this.sourcemapLocations.add(char);
 	}
-
+	/**
+	* Appends the specified content to the end of the string.
+	*/
 	append(content) {
-		if (typeof content !== 'string') throw new TypeError('outro content must be a string');
-
+		if (typeof content !== "string") throw new TypeError("outro content must be a string");
 		this.outro += content;
 		return this;
 	}
-
+	/**
+	* Appends the specified content at the index in the original string.
+	* If a range *ending* with index is subsequently moved, the insert will be moved with it.
+	* See also `s.prependLeft(...)`.
+	*/
 	appendLeft(index, content) {
 		index = index + this.offset;
-
-		if (typeof content !== 'string') throw new TypeError('inserted content must be a string');
-
+		if (typeof content !== "string") throw new TypeError("inserted content must be a string");
 		this._split(index);
-
-		const chunk = this.byEnd[index];
-
-		if (chunk) {
-			chunk.appendLeft(content);
-		} else {
-			this.intro += content;
-		}
+		const chunk = this.byEnd.get(index);
+		if (chunk) chunk.appendLeft(content);
+		else this.intro += content;
 		return this;
 	}
-
+	/**
+	* Appends the specified content at the index in the original string.
+	* If a range *starting* with index is subsequently moved, the insert will be moved with it.
+	* See also `s.prependRight(...)`.
+	*/
 	appendRight(index, content) {
 		index = index + this.offset;
-
-		if (typeof content !== 'string') throw new TypeError('inserted content must be a string');
-
+		if (typeof content !== "string") throw new TypeError("inserted content must be a string");
 		this._split(index);
-
-		const chunk = this.byStart[index];
-
-		if (chunk) {
-			chunk.appendRight(content);
-		} else {
-			this.outro += content;
-		}
+		const chunk = this.byStart.get(index);
+		if (chunk) chunk.appendRight(content);
+		else this.outro += content;
 		return this;
 	}
-
+	/**
+	* Does what you'd expect.
+	*/
 	clone() {
-		const cloned = new MagicString(this.original, { filename: this.filename, offset: this.offset });
-
+		const cloned = new MagicString(this.original, {
+			filename: this.filename,
+			offset: this.offset
+		});
 		let originalChunk = this.firstChunk;
-		let clonedChunk = (cloned.firstChunk = cloned.lastSearchedChunk = originalChunk.clone());
-
+		let clonedChunk = cloned.firstChunk = cloned.lastSearchedChunk = originalChunk.clone();
 		while (originalChunk) {
-			cloned.byStart[clonedChunk.start] = clonedChunk;
-			cloned.byEnd[clonedChunk.end] = clonedChunk;
-
+			cloned.byStart.set(clonedChunk.start, clonedChunk);
+			cloned.byEnd.set(clonedChunk.end, clonedChunk);
 			const nextOriginalChunk = originalChunk.next;
 			const nextClonedChunk = nextOriginalChunk && nextOriginalChunk.clone();
-
 			if (nextClonedChunk) {
 				clonedChunk.next = nextClonedChunk;
 				nextClonedChunk.previous = clonedChunk;
-
 				clonedChunk = nextClonedChunk;
 			}
-
 			originalChunk = nextOriginalChunk;
 		}
-
 		cloned.lastChunk = clonedChunk;
-
-		if (this.indentExclusionRanges) {
-			cloned.indentExclusionRanges = this.indentExclusionRanges.slice();
-		}
-
+		if (this.indentExclusionRanges) cloned.indentExclusionRanges = this.indentExclusionRanges.slice();
 		cloned.sourcemapLocations = new BitSet(this.sourcemapLocations);
-
 		cloned.intro = this.intro;
 		cloned.outro = this.outro;
-
 		return cloned;
 	}
-
+	/**
+	* Generates a sourcemap object with raw mappings in array form, rather than encoded as a string.
+	* Useful if you need to manipulate the sourcemap further, but most of the time you will use `generateMap` instead.
+	*/
 	generateDecodedMap(options) {
 		options = options || {};
-
 		const sourceIndex = 0;
 		const names = Object.keys(this.storedNames);
 		const mappings = new Mappings(options.hires);
-
 		const locate = getLocator(this.original);
-
-		if (this.intro) {
-			mappings.advance(this.intro);
-		}
-
+		if (this.intro) mappings.advance(this.intro);
 		this.firstChunk.eachNext((chunk) => {
 			const loc = locate(chunk.start);
-
 			if (chunk.intro.length) mappings.advance(chunk.intro);
-
-			if (chunk.edited) {
-				mappings.addEdit(
-					sourceIndex,
-					chunk.content,
-					loc,
-					chunk.storeName ? names.indexOf(chunk.original) : -1,
-				);
-			} else {
-				mappings.addUneditedChunk(sourceIndex, chunk, this.original, loc, this.sourcemapLocations);
-			}
-
+			if (chunk.edited) mappings.addEdit(sourceIndex, chunk.content, loc, chunk.storeName ? names.indexOf(chunk.original) : -1);
+			else mappings.addUneditedChunk(sourceIndex, chunk, this.original, loc, this.sourcemapLocations);
 			if (chunk.outro.length) mappings.advance(chunk.outro);
 		});
-
+		if (this.outro) mappings.advance(this.outro);
 		return {
-			file: options.file ? options.file.split(/[/\\]/).pop() : undefined,
-			sources: [
-				options.source ? getRelativePath(options.file || '', options.source) : options.file || '',
-			],
-			sourcesContent: options.includeContent ? [this.original] : undefined,
+			file: options.file ? options.file.split(/[/\\]/).pop() : void 0,
+			sources: [options.source ? getRelativePath(options.file || "", options.source) : options.file || ""],
+			sourcesContent: options.includeContent ? [this.original] : void 0,
 			names,
 			mappings: mappings.raw,
-			x_google_ignoreList: this.ignoreList ? [sourceIndex] : undefined,
+			x_google_ignoreList: this.ignoreList ? [sourceIndex] : void 0
 		};
 	}
-
+	/**
+	* Generates a version 3 sourcemap.
+	*/
 	generateMap(options) {
 		return new SourceMap(this.generateDecodedMap(options));
 	}
-
+	/** @internal */
 	_ensureindentStr() {
-		if (this.indentStr === undefined) {
-			this.indentStr = guessIndent(this.original);
-		}
+		if (this.indentStr === void 0) this.indentStr = guessIndent(this.original);
 	}
-
+	/** @internal */
 	_getRawIndentString() {
 		this._ensureindentStr();
 		return this.indentStr;
 	}
-
 	getIndentString() {
 		this._ensureindentStr();
-		return this.indentStr === null ? '\t' : this.indentStr;
+		return this.indentStr === null ? "	" : this.indentStr;
 	}
-
 	indent(indentStr, options) {
 		const pattern = /^[^\r\n]/gm;
-
 		if (isObject(indentStr)) {
 			options = indentStr;
-			indentStr = undefined;
+			indentStr = void 0;
 		}
-
-		if (indentStr === undefined) {
+		if (indentStr === void 0) {
 			this._ensureindentStr();
-			indentStr = this.indentStr || '\t';
+			indentStr = this.indentStr || "	";
 		}
-
-		if (indentStr === '') return this; // noop
-
+		if (indentStr === "") return this;
+		const resolvedIndentStr = indentStr;
 		options = options || {};
-
-		// Process exclusion ranges
 		const isExcluded = {};
-
-		if (options.exclude) {
-			const exclusions =
-				typeof options.exclude[0] === 'number' ? [options.exclude] : options.exclude;
-			exclusions.forEach((exclusion) => {
-				for (let i = exclusion[0]; i < exclusion[1]; i += 1) {
-					isExcluded[i] = true;
-				}
-			});
-		}
-
+		if (options.exclude) (typeof options.exclude[0] === "number" ? [options.exclude] : options.exclude).forEach((exclusion) => {
+			for (let i = exclusion[0]; i < exclusion[1]; i += 1) isExcluded[i] = true;
+		});
 		let shouldIndentNextCharacter = options.indentStart !== false;
 		const replacer = (match) => {
-			if (shouldIndentNextCharacter) return `${indentStr}${match}`;
+			if (shouldIndentNextCharacter) return `${resolvedIndentStr}${match}`;
 			shouldIndentNextCharacter = true;
 			return match;
 		};
-
 		this.intro = this.intro.replace(pattern, replacer);
-
 		let charIndex = 0;
 		let chunk = this.firstChunk;
-
+		const indentAt = (index) => {
+			shouldIndentNextCharacter = false;
+			if (index === chunk.start) chunk.prependRight(resolvedIndentStr);
+			else {
+				this._splitChunk(chunk, index);
+				chunk = chunk.next;
+				chunk.prependRight(resolvedIndentStr);
+			}
+		};
 		while (chunk) {
 			const end = chunk.end;
-
 			if (chunk.edited) {
 				if (!isExcluded[charIndex]) {
 					chunk.content = chunk.content.replace(pattern, replacer);
-
-					if (chunk.content.length) {
-						shouldIndentNextCharacter = chunk.content[chunk.content.length - 1] === '\n';
+					if (chunk.content.length) shouldIndentNextCharacter = chunk.content[chunk.content.length - 1] === "\n";
+				}
+			} else if (options.exclude) {
+				charIndex = chunk.start;
+				while (charIndex < end) {
+					if (!isExcluded[charIndex]) {
+						const char = this.original.charCodeAt(charIndex);
+						if (char === NEWLINE_CHAR) shouldIndentNextCharacter = true;
+						else if (char !== CR_CHAR && shouldIndentNextCharacter) indentAt(charIndex);
 					}
+					charIndex += 1;
 				}
 			} else {
 				charIndex = chunk.start;
-
 				while (charIndex < end) {
-					if (!isExcluded[charIndex]) {
-						const char = this.original[charIndex];
-
-						if (char === '\n') {
-							shouldIndentNextCharacter = true;
-						} else if (char !== '\r' && shouldIndentNextCharacter) {
-							shouldIndentNextCharacter = false;
-
-							if (charIndex === chunk.start) {
-								chunk.prependRight(indentStr);
-							} else {
-								this._splitChunk(chunk, charIndex);
-								chunk = chunk.next;
-								chunk.prependRight(indentStr);
-							}
-						}
+					if (!shouldIndentNextCharacter) {
+						const nextLine = this.original.indexOf(n, charIndex);
+						if (nextLine === -1 || nextLine >= end) break;
+						shouldIndentNextCharacter = true;
+						charIndex = nextLine + 1;
+						continue;
 					}
-
+					const char = this.original.charCodeAt(charIndex);
+					if (char === NEWLINE_CHAR || char === CR_CHAR) {
+						charIndex += 1;
+						continue;
+					}
+					indentAt(charIndex);
 					charIndex += 1;
 				}
 			}
-
 			charIndex = chunk.end;
 			chunk = chunk.next;
 		}
-
 		this.outro = this.outro.replace(pattern, replacer);
-
 		return this;
 	}
-
+	/** @internal */
 	insert() {
-		throw new Error(
-			'magicString.insert(...) is deprecated. Use prependRight(...) or appendLeft(...)',
-		);
+		throw new Error("magicString.insert(...) is deprecated. Use prependRight(...) or appendLeft(...)");
 	}
-
+	/** @internal */
 	insertLeft(index, content) {
 		if (!warned.insertLeft) {
-			console.warn(
-				'magicString.insertLeft(...) is deprecated. Use magicString.appendLeft(...) instead',
-			);
+			console.warn("magicString.insertLeft(...) is deprecated. Use magicString.appendLeft(...) instead");
 			warned.insertLeft = true;
 		}
-
 		return this.appendLeft(index, content);
 	}
-
+	/** @internal */
 	insertRight(index, content) {
 		if (!warned.insertRight) {
-			console.warn(
-				'magicString.insertRight(...) is deprecated. Use magicString.prependRight(...) instead',
-			);
+			console.warn("magicString.insertRight(...) is deprecated. Use magicString.prependRight(...) instead");
 			warned.insertRight = true;
 		}
-
 		return this.prependRight(index, content);
 	}
-
+	/**
+	* Moves the characters from `start` and `end` to `index`.
+	*/
 	move(start, end, index) {
 		start = start + this.offset;
 		end = end + this.offset;
 		index = index + this.offset;
-
-		if (index >= start && index <= end) throw new Error('Cannot move a selection inside itself');
-
+		if (start === end) return this;
+		if (index >= start && index <= end) throw new Error("Cannot move a selection inside itself");
 		this._split(start);
 		this._split(end);
 		this._split(index);
-
-		const first = this.byStart[start];
-		const last = this.byEnd[end];
-
+		const first = this.byStart.get(start);
+		const last = this.byEnd.get(end);
 		const oldLeft = first.previous;
 		const oldRight = last.next;
-
-		const newRight = this.byStart[index];
+		const newRight = this.byStart.get(index);
 		if (!newRight && last === this.lastChunk) return this;
 		const newLeft = newRight ? newRight.previous : this.lastChunk;
-
 		if (oldLeft) oldLeft.next = oldRight;
 		if (oldRight) oldRight.previous = oldLeft;
-
 		if (newLeft) newLeft.next = first;
 		if (newRight) newRight.previous = last;
-
 		if (!first.previous) this.firstChunk = last.next;
 		if (!last.next) {
 			this.lastChunk = first.previous;
 			this.lastChunk.next = null;
 		}
-
 		first.previous = newLeft;
 		last.next = newRight || null;
-
 		if (!newLeft) this.firstChunk = first;
 		if (!newRight) this.lastChunk = last;
 		return this;
 	}
-
+	/**
+	* Replaces the characters from `start` to `end` with `content`, along with the appended/prepended content in
+	* that range. The same restrictions as `s.remove()` apply.
+	*
+	* The fourth argument is optional. It can have a storeName property - if true, the original name will be stored
+	* for later inclusion in a sourcemap's names array - and a contentOnly property which determines whether only
+	* the content is overwritten, or anything that was appended/prepended to the range as well.
+	*
+	* It may be preferred to use `s.update(...)` instead if you wish to avoid overwriting the appended/prepended content.
+	*/
 	overwrite(start, end, content, options) {
-		options = options || {};
-		return this.update(start, end, content, { ...options, overwrite: !options.contentOnly });
+		const optionObject = typeof options === "object" && options ? options : {};
+		return this.update(start, end, content, {
+			...optionObject,
+			overwrite: !optionObject.contentOnly
+		});
 	}
-
+	/**
+	* Replaces the characters from `start` to `end` with `content`. The same restrictions as `s.remove()` apply.
+	*
+	* The fourth argument is optional. It can have a storeName property - if true, the original name will be stored
+	* for later inclusion in a sourcemap's names array - and an overwrite property which determines whether only
+	* the content is overwritten, or anything that was appended/prepended to the range as well.
+	*/
 	update(start, end, content, options) {
 		start = start + this.offset;
 		end = end + this.offset;
-
-		if (typeof content !== 'string') throw new TypeError('replacement content must be a string');
-
+		if (typeof content !== "string") throw new TypeError("replacement content must be a string");
 		if (this.original.length !== 0) {
 			while (start < 0) start += this.original.length;
 			while (end < 0) end += this.original.length;
 		}
-
-		if (end > this.original.length) throw new Error('end is out of bounds');
-		if (start === end)
-			throw new Error(
-				'Cannot overwrite a zero-length range – use appendLeft or prependRight instead',
-			);
-
+		if (end > this.original.length) throw new Error("end is out of bounds");
+		if (start === end) throw new Error("Cannot overwrite a zero-length range – use appendLeft or prependRight instead");
 		this._split(start);
 		this._split(end);
-
 		if (options === true) {
 			if (!warned.storeName) {
-				console.warn(
-					'The final argument to magicString.overwrite(...) should be an options object. See https://github.com/rich-harris/magic-string',
-				);
+				console.warn("The final argument to magicString.overwrite(...) should be an options object. See https://github.com/rich-harris/magic-string");
 				warned.storeName = true;
 			}
-
 			options = { storeName: true };
 		}
-		const storeName = options !== undefined ? options.storeName : false;
-		const overwrite = options !== undefined ? options.overwrite : false;
-
+		const optionObject = typeof options === "object" && options ? options : {};
+		const storeName = optionObject.storeName || false;
+		const overwrite = optionObject.overwrite || false;
 		if (storeName) {
 			const original = this.original.slice(start, end);
 			Object.defineProperty(this.storedNames, original, {
 				writable: true,
 				value: true,
-				enumerable: true,
+				enumerable: true
 			});
 		}
-
-		const first = this.byStart[start];
-		const last = this.byEnd[end];
-
+		const first = this.byStart.get(start);
+		const last = this.byEnd.get(end);
 		if (first) {
 			let chunk = first;
 			while (chunk !== last) {
-				if (chunk.next !== this.byStart[chunk.end]) {
-					throw new Error('Cannot overwrite across a split point');
-				}
+				if (chunk.next !== this.byStart.get(chunk.end)) throw new Error("Cannot overwrite across a split point");
 				chunk = chunk.next;
-				chunk.edit('', false);
+				chunk.edit("", false);
 			}
-
 			first.edit(content, storeName, !overwrite);
 		} else {
-			// must be inserting at the end
-			const newChunk = new Chunk$1(start, end, '').edit(content, storeName);
-
-			// TODO last chunk in the array may not be the last chunk, if it's moved...
+			const newChunk = new Chunk$1(start, end, "").edit(content, storeName);
 			last.next = newChunk;
 			newChunk.previous = last;
 		}
 		return this;
 	}
-
+	/**
+	* Prepends the string with the specified content.
+	*/
 	prepend(content) {
-		if (typeof content !== 'string') throw new TypeError('outro content must be a string');
-
+		if (typeof content !== "string") throw new TypeError("outro content must be a string");
 		this.intro = content + this.intro;
 		return this;
 	}
-
+	/**
+	* Same as `s.appendLeft(...)`, except that the inserted content will go *before* any previous appends or prepends at index
+	*/
 	prependLeft(index, content) {
 		index = index + this.offset;
-
-		if (typeof content !== 'string') throw new TypeError('inserted content must be a string');
-
+		if (typeof content !== "string") throw new TypeError("inserted content must be a string");
 		this._split(index);
-
-		const chunk = this.byEnd[index];
-
-		if (chunk) {
-			chunk.prependLeft(content);
-		} else {
-			this.intro = content + this.intro;
-		}
+		const chunk = this.byEnd.get(index);
+		if (chunk) chunk.prependLeft(content);
+		else this.intro = content + this.intro;
 		return this;
 	}
-
+	/**
+	* Same as `s.appendRight(...)`, except that the inserted content will go *before* any previous appends or prepends at `index`
+	*/
 	prependRight(index, content) {
 		index = index + this.offset;
-
-		if (typeof content !== 'string') throw new TypeError('inserted content must be a string');
-
+		if (typeof content !== "string") throw new TypeError("inserted content must be a string");
 		this._split(index);
-
-		const chunk = this.byStart[index];
-
-		if (chunk) {
-			chunk.prependRight(content);
-		} else {
-			this.outro = content + this.outro;
-		}
+		const chunk = this.byStart.get(index);
+		if (chunk) chunk.prependRight(content);
+		else this.outro = content + this.outro;
 		return this;
 	}
-
+	/**
+	* Removes the characters from `start` to `end` (of the original string, **not** the generated string).
+	* Removing the same content twice, or making removals that partially overlap, will cause an error.
+	*/
 	remove(start, end) {
 		start = start + this.offset;
 		end = end + this.offset;
-
 		if (this.original.length !== 0) {
 			while (start < 0) start += this.original.length;
 			while (end < 0) end += this.original.length;
 		}
-
 		if (start === end) return this;
-
-		if (start < 0 || end > this.original.length) throw new Error('Character is out of bounds');
-		if (start > end) throw new Error('end must be greater than start');
-
+		if (start < 0 || end > this.original.length) throw new Error("Character is out of bounds");
+		if (start > end) throw new Error("end must be greater than start");
 		this._split(start);
 		this._split(end);
-
-		let chunk = this.byStart[start];
-
+		let chunk = this.byStart.get(start);
 		while (chunk) {
-			chunk.intro = '';
-			chunk.outro = '';
-			chunk.edit('');
-
-			chunk = end > chunk.end ? this.byStart[chunk.end] : null;
+			chunk.intro = "";
+			chunk.outro = "";
+			chunk.edit("");
+			chunk = end > chunk.end ? this.byStart.get(chunk.end) : null;
 		}
 		return this;
 	}
-
+	/**
+	* Reset the modified characters from `start` to `end` (of the original string, **not** the generated string).
+	*/
 	reset(start, end) {
 		start = start + this.offset;
 		end = end + this.offset;
-
 		if (this.original.length !== 0) {
 			while (start < 0) start += this.original.length;
 			while (end < 0) end += this.original.length;
 		}
-
 		if (start === end) return this;
-
-		if (start < 0 || end > this.original.length) throw new Error('Character is out of bounds');
-		if (start > end) throw new Error('end must be greater than start');
-
+		if (start < 0 || end > this.original.length) throw new Error("Character is out of bounds");
+		if (start > end) throw new Error("end must be greater than start");
 		this._split(start);
 		this._split(end);
-
-		let chunk = this.byStart[start];
-
+		let chunk = this.byStart.get(start);
 		while (chunk) {
 			chunk.reset();
-
-			chunk = end > chunk.end ? this.byStart[chunk.end] : null;
+			chunk = end > chunk.end ? this.byStart.get(chunk.end) : null;
 		}
 		return this;
 	}
-
 	lastChar() {
 		if (this.outro.length) return this.outro[this.outro.length - 1];
 		let chunk = this.lastChunk;
-		do {
+		while (chunk) {
 			if (chunk.outro.length) return chunk.outro[chunk.outro.length - 1];
 			if (chunk.content.length) return chunk.content[chunk.content.length - 1];
 			if (chunk.intro.length) return chunk.intro[chunk.intro.length - 1];
-		} while ((chunk = chunk.previous));
+			chunk = chunk.previous;
+		}
 		if (this.intro.length) return this.intro[this.intro.length - 1];
-		return '';
+		return "";
 	}
-
 	lastLine() {
 		let lineIndex = this.outro.lastIndexOf(n);
 		if (lineIndex !== -1) return this.outro.substr(lineIndex + 1);
 		let lineStr = this.outro;
 		let chunk = this.lastChunk;
-		do {
+		while (chunk) {
 			if (chunk.outro.length > 0) {
 				lineIndex = chunk.outro.lastIndexOf(n);
 				if (lineIndex !== -1) return chunk.outro.substr(lineIndex + 1) + lineStr;
 				lineStr = chunk.outro + lineStr;
 			}
-
 			if (chunk.content.length > 0) {
 				lineIndex = chunk.content.lastIndexOf(n);
 				if (lineIndex !== -1) return chunk.content.substr(lineIndex + 1) + lineStr;
 				lineStr = chunk.content + lineStr;
 			}
-
 			if (chunk.intro.length > 0) {
 				lineIndex = chunk.intro.lastIndexOf(n);
 				if (lineIndex !== -1) return chunk.intro.substr(lineIndex + 1) + lineStr;
 				lineStr = chunk.intro + lineStr;
 			}
-		} while ((chunk = chunk.previous));
+			chunk = chunk.previous;
+		}
 		lineIndex = this.intro.lastIndexOf(n);
 		if (lineIndex !== -1) return this.intro.substr(lineIndex + 1) + lineStr;
 		return this.intro + lineStr;
 	}
-
+	/**
+	* Returns the content of the generated string that corresponds to the slice between `start` and `end` of the original string.
+	* Throws error if the indices are for characters that were already removed.
+	*/
 	slice(start = 0, end = this.original.length - this.offset) {
 		start = start + this.offset;
 		end = end + this.offset;
-
 		if (this.original.length !== 0) {
 			while (start < 0) start += this.original.length;
 			while (end < 0) end += this.original.length;
 		}
-
-		let result = '';
-
-		// find start chunk
+		let result = "";
 		let chunk = this.firstChunk;
 		while (chunk && (chunk.start > start || chunk.end <= start)) {
-			// found end chunk before start
-			if (chunk.start < end && chunk.end >= end) {
-				return result;
-			}
-
+			if (chunk.start < end && chunk.end >= end) return result;
 			chunk = chunk.next;
 		}
-
-		if (chunk && chunk.edited && chunk.start !== start)
-			throw new Error(`Cannot use replaced character ${start} as slice start anchor.`);
-
+		if (chunk && chunk.edited && chunk.start !== start) throw new Error(`Cannot use replaced character ${start} as slice start anchor.`);
 		const startChunk = chunk;
 		while (chunk) {
-			if (chunk.intro && (startChunk !== chunk || chunk.start === start)) {
-				result += chunk.intro;
-			}
-
+			if (chunk.intro && (startChunk !== chunk || chunk.start === start)) result += chunk.intro;
 			const containsEnd = chunk.start < end && chunk.end >= end;
-			if (containsEnd && chunk.edited && chunk.end !== end)
-				throw new Error(`Cannot use replaced character ${end} as slice end anchor.`);
-
+			if (containsEnd && chunk.edited && chunk.end !== end) throw new Error(`Cannot use replaced character ${end} as slice end anchor.`);
 			const sliceStart = startChunk === chunk ? start - chunk.start : 0;
 			const sliceEnd = containsEnd ? chunk.content.length + end - chunk.end : chunk.content.length;
-
 			result += chunk.content.slice(sliceStart, sliceEnd);
-
-			if (chunk.outro && (!containsEnd || chunk.end === end)) {
-				result += chunk.outro;
-			}
-
-			if (containsEnd) {
-				break;
-			}
-
+			if (chunk.outro && (!containsEnd || chunk.end === end)) result += chunk.outro;
+			if (containsEnd) break;
 			chunk = chunk.next;
 		}
-
 		return result;
 	}
-
-	// TODO deprecate this? not really very useful
+	/**
+	* Returns a clone of `s`, with all content before the `start` and `end` characters of the original string removed.
+	*/
 	snip(start, end) {
 		const clone = this.clone();
 		clone.remove(0, start);
 		clone.remove(end, clone.original.length);
-
 		return clone;
 	}
-
+	/** @internal */
 	_split(index) {
-		if (this.byStart[index] || this.byEnd[index]) return;
-
+		if (this.byStart.get(index) || this.byEnd.get(index)) return;
 		let chunk = this.lastSearchedChunk;
+		let previousChunk = chunk;
 		const searchForward = index > chunk.end;
-
 		while (chunk) {
 			if (chunk.contains(index)) return this._splitChunk(chunk, index);
-
-			chunk = searchForward ? this.byStart[chunk.end] : this.byEnd[chunk.start];
+			chunk = searchForward ? this.byStart.get(chunk.end) : this.byEnd.get(chunk.start);
+			if (chunk === previousChunk) return;
+			previousChunk = chunk;
 		}
 	}
-
+	/** @internal */
 	_splitChunk(chunk, index) {
 		if (chunk.edited && chunk.content.length) {
-			// zero-length edited chunks are a special case (overlapping replacements)
 			const loc = getLocator(this.original)(index);
-			throw new Error(
-				`Cannot split a chunk that has already been edited (${loc.line}:${loc.column} – "${chunk.original}")`,
-			);
+			throw new Error(`Cannot split a chunk that has already been edited (${loc.line}:${loc.column} – "${chunk.original}")`);
 		}
-
 		const newChunk = chunk.split(index);
-
-		this.byEnd[index] = chunk;
-		this.byStart[index] = newChunk;
-		this.byEnd[newChunk.end] = newChunk;
-
+		this.byEnd.set(index, chunk);
+		this.byStart.set(index, newChunk);
+		this.byEnd.set(newChunk.end, newChunk);
 		if (chunk === this.lastChunk) this.lastChunk = newChunk;
-
 		this.lastSearchedChunk = chunk;
 		return true;
 	}
-
+	/**
+	* Returns the generated string.
+	*/
 	toString() {
 		let str = this.intro;
-
 		let chunk = this.firstChunk;
 		while (chunk) {
 			str += chunk.toString();
 			chunk = chunk.next;
 		}
-
 		return str + this.outro;
 	}
-
+	/**
+	* Returns true if the resulting source is empty (disregarding white space).
+	*/
 	isEmpty() {
 		let chunk = this.firstChunk;
-		do {
-			if (
-				(chunk.intro.length && chunk.intro.trim()) ||
-				(chunk.content.length && chunk.content.trim()) ||
-				(chunk.outro.length && chunk.outro.trim())
-			)
-				return false;
-		} while ((chunk = chunk.next));
+		while (chunk) {
+			if (chunk.intro.length && chunk.intro.trim() || chunk.content.length && chunk.content.trim() || chunk.outro.length && chunk.outro.trim()) return false;
+			chunk = chunk.next;
+		}
 		return true;
 	}
-
 	length() {
 		let chunk = this.firstChunk;
 		let length = 0;
-		do {
+		while (chunk) {
 			length += chunk.intro.length + chunk.content.length + chunk.outro.length;
-		} while ((chunk = chunk.next));
+			chunk = chunk.next;
+		}
 		return length;
 	}
-
+	/**
+	* Removes empty lines from the start and end.
+	*/
 	trimLines() {
-		return this.trim('[\\r\\n]');
+		return this.trim("[\\r\\n]");
 	}
-
+	/**
+	* Trims content matching `charType` (defaults to `\s`, i.e. whitespace) from the start and end.
+	*/
 	trim(charType) {
 		return this.trimStart(charType).trimEnd(charType);
 	}
-
+	/** @internal */
 	trimEndAborted(charType) {
-		const rx = new RegExp((charType || '\\s') + '+$');
-
-		this.outro = this.outro.replace(rx, '');
+		const rx = new RegExp(`${charType || "\\s"}+$`);
+		this.outro = this.outro.replace(rx, "");
 		if (this.outro.length) return true;
-
 		let chunk = this.lastChunk;
-
 		do {
 			const end = chunk.end;
 			const aborted = chunk.trimEnd(rx);
-
-			// if chunk was trimmed, we have a new lastChunk
 			if (chunk.end !== end) {
-				if (this.lastChunk === chunk) {
-					this.lastChunk = chunk.next;
-				}
-
-				this.byEnd[chunk.end] = chunk;
-				this.byStart[chunk.next.start] = chunk.next;
-				this.byEnd[chunk.next.end] = chunk.next;
+				if (this.lastChunk === chunk) this.lastChunk = chunk.next;
+				this.byEnd.set(chunk.end, chunk);
+				this.byStart.set(chunk.next.start, chunk.next);
+				this.byEnd.set(chunk.next.end, chunk.next);
 			}
-
 			if (aborted) return true;
 			chunk = chunk.previous;
 		} while (chunk);
-
 		return false;
 	}
-
+	/**
+	* Trims content matching `charType` (defaults to `\s`, i.e. whitespace) from the end.
+	*/
 	trimEnd(charType) {
 		this.trimEndAborted(charType);
 		return this;
 	}
+	/** @internal */
 	trimStartAborted(charType) {
-		const rx = new RegExp('^' + (charType || '\\s') + '+');
-
-		this.intro = this.intro.replace(rx, '');
+		const rx = new RegExp(`^${charType || "\\s"}+`);
+		this.intro = this.intro.replace(rx, "");
 		if (this.intro.length) return true;
-
 		let chunk = this.firstChunk;
-
 		do {
 			const end = chunk.end;
 			const aborted = chunk.trimStart(rx);
-
 			if (chunk.end !== end) {
-				// special case...
 				if (chunk === this.lastChunk) this.lastChunk = chunk.next;
-
-				this.byEnd[chunk.end] = chunk;
-				this.byStart[chunk.next.start] = chunk.next;
-				this.byEnd[chunk.next.end] = chunk.next;
+				this.byEnd.set(chunk.end, chunk);
+				this.byStart.set(chunk.next.start, chunk.next);
+				this.byEnd.set(chunk.next.end, chunk.next);
 			}
-
 			if (aborted) return true;
 			chunk = chunk.next;
 		} while (chunk);
-
 		return false;
 	}
-
+	/**
+	* Trims content matching `charType` (defaults to `\s`, i.e. whitespace) from the start.
+	*/
 	trimStart(charType) {
 		this.trimStartAborted(charType);
 		return this;
 	}
-
+	/**
+	* Indicates if the string has been changed.
+	*/
 	hasChanged() {
 		return this.original !== this.toString();
 	}
-
+	/** @internal */
 	_replaceRegexp(searchValue, replacement) {
 		function getReplacement(match, str) {
-			if (typeof replacement === 'string') {
-				return replacement.replace(/\$(\$|&|\d+)/g, (_, i) => {
-					// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/replace#specifying_a_string_as_a_parameter
-					if (i === '$') return '$';
-					if (i === '&') return match[0];
-					const num = +i;
-					if (num < match.length) return match[+i];
-					return `$${i}`;
-				});
-			} else {
-				return replacement(...match, match.index, str, match.groups);
-			}
+			if (typeof replacement === "string") return replacement.replace(/\$(\$|&|\d+)/g, (_, i) => {
+				if (i === "$") return "$";
+				if (i === "&") return match[0];
+				if (+i < match.length) return match[+i];
+				return `$${i}`;
+			});
+			else return replacement(match[0], ...match.slice(1), match.index, str, match.groups);
 		}
 		function matchAll(re, str) {
-			let match;
 			const matches = [];
-			while ((match = re.exec(str))) {
+			while (true) {
+				const match = re.exec(str);
+				if (!match) break;
 				matches.push(match);
 			}
 			return matches;
 		}
-		if (searchValue.global) {
-			const matches = matchAll(searchValue, this.original);
-			matches.forEach((match) => {
-				if (match.index != null) {
-					const replacement = getReplacement(match, this.original);
-					if (replacement !== match[0]) {
-						this.overwrite(match.index, match.index + match[0].length, replacement);
-					}
-				}
-			});
-		} else {
+		if (searchValue.global) matchAll(searchValue, this.original).forEach((match) => {
+			if (match.index != null) {
+				const replacement = getReplacement(match, this.original);
+				if (replacement !== match[0]) this.overwrite(match.index, match.index + match[0].length, replacement);
+			}
+		});
+		else {
 			const match = this.original.match(searchValue);
 			if (match && match.index != null) {
 				const replacement = getReplacement(match, this.original);
-				if (replacement !== match[0]) {
-					this.overwrite(match.index, match.index + match[0].length, replacement);
-				}
+				if (replacement !== match[0]) this.overwrite(match.index, match.index + match[0].length, replacement);
 			}
 		}
 		return this;
 	}
-
+	/** @internal */
 	_replaceString(string, replacement) {
 		const { original } = this;
 		const index = original.indexOf(string);
-
 		if (index !== -1) {
-			this.overwrite(index, index + string.length, replacement);
+			if (typeof replacement === "function") replacement = replacement(string, index, original);
+			if (string !== replacement) this.overwrite(index, index + string.length, replacement);
 		}
-
 		return this;
 	}
-
+	/**
+	* String replacement with RegExp or string.
+	*/
 	replace(searchValue, replacement) {
-		if (typeof searchValue === 'string') {
-			return this._replaceString(searchValue, replacement);
-		}
-
+		if (typeof searchValue === "string") return this._replaceString(searchValue, replacement);
 		return this._replaceRegexp(searchValue, replacement);
 	}
-
+	/** @internal */
 	_replaceAllString(string, replacement) {
 		const { original } = this;
 		const stringLength = string.length;
-		for (
-			let index = original.indexOf(string);
-			index !== -1;
-			index = original.indexOf(string, index + stringLength)
-		) {
+		for (let index = original.indexOf(string); index !== -1; index = original.indexOf(string, index + stringLength)) {
 			const previous = original.slice(index, index + stringLength);
-			if (previous !== replacement) this.overwrite(index, index + stringLength, replacement);
+			const _replacement = typeof replacement === "function" ? replacement(previous, index, original) : replacement;
+			if (previous !== _replacement) this.overwrite(index, index + stringLength, _replacement);
 		}
-
 		return this;
 	}
-
+	/**
+	* Same as `s.replace`, but replace all matched strings instead of just one.
+	*/
 	replaceAll(searchValue, replacement) {
-		if (typeof searchValue === 'string') {
-			return this._replaceAllString(searchValue, replacement);
-		}
-
-		if (!searchValue.global) {
-			throw new TypeError(
-				'MagicString.prototype.replaceAll called with a non-global RegExp argument',
-			);
-		}
-
+		if (typeof searchValue === "string") return this._replaceAllString(searchValue, replacement);
+		if (!searchValue.global) throw new TypeError("MagicString.prototype.replaceAll called with a non-global RegExp argument");
 		return this._replaceRegexp(searchValue, replacement);
 	}
-}
-
+};
+//#endregion
+//#region src/Bundle.ts
 const hasOwnProp = Object.prototype.hasOwnProperty;
-
-let Bundle$1 = class Bundle {
+var Bundle$1 = class Bundle {
 	constructor(options = {}) {
-		this.intro = options.intro || '';
-		this.separator = options.separator !== undefined ? options.separator : '\n';
+		this.intro = options.intro || "";
+		this.separator = options.separator !== void 0 ? options.separator : "\n";
 		this.sources = [];
 		this.uniqueSources = [];
 		this.uniqueSourceIndexByFilename = {};
 	}
-
+	/**
+	* Adds the specified source to the bundle, which can either be a `MagicString` object directly,
+	* or an options object that holds a magic string `content` property and optionally provides
+	* a `filename` for the source within the bundle, as well as an optional `ignoreList` hint
+	* (which defaults to `false`). The `filename` is used when constructing the source map for the
+	* bundle, to identify this `source` in the source map's `sources` field. The `ignoreList` hint
+	* is used to populate the `x_google_ignoreList` extension field in the source map, which is a
+	* mechanism for tools to signal to debuggers that certain sources should be ignored by default
+	* (depending on user preferences).
+	*/
 	addSource(source) {
-		if (source instanceof MagicString) {
-			return this.addSource({
-				content: source,
-				filename: source.filename,
-				separator: this.separator,
-			});
-		}
-
-		if (!isObject(source) || !source.content) {
-			throw new Error(
-				'bundle.addSource() takes an object with a `content` property, which should be an instance of MagicString, and an optional `filename`',
-			);
-		}
-
-		['filename', 'ignoreList', 'indentExclusionRanges', 'separator'].forEach((option) => {
+		if (source instanceof MagicString) return this.addSource({
+			content: source,
+			filename: source.filename,
+			separator: this.separator
+		});
+		if (!isObject(source) || !source.content) throw new Error("bundle.addSource() takes an object with a `content` property, which should be an instance of MagicString, and an optional `filename`");
+		[
+			"filename",
+			"ignoreList",
+			"indentExclusionRanges",
+			"separator"
+		].forEach((option) => {
 			if (!hasOwnProp.call(source, option)) source[option] = source.content[option];
 		});
-
-		if (source.separator === undefined) {
-			// TODO there's a bunch of this sort of thing, needs cleaning up
-			source.separator = this.separator;
+		if (source.separator === void 0) source.separator = this.separator;
+		if (source.filename) if (!hasOwnProp.call(this.uniqueSourceIndexByFilename, source.filename)) {
+			this.uniqueSourceIndexByFilename[source.filename] = this.uniqueSources.length;
+			this.uniqueSources.push({
+				filename: source.filename,
+				content: source.content.original
+			});
+		} else {
+			const uniqueSource = this.uniqueSources[this.uniqueSourceIndexByFilename[source.filename]];
+			if (source.content.original !== uniqueSource.content) throw new Error(`Illegal source: same filename (${source.filename}), different contents`);
 		}
-
-		if (source.filename) {
-			if (!hasOwnProp.call(this.uniqueSourceIndexByFilename, source.filename)) {
-				this.uniqueSourceIndexByFilename[source.filename] = this.uniqueSources.length;
-				this.uniqueSources.push({ filename: source.filename, content: source.content.original });
-			} else {
-				const uniqueSource = this.uniqueSources[this.uniqueSourceIndexByFilename[source.filename]];
-				if (source.content.original !== uniqueSource.content) {
-					throw new Error(`Illegal source: same filename (${source.filename}), different contents`);
-				}
-			}
-		}
-
 		this.sources.push(source);
 		return this;
 	}
-
 	append(str, options) {
 		this.addSource({
 			content: new MagicString(str),
-			separator: (options && options.separator) || '',
+			separator: options && options.separator || ""
 		});
-
 		return this;
 	}
-
 	clone() {
 		const bundle = new Bundle({
 			intro: this.intro,
-			separator: this.separator,
+			separator: this.separator
 		});
-
 		this.sources.forEach((source) => {
 			bundle.addSource({
 				filename: source.filename,
 				content: source.content.clone(),
-				separator: source.separator,
+				separator: source.separator
 			});
 		});
-
 		return bundle;
 	}
-
 	generateDecodedMap(options = {}) {
 		const names = [];
-		let x_google_ignoreList = undefined;
+		let x_google_ignoreList;
 		this.sources.forEach((source) => {
 			Object.keys(source.content.storedNames).forEach((name) => {
-				if (!~names.indexOf(name)) names.push(name);
+				if (!names.includes(name)) names.push(name);
 			});
 		});
-
 		const mappings = new Mappings(options.hires);
-
-		if (this.intro) {
-			mappings.advance(this.intro);
-		}
-
+		if (this.intro) mappings.advance(this.intro);
 		this.sources.forEach((source, i) => {
-			if (i > 0) {
-				mappings.advance(this.separator);
-			}
-
+			if (i > 0) mappings.advance(this.separator);
 			const sourceIndex = source.filename ? this.uniqueSourceIndexByFilename[source.filename] : -1;
 			const magicString = source.content;
 			const locate = getLocator(magicString.original);
-
-			if (magicString.intro) {
-				mappings.advance(magicString.intro);
-			}
-
+			if (magicString.intro) mappings.advance(magicString.intro);
 			magicString.firstChunk.eachNext((chunk) => {
 				const loc = locate(chunk.start);
-
 				if (chunk.intro.length) mappings.advance(chunk.intro);
-
-				if (source.filename) {
-					if (chunk.edited) {
-						mappings.addEdit(
-							sourceIndex,
-							chunk.content,
-							loc,
-							chunk.storeName ? names.indexOf(chunk.original) : -1,
-						);
-					} else {
-						mappings.addUneditedChunk(
-							sourceIndex,
-							chunk,
-							magicString.original,
-							loc,
-							magicString.sourcemapLocations,
-						);
-					}
-				} else {
-					mappings.advance(chunk.content);
-				}
-
+				if (source.filename) if (chunk.edited) mappings.addEdit(sourceIndex, chunk.content, loc, chunk.storeName ? names.indexOf(chunk.original) : -1);
+				else mappings.addUneditedChunk(sourceIndex, chunk, magicString.original, loc, magicString.sourcemapLocations);
+				else mappings.advance(chunk.content);
 				if (chunk.outro.length) mappings.advance(chunk.outro);
 			});
-
-			if (magicString.outro) {
-				mappings.advance(magicString.outro);
-			}
-
+			if (magicString.outro) mappings.advance(magicString.outro);
 			if (source.ignoreList && sourceIndex !== -1) {
-				if (x_google_ignoreList === undefined) {
-					x_google_ignoreList = [];
-				}
+				if (x_google_ignoreList === void 0) x_google_ignoreList = [];
 				x_google_ignoreList.push(sourceIndex);
 			}
 		});
-
 		return {
-			file: options.file ? options.file.split(/[/\\]/).pop() : undefined,
+			file: options.file ? options.file.split(/[/\\]/).pop() : void 0,
 			sources: this.uniqueSources.map((source) => {
 				return options.file ? getRelativePath(options.file, source.filename) : source.filename;
 			}),
@@ -5418,137 +5579,91 @@ let Bundle$1 = class Bundle {
 			}),
 			names,
 			mappings: mappings.raw,
-			x_google_ignoreList,
+			x_google_ignoreList
 		};
 	}
-
 	generateMap(options) {
 		return new SourceMap(this.generateDecodedMap(options));
 	}
-
 	getIndentString() {
 		const indentStringCounts = {};
-
 		this.sources.forEach((source) => {
 			const indentStr = source.content._getRawIndentString();
-
 			if (indentStr === null) return;
-
 			if (!indentStringCounts[indentStr]) indentStringCounts[indentStr] = 0;
 			indentStringCounts[indentStr] += 1;
 		});
-
-		return (
-			Object.keys(indentStringCounts).sort((a, b) => {
-				return indentStringCounts[a] - indentStringCounts[b];
-			})[0] || '\t'
-		);
+		return Object.keys(indentStringCounts).sort((a, b) => {
+			return indentStringCounts[a] - indentStringCounts[b];
+		})[0] || "	";
 	}
-
 	indent(indentStr) {
-		if (!arguments.length) {
-			indentStr = this.getIndentString();
-		}
-
-		if (indentStr === '') return this; // noop
-
-		let trailingNewline = !this.intro || this.intro.slice(-1) === '\n';
-
+		if (!arguments.length) indentStr = this.getIndentString();
+		if (indentStr === "") return this;
+		let trailingNewline = !this.intro || this.intro.slice(-1) === "\n";
 		this.sources.forEach((source, i) => {
-			const separator = source.separator !== undefined ? source.separator : this.separator;
-			const indentStart = trailingNewline || (i > 0 && /\r?\n$/.test(separator));
-
+			const separator = source.separator !== void 0 ? source.separator : this.separator;
+			const indentStart = trailingNewline || i > 0 && /\r?\n$/.test(separator);
 			source.content.indent(indentStr, {
 				exclude: source.indentExclusionRanges,
-				indentStart, //: trailingNewline || /\r?\n$/.test( separator )  //true///\r?\n/.test( separator )
+				indentStart
 			});
-
-			trailingNewline = source.content.lastChar() === '\n';
+			trailingNewline = source.content.lastChar() === "\n";
 		});
-
-		if (this.intro) {
-			this.intro =
-				indentStr +
-				this.intro.replace(/^[^\n]/gm, (match, index) => {
-					return index > 0 ? indentStr + match : match;
-				});
-		}
-
+		if (this.intro) this.intro = indentStr + this.intro.replace(/^[^\n]/gm, (match, index) => {
+			return index > 0 ? indentStr + match : match;
+		});
 		return this;
 	}
-
 	prepend(str) {
 		this.intro = str + this.intro;
 		return this;
 	}
-
 	toString() {
-		const body = this.sources
-			.map((source, i) => {
-				const separator = source.separator !== undefined ? source.separator : this.separator;
-				const str = (i > 0 ? separator : '') + source.content.toString();
-
-				return str;
-			})
-			.join('');
-
+		const body = this.sources.map((source, i) => {
+			const separator = source.separator !== void 0 ? source.separator : this.separator;
+			return (i > 0 ? separator : "") + source.content.toString();
+		}).join("");
 		return this.intro + body;
 	}
-
 	isEmpty() {
 		if (this.intro.length && this.intro.trim()) return false;
 		if (this.sources.some((source) => !source.content.isEmpty())) return false;
 		return true;
 	}
-
 	length() {
-		return this.sources.reduce(
-			(length, source) => length + source.content.length(),
-			this.intro.length,
-		);
+		return this.sources.reduce((length, source) => length + source.content.length(), this.intro.length);
 	}
-
 	trimLines() {
-		return this.trim('[\\r\\n]');
+		return this.trim("[\\r\\n]");
 	}
-
 	trim(charType) {
 		return this.trimStart(charType).trimEnd(charType);
 	}
-
 	trimStart(charType) {
-		const rx = new RegExp('^' + (charType || '\\s') + '+');
-		this.intro = this.intro.replace(rx, '');
-
+		const rx = new RegExp(`^${charType || "\\s"}+`);
+		this.intro = this.intro.replace(rx, "");
 		if (!this.intro) {
 			let source;
 			let i = 0;
-
 			do {
 				source = this.sources[i++];
-				if (!source) {
-					break;
-				}
+				if (!source) break;
 			} while (!source.content.trimStartAborted(charType));
 		}
-
 		return this;
 	}
-
 	trimEnd(charType) {
-		const rx = new RegExp((charType || '\\s') + '+$');
-
+		const rx = new RegExp(`${charType || "\\s"}+$`);
 		let source;
 		let i = this.sources.length - 1;
-
 		do {
 			source = this.sources[i--];
 			if (!source) {
-				this.intro = this.intro.replace(rx, '');
+				this.intro = this.intro.replace(rx, "");
 				break;
 			}
 		} while (!source.content.trimEndAborted(charType));
-
 		return this;
 	}
 };
@@ -5753,7 +5868,22 @@ function renderSystemExportSequenceBeforeExpression(exportedVariable, expression
 const UnknownKey = Symbol('Unknown Key');
 const UnknownNonAccessorKey = Symbol('Unknown Non-Accessor Key');
 const UnknownInteger = Symbol('Unknown Integer');
+const UnknownWellKnown = Symbol('Unknown Well-Known');
 const SymbolToStringTag = Symbol('Symbol.toStringTag');
+const SymbolDispose = Symbol('Symbol.asyncDispose');
+const SymbolAsyncDispose = Symbol('Symbol.dispose');
+const SymbolHasInstance = Symbol('Symbol.hasInstance');
+const WELL_KNOWN_SYMBOLS_LIST = [
+    SymbolToStringTag,
+    SymbolDispose,
+    SymbolAsyncDispose,
+    SymbolHasInstance
+];
+const WELL_KNOWN_SYMBOLS = new Set(WELL_KNOWN_SYMBOLS_LIST);
+const isAnyWellKnown = (v) => WELL_KNOWN_SYMBOLS.has(v) || v === UnknownWellKnown;
+const TREE_SHAKEABLE_SYMBOLS_LIST = [SymbolHasInstance, SymbolDispose, SymbolAsyncDispose];
+const TREE_SHAKEABLE_SYMBOLS = new Set(TREE_SHAKEABLE_SYMBOLS_LIST);
+const isConcreteKey = (v) => typeof v === 'string' || WELL_KNOWN_SYMBOLS.has(v);
 const EMPTY_PATH = [];
 const UNKNOWN_PATH = [UnknownKey];
 // For deoptimizations, this means we are modifying an unknown property but did
@@ -5763,6 +5893,7 @@ const UNKNOWN_PATH = [UnknownKey];
 // Object.defineProperty
 const UNKNOWN_NON_ACCESSOR_PATH = [UnknownNonAccessorKey];
 const UNKNOWN_INTEGER_PATH = [UnknownInteger];
+const INSTANCEOF_PATH = [SymbolHasInstance];
 const EntitiesKey = Symbol('Entities');
 class EntityPathTracker {
     constructor() {
@@ -5835,7 +5966,7 @@ class IncludedFullPathTracker {
             }
             // Including UnknownKey automatically includes all nested paths.
             // From above, we know that UnknownKey is not included yet.
-            if (typeof pathSegment === 'symbol') {
+            if (!isConcreteKey(pathSegment)) {
                 // Hopefully, this saves some memory over just setting
                 // currentPaths[UnknownKey] = EMPTY_OBJECT
                 parent[parentSegment] = UNKNOWN_INCLUDED_PATH;
@@ -5866,7 +5997,7 @@ class IncludedTopLevelPathTracker {
         if (!firstPathSegment) {
             return included;
         }
-        if (typeof firstPathSegment === 'symbol') {
+        if (!isConcreteKey(firstPathSegment)) {
             this.includedPaths = UNKNOWN_INCLUDED_TOP_LEVEL_PATH;
             return false;
         }
@@ -6057,10 +6188,13 @@ const deoptimizeInteraction = (interaction) => {
         argument?.deoptimizePath(UNKNOWN_PATH);
     }
 };
-const includeInteraction = ({ args }, context) => {
+const includeInteraction = (interaction, context) => {
     // We do not re-include the "this" argument as we expect this is already
     // re-included at the call site
-    args[0]?.includePath(UNKNOWN_PATH, context);
+    interaction.args[0]?.includePath(UNKNOWN_PATH, context);
+    includeInteractionWithoutThis(interaction, context);
+};
+const includeInteractionWithoutThis = ({ args }, context) => {
     for (let argumentIndex = 1; argumentIndex < args.length; argumentIndex++) {
         const argument = args[argumentIndex];
         if (argument) {
@@ -6197,12 +6331,15 @@ class Variable extends ExpressionEntity {
     }
 }
 
+/** Synthetic import name for source phase imports, similar to '*' for namespaces */
+const SOURCE_PHASE_IMPORT = '*source';
 class ExternalVariable extends Variable {
     constructor(module, name) {
         super(name);
         this.referenced = false;
         this.module = module;
         this.isNamespace = name === '*';
+        this.isSourcePhase = name === SOURCE_PHASE_IMPORT;
     }
     addReference(identifier) {
         this.referenced = true;
@@ -6286,13 +6423,14 @@ const RESERVED_NAMES = new Set([
 ]);
 
 const illegalCharacters = /[^\w$]/g;
+const illegalCharacter = /[^\w$]/;
 const startsWithDigit = (value) => /\d/.test(value[0]);
 const needsEscape = (value) => startsWithDigit(value) || RESERVED_NAMES.has(value) || value === 'arguments';
 function isLegal(value) {
     if (needsEscape(value)) {
         return false;
     }
-    return !illegalCharacters.test(value);
+    return !illegalCharacter.test(value);
 }
 function makeLegal(value) {
     value = value
@@ -6332,6 +6470,7 @@ class ExternalModule {
         this.reexported = false;
         this.used = false;
         this.declarations = new Map();
+        this.importersByExportedName = new Map();
         this.mostCommonSuggestion = 0;
         this.nameSuggestions = new Map();
         this.suggestedVariableName = makeLegal(id.split(/[/\\]/).pop());
@@ -6361,14 +6500,18 @@ class ExternalModule {
             isIncluded: null,
             meta,
             moduleSideEffects,
+            safeVariableNames: null,
             syntheticNamedExports: false
         };
     }
     cacheInfoGetters() {
         cacheObjectGetters(this.info, ['dynamicImporters', 'importers']);
     }
-    getVariableForExportName(name) {
+    getVariableForExportName(name, { importChain }) {
         const declaration = this.declarations.get(name);
+        for (const module of importChain) {
+            getOrCreate(this.importersByExportedName, name, getNewSet).add(module);
+        }
         if (declaration)
             return [declaration];
         const externalVariable = new ExternalVariable(this, name);
@@ -6392,7 +6535,10 @@ class ExternalModule {
             return;
         const importersSet = new Set();
         for (const name of unused) {
-            for (const importer of this.declarations.get(name).module.importers) {
+            const importersOfName = this.importersByExportedName.get(name);
+            for (const importer of this.importers) {
+                if (!importersOfName?.has(importer))
+                    continue;
                 importersSet.add(importer);
             }
         }
@@ -6735,7 +6881,28 @@ function isObjectExpressionNode(node) {
     return node instanceof NodeBase && node.type === parseAst_js.ObjectExpression;
 }
 function isPropertyNode(node) {
-    return node.type === parseAst_js.Property;
+    return node instanceof NodeBase && node.type === parseAst_js.Property;
+}
+function isArrowFunctionExpressionNode(node) {
+    return node instanceof NodeBase && node.type === parseAst_js.ArrowFunctionExpression;
+}
+function isFunctionExpressionNode(node) {
+    return node instanceof NodeBase && node.type === parseAst_js.FunctionExpression;
+}
+function isCallExpressionNode(node) {
+    return node instanceof NodeBase && node.type === parseAst_js.CallExpression;
+}
+function isMemberExpressionNode(node) {
+    return node instanceof NodeBase && node.type === parseAst_js.MemberExpression;
+}
+function isAwaitExpressionNode(node) {
+    return node instanceof NodeBase && node.type === parseAst_js.AwaitExpression;
+}
+function isIdentifierNode(node) {
+    return node instanceof NodeBase && node.type === parseAst_js.Identifier;
+}
+function isExpressionStatementNode(node) {
+    return node instanceof NodeBase && node.type === parseAst_js.ExpressionStatement;
 }
 
 function assembleMemberDescriptions(memberDescriptions, inheritedDescriptions = null) {
@@ -7054,12 +7221,13 @@ class ObjectEntity extends ExpressionEntity {
         this.immutable = immutable;
         this.additionalExpressionsToBeDeoptimized = new Set();
         this.allProperties = [];
-        this.deoptimizedPaths = Object.create(null);
-        this.expressionsToBeDeoptimizedByKey = Object.create(null);
-        this.gettersByKey = Object.create(null);
-        this.propertiesAndGettersByKey = Object.create(null);
-        this.propertiesAndSettersByKey = Object.create(null);
-        this.settersByKey = Object.create(null);
+        this.alwaysIncludedProperties = new Set();
+        this.deoptimizedPaths = new Map();
+        this.expressionsToBeDeoptimizedByKey = new Map();
+        this.gettersByKey = new Map();
+        this.propertiesAndGettersByKey = new Map();
+        this.propertiesAndSettersByKey = new Map();
+        this.settersByKey = new Map();
         this.unknownIntegerProps = [];
         this.unmatchableGetters = [];
         this.unmatchablePropertiesAndGetters = [];
@@ -7070,7 +7238,7 @@ class ObjectEntity extends ExpressionEntity {
         }
         else {
             this.propertiesAndGettersByKey = this.propertiesAndSettersByKey = properties;
-            for (const propertiesForKey of Object.values(properties)) {
+            for (const propertiesForKey of properties.values()) {
                 this.allProperties.push(...propertiesForKey);
             }
         }
@@ -7087,8 +7255,8 @@ class ObjectEntity extends ExpressionEntity {
             return;
         }
         for (const properties of [
-            ...Object.values(this.propertiesAndGettersByKey),
-            ...Object.values(this.settersByKey)
+            ...this.propertiesAndGettersByKey.values(),
+            ...this.settersByKey.values()
         ]) {
             for (const property of properties) {
                 property.deoptimizePath(UNKNOWN_PATH);
@@ -7105,7 +7273,7 @@ class ObjectEntity extends ExpressionEntity {
             // single paths that are deoptimized will not become getters or setters
             ((type === INTERACTION_CALLED || path.length > 1) &&
                 (this.hasUnknownDeoptimizedProperty ||
-                    (typeof key === 'string' && this.deoptimizedPaths[key])))) {
+                    (isConcreteKey(key) && this.deoptimizedPaths.get(key))))) {
             deoptimizeInteraction(interaction);
             return;
         }
@@ -7118,9 +7286,9 @@ class ObjectEntity extends ExpressionEntity {
             : type === INTERACTION_ACCESSED
                 ? [this.propertiesAndGettersByKey, this.gettersByKey, this.unmatchableGetters]
                 : [this.propertiesAndSettersByKey, this.settersByKey, this.unmatchableSetters];
-        if (typeof key === 'string') {
-            if (propertiesForExactMatchByKey[key]) {
-                const properties = relevantPropertiesByKey[key];
+        if (isConcreteKey(key)) {
+            if (propertiesForExactMatchByKey.get(key)) {
+                const properties = relevantPropertiesByKey.get(key);
                 if (properties) {
                     for (const property of properties) {
                         property.deoptimizeArgumentsOnInteractionAtPath(interaction, subPath, recursionTracker);
@@ -7138,7 +7306,7 @@ class ObjectEntity extends ExpressionEntity {
             for (const property of relevantUnmatchableProperties) {
                 property.deoptimizeArgumentsOnInteractionAtPath(interaction, subPath, recursionTracker);
             }
-            if (INTEGER_REG_EXP.test(key)) {
+            if (typeof key === 'string' && INTEGER_REG_EXP.test(key)) {
                 for (const property of this.unknownIntegerProps) {
                     property.deoptimizeArgumentsOnInteractionAtPath(interaction, subPath, recursionTracker);
                 }
@@ -7146,7 +7314,7 @@ class ObjectEntity extends ExpressionEntity {
         }
         else {
             for (const properties of [
-                ...Object.values(relevantPropertiesByKey),
+                ...relevantPropertiesByKey.values(),
                 relevantUnmatchableProperties
             ]) {
                 for (const property of properties) {
@@ -7173,8 +7341,9 @@ class ObjectEntity extends ExpressionEntity {
             return;
         }
         this.hasUnknownDeoptimizedInteger = true;
-        for (const [key, propertiesAndGetters] of Object.entries(this.propertiesAndGettersByKey)) {
-            if (INTEGER_REG_EXP.test(key)) {
+        // Omits symbol keys but that's unimportant here
+        for (const [key, propertiesAndGetters] of this.propertiesAndGettersByKey.entries()) {
+            if (typeof key === 'string' && INTEGER_REG_EXP.test(key)) {
                 for (const property of propertiesAndGetters) {
                     property.deoptimizePath(UNKNOWN_PATH);
                 }
@@ -7192,14 +7361,14 @@ class ObjectEntity extends ExpressionEntity {
             if (key === UnknownInteger) {
                 return this.deoptimizeIntegerProperties();
             }
-            else if (typeof key !== 'string') {
+            else if (!isConcreteKey(key)) {
                 return this.deoptimizeAllProperties(key === UnknownNonAccessorKey);
             }
-            if (!this.deoptimizedPaths[key]) {
-                this.deoptimizedPaths[key] = true;
+            if (!this.deoptimizedPaths.get(key)) {
+                this.deoptimizedPaths.set(key, true);
                 // we only deoptimizeCache exact matches as in all other cases,
                 // we do not return a literal value or return expression
-                const expressionsToBeDeoptimized = this.expressionsToBeDeoptimizedByKey[key];
+                const expressionsToBeDeoptimized = this.expressionsToBeDeoptimizedByKey.get(key);
                 if (expressionsToBeDeoptimized) {
                     for (const expression of expressionsToBeDeoptimized) {
                         expression.deoptimizeCache();
@@ -7208,10 +7377,10 @@ class ObjectEntity extends ExpressionEntity {
             }
         }
         const subPath = path.length === 1 ? UNKNOWN_PATH : path.slice(1);
-        for (const property of typeof key === 'string'
+        for (const property of isConcreteKey(key)
             ? [
-                ...(this.propertiesAndGettersByKey[key] || this.unmatchablePropertiesAndGetters),
-                ...(this.settersByKey[key] || this.unmatchableSetters)
+                ...(this.propertiesAndGettersByKey.get(key) || this.unmatchablePropertiesAndGetters),
+                ...(this.settersByKey.get(key) || this.unmatchableSetters)
             ]
             : this.allProperties) {
             property.deoptimizePath(subPath);
@@ -7273,9 +7442,9 @@ class ObjectEntity extends ExpressionEntity {
         const [propertiesAndAccessorsByKey, accessorsByKey, unmatchableAccessors] = interaction.type === INTERACTION_ACCESSED
             ? [this.propertiesAndGettersByKey, this.gettersByKey, this.unmatchableGetters]
             : [this.propertiesAndSettersByKey, this.settersByKey, this.unmatchableSetters];
-        if (typeof key === 'string') {
-            if (propertiesAndAccessorsByKey[key]) {
-                const accessors = accessorsByKey[key];
+        if (isConcreteKey(key)) {
+            if (propertiesAndAccessorsByKey.get(key)) {
+                const accessors = accessorsByKey.get(key);
                 if (accessors) {
                     for (const accessor of accessors) {
                         if (accessor.hasEffectsOnInteractionAtPath(subPath, interaction, context))
@@ -7291,7 +7460,7 @@ class ObjectEntity extends ExpressionEntity {
             }
         }
         else {
-            for (const accessors of [...Object.values(accessorsByKey), unmatchableAccessors]) {
+            for (const accessors of [...accessorsByKey.values(), unmatchableAccessors]) {
                 for (const accessor of accessors) {
                     if (accessor.hasEffectsOnInteractionAtPath(subPath, interaction, context))
                         return true;
@@ -7306,7 +7475,9 @@ class ObjectEntity extends ExpressionEntity {
     include(context, includeChildrenRecursively) {
         this.included = true;
         for (const property of this.allProperties) {
-            if (includeChildrenRecursively || property.shouldBeIncluded(context)) {
+            if (includeChildrenRecursively ||
+                property.shouldBeIncluded(context) ||
+                this.alwaysIncludedProperties.has(property)) {
                 property.include(context, includeChildrenRecursively);
             }
         }
@@ -7314,14 +7485,17 @@ class ObjectEntity extends ExpressionEntity {
     }
     includePath(path, context) {
         this.included = true;
+        for (const property of this.alwaysIncludedProperties) {
+            property.includePath(UNKNOWN_PATH, context);
+        }
         if (path.length === 0)
             return;
         const [key, ...subPath] = path;
-        const [includedMembers, includedPath] = typeof key === 'string'
+        const [includedMembers, includedPath] = isConcreteKey(key)
             ? [
                 new Set([
-                    ...(this.propertiesAndGettersByKey[key] || this.unmatchablePropertiesAndGetters),
-                    ...(this.propertiesAndSettersByKey[key] || this.unmatchablePropertiesAndSetters)
+                    ...(this.propertiesAndGettersByKey.get(key) || this.unmatchablePropertiesAndGetters),
+                    ...(this.propertiesAndSettersByKey.get(key) || this.unmatchablePropertiesAndSetters)
                 ]),
                 subPath
             ]
@@ -7332,29 +7506,36 @@ class ObjectEntity extends ExpressionEntity {
         this.prototypeExpression?.includePath(path, context);
     }
     buildPropertyMaps(properties) {
-        const { allProperties, propertiesAndGettersByKey, propertiesAndSettersByKey, settersByKey, gettersByKey, unknownIntegerProps, unmatchablePropertiesAndGetters, unmatchablePropertiesAndSetters, unmatchableGetters, unmatchableSetters } = this;
+        const { allProperties, alwaysIncludedProperties, propertiesAndGettersByKey, propertiesAndSettersByKey, settersByKey, gettersByKey, unknownIntegerProps, unmatchablePropertiesAndGetters, unmatchablePropertiesAndSetters, unmatchableGetters, unmatchableSetters } = this;
         for (let index = properties.length - 1; index >= 0; index--) {
             const { key, kind, property } = properties[index];
             allProperties.push(property);
-            if (typeof key === 'string') {
+            if (isAnyWellKnown(key) && !TREE_SHAKEABLE_SYMBOLS.has(key)) {
+                // Never treeshake well-known symbols (unless Rollup can optimize them)
+                // They are most likely called implicitly by language semantics, don't get rid of them
+                alwaysIncludedProperties.add(property);
+                if (key === UnknownWellKnown)
+                    continue;
+            }
+            if (isConcreteKey(key)) {
                 if (kind === 'set') {
-                    if (!propertiesAndSettersByKey[key]) {
-                        propertiesAndSettersByKey[key] = [property, ...unmatchablePropertiesAndSetters];
-                        settersByKey[key] = [property, ...unmatchableSetters];
+                    if (!propertiesAndSettersByKey.has(key)) {
+                        propertiesAndSettersByKey.set(key, [property, ...unmatchablePropertiesAndSetters]);
+                        settersByKey.set(key, [property, ...unmatchableSetters]);
                     }
                 }
                 else if (kind === 'get') {
-                    if (!propertiesAndGettersByKey[key]) {
-                        propertiesAndGettersByKey[key] = [property, ...unmatchablePropertiesAndGetters];
-                        gettersByKey[key] = [property, ...unmatchableGetters];
+                    if (!propertiesAndGettersByKey.has(key)) {
+                        propertiesAndGettersByKey.set(key, [property, ...unmatchablePropertiesAndGetters]);
+                        gettersByKey.set(key, [property, ...unmatchableGetters]);
                     }
                 }
                 else {
-                    if (!propertiesAndSettersByKey[key]) {
-                        propertiesAndSettersByKey[key] = [property, ...unmatchablePropertiesAndSetters];
+                    if (!propertiesAndSettersByKey.has(key)) {
+                        propertiesAndSettersByKey.set(key, [property, ...unmatchablePropertiesAndSetters]);
                     }
-                    if (!propertiesAndGettersByKey[key]) {
-                        propertiesAndGettersByKey[key] = [property, ...unmatchablePropertiesAndGetters];
+                    if (!propertiesAndGettersByKey.has(key)) {
+                        propertiesAndGettersByKey.set(key, [property, ...unmatchablePropertiesAndGetters]);
                     }
                 }
             }
@@ -7375,7 +7556,7 @@ class ObjectEntity extends ExpressionEntity {
         }
     }
     deoptimizeCachedEntities() {
-        for (const expressionsToBeDeoptimized of Object.values(this.expressionsToBeDeoptimizedByKey)) {
+        for (const expressionsToBeDeoptimized of this.expressionsToBeDeoptimizedByKey.values()) {
             for (const expression of expressionsToBeDeoptimized) {
                 expression.deoptimizeCache();
             }
@@ -7385,8 +7566,8 @@ class ObjectEntity extends ExpressionEntity {
         }
     }
     deoptimizeCachedIntegerEntities() {
-        for (const [key, expressionsToBeDeoptimized] of Object.entries(this.expressionsToBeDeoptimizedByKey)) {
-            if (INTEGER_REG_EXP.test(key)) {
+        for (const [key, expressionsToBeDeoptimized] of this.expressionsToBeDeoptimizedByKey.entries()) {
+            if (typeof key === 'string' && INTEGER_REG_EXP.test(key)) {
                 for (const expression of expressionsToBeDeoptimized) {
                     expression.deoptimizeCache();
                 }
@@ -7399,30 +7580,32 @@ class ObjectEntity extends ExpressionEntity {
     getMemberExpression(key) {
         if (this.hasLostTrack ||
             this.hasUnknownDeoptimizedProperty ||
-            typeof key !== 'string' ||
-            (this.hasUnknownDeoptimizedInteger && INTEGER_REG_EXP.test(key)) ||
-            this.deoptimizedPaths[key]) {
+            !isConcreteKey(key) ||
+            (this.hasUnknownDeoptimizedInteger && typeof key === 'string' && INTEGER_REG_EXP.test(key)) ||
+            this.deoptimizedPaths.get(key)) {
             return UNKNOWN_EXPRESSION;
         }
-        const properties = this.propertiesAndGettersByKey[key];
+        const properties = this.propertiesAndGettersByKey.get(key);
         if (properties?.length === 1) {
             return properties[0];
         }
         if (properties ||
             this.unmatchablePropertiesAndGetters.length > 0 ||
-            (this.unknownIntegerProps.length > 0 && INTEGER_REG_EXP.test(key))) {
+            (this.unknownIntegerProps.length > 0 && typeof key === 'string' && INTEGER_REG_EXP.test(key))) {
             return UNKNOWN_EXPRESSION;
         }
         return null;
     }
     getMemberExpressionAndTrackDeopt(key, origin) {
-        if (typeof key !== 'string') {
+        if (!isConcreteKey(key)) {
             return UNKNOWN_EXPRESSION;
         }
         const expression = this.getMemberExpression(key);
         if (!(expression === UNKNOWN_EXPRESSION || this.immutable)) {
-            const expressionsToBeDeoptimized = (this.expressionsToBeDeoptimizedByKey[key] =
-                this.expressionsToBeDeoptimizedByKey[key] || []);
+            let expressionsToBeDeoptimized = this.expressionsToBeDeoptimizedByKey.get(key);
+            if (!expressionsToBeDeoptimized) {
+                this.expressionsToBeDeoptimizedByKey.set(key, (expressionsToBeDeoptimized = []));
+            }
             expressionsToBeDeoptimized.push(origin);
         }
         return expression;
@@ -7450,15 +7633,14 @@ const OBJECT_PROTOTYPE_FALLBACK = new (class ObjectPrototypeFallbackExpression e
         return path.length > 1 || type === INTERACTION_CALLED;
     }
 })();
-const OBJECT_PROTOTYPE = new ObjectEntity({
-    __proto__: null,
-    hasOwnProperty: METHOD_RETURNS_BOOLEAN,
-    isPrototypeOf: METHOD_RETURNS_BOOLEAN,
-    propertyIsEnumerable: METHOD_RETURNS_BOOLEAN,
-    toLocaleString: METHOD_RETURNS_STRING,
-    toString: METHOD_RETURNS_STRING,
-    valueOf: METHOD_RETURNS_UNKNOWN
-}, OBJECT_PROTOTYPE_FALLBACK, true);
+const OBJECT_PROTOTYPE = new ObjectEntity(new Map([
+    ['hasOwnProperty', METHOD_RETURNS_BOOLEAN],
+    ['isPrototypeOf', METHOD_RETURNS_BOOLEAN],
+    ['propertyIsEnumerable', METHOD_RETURNS_BOOLEAN],
+    ['toLocaleString', METHOD_RETURNS_STRING],
+    ['toString', METHOD_RETURNS_STRING],
+    ['valueOf', METHOD_RETURNS_UNKNOWN]
+]), OBJECT_PROTOTYPE_FALLBACK, true);
 
 const NEW_ARRAY_PROPERTIES = [
     { key: UnknownInteger, kind: 'init', property: UNKNOWN_EXPRESSION },
@@ -7563,44 +7745,43 @@ const METHOD_CALLS_ARG_MUTATES_SELF_RETURNS_SELF = [
         returnsPrimitive: null
     })
 ];
-const ARRAY_PROTOTYPE = new ObjectEntity({
-    __proto__: null,
+const ARRAY_PROTOTYPE = new ObjectEntity(new Map([
     // We assume that accessors have effects as we do not track the accessed value afterwards
-    at: METHOD_DEOPTS_SELF_RETURNS_UNKNOWN,
-    concat: METHOD_DEOPTS_SELF_RETURNS_NEW_ARRAY,
-    copyWithin: METHOD_MUTATES_SELF_RETURNS_SELF,
-    entries: METHOD_DEOPTS_SELF_RETURNS_NEW_ARRAY,
-    every: METHOD_CALLS_ARG_DEOPTS_SELF_RETURNS_BOOLEAN,
-    fill: METHOD_MUTATES_SELF_RETURNS_SELF,
-    filter: METHOD_CALLS_ARG_DEOPTS_SELF_RETURNS_NEW_ARRAY,
-    find: METHOD_CALLS_ARG_DEOPTS_SELF_RETURNS_UNKNOWN,
-    findIndex: METHOD_CALLS_ARG_DEOPTS_SELF_RETURNS_NUMBER,
-    findLast: METHOD_CALLS_ARG_DEOPTS_SELF_RETURNS_UNKNOWN,
-    findLastIndex: METHOD_CALLS_ARG_DEOPTS_SELF_RETURNS_NUMBER,
-    flat: METHOD_DEOPTS_SELF_RETURNS_NEW_ARRAY,
-    flatMap: METHOD_CALLS_ARG_DEOPTS_SELF_RETURNS_NEW_ARRAY,
-    forEach: METHOD_CALLS_ARG_DEOPTS_SELF_RETURNS_UNKNOWN,
-    includes: METHOD_RETURNS_BOOLEAN,
-    indexOf: METHOD_RETURNS_NUMBER,
-    join: METHOD_RETURNS_STRING,
-    keys: METHOD_RETURNS_UNKNOWN,
-    lastIndexOf: METHOD_RETURNS_NUMBER,
-    map: METHOD_CALLS_ARG_DEOPTS_SELF_RETURNS_NEW_ARRAY,
-    pop: METHOD_MUTATES_SELF_RETURNS_UNKNOWN,
-    push: METHOD_MUTATES_SELF_AND_ARGS_RETURNS_NUMBER,
-    reduce: METHOD_CALLS_ARG_DEOPTS_SELF_RETURNS_UNKNOWN,
-    reduceRight: METHOD_CALLS_ARG_DEOPTS_SELF_RETURNS_UNKNOWN,
-    reverse: METHOD_MUTATES_SELF_RETURNS_SELF,
-    shift: METHOD_MUTATES_SELF_RETURNS_UNKNOWN,
-    slice: METHOD_DEOPTS_SELF_RETURNS_NEW_ARRAY,
-    some: METHOD_CALLS_ARG_DEOPTS_SELF_RETURNS_BOOLEAN,
-    sort: METHOD_CALLS_ARG_MUTATES_SELF_RETURNS_SELF,
-    splice: METHOD_MUTATES_SELF_RETURNS_NEW_ARRAY,
-    toLocaleString: METHOD_RETURNS_STRING,
-    toString: METHOD_RETURNS_STRING,
-    unshift: METHOD_MUTATES_SELF_AND_ARGS_RETURNS_NUMBER,
-    values: METHOD_DEOPTS_SELF_RETURNS_UNKNOWN
-}, OBJECT_PROTOTYPE, true);
+    ['at', METHOD_DEOPTS_SELF_RETURNS_UNKNOWN],
+    ['concat', METHOD_DEOPTS_SELF_RETURNS_NEW_ARRAY],
+    ['copyWithin', METHOD_MUTATES_SELF_RETURNS_SELF],
+    ['entries', METHOD_DEOPTS_SELF_RETURNS_NEW_ARRAY],
+    ['every', METHOD_CALLS_ARG_DEOPTS_SELF_RETURNS_BOOLEAN],
+    ['fill', METHOD_MUTATES_SELF_RETURNS_SELF],
+    ['filter', METHOD_CALLS_ARG_DEOPTS_SELF_RETURNS_NEW_ARRAY],
+    ['find', METHOD_CALLS_ARG_DEOPTS_SELF_RETURNS_UNKNOWN],
+    ['findIndex', METHOD_CALLS_ARG_DEOPTS_SELF_RETURNS_NUMBER],
+    ['findLast', METHOD_CALLS_ARG_DEOPTS_SELF_RETURNS_UNKNOWN],
+    ['findLastIndex', METHOD_CALLS_ARG_DEOPTS_SELF_RETURNS_NUMBER],
+    ['flat', METHOD_DEOPTS_SELF_RETURNS_NEW_ARRAY],
+    ['flatMap', METHOD_CALLS_ARG_DEOPTS_SELF_RETURNS_NEW_ARRAY],
+    ['forEach', METHOD_CALLS_ARG_DEOPTS_SELF_RETURNS_UNKNOWN],
+    ['includes', METHOD_RETURNS_BOOLEAN],
+    ['indexOf', METHOD_RETURNS_NUMBER],
+    ['join', METHOD_RETURNS_STRING],
+    ['keys', METHOD_RETURNS_UNKNOWN],
+    ['lastIndexOf', METHOD_RETURNS_NUMBER],
+    ['map', METHOD_CALLS_ARG_DEOPTS_SELF_RETURNS_NEW_ARRAY],
+    ['pop', METHOD_MUTATES_SELF_RETURNS_UNKNOWN],
+    ['push', METHOD_MUTATES_SELF_AND_ARGS_RETURNS_NUMBER],
+    ['reduce', METHOD_CALLS_ARG_DEOPTS_SELF_RETURNS_UNKNOWN],
+    ['reduceRight', METHOD_CALLS_ARG_DEOPTS_SELF_RETURNS_UNKNOWN],
+    ['reverse', METHOD_MUTATES_SELF_RETURNS_SELF],
+    ['shift', METHOD_MUTATES_SELF_RETURNS_UNKNOWN],
+    ['slice', METHOD_DEOPTS_SELF_RETURNS_NEW_ARRAY],
+    ['some', METHOD_CALLS_ARG_DEOPTS_SELF_RETURNS_BOOLEAN],
+    ['sort', METHOD_CALLS_ARG_MUTATES_SELF_RETURNS_SELF],
+    ['splice', METHOD_MUTATES_SELF_RETURNS_NEW_ARRAY],
+    ['toLocaleString', METHOD_RETURNS_STRING],
+    ['toString', METHOD_RETURNS_STRING],
+    ['unshift', METHOD_MUTATES_SELF_AND_ARGS_RETURNS_NUMBER],
+    ['values', METHOD_DEOPTS_SELF_RETURNS_UNKNOWN]
+]), OBJECT_PROTOTYPE, true);
 
 class SpreadElement extends NodeBase {
     deoptimizeArgumentsOnInteractionAtPath(interaction, path, recursionTracker) {
@@ -7707,6 +7888,14 @@ const ValueProperties = Symbol('Value Properties');
 const getUnknownValue = () => UnknownValue;
 const returnFalse = () => false;
 const returnTrue = () => true;
+const getWellKnownSymbol = (symbol) => ({
+    __proto__: null,
+    [ValueProperties]: {
+        deoptimizeArgumentsOnCall: doNothing,
+        getLiteralValue: () => symbol,
+        hasEffectsWhenCalled: returnTrue
+    }
+});
 const PURE = {
     deoptimizeArgumentsOnCall: doNothing,
     getLiteralValue: getUnknownValue,
@@ -7791,6 +7980,11 @@ const INTL_MEMBER = {
     __proto__: null,
     [ValueProperties]: PURE,
     supportedLocalesOf: PC
+};
+const UNKNOWN_WELL_KNOWN = {
+    deoptimizeArgumentsOnCall: doNothing,
+    getLiteralValue: () => UnknownWellKnown,
+    hasEffectsWhenCalled: returnTrue
 };
 const knownGlobals = {
     // Placeholders for global objects to avoid shape mutations
@@ -7987,16 +8181,10 @@ const knownGlobals = {
         for: PF,
         keyFor: PF,
         prototype: O,
-        toStringTag: {
-            __proto__: null,
-            [ValueProperties]: {
-                deoptimizeArgumentsOnCall: doNothing,
-                getLiteralValue() {
-                    return SymbolToStringTag;
-                },
-                hasEffectsWhenCalled: returnTrue
-            }
-        }
+        asyncDispose: getWellKnownSymbol(SymbolAsyncDispose),
+        dispose: getWellKnownSymbol(SymbolDispose),
+        hasInstance: getWellKnownSymbol(SymbolHasInstance),
+        toStringTag: getWellKnownSymbol(SymbolToStringTag)
     },
     SyntaxError: PC,
     toLocaleString: O,
@@ -8670,7 +8858,9 @@ function getGlobalAtPath(path) {
         }
         currentGlobal = currentGlobal[pathSegment];
         if (!currentGlobal) {
-            return null;
+            // Well-known symbols very often have a complex meaning and are invoked implicitly by the language.
+            // Resolve them to a special value so they can be distinguished and excluded from treeshaking.
+            return path[0] === 'Symbol' && path.length === 2 ? UNKNOWN_WELL_KNOWN : null;
         }
     }
     return currentGlobal[ValueProperties];
@@ -8834,6 +9024,7 @@ class LocalVariable extends Variable {
                     return true;
                 if (path.length === 0)
                     return false;
+                // if (this.isReassigned || this.init.included) return true;
                 if (this.isReassigned)
                     return true;
                 return (!context.assigned.trackEntityAtPathAndGetIfTracked(path, this) &&
@@ -9013,12 +9204,12 @@ class IdentifierBase extends NodeBase {
             this.variable.module.hasTreeShakingPassStarted)) {
             return (this.isTDZAccess = false);
         }
-        let decl_id;
+        let declaration_id;
         if (this.variable.declarations &&
             this.variable.declarations.length === 1 &&
-            (decl_id = this.variable.declarations[0]) &&
-            this.start < decl_id.start &&
-            closestParentFunctionOrProgram(this) === closestParentFunctionOrProgram(decl_id)) {
+            (declaration_id = this.variable.declarations[0]) &&
+            this.start < declaration_id.start &&
+            closestParentFunctionOrProgram(this) === closestParentFunctionOrProgram(declaration_id)) {
             // a variable accessed before its declaration
             // in the same function or at top level of module
             return (this.isTDZAccess = true);
@@ -9159,7 +9350,8 @@ class Identifier extends IdentifierBase {
         }
         const { propertyReadSideEffects } = this.scope.context.options
             .treeshake;
-        if ((this.included ||=
+        let included = this.included;
+        if ((included ||=
             destructuredInitPath.length > 0 &&
                 !context.brokenFlow &&
                 propertyReadSideEffects &&
@@ -9169,9 +9361,11 @@ class Identifier extends IdentifierBase {
                 this.scope.context.includeVariableInModule(this.variable, EMPTY_PATH, context);
             }
             init.includePath(destructuredInitPath, context);
-            return true;
         }
-        return false;
+        if (!this.included && included) {
+            this.includeNode(context);
+        }
+        return this.included;
     }
     markDeclarationReached() {
         this.variable.initReached = true;
@@ -9288,6 +9482,10 @@ class ChildScope extends Scope {
         for (const variable of this.accessedOutsideVariables.values()) {
             if (variable.included) {
                 usedNames.add(variable.getBaseVariableName());
+                // In system format, exported variables are assigned via `exports(name, value)`.
+                // Any scope that references such a variable must treat `exports` as used so
+                // that a nested binding of the same name does not shadow the system wrapper's
+                // `exports` argument.
                 if (format === 'system' && exportNamesByVariable.has(variable)) {
                     usedNames.add('exports');
                 }
@@ -9588,7 +9786,11 @@ class ClassNode extends NodeBase {
             if (definition.computed) {
                 const keyValue = definition.key.getLiteralValueAtPath(EMPTY_PATH, SHARED_RECURSION_TRACKER, this);
                 if (typeof keyValue === 'symbol') {
-                    properties.push({ key: UnknownKey, kind, property: definition });
+                    properties.push({
+                        key: isAnyWellKnown(keyValue) ? keyValue : UnknownKey,
+                        kind,
+                        property: definition
+                    });
                     continue;
                 }
                 else {
@@ -10240,6 +10442,7 @@ class BlockStatement extends NodeBase {
     }
     initialise() {
         super.initialise();
+        this.scope.context.magicString.addSourcemapLocation(this.end - 1);
         const firstBodyStatement = this.body[0];
         this.deoptimizeBody =
             firstBodyStatement instanceof ExpressionStatement &&
@@ -10285,8 +10488,11 @@ class RestElement extends NodeBase {
         return this.argument.hasEffectsWhenDestructuring(context, getIncludedPatternPath$1(destructuredInitPath), init);
     }
     includeDestructuredIfNecessary(context, destructuredInitPath, init) {
-        return (this.included =
-            this.argument.includeDestructuredIfNecessary(context, getIncludedPatternPath$1(destructuredInitPath), init) || this.included);
+        const included = this.argument.includeDestructuredIfNecessary(context, getIncludedPatternPath$1(destructuredInitPath), init);
+        if (!this.included && included) {
+            this.includeNode(context);
+        }
+        return this.included;
     }
     include(context, includeChildrenRecursively) {
         if (!this.included)
@@ -10469,7 +10675,7 @@ class FunctionNode extends FunctionBase {
     }
     createScope(parentScope) {
         this.scope = new FunctionScope(parentScope, this);
-        this.constructedEntity = new ObjectEntity(Object.create(null), OBJECT_PROTOTYPE);
+        this.constructedEntity = new ObjectEntity(new Map(), OBJECT_PROTOTYPE);
         // This makes sure that all deoptimizations of "this" are applied to the
         // constructed entity.
         this.scope.thisVariable.addArgumentForDeoptimization(this.constructedEntity);
@@ -10592,6 +10798,13 @@ function getFunctionIdInsertPosition(code, start) {
     return declarationEnd + generatorStarPos + 1;
 }
 class ExportDefaultDeclaration extends NodeBase {
+    bind() {
+        super.bind();
+        const name = this.declarationName || this.scope.context.getModuleName();
+        // Check if there's already a variable with the same name in the scope. This
+        // can cause inconsistencies when using the cache.
+        this.variable.name = this.scope.variables.get(name) ? `${name}_default` : name;
+    }
     include(context, includeChildrenRecursively) {
         this.included = true;
         this.declaration.include(context, includeChildrenRecursively);
@@ -10608,7 +10821,7 @@ class ExportDefaultDeclaration extends NodeBase {
         const declaration = this.declaration;
         this.declarationName =
             (declaration.id && declaration.id.name) || this.declaration.name;
-        this.variable = this.scope.addExportDefaultDeclaration(this.declarationName || this.scope.context.getModuleName(), this, this.scope.context);
+        this.variable = this.scope.addExportDefaultDeclaration(this, this.scope.context);
         this.scope.context.addExport(this);
     }
     removeAnnotations(code) {
@@ -10628,7 +10841,7 @@ class ExportDefaultDeclaration extends NodeBase {
                 : null, options);
         }
         else if (this.variable.getOriginalVariable() !== this.variable) {
-            // Remove altogether to prevent re-declaring the same variable
+            // Remove altogether to prevent redeclaring the same variable
             treeshakeNode(this, code, start, end);
             return;
         }
@@ -11002,6 +11215,7 @@ function getStringFromPath(path) {
 class MemberExpression extends NodeBase {
     constructor() {
         super(...arguments);
+        this.promiseHandler = null;
         this.variable = null;
         this.expressionsToBeDeoptimized = [];
     }
@@ -11057,7 +11271,10 @@ class MemberExpression extends NodeBase {
         }
     }
     deoptimizeArgumentsOnInteractionAtPath(interaction, path, recursionTracker) {
-        if (this.variable) {
+        if (this.promiseHandler) {
+            this.promiseHandler.deoptimizeArgumentsOnInteractionAtPath(interaction, path, recursionTracker);
+        }
+        else if (this.variable) {
             this.variable.deoptimizeArgumentsOnInteractionAtPath(interaction, path, recursionTracker);
         }
         else if (!this.isUndefined) {
@@ -11197,6 +11414,9 @@ class MemberExpression extends NodeBase {
             this.includeNode(context);
         this.object.include(context, includeChildrenRecursively);
         this.property.include(context, includeChildrenRecursively);
+        if (includeChildrenRecursively) {
+            this.variable?.includePath(UNKNOWN_PATH, context);
+        }
     }
     includeNode(context) {
         this.included = true;
@@ -11244,22 +11464,21 @@ class MemberExpression extends NodeBase {
         this.property.include(context, includeChildrenRecursively);
     }
     includeCallArguments(interaction, context) {
-        if (this.variable) {
+        if (this.promiseHandler) {
+            this.promiseHandler.includeCallArguments(interaction, context);
+        }
+        else if (this.variable) {
             this.variable.includeCallArguments(interaction, context);
         }
         else {
             includeInteraction(interaction, context);
         }
     }
-    includeDestructuredIfNecessary(context, destructuredInitPath, init) {
-        if ((this.included ||=
-            destructuredInitPath.length > 0 &&
-                !context.brokenFlow &&
-                init.hasEffectsOnInteractionAtPath(destructuredInitPath, NODE_INTERACTION_UNKNOWN_ACCESS, createHasEffectsContext()))) {
-            init.include(context, false);
-            return true;
-        }
-        return false;
+    includeDestructuredIfNecessary() {
+        /* istanbul ignore next */
+        this.scope.context.error({
+            message: 'includeDestructuredIfNecessary is currently not supported for MemberExpressions'
+        }, this.start);
     }
     initialise() {
         super.initialise();
@@ -11300,7 +11519,7 @@ class MemberExpression extends NodeBase {
         // Namespaces are not bound and should not be deoptimized
         this.bound &&
             propertyReadSideEffects &&
-            !(this.variable || this.isUndefined)) {
+            !(this.variable || this.isUndefined || this.promiseHandler)) {
             this.object.deoptimizeArgumentsOnInteractionAtPath(this.accessInteraction, [this.propertyKey], SHARED_RECURSION_TRACKER);
             this.scope.context.requestTreeshakingPass();
         }
@@ -11338,11 +11557,11 @@ class MemberExpression extends NodeBase {
             this.dynamicPropertyKey = this.propertyKey;
             const value = this.property.getLiteralValueAtPath(EMPTY_PATH, SHARED_RECURSION_TRACKER, this);
             return (this.dynamicPropertyKey =
-                value === SymbolToStringTag
-                    ? value
-                    : typeof value === 'symbol'
-                        ? UnknownKey
-                        : String(value));
+                typeof value === 'symbol'
+                    ? WELL_KNOWN_SYMBOLS.has(value)
+                        ? value
+                        : UnknownKey
+                    : String(value));
         }
         return this.dynamicPropertyKey;
     }
@@ -11361,11 +11580,11 @@ function resolveNamespaceVariables(baseVariable, path, astContext) {
     if (!baseVariable.isNamespace || baseVariable instanceof ExternalVariable)
         return null;
     const exportName = path[0].key;
-    const variable = baseVariable.context.traceExport(exportName);
+    const [variable, options] = baseVariable.context.traceExport(exportName);
     if (!variable) {
         if (path.length === 1) {
             const fileName = baseVariable.context.fileName;
-            astContext.log(parseAst_js.LOGLEVEL_WARN, parseAst_js.logMissingExport(exportName, astContext.module.id, fileName), path[0].pos);
+            astContext.log(parseAst_js.LOGLEVEL_WARN, parseAst_js.logMissingExport(exportName, astContext.module.id, fileName, !!options?.missingButExportExists), path[0].pos);
             return 'undefined';
         }
         return null;
@@ -11374,6 +11593,7 @@ function resolveNamespaceVariables(baseVariable, path, astContext) {
 }
 
 const FILE_PREFIX = 'ROLLUP_FILE_URL_';
+const FILE_OBJ_PREFIX = 'ROLLUP_FILE_URL_OBJ_';
 const IMPORT = 'import';
 class MetaProperty extends NodeBase {
     constructor() {
@@ -11384,8 +11604,13 @@ class MetaProperty extends NodeBase {
     }
     getReferencedFileName(outputPluginDriver) {
         const { meta: { name }, metaProperty } = this;
-        if (name === IMPORT && metaProperty?.startsWith(FILE_PREFIX)) {
-            return outputPluginDriver.getFileName(metaProperty.slice(FILE_PREFIX.length));
+        if (name === IMPORT) {
+            if (metaProperty?.startsWith(FILE_OBJ_PREFIX)) {
+                return outputPluginDriver.getFileName(metaProperty.slice(FILE_OBJ_PREFIX.length));
+            }
+            else if (metaProperty?.startsWith(FILE_PREFIX)) {
+                return outputPluginDriver.getFileName(metaProperty.slice(FILE_PREFIX.length));
+            }
         }
         return null;
     }
@@ -11408,7 +11633,10 @@ class MetaProperty extends NodeBase {
                 parent instanceof MemberExpression && typeof parent.propertyKey === 'string'
                     ? parent.propertyKey
                     : null);
-            if (metaProperty?.startsWith(FILE_PREFIX)) {
+            if (metaProperty?.startsWith(FILE_OBJ_PREFIX)) {
+                this.referenceId = metaProperty.slice(FILE_OBJ_PREFIX.length);
+            }
+            else if (metaProperty?.startsWith(FILE_PREFIX)) {
                 this.referenceId = metaProperty.slice(FILE_PREFIX.length);
             }
         }
@@ -11416,22 +11644,23 @@ class MetaProperty extends NodeBase {
     render(code, renderOptions) {
         const { format, pluginDriver, snippets } = renderOptions;
         const { scope: { context: { module } }, meta: { name }, metaProperty, parent, preliminaryChunkId, referenceId, start, end } = this;
-        const { id: moduleId } = module;
+        const { id: moduleId, info: { attributes } } = module;
         if (name !== IMPORT)
             return;
         const chunkId = preliminaryChunkId;
         if (referenceId) {
             const fileName = pluginDriver.getFileName(referenceId);
             const relativePath = parseAst_js.normalize(path.relative(path.dirname(chunkId), fileName));
+            const isUrlObject = !!metaProperty?.startsWith(FILE_OBJ_PREFIX);
             const replacement = pluginDriver.hookFirstSync('resolveFileUrl', [
-                { chunkId, fileName, format, moduleId, referenceId, relativePath }
-            ]) || relativeUrlMechanisms[format](relativePath);
+                { attributes, chunkId, fileName, format, moduleId, referenceId, relativePath }
+            ]) || relativeUrlMechanisms[format](relativePath, isUrlObject);
             code.overwrite(parent.start, parent.end, replacement, { contentOnly: true });
             return;
         }
         let replacement = pluginDriver.hookFirstSync('resolveImportMeta', [
             metaProperty,
-            { chunkId, format, moduleId }
+            { attributes, chunkId, format, moduleId }
         ]);
         if (!replacement) {
             replacement = importMetaMechanisms[format]?.(metaProperty, { chunkId, snippets });
@@ -11449,7 +11678,9 @@ class MetaProperty extends NodeBase {
     }
     setResolution(format, accessedGlobalsByScope, preliminaryChunkId) {
         this.preliminaryChunkId = preliminaryChunkId;
-        const accessedGlobals = (this.metaProperty?.startsWith(FILE_PREFIX) ? accessedFileUrlGlobals : accessedMetaUrlGlobals)[format];
+        const accessedGlobals = (this.metaProperty?.startsWith(FILE_PREFIX) || this.metaProperty?.startsWith(FILE_OBJ_PREFIX)
+            ? accessedFileUrlGlobals
+            : accessedMetaUrlGlobals)[format];
         if (accessedGlobals.length > 0) {
             this.scope.addAccessedGlobals(accessedGlobals, accessedGlobalsByScope);
         }
@@ -11472,8 +11703,8 @@ const accessedFileUrlGlobals = {
     system: ['module', 'URL'],
     umd: ['document', 'require', 'URL']
 };
-const getResolveUrl = (path, URL = 'URL') => `new ${URL}(${path}).href`;
-const getRelativeUrlFromDocument = (relativePath, umd = false) => getResolveUrl(`'${escapeId(relativePath)}', ${umd ? `typeof document === 'undefined' ? location.href : ` : ''}document.currentScript && document.currentScript.tagName.toUpperCase() === 'SCRIPT' && document.currentScript.src || document.baseURI`);
+const getResolveUrl = (path, asObject, URL = 'URL') => `new ${URL}(${path})${asObject ? '' : '.href'}`;
+const getRelativeUrlFromDocument = (relativePath, asObject, umd = false) => getResolveUrl(`'${escapeId(relativePath)}', ${umd ? `typeof document === 'undefined' ? location.href : ` : ''}document.currentScript && document.currentScript.tagName.toUpperCase() === 'SCRIPT' && document.currentScript.src || document.baseURI`, asObject);
 const getGenericImportMetaMechanism = (getUrl) => (property, { chunkId }) => {
     const urlMechanism = getUrl(chunkId);
     return property === null
@@ -11482,27 +11713,27 @@ const getGenericImportMetaMechanism = (getUrl) => (property, { chunkId }) => {
             ? urlMechanism
             : 'undefined';
 };
-const getFileUrlFromFullPath = (path) => `require('u' + 'rl').pathToFileURL(${path}).href`;
-const getFileUrlFromRelativePath = (path) => getFileUrlFromFullPath(`__dirname + '/${escapeId(path)}'`);
+const getFileUrlFromFullPath = (path, asObject) => `require('u' + 'rl').pathToFileURL(${path})${asObject ? '' : '.href'}`;
+const getFileUrlFromRelativePath = (path, asObject) => getFileUrlFromFullPath(`__dirname + '/${escapeId(path)}'`, asObject);
 const getUrlFromDocument = (chunkId, umd = false) => `${umd ? `typeof document === 'undefined' ? location.href : ` : ''}(${DOCUMENT_CURRENT_SCRIPT} && ${DOCUMENT_CURRENT_SCRIPT}.tagName.toUpperCase() === 'SCRIPT' && ${DOCUMENT_CURRENT_SCRIPT}.src || new URL('${escapeId(chunkId)}', document.baseURI).href)`;
 const relativeUrlMechanisms = {
-    amd: relativePath => {
+    amd: (relativePath, asObject) => {
         if (relativePath[0] !== '.')
             relativePath = './' + relativePath;
-        return getResolveUrl(`require.toUrl('${escapeId(relativePath)}'), document.baseURI`);
+        return getResolveUrl(`require.toUrl('${escapeId(relativePath)}'), document.baseURI`, asObject);
     },
-    cjs: relativePath => `(typeof document === 'undefined' ? ${getFileUrlFromRelativePath(relativePath)} : ${getRelativeUrlFromDocument(relativePath)})`,
-    es: relativePath => getResolveUrl(`'${escapeId(relativePath)}', import.meta.url`),
-    iife: relativePath => getRelativeUrlFromDocument(relativePath),
-    system: relativePath => getResolveUrl(`'${escapeId(relativePath)}', module.meta.url`),
-    umd: relativePath => `(typeof document === 'undefined' && typeof location === 'undefined' ? ${getFileUrlFromRelativePath(relativePath)} : ${getRelativeUrlFromDocument(relativePath, true)})`
+    cjs: (relativePath, asObject) => `(typeof document === 'undefined' ? ${getFileUrlFromRelativePath(relativePath, asObject)} : ${getRelativeUrlFromDocument(relativePath, asObject)})`,
+    es: (relativePath, asObject) => getResolveUrl(`'${escapeId(relativePath)}', import.meta.url`, asObject),
+    iife: (relativePath, asObject) => getRelativeUrlFromDocument(relativePath, asObject),
+    system: (relativePath, asObject) => getResolveUrl(`'${escapeId(relativePath)}', module.meta.url`, asObject),
+    umd: (relativePath, asObject) => `(typeof document === 'undefined' && typeof location === 'undefined' ? ${getFileUrlFromRelativePath(relativePath, asObject)} : ${getRelativeUrlFromDocument(relativePath, asObject, true)})`
 };
 const importMetaMechanisms = {
-    amd: getGenericImportMetaMechanism(() => getResolveUrl(`module.uri, document.baseURI`)),
-    cjs: getGenericImportMetaMechanism(chunkId => `(typeof document === 'undefined' ? ${getFileUrlFromFullPath('__filename')} : ${getUrlFromDocument(chunkId)})`),
+    amd: getGenericImportMetaMechanism(() => getResolveUrl(`module.uri, document.baseURI`, false)),
+    cjs: getGenericImportMetaMechanism(chunkId => `(typeof document === 'undefined' ? ${getFileUrlFromFullPath('__filename', false)} : ${getUrlFromDocument(chunkId)})`),
     iife: getGenericImportMetaMechanism(chunkId => getUrlFromDocument(chunkId)),
     system: (property, { snippets: { getPropertyAccess } }) => property === null ? `module.meta` : `module.meta${getPropertyAccess(property)}`,
-    umd: getGenericImportMetaMechanism(chunkId => `(typeof document === 'undefined' && typeof location === 'undefined' ? ${getFileUrlFromFullPath('__filename')} : ${getUrlFromDocument(chunkId, true)})`)
+    umd: getGenericImportMetaMechanism(chunkId => `(typeof document === 'undefined' && typeof location === 'undefined' ? ${getFileUrlFromFullPath('__filename', false)} : ${getUrlFromDocument(chunkId, true)})`)
 };
 
 class UndefinedVariable extends Variable {
@@ -11515,8 +11746,8 @@ class UndefinedVariable extends Variable {
 }
 
 class ExportDefaultVariable extends LocalVariable {
-    constructor(name, exportDefaultDeclaration, context) {
-        super(name, exportDefaultDeclaration, exportDefaultDeclaration.declaration, EMPTY_PATH, context, 'other');
+    constructor(exportDefaultDeclaration, context) {
+        super('default', exportDefaultDeclaration, exportDefaultDeclaration.declaration, EMPTY_PATH, context, 'other');
         this.hasId = false;
         this.originalId = null;
         this.originalVariable = null;
@@ -11596,8 +11827,9 @@ class ExportDefaultVariable extends LocalVariable {
 class NamespaceVariable extends Variable {
     constructor(context) {
         super(context.getModuleName());
-        this.memberVariables = null;
+        this.areAllMembersDeoptimized = false;
         this.mergedNamespaces = [];
+        this.nonExplicitNamespacesIncluded = false;
         this.referencedEarly = false;
         this.references = [];
         this.context = context;
@@ -11611,7 +11843,10 @@ class NamespaceVariable extends Variable {
         if (path.length > 1 || (path.length === 1 && interaction.type === INTERACTION_CALLED)) {
             const key = path[0];
             if (typeof key === 'string') {
-                this.getMemberVariables()[key]?.deoptimizeArgumentsOnInteractionAtPath(interaction, path.slice(1), recursionTracker);
+                this.module
+                    .getExportedVariablesByName()
+                    .get(key)
+                    ?.deoptimizeArgumentsOnInteractionAtPath(interaction, path.slice(1), recursionTracker);
             }
             else {
                 deoptimizeInteraction(interaction);
@@ -11622,7 +11857,13 @@ class NamespaceVariable extends Variable {
         if (path.length > 1) {
             const key = path[0];
             if (typeof key === 'string') {
-                this.getMemberVariables()[key]?.deoptimizePath(path.slice(1));
+                this.module.getExportedVariablesByName().get(key)?.deoptimizePath(path.slice(1));
+            }
+            else if (!this.areAllMembersDeoptimized) {
+                this.areAllMembersDeoptimized = true;
+                for (const variable of this.module.getExportedVariablesByName().values()) {
+                    variable.deoptimizePath(UNKNOWN_PATH);
+                }
             }
         }
     }
@@ -11631,22 +11872,6 @@ class NamespaceVariable extends Variable {
             return 'Module';
         }
         return UnknownValue;
-    }
-    getMemberVariables() {
-        if (this.memberVariables) {
-            return this.memberVariables;
-        }
-        const memberVariables = Object.create(null);
-        const sortedExports = [...this.context.getExports(), ...this.context.getReexports()].sort();
-        for (const name of sortedExports) {
-            if (name[0] !== '*' && name !== this.module.info.syntheticNamedExports) {
-                const exportedVariable = this.context.traceExport(name);
-                if (exportedVariable) {
-                    memberVariables[name] = exportedVariable;
-                }
-            }
-        }
-        return (this.memberVariables = memberVariables);
     }
     hasEffectsOnInteractionAtPath(path, interaction, context) {
         const { type } = interaction;
@@ -11661,13 +11886,31 @@ class NamespaceVariable extends Variable {
         if (typeof key !== 'string') {
             return true;
         }
-        const memberVariable = this.getMemberVariables()[key];
+        const memberVariable = this.module.getExportedVariablesByName().get(key);
         return (!memberVariable ||
             memberVariable.hasEffectsOnInteractionAtPath(path.slice(1), interaction, context));
     }
     includePath(path, context) {
         super.includePath(path, context);
-        this.context.includeAllExports();
+        this.includeMemberPath(path, context);
+    }
+    includeMemberPath(path, context) {
+        if (path.length > 0) {
+            const [name, ...remainingPath] = path;
+            if (typeof name === 'string') {
+                const variable = this.module.getExportedVariablesByName().get(name);
+                if (variable) {
+                    this.context.includeVariableInModule(variable, remainingPath, context);
+                }
+                else {
+                    this.includeNonExplicitNamespaces();
+                }
+            }
+            else if (name) {
+                this.module.includeAllExports();
+                this.includeNonExplicitNamespaces();
+            }
+        }
     }
     prepare(accessedGlobalsByScope) {
         if (this.mergedNamespaces.length > 0) {
@@ -11676,9 +11919,9 @@ class NamespaceVariable extends Variable {
     }
     renderBlock(options) {
         const { exportNamesByVariable, format, freeze, indent: t, symbols, snippets: { _, cnst, getObject, getPropertyAccess, n, s } } = options;
-        const memberVariables = this.getMemberVariables();
-        const members = Object.entries(memberVariables)
-            .filter(([_, variable]) => variable.included)
+        const memberVariables = this.module.getExportedVariablesByName();
+        const members = [...memberVariables.entries()]
+            .filter(([name, variable]) => !name.startsWith('*') && variable.included)
             .map(([name, variable]) => {
             if (this.referencedEarly || variable.isReassigned || variable === this) {
                 return [
@@ -11724,8 +11967,22 @@ class NamespaceVariable extends Variable {
             }
         }
     }
+    includeNonExplicitNamespaces() {
+        if (!this.nonExplicitNamespacesIncluded) {
+            this.nonExplicitNamespacesIncluded = true;
+            this.setMergedNamespaces(this.module.includeAndGetAdditionalMergedNamespaces());
+        }
+    }
 }
 NamespaceVariable.prototype.isNamespace = true;
+// This is a proxy that does not include the namespace object when a path is included
+const getDynamicNamespaceVariable = (namespace) => Object.create(namespace, {
+    includePath: {
+        value(path, context) {
+            namespace.includeMemberPath(path, context);
+        }
+    }
+});
 
 class SyntheticNamedExportVariable extends Variable {
     constructor(context, name, syntheticNamespace) {
@@ -11761,7 +12018,7 @@ class SyntheticNamedExportVariable extends Variable {
     }
     includePath(path, context) {
         super.includePath(path, context);
-        this.context.includeVariableInModule(this.syntheticNamespace, path, context);
+        this.context.includeVariableInModule(this.syntheticNamespace, [this.name, ...path], context);
     }
     setRenderNames(baseName, name) {
         super.setRenderNames(baseName, name);
@@ -11781,6 +12038,9 @@ class ExternalChunk {
         this.moduleInfo = module.info;
         this.renormalizeRenderPath = module.renormalizeRenderPath;
         this.suggestedVariableName = module.suggestedVariableName;
+    }
+    get moduleSideEffects() {
+        return this.moduleInfo.moduleSideEffects;
     }
     getFileName() {
         if (this.fileName) {
@@ -11831,13 +12091,13 @@ function getExportBlock$1(exports, dependencies, namedExportsMode, interop, snip
     }
     let exportBlock = '';
     if (namedExportsMode) {
-        for (const { defaultVariableName, importPath, isChunk, name, namedExportsMode: depNamedExportsMode, namespaceVariableName, reexports } of dependencies) {
+        for (const { defaultVariableName, importPath, isChunk, name, namedExportsMode: dependencyNamedExportsMode, namespaceVariableName, reexports } of dependencies) {
             if (!reexports) {
                 continue;
             }
             for (const specifier of reexports) {
                 if (specifier.reexported !== '*') {
-                    const importName = getReexportedImportName(name, specifier.imported, depNamedExportsMode, isChunk, defaultVariableName, namespaceVariableName, interop, importPath, externalLiveBindings, getPropertyAccess);
+                    const importName = getReexportedImportName(name, specifier.imported, dependencyNamedExportsMode, isChunk, defaultVariableName, namespaceVariableName, interop, importPath, externalLiveBindings, getPropertyAccess);
                     if (exportBlock)
                         exportBlock += n;
                     if (specifier.imported !== '*' && specifier.needsLiveBinding) {
@@ -11916,14 +12176,14 @@ function getSingleDefaultExport(exports, dependencies, interop, externalLiveBind
         return exports[0].local;
     }
     else {
-        for (const { defaultVariableName, importPath, isChunk, name, namedExportsMode: depNamedExportsMode, namespaceVariableName, reexports } of dependencies) {
+        for (const { defaultVariableName, importPath, isChunk, name, namedExportsMode: dependencyNamedExportsMode, namespaceVariableName, reexports } of dependencies) {
             if (reexports) {
-                return getReexportedImportName(name, reexports[0].imported, depNamedExportsMode, isChunk, defaultVariableName, namespaceVariableName, interop, importPath, externalLiveBindings, getPropertyAccess);
+                return getReexportedImportName(name, reexports[0].imported, dependencyNamedExportsMode, isChunk, defaultVariableName, namespaceVariableName, interop, importPath, externalLiveBindings, getPropertyAccess);
             }
         }
     }
 }
-function getReexportedImportName(moduleVariableName, imported, depNamedExportsMode, isChunk, defaultVariableName, namespaceVariableName, interop, moduleId, externalLiveBindings, getPropertyAccess) {
+function getReexportedImportName(moduleVariableName, imported, dependencyNamedExportsMode, isChunk, defaultVariableName, namespaceVariableName, interop, moduleId, externalLiveBindings, getPropertyAccess) {
     if (imported === 'default') {
         if (!isChunk) {
             const moduleInterop = interop(moduleId);
@@ -11934,12 +12194,14 @@ function getReexportedImportName(moduleVariableName, imported, depNamedExportsMo
                 ? `${variableName}${getPropertyAccess('default')}`
                 : variableName;
         }
-        return depNamedExportsMode
+        return dependencyNamedExportsMode
             ? `${moduleVariableName}${getPropertyAccess('default')}`
             : moduleVariableName;
     }
     if (imported === '*') {
-        return (isChunk ? !depNamedExportsMode : namespaceInteropHelpersByInteropType[interop(moduleId)])
+        return (isChunk
+            ? !dependencyNamedExportsMode
+            : namespaceInteropHelpersByInteropType[interop(moduleId)])
             ? namespaceVariableName
             : moduleVariableName;
     }
@@ -12038,6 +12300,13 @@ function getInteropBlock(dependencies, interop, externalLiveBindings, freeze, sy
     return `${getHelpersBlock(neededInteropHelpers, accessedGlobals, indent, snippets, externalLiveBindings, freeze, symbols)}${interopStatements.length > 0 ? `${interopStatements.join(n)}${n}${n}` : ''}`;
 }
 
+function throwOnPhase(outputFormat, chunkId, dependencies) {
+    const sourcePhaseDependency = dependencies.find(dependency => dependency.sourcePhaseImport);
+    if (sourcePhaseDependency) {
+        parseAst_js.error(parseAst_js.logSourcePhaseFormatUnsupported(outputFormat, chunkId, sourcePhaseDependency.importPath));
+    }
+}
+
 function addJsExtension(name) {
     return name.endsWith('.js') ? name : name + '.js';
 }
@@ -12083,6 +12352,7 @@ const builtinModules = [
 	"domain",
 	"node:events",
 	"events",
+	"node:ffi",
 	"node:fs",
 	"fs",
 	"node:fs/promises",
@@ -12128,6 +12398,8 @@ const builtinModules = [
 	"stream",
 	"node:stream/consumers",
 	"stream/consumers",
+	"node:stream/iter",
+	"stream/iter",
 	"node:stream/promises",
 	"stream/promises",
 	"node:stream/web",
@@ -12154,6 +12426,7 @@ const builtinModules = [
 	"util/types",
 	"node:v8",
 	"v8",
+	"node:vfs",
 	"node:vm",
 	"vm",
 	"node:wasi",
@@ -12161,7 +12434,9 @@ const builtinModules = [
 	"node:worker_threads",
 	"worker_threads",
 	"node:zlib",
-	"zlib"
+	"zlib",
+	"node:zlib/iter",
+	"zlib/iter"
 ];
 
 const nodeBuiltins = new Set(builtinModules);
@@ -12176,6 +12451,7 @@ function warnOnBuiltins(log, dependencies) {
 
 function amd(magicString, { accessedGlobals, dependencies, exports, hasDefaultExport, hasExports, id, indent: t, intro, isEntryFacade, isModuleFacade, namedExportsMode, log, outro, snippets }, { amd, esModule, externalLiveBindings, freeze, generatedCode: { symbols }, interop, reexportProtoFromExternal, strict }) {
     warnOnBuiltins(log, dependencies);
+    throwOnPhase('amd', id, dependencies);
     const deps = dependencies.map(m => `'${updateExtensionForRelativeAmdId(m.importPath, amd.forceJsExtensionForImports)}'`);
     const parameters = dependencies.map(m => m.name);
     const { n, getNonArrowFunctionIntro, _ } = snippets;
@@ -12213,7 +12489,8 @@ function amd(magicString, { accessedGlobals, dependencies, exports, hasDefaultEx
         .append(`${n}${n}}));`);
 }
 
-function cjs(magicString, { accessedGlobals, dependencies, exports, hasDefaultExport, hasExports, indent: t, intro, isEntryFacade, isModuleFacade, namedExportsMode, outro, snippets }, { compact, esModule, externalLiveBindings, freeze, interop, generatedCode: { symbols }, reexportProtoFromExternal, strict }) {
+function cjs(magicString, { accessedGlobals, dependencies, exports, hasDefaultExport, hasExports, id, indent: t, intro, isEntryFacade, isModuleFacade, namedExportsMode, outro, snippets }, { compact, esModule, externalLiveBindings, freeze, interop, generatedCode: { symbols }, reexportProtoFromExternal, strict }) {
+    throwOnPhase('cjs', id, dependencies);
     const { _, n } = snippets;
     const useStrict = strict ? `'use strict';${n}${n}` : '';
     let namespaceMarkers = getNamespaceMarkers(namedExportsMode && hasExports, isEntryFacade && (esModule === true || (esModule === 'if-default-prop' && hasDefaultExport)), isModuleFacade && symbols, snippets);
@@ -12266,11 +12543,16 @@ function es(magicString, { accessedGlobals, indent: t, intro, outro, dependencie
 }
 function getImportBlock(dependencies, importAttributesKey, { _ }) {
     const importBlock = [];
-    for (const { importPath, reexports, imports, name, attributes } of dependencies) {
+    for (const { importPath, reexports, imports, name, attributes, sourcePhaseImport } of dependencies) {
         const assertion = attributes ? `${_}${importAttributesKey}${_}${attributes}` : '';
         const pathWithAssertion = `'${importPath}'${assertion};`;
+        if (sourcePhaseImport) {
+            importBlock.push(`import source ${sourcePhaseImport} from${_}${pathWithAssertion}`);
+        }
         if (!reexports && !imports) {
-            importBlock.push(`import${_}${pathWithAssertion}`);
+            if (!sourcePhaseImport) {
+                importBlock.push(`import${_}${pathWithAssertion}`);
+            }
             continue;
         }
         if (imports) {
@@ -12424,7 +12706,8 @@ function trimEmptyImports(dependencies) {
     return [];
 }
 
-function iife(magicString, { accessedGlobals, dependencies, exports, hasDefaultExport, hasExports, indent: t, intro, namedExportsMode, log, outro, snippets }, { compact, esModule, extend, freeze, externalLiveBindings, reexportProtoFromExternal, globals, interop, name, generatedCode: { symbols }, strict }) {
+function iife(magicString, { accessedGlobals, dependencies, exports, hasDefaultExport, hasExports, id, indent: t, intro, namedExportsMode, log, outro, snippets }, { compact, esModule, extend, freeze, externalLiveBindings, reexportProtoFromExternal, globals, interop, name, generatedCode: { symbols }, strict }) {
+    throwOnPhase('iife', id, dependencies);
     const { _, getNonArrowFunctionIntro, getPropertyAccess, n } = snippets;
     const isNamespaced = name && name.includes('.');
     const useVariableAssignment = !extend && !isNamespaced;
@@ -12433,7 +12716,7 @@ function iife(magicString, { accessedGlobals, dependencies, exports, hasDefaultE
     }
     warnOnBuiltins(log, dependencies);
     const external = trimEmptyImports(dependencies);
-    const deps = external.map(dep => dep.globalName || 'null');
+    const deps = external.map(dependency => dependency.globalName || 'null');
     const parameters = external.map(m => m.name);
     if (hasExports && !name) {
         log(parseAst_js.LOGLEVEL_WARN, parseAst_js.logMissingNameOptionForIifeExport());
@@ -12483,7 +12766,8 @@ function iife(magicString, { accessedGlobals, dependencies, exports, hasDefaultE
 
 const MISSING_EXPORT_SHIM_VARIABLE = '_missingExportShim';
 
-function system(magicString, { accessedGlobals, dependencies, exports, hasExports, indent: t, intro, snippets, outro, usesTopLevelAwait }, { externalLiveBindings, freeze, name, generatedCode: { symbols }, strict, systemNullSetters }) {
+function system(magicString, { accessedGlobals, dependencies, exports, hasExports, id, indent: t, intro, snippets, outro, usesTopLevelAwait }, { externalLiveBindings, freeze, name, generatedCode: { symbols }, strict, systemNullSetters }) {
+    throwOnPhase('system', id, dependencies);
     const { _, getFunctionIntro, getNonArrowFunctionIntro, n, s } = snippets;
     const { importBindings, setters, starExcludes } = analyzeDependencies(dependencies, exports, t, snippets);
     const registeredName = name ? `'${name}',${_}` : '';
@@ -12651,22 +12935,23 @@ function umd(magicString, { accessedGlobals, dependencies, exports, hasDefaultEx
     if (hasExports && !name) {
         return parseAst_js.error(parseAst_js.logMissingNameOptionForUmdExport());
     }
+    throwOnPhase('umd', id, dependencies);
     warnOnBuiltins(log, dependencies);
-    const amdDeps = dependencies.map(m => `'${updateExtensionForRelativeAmdId(m.importPath, amd.forceJsExtensionForImports)}'`);
-    const cjsDeps = dependencies.map(m => `require('${m.importPath}')`);
+    const amdDependencies = dependencies.map(m => `'${updateExtensionForRelativeAmdId(m.importPath, amd.forceJsExtensionForImports)}'`);
+    const cjsDependencies = dependencies.map(m => `require('${m.importPath}')`);
     const trimmedImports = trimEmptyImports(dependencies);
-    const globalDeps = trimmedImports.map(module => globalProperty(module.globalName, globalVariable, getPropertyAccess));
+    const globalDependencies = trimmedImports.map(module => globalProperty(module.globalName, globalVariable, getPropertyAccess));
     const factoryParameters = trimmedImports.map(m => m.name);
     if ((hasExports || noConflict) &&
         (namedExportsMode || (hasExports && exports[0]?.local === 'exports.default'))) {
-        amdDeps.unshift(`'exports'`);
-        cjsDeps.unshift(`exports`);
-        globalDeps.unshift(assignToDeepVariable(name, globalVariable, globals, `${extend ? `${globalProperty(name, globalVariable, getPropertyAccess)}${_}||${_}` : ''}{}`, snippets, log));
+        amdDependencies.unshift(`'exports'`);
+        cjsDependencies.unshift(`exports`);
+        globalDependencies.unshift(assignToDeepVariable(name, globalVariable, globals, `${extend ? `${globalProperty(name, globalVariable, getPropertyAccess)}${_}||${_}` : ''}{}`, snippets, log));
         factoryParameters.unshift('exports');
     }
     const completeAmdId = getCompleteAmdId(amd, id);
     const amdParameters = (completeAmdId ? `'${completeAmdId}',${_}` : ``) +
-        (amdDeps.length > 0 ? `[${amdDeps.join(`,${_}`)}],${_}` : ``);
+        (amdDependencies.length > 0 ? `[${amdDependencies.join(`,${_}`)}],${_}` : ``);
     const define = amd.define;
     const cjsExport = !namedExportsMode && hasExports ? `module.exports${_}=${_}` : ``;
     const useStrict = strict ? `${_}'use strict';${n}` : ``;
@@ -12675,13 +12960,13 @@ function umd(magicString, { accessedGlobals, dependencies, exports, hasDefaultEx
         const noConflictExportsVariable = compact ? 'e' : 'exports';
         let factory;
         if (!namedExportsMode && hasExports) {
-            factory = `${cnst} ${noConflictExportsVariable}${_}=${_}${assignToDeepVariable(name, globalVariable, globals, `${factoryVariable}(${globalDeps.join(`,${_}`)})`, snippets, log)};`;
+            factory = `${cnst} ${noConflictExportsVariable}${_}=${_}${assignToDeepVariable(name, globalVariable, globals, `${factoryVariable}(${globalDependencies.join(`,${_}`)})`, snippets, log)};`;
         }
         else {
-            const module = globalDeps.shift();
+            const module = globalDependencies.shift();
             factory =
                 `${cnst} ${noConflictExportsVariable}${_}=${_}${module};${n}` +
-                    `${t}${t}${factoryVariable}(${[noConflictExportsVariable, ...globalDeps].join(`,${_}`)});`;
+                    `${t}${t}${factoryVariable}(${[noConflictExportsVariable, ...globalDependencies].join(`,${_}`)});`;
         }
         iifeExport =
             `(${getFunctionIntro([], { isAsync: false, name: null })}{${n}` +
@@ -12695,12 +12980,12 @@ function umd(magicString, { accessedGlobals, dependencies, exports, hasDefaultEx
                 `${t}})()`;
     }
     else {
-        iifeExport = `${factoryVariable}(${globalDeps.join(`,${_}`)})`;
+        iifeExport = `${factoryVariable}(${globalDependencies.join(`,${_}`)})`;
         if (!namedExportsMode && hasExports) {
             iifeExport = assignToDeepVariable(name, globalVariable, globals, iifeExport, snippets, log);
         }
     }
-    const iifeNeedsGlobal = hasExports || (noConflict && namedExportsMode) || globalDeps.length > 0;
+    const iifeNeedsGlobal = hasExports || (noConflict && namedExportsMode) || globalDependencies.length > 0;
     const wrapperParameters = [factoryVariable];
     if (iifeNeedsGlobal) {
         wrapperParameters.unshift(globalVariable);
@@ -12712,7 +12997,7 @@ function umd(magicString, { accessedGlobals, dependencies, exports, hasDefaultEx
     const iifeEnd = iifeNeedsGlobal ? ')' : '';
     const cjsIntro = iifeNeedsGlobal
         ? `${t}typeof exports${_}===${_}'object'${_}&&${_}typeof module${_}!==${_}'undefined'${_}?` +
-            `${_}${cjsExport}${factoryVariable}(${cjsDeps.join(`,${_}`)})${_}:${n}`
+            `${_}${cjsExport}${factoryVariable}(${cjsDependencies.join(`,${_}`)})${_}:${n}`
         : '';
     const wrapperIntro = `(${getNonArrowFunctionIntro(wrapperParameters, { isAsync: false, name: null })}{${n}` +
         cjsIntro +
@@ -12903,24 +13188,34 @@ class ArrayPattern extends NodeBase {
     includeDestructuredIfNecessary(context, destructuredInitPath, init) {
         let included = false;
         const includedPatternPath = getIncludedPatternPath(destructuredInitPath);
-        for (const element of this.elements) {
+        for (const element of [...this.elements].reverse()) {
             if (element) {
-                element.included ||= included;
+                if (included && !element.included) {
+                    element.includeNode(context);
+                }
                 included =
                     element.includeDestructuredIfNecessary(context, includedPatternPath, init) || included;
             }
         }
-        if (included) {
-            // This is necessary so that if any pattern element is included, all are
-            // included for proper deconflicting
-            for (const element of this.elements) {
-                if (element && !element.included) {
-                    element.included = true;
-                    element.includeDestructuredIfNecessary(context, includedPatternPath, init);
-                }
+        if (!this.included && included) {
+            this.includeNode(context);
+        }
+        return this.included;
+    }
+    render(code, options) {
+        let removedStart = this.start + 1;
+        for (const element of this.elements) {
+            if (!element)
+                continue;
+            if (element.included) {
+                element.render(code, options);
+                removedStart = element.end;
+            }
+            else {
+                code.remove(removedStart, this.end - 1);
+                break;
             }
         }
-        return (this.included ||= included);
     }
     markDeclarationReached() {
         for (const element of this.elements) {
@@ -13054,19 +13349,21 @@ class ObjectPattern extends NodeBase {
     }
     includeDestructuredIfNecessary(context, destructuredInitPath, init) {
         if (!this.properties.length)
-            return false;
+            return this.included;
         const lastProperty = this.properties.at(-1);
-        const lastPropertyIncluded = lastProperty.includeDestructuredIfNecessary(context, destructuredInitPath, init);
+        let included = lastProperty.includeDestructuredIfNecessary(context, destructuredInitPath, init);
         const lastPropertyIsRestElement = lastProperty.type === parseAst_js.RestElement;
-        let included = lastPropertyIsRestElement ? lastPropertyIncluded : false;
         for (const property of this.properties.slice(0, -1)) {
-            if (lastPropertyIsRestElement && lastPropertyIncluded) {
+            if (lastPropertyIsRestElement && included && !property.included) {
                 property.includeNode(context);
             }
             included =
                 property.includeDestructuredIfNecessary(context, destructuredInitPath, init) || included;
         }
-        return (this.included ||= included);
+        if (!this.included && included) {
+            this.includeNode(context);
+        }
+        return this.included;
     }
     markDeclarationReached() {
         for (const property of this.properties) {
@@ -13095,27 +13392,34 @@ ObjectPattern.prototype.includeNode = onlyIncludeSelfNoDeoptimize;
 ObjectPattern.prototype.applyDeoptimizations = doNotDeoptimize;
 
 class AssignmentExpression extends NodeBase {
+    constructor() {
+        super(...arguments);
+        this.isConstReassignment = false;
+    }
     hasEffects(context) {
-        const { deoptimized, left, operator, right } = this;
+        const { deoptimized, isConstReassignment, left, operator, right } = this;
         if (!deoptimized)
             this.applyDeoptimizations();
         // MemberExpressions do not access the property before assignments if the
         // operator is '='.
-        return (right.hasEffects(context) ||
+        return (isConstReassignment ||
+            right.hasEffects(context) ||
             left.hasEffectsAsAssignmentTarget(context, operator !== '=') ||
             this.left.hasEffectsWhenDestructuring?.(context, EMPTY_PATH, right));
     }
     hasEffectsOnInteractionAtPath(path, interaction, context) {
-        return this.right.hasEffectsOnInteractionAtPath(path, interaction, context);
+        return ((interaction.type === INTERACTION_ASSIGNED && this.left.included) ||
+            this.right.hasEffectsOnInteractionAtPath(path, interaction, context));
     }
     include(context, includeChildrenRecursively) {
-        const { deoptimized, left, right, operator } = this;
+        const { deoptimized, isConstReassignment, left, right, operator } = this;
         if (!deoptimized)
             this.applyDeoptimizations();
         if (!this.included)
             this.includeNode(context);
         const hasEffectsContext = createHasEffectsContext();
         if (includeChildrenRecursively ||
+            isConstReassignment ||
             operator !== '=' ||
             left.included ||
             left.hasEffectsAsAssignmentTarget(hasEffectsContext, false) ||
@@ -13135,7 +13439,8 @@ class AssignmentExpression extends NodeBase {
         if (this.left instanceof Identifier) {
             const variable = this.scope.variables.get(this.left.name);
             if (variable?.kind === 'const') {
-                this.scope.context.error(parseAst_js.logConstVariableReassignError(), this.left.start);
+                this.isConstReassignment = true;
+                this.scope.context.log(parseAst_js.LOGLEVEL_WARN, parseAst_js.logConstVariableReassignError(), this.left.start);
             }
         }
         this.left.setAssignedValue(this.right);
@@ -13222,13 +13527,16 @@ class AssignmentPattern extends NodeBase {
         if ((included ||= this.right.shouldBeIncluded(context))) {
             this.right.include(context, false);
             if (!this.left.included) {
-                this.left.included = true;
+                this.left.includeNode(context);
                 // Unfortunately, we need to include the left side again now, so that
                 // any declared variables are properly included.
                 this.left.includeDestructuredIfNecessary(context, destructuredInitPath, init);
             }
         }
-        return (this.included = included);
+        if (!this.included && included) {
+            this.includeNode(context);
+        }
+        return this.included;
     }
     includeNode(context) {
         this.included = true;
@@ -13252,6 +13560,9 @@ class AssignmentPattern extends NodeBase {
 }
 
 class AwaitExpression extends NodeBase {
+    deoptimizePath(path) {
+        this.argument.deoptimizePath(path);
+    }
     hasEffects() {
         if (!this.deoptimized)
             this.applyDeoptimizations();
@@ -13288,6 +13599,33 @@ class AwaitExpression extends NodeBase {
 }
 const THEN_PATH = ['then'];
 
+function getRenderedLiteralValue(value) {
+    if (value === undefined) {
+        return 'void 0';
+    }
+    if (typeof value === 'boolean') {
+        return String(value);
+    }
+    if (typeof value === 'string') {
+        return JSON.stringify(value);
+    }
+    if (typeof value === 'number') {
+        return getSimplifiedNumber(value);
+    }
+    return UnknownValue;
+}
+function getSimplifiedNumber(value) {
+    if (Object.is(-0, value)) {
+        return '-0';
+    }
+    const exp = value.toExponential();
+    const [base, exponent] = exp.split('e');
+    const floatLength = base.split('.')[1]?.length || 0;
+    const finalizedExp = `${base.replace('.', '')}e${parseInt(exponent) - floatLength}`;
+    const stringifiedValue = String(value).replace('+', '');
+    return finalizedExp.length < stringifiedValue.length ? finalizedExp : stringifiedValue;
+}
+
 const binaryOperators = {
     '!=': (left, right) => left != right,
     '!==': (left, right) => left !== right,
@@ -13314,14 +13652,30 @@ const binaryOperators = {
     // in: () => UnknownValue,
     // instanceof: () => UnknownValue,
 };
+const UNASSIGNED$1 = Symbol('Unassigned');
 class BinaryExpression extends NodeBase {
-    deoptimizeCache() { }
+    constructor() {
+        super(...arguments);
+        this.renderedLiteralValue = UNASSIGNED$1;
+    }
+    deoptimizeCache() {
+        this.renderedLiteralValue = UnknownValue;
+    }
     getLiteralValueAtPath(path, recursionTracker, origin) {
         if (path.length > 0)
             return UnknownValue;
         const leftValue = this.left.getLiteralValueAtPath(EMPTY_PATH, recursionTracker, origin);
         if (typeof leftValue === 'symbol')
             return UnknownValue;
+        // Optimize `'export' in namespace`
+        if (this.operator === 'in' && this.right.variable instanceof NamespaceVariable) {
+            const [variable] = this.right.variable.context.traceExport(String(leftValue));
+            if (variable instanceof ExternalVariable)
+                return UnknownValue;
+            if (variable instanceof SyntheticNamedExportVariable)
+                return UnknownValue;
+            return !!variable;
+        }
         const rightValue = this.right.getLiteralValueAtPath(EMPTY_PATH, recursionTracker, origin);
         if (typeof rightValue === 'symbol')
             return UnknownValue;
@@ -13329,6 +13683,15 @@ class BinaryExpression extends NodeBase {
         if (!operatorFunction)
             return UnknownValue;
         return operatorFunction(leftValue, rightValue);
+    }
+    getRenderedLiteralValue() {
+        // Only optimize `'export' in ns`
+        if (this.operator !== 'in' || !(this.right.variable instanceof NamespaceVariable)) {
+            return UnknownValue;
+        }
+        if (this.renderedLiteralValue !== UNASSIGNED$1)
+            return this.renderedLiteralValue;
+        return (this.renderedLiteralValue = getRenderedLiteralValue(this.getLiteralValueAtPath(EMPTY_PATH, SHARED_RECURSION_TRACKER, this)));
     }
     hasEffects(context) {
         // support some implicit type coercion runtime errors
@@ -13342,9 +13705,20 @@ class BinaryExpression extends NodeBase {
     hasEffectsOnInteractionAtPath(path, { type }) {
         return type !== INTERACTION_ACCESSED || path.length > 1;
     }
+    include(context, includeChildrenRecursively, options) {
+        if (!this.included)
+            this.includeNode(context);
+        if (typeof this.getRenderedLiteralValue() === 'symbol') {
+            this.left.include(context, includeChildrenRecursively, options);
+            this.right.include(context, includeChildrenRecursively, options);
+            // `instanceof` will attempt to call RHS's `Symbol.hasInstance` if it exists.
+            if (this.operator === 'instanceof')
+                this.right.includePath(INSTANCEOF_PATH, context);
+        }
+    }
     includeNode(context) {
         this.included = true;
-        if (this.operator === 'in') {
+        if (this.operator === 'in' && typeof this.getRenderedLiteralValue() === 'symbol') {
             this.right.includePath(UNKNOWN_PATH, context);
         }
     }
@@ -13352,8 +13726,14 @@ class BinaryExpression extends NodeBase {
         this.left.removeAnnotations(code);
     }
     render(code, options, { renderedSurroundingElement } = parseAst_js.BLANK) {
-        this.left.render(code, options, { renderedSurroundingElement });
-        this.right.render(code, options);
+        const renderedLiteralValue = this.getRenderedLiteralValue();
+        if (typeof renderedLiteralValue !== 'symbol') {
+            code.overwrite(this.start, this.end, renderedLiteralValue);
+        }
+        else {
+            this.left.render(code, options, { renderedSurroundingElement });
+            this.right.render(code, options);
+        }
     }
 }
 BinaryExpression.prototype.applyDeoptimizations = doNotDeoptimize;
@@ -13508,10 +13888,10 @@ class CallExpressionBase extends NodeBase {
 
 class CallExpression extends CallExpressionBase {
     get hasCheckedForWarnings() {
-        return isFlagSet(this.flags, 268435456 /* Flag.checkedForWarnings */);
+        return isFlagSet(this.flags, 134217728 /* Flag.checkedForWarnings */);
     }
     set hasCheckedForWarnings(value) {
-        this.flags = setFlag(this.flags, 268435456 /* Flag.checkedForWarnings */, value);
+        this.flags = setFlag(this.flags, 134217728 /* Flag.checkedForWarnings */, value);
     }
     get optional() {
         return isFlagSet(this.flags, 128 /* Flag.optional */);
@@ -13585,11 +13965,10 @@ class CallExpression extends CallExpressionBase {
             this.callee.includeCallArguments(this.interaction, context);
         }
     }
-    includeNode(context) {
+    includeNode(_context) {
         this.included = true;
         if (!this.deoptimized)
             this.applyDeoptimizations();
-        this.callee.includePath(UNKNOWN_PATH, context);
     }
     initialise() {
         super.initialise();
@@ -13764,11 +14143,20 @@ class ConditionalExpression extends NodeBase {
     set isBranchResolutionAnalysed(value) {
         this.flags = setFlag(this.flags, 65536 /* Flag.isBranchResolutionAnalysed */, value);
     }
+    get hasDeoptimizedCache() {
+        return isFlagSet(this.flags, 33554432 /* Flag.hasDeoptimizedCache */);
+    }
+    set hasDeoptimizedCache(value) {
+        this.flags = setFlag(this.flags, 33554432 /* Flag.hasDeoptimizedCache */, value);
+    }
     deoptimizeArgumentsOnInteractionAtPath(interaction, path, recursionTracker) {
         this.consequent.deoptimizeArgumentsOnInteractionAtPath(interaction, path, recursionTracker);
         this.alternate.deoptimizeArgumentsOnInteractionAtPath(interaction, path, recursionTracker);
     }
     deoptimizeCache() {
+        if (this.hasDeoptimizedCache)
+            return;
+        this.hasDeoptimizedCache = true;
         if (this.usedBranch !== null) {
             const unusedBranch = this.usedBranch === this.consequent ? this.alternate : this.consequent;
             this.usedBranch = null;
@@ -13795,8 +14183,23 @@ class ConditionalExpression extends NodeBase {
     }
     getLiteralValueAtPath(path, recursionTracker, origin) {
         const usedBranch = this.getUsedBranch();
-        if (!usedBranch)
-            return UnknownValue;
+        if (!usedBranch) {
+            if (this.hasDeoptimizedCache) {
+                return UnknownValue;
+            }
+            const consequentValue = this.consequent.getLiteralValueAtPath(path, recursionTracker, origin);
+            const castedConsequentValue = tryCastLiteralValueToBoolean(consequentValue);
+            if (castedConsequentValue === UnknownValue)
+                return UnknownValue;
+            const alternateValue = this.alternate.getLiteralValueAtPath(path, recursionTracker, origin);
+            const castedAlternateValue = tryCastLiteralValueToBoolean(alternateValue);
+            if (castedConsequentValue !== castedAlternateValue)
+                return UnknownValue;
+            this.expressionsToBeDeoptimized.push(origin);
+            if (consequentValue !== alternateValue)
+                return castedConsequentValue ? UnknownTruthyValue : UnknownFalsyValue;
+            return consequentValue;
+        }
         this.expressionsToBeDeoptimized.push(origin);
         return usedBranch.getLiteralValueAtPath(path, recursionTracker, origin);
     }
@@ -14423,83 +14826,41 @@ class ImportDefaultSpecifier extends NodeBase {
 ImportDefaultSpecifier.prototype.includeNode = onlyIncludeSelfNoDeoptimize;
 ImportDefaultSpecifier.prototype.applyDeoptimizations = doNotDeoptimize;
 
-function isReassignedExportsMember(variable, exportNamesByVariable) {
-    return (variable.renderBaseName !== null && exportNamesByVariable.has(variable) && variable.isReassigned);
-}
-
-class VariableDeclarator extends NodeBase {
-    declareDeclarator(kind, isUsingDeclaration) {
-        this.isUsingDeclaration = isUsingDeclaration;
-        this.id.declare(kind, EMPTY_PATH, this.init || UNDEFINED_EXPRESSION);
+class ObjectPromiseHandler {
+    constructor(resolvedVariable) {
+        this.interaction = {
+            args: [null, resolvedVariable],
+            type: INTERACTION_CALLED,
+            withNew: false
+        };
     }
-    deoptimizePath(path) {
-        this.id.deoptimizePath(path);
-    }
-    hasEffects(context) {
-        const initEffect = this.init?.hasEffects(context);
-        this.id.markDeclarationReached();
-        return (initEffect ||
-            this.isUsingDeclaration ||
-            this.id.hasEffects(context) ||
-            (this.scope.context.options.treeshake
-                .propertyReadSideEffects &&
-                this.id.hasEffectsWhenDestructuring(context, EMPTY_PATH, this.init || UNDEFINED_EXPRESSION)));
-    }
-    include(context, includeChildrenRecursively) {
-        const { id, init } = this;
-        if (!this.included)
-            this.includeNode();
-        init?.include(context, includeChildrenRecursively);
-        id.markDeclarationReached();
-        if (includeChildrenRecursively) {
-            id.include(context, includeChildrenRecursively);
-        }
-        else {
-            id.includeDestructuredIfNecessary(context, EMPTY_PATH, init || UNDEFINED_EXPRESSION);
+    deoptimizeArgumentsOnInteractionAtPath(interaction, path, recursionTracker) {
+        deoptimizeInteraction(interaction);
+        if (interaction.type === INTERACTION_CALLED &&
+            path.length === 0 &&
+            (isFunctionExpressionNode(interaction.args[1]) ||
+                isArrowFunctionExpressionNode(interaction.args[1]))) {
+            interaction.args[1].deoptimizeArgumentsOnInteractionAtPath(this.interaction, [], recursionTracker);
         }
     }
-    removeAnnotations(code) {
-        this.init?.removeAnnotations(code);
-    }
-    render(code, options) {
-        const { exportNamesByVariable, snippets: { _, getPropertyAccess } } = options;
-        const { end, id, init, start } = this;
-        const renderId = id.included || this.isUsingDeclaration;
-        if (renderId) {
-            id.render(code, options);
-        }
-        else {
-            const operatorPos = findFirstOccurrenceOutsideComment(code.original, '=', id.end);
-            code.remove(start, findNonWhiteSpace(code.original, operatorPos + 1));
-        }
-        if (init) {
-            if (id instanceof Identifier && init instanceof ClassExpression && !init.id) {
-                const renderedVariable = id.variable.getName(getPropertyAccess);
-                if (renderedVariable !== id.name) {
-                    code.appendLeft(init.start + 5, ` ${id.name}`);
-                }
-            }
-            init.render(code, options, renderId ? parseAst_js.BLANK : { renderedSurroundingElement: parseAst_js.ExpressionStatement });
-        }
-        else if (id instanceof Identifier &&
-            isReassignedExportsMember(id.variable, exportNamesByVariable)) {
-            code.appendLeft(end, `${_}=${_}void 0`);
-        }
-    }
-    includeNode() {
-        this.included = true;
-        const { id, init } = this;
-        if (init && id instanceof Identifier && init instanceof ClassExpression && !init.id) {
-            const { name, variable } = id;
-            for (const accessedVariable of init.scope.accessedOutsideVariables.values()) {
-                if (accessedVariable !== variable) {
-                    accessedVariable.forbidName(name);
-                }
-            }
+    includeCallArguments(interaction, context) {
+        // This includes the function call itself
+        includeInteractionWithoutThis(interaction, context);
+        if (interaction.type === INTERACTION_CALLED &&
+            (isFunctionExpressionNode(interaction.args[1]) ||
+                isArrowFunctionExpressionNode(interaction.args[1]))) {
+            interaction.args[1].includeCallArguments(this.interaction, context);
         }
     }
 }
-VariableDeclarator.prototype.applyDeoptimizations = doNotDeoptimize;
+class EmptyPromiseHandler {
+    deoptimizeArgumentsOnInteractionAtPath(interaction) {
+        deoptimizeInteraction(interaction);
+    }
+    includeCallArguments(interaction, context) {
+        includeInteractionWithoutThis(interaction, context);
+    }
+}
 
 function getChunkInfoWithPath(chunk) {
     return { fileName: chunk.getFileName(), ...chunk.getPreRenderedChunkInfo() };
@@ -14508,167 +14869,119 @@ class ImportExpression extends NodeBase {
     constructor() {
         super(...arguments);
         this.inlineNamespace = null;
-        this.hasUnknownAccessedKey = false;
-        this.accessedPropKey = new Set();
+        this.resolution = null;
         this.attributes = null;
         this.mechanism = null;
         this.namespaceExportName = undefined;
-        this.resolution = null;
+        this.localResolution = null;
         this.resolutionString = null;
     }
-    get withinTopLevelAwait() {
-        return isFlagSet(this.flags, 134217728 /* Flag.withinTopLevelAwait */);
+    get shouldIncludeDynamicAttributes() {
+        return isFlagSet(this.flags, 268435456 /* Flag.shouldIncludeDynamicAttributes */);
     }
-    set withinTopLevelAwait(value) {
-        this.flags = setFlag(this.flags, 134217728 /* Flag.withinTopLevelAwait */, value);
+    set shouldIncludeDynamicAttributes(value) {
+        this.flags = setFlag(this.flags, 268435456 /* Flag.shouldIncludeDynamicAttributes */, value);
     }
-    // Do not bind attributes
     bind() {
-        this.source.bind();
+        const { options, parent, resolution, source } = this;
+        source.bind();
+        options?.bind();
+        // Check if we resolved to a Module without using instanceof
+        if (typeof resolution !== 'object' || !resolution || !('namespace' in resolution)) {
+            return;
+        }
+        // In these cases, we can track exactly what is included or deoptimized:
+        // * import('foo'); // as statement
+        // * await import('foo') // use as awaited expression in any way
+        // * import('foo').then(n => {...}) // only if .then is called directly on the import()
+        if (isExpressionStatementNode(parent) || isAwaitExpressionNode(parent)) {
+            this.localResolution = { resolution, tracked: true };
+            return;
+        }
+        if (!isMemberExpressionNode(parent)) {
+            this.localResolution = { resolution, tracked: false };
+            return;
+        }
+        let currentParent = parent;
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
+        let callExpression = this;
+        while (true) {
+            if (currentParent.computed ||
+                currentParent.object !== callExpression ||
+                !isIdentifierNode(currentParent.property) ||
+                !isCallExpressionNode(currentParent.parent)) {
+                break;
+            }
+            const propertyName = currentParent.property.name;
+            callExpression = currentParent.parent;
+            if (propertyName === 'then') {
+                const firstArgument = callExpression.arguments[0];
+                if (firstArgument === undefined ||
+                    isFunctionExpressionNode(firstArgument) ||
+                    isArrowFunctionExpressionNode(firstArgument)) {
+                    currentParent.promiseHandler = new ObjectPromiseHandler(getDynamicNamespaceVariable(resolution.namespace));
+                    this.localResolution = { resolution, tracked: true };
+                    return;
+                }
+            }
+            else if (propertyName === 'catch' || propertyName === 'finally') {
+                if (isMemberExpressionNode(callExpression.parent)) {
+                    currentParent.promiseHandler = new EmptyPromiseHandler();
+                    currentParent = callExpression.parent;
+                    continue;
+                }
+                if (isExpressionStatementNode(callExpression.parent)) {
+                    currentParent.promiseHandler = new EmptyPromiseHandler();
+                    this.localResolution = { resolution, tracked: true };
+                    return;
+                }
+            }
+            break;
+        }
+        this.localResolution = { resolution, tracked: false };
     }
-    /**
-     * Get imported variables for deterministic usage, valid cases are:
-     *
-     * 1. `const { foo } = await import('bar')`.
-     * 2. `(await import('bar')).foo`
-     * 3. `import('bar').then((m) => m.foo)`
-     * 4. `import('bar').then(({ foo }) => {})`
-     *
-     * Returns empty array if it's side-effect only import.
-     * Returns undefined if it's not fully deterministic.
-     */
-    getDeterministicImportedNames() {
-        const parent1 = this.parent;
-        // Side-effect only: import('bar')
-        if (parent1 instanceof ExpressionStatement) {
-            return parseAst_js.EMPTY_ARRAY;
-        }
-        if (parent1 instanceof AwaitExpression) {
-            const parent2 = parent1.parent;
-            // Side-effect only: await import('bar')
-            if (parent2 instanceof ExpressionStatement) {
-                return parseAst_js.EMPTY_ARRAY;
-            }
-            // Case 1: const { foo } / module = await import('bar')
-            if (parent2 instanceof VariableDeclarator) {
-                const declaration = parent2.id;
-                if (declaration instanceof Identifier) {
-                    return this.hasUnknownAccessedKey ? undefined : [...this.accessedPropKey];
-                }
-                if (declaration instanceof ObjectPattern) {
-                    return getDeterministicObjectDestructure(declaration);
-                }
-            }
-            // Case 2: (await import('bar')).foo
-            if (parent2 instanceof MemberExpression) {
-                const id = parent2.property;
-                if (!parent2.computed && id instanceof Identifier) {
-                    return [id.name];
-                }
-            }
-            return;
-        }
-        if (parent1 instanceof MemberExpression) {
-            const callExpression = parent1.parent;
-            const property = parent1.property;
-            if (!(callExpression instanceof CallExpression) || !(property instanceof Identifier)) {
-                return;
-            }
-            const memberName = property.name;
-            // side-effect only, when only chaining .catch or .finally
-            if (callExpression.parent instanceof ExpressionStatement &&
-                ['catch', 'finally'].includes(memberName)) {
-                return parseAst_js.EMPTY_ARRAY;
-            }
-            if (memberName !== 'then')
-                return;
-            // Side-effect only: import('bar').then()
-            if (callExpression.arguments.length === 0) {
-                return parseAst_js.EMPTY_ARRAY;
-            }
-            const thenCallback = callExpression.arguments[0];
-            if (callExpression.arguments.length !== 1 ||
-                !(thenCallback instanceof ArrowFunctionExpression ||
-                    thenCallback instanceof FunctionExpression)) {
-                return;
-            }
-            // Side-effect only: import('bar').then(() => {})
-            if (thenCallback.params.length === 0) {
-                return parseAst_js.EMPTY_ARRAY;
-            }
-            if (thenCallback.params.length === 1) {
-                // Promises .then() can only have one argument so only look at first one
-                const declaration = thenCallback.params[0];
-                // Case 3: import('bar').then(m => m.foo)
-                if (declaration instanceof Identifier) {
-                    const starName = declaration.name;
-                    const memberExpression = thenCallback.body;
-                    if (!(memberExpression instanceof MemberExpression) ||
-                        memberExpression.computed ||
-                        !(memberExpression.property instanceof Identifier)) {
-                        return;
-                    }
-                    const returnVariable = memberExpression.object;
-                    if (!(returnVariable instanceof Identifier) || returnVariable.name !== starName) {
-                        return;
-                    }
-                    return [memberExpression.property.name];
-                }
-                // Case 4: import('bar').then(({ foo }) => {})
-                if (declaration instanceof ObjectPattern) {
-                    return getDeterministicObjectDestructure(declaration);
-                }
-            }
-            return;
-        }
+    deoptimizePath(path) {
+        this.localResolution?.resolution?.namespace.deoptimizePath(path);
     }
     hasEffects() {
         return true;
     }
     include(context, includeChildrenRecursively) {
         if (!this.included)
-            this.includeNode();
+            this.includeNode(context);
         this.source.include(context, includeChildrenRecursively);
+        if (this.shouldIncludeDynamicAttributes) {
+            this.options?.include(context, includeChildrenRecursively);
+        }
+        if (includeChildrenRecursively) {
+            this.localResolution?.resolution.includeAllExports();
+        }
     }
-    includeNode() {
+    includeNode(context) {
         this.included = true;
-        this.scope.context.includeDynamicImport(this);
-        this.scope.addAccessedDynamicImport(this);
+        const { localResolution, scope, shouldIncludeDynamicAttributes } = this;
+        if (shouldIncludeDynamicAttributes) {
+            this.options?.includePath(UNKNOWN_PATH, context);
+        }
+        scope.context.includeDynamicImport(this);
+        scope.addAccessedDynamicImport(this);
+        if (localResolution) {
+            if (localResolution.tracked) {
+                localResolution.resolution.includeModuleInExecution();
+            }
+            else {
+                localResolution.resolution.includeAllExports();
+            }
+        }
     }
-    includePath(path) {
+    includePath(path, context) {
         if (!this.included)
-            this.includeNode();
-        // Technically, this is not correct as dynamic imports return a Promise.
-        if (this.hasUnknownAccessedKey)
-            return;
-        if (path[0] === UnknownKey) {
-            this.hasUnknownAccessedKey = true;
-        }
-        else if (typeof path[0] === 'string') {
-            this.accessedPropKey.add(path[0]);
-        }
-        // Update included paths
-        this.scope.context.includeDynamicImport(this);
+            this.includeNode(context);
+        this.localResolution?.resolution?.namespace.includeMemberPath(path, context);
     }
     initialise() {
         super.initialise();
         this.scope.context.addDynamicImport(this);
-        let parent = this.parent;
-        let withinAwaitExpression = false;
-        let withinTopLevelAwait = false;
-        do {
-            if (withinAwaitExpression &&
-                (parent instanceof FunctionNode || parent instanceof ArrowFunctionExpression)) {
-                withinTopLevelAwait = false;
-            }
-            if (parent instanceof AwaitExpression) {
-                withinAwaitExpression = true;
-                withinTopLevelAwait = true;
-            }
-        } while ((parent = parent.parent));
-        if (withinAwaitExpression && withinTopLevelAwait) {
-            this.withinTopLevelAwait = true;
-        }
     }
     parseNode(esTreeNode) {
         this.sourceAstNode = esTreeNode.source;
@@ -14714,16 +15027,15 @@ class ImportExpression extends NodeBase {
             }
         }
     }
-    setExternalResolution(exportMode, resolution, options, snippets, pluginDriver, accessedGlobalsByScope, resolutionString, namespaceExportName, attributes, ownChunk, targetChunk) {
+    setExternalResolution(exportMode, options, snippets, pluginDriver, accessedGlobalsByScope, resolutionString, namespaceExportName, attributes, ownChunk, targetChunk) {
         const { format } = options;
         this.inlineNamespace = null;
-        this.resolution = resolution;
         this.resolutionString = resolutionString;
         this.namespaceExportName = namespaceExportName;
         this.attributes = attributes;
         const accessedGlobals = [...(accessedImportGlobals[format] || [])];
         let helper;
-        ({ helper, mechanism: this.mechanism } = this.getDynamicImportMechanismAndHelper(resolution, exportMode, options, snippets, pluginDriver, ownChunk, targetChunk));
+        ({ helper, mechanism: this.mechanism } = this.getDynamicImportMechanismAndHelper(exportMode, options, snippets, pluginDriver, ownChunk, targetChunk));
         if (helper) {
             accessedGlobals.push(helper);
         }
@@ -14734,30 +15046,31 @@ class ImportExpression extends NodeBase {
     setInternalResolution(inlineNamespace) {
         this.inlineNamespace = inlineNamespace;
     }
-    getDynamicImportMechanismAndHelper(resolution, exportMode, { compact, dynamicImportInCjs, format, generatedCode: { arrowFunctions }, interop }, { _, getDirectReturnFunction, getDirectReturnIifeLeft }, pluginDriver, ownChunk, targetChunk) {
+    getDynamicImportMechanismAndHelper(exportMode, { compact, dynamicImportInCjs, format, generatedCode: { arrowFunctions }, interop }, { _, getDirectReturnFunction, getDirectReturnIifeLeft }, pluginDriver, ownChunk, targetChunk) {
+        const { resolution, scope } = this;
         const mechanism = pluginDriver.hookFirstSync('renderDynamicImport', [
             {
                 chunk: getChunkInfoWithPath(ownChunk),
-                customResolution: typeof this.resolution === 'string' ? this.resolution : null,
+                customResolution: typeof resolution === 'string' ? resolution : null,
                 format,
                 getTargetChunkImports() {
                     if (targetChunk === null)
                         return null;
                     const chunkInfos = [];
                     const importerPath = ownChunk.getFileName();
-                    for (const dep of targetChunk.dependencies) {
-                        const resolvedImportPath = `'${dep.getImportPath(importerPath)}'`;
-                        if (dep instanceof ExternalChunk) {
+                    for (const dependency of targetChunk.dependencies) {
+                        const resolvedImportPath = `'${dependency.getImportPath(importerPath)}'`;
+                        if (dependency instanceof ExternalChunk) {
                             chunkInfos.push({
-                                fileName: dep.getFileName(),
+                                fileName: dependency.getFileName(),
                                 resolvedImportPath,
                                 type: 'external'
                             });
                         }
                         else {
                             chunkInfos.push({
-                                chunk: dep.getPreRenderedChunkInfo(),
-                                fileName: dep.getFileName(),
+                                chunk: dependency.getPreRenderedChunkInfo(),
+                                fileName: dependency.getFileName(),
                                 resolvedImportPath,
                                 type: 'internal'
                             });
@@ -14765,15 +15078,16 @@ class ImportExpression extends NodeBase {
                     }
                     return chunkInfos;
                 },
-                moduleId: this.scope.context.module.id,
+                moduleId: scope.context.module.id,
                 targetChunk: targetChunk ? getChunkInfoWithPath(targetChunk) : null,
-                targetModuleId: this.resolution && typeof this.resolution !== 'string' ? this.resolution.id : null
+                targetModuleAttributes: resolution && typeof resolution !== 'string' ? resolution.info.attributes : {},
+                targetModuleId: resolution && typeof resolution !== 'string' ? resolution.id : null
             }
         ]);
         if (mechanism) {
             return { helper: null, mechanism };
         }
-        const hasDynamicTarget = !this.resolution || typeof this.resolution === 'string';
+        const hasDynamicTarget = !resolution || typeof resolution === 'string';
         switch (format) {
             case 'cjs': {
                 if (dynamicImportInCjs &&
@@ -14863,15 +15177,6 @@ const accessedImportGlobals = {
     cjs: ['require'],
     system: ['module']
 };
-function getDeterministicObjectDestructure(objectPattern) {
-    const variables = [];
-    for (const property of objectPattern.properties) {
-        if (property.type === 'RestElement' || property.computed || property.key.type !== 'Identifier')
-            return;
-        variables.push(property.key.name);
-    }
-    return variables;
-}
 
 class ImportNamespaceSpecifier extends NodeBase {
 }
@@ -14974,6 +15279,14 @@ class JSXAttribute extends NodeBase {
                 }
                 if (value) {
                     code.overwrite(name.end, value.start, ': ', { contentOnly: true });
+                    // foo="aa \n aa"
+                    if (value instanceof Literal &&
+                        typeof value.value === 'string' &&
+                        value.value.includes('\n')) {
+                        code.overwrite(value.start, value.end, JSON.stringify(value.value), {
+                            contentOnly: true
+                        });
+                    }
                 }
                 else {
                     code.appendLeft(name.end, ': true');
@@ -15035,10 +15348,35 @@ class JSXExpressionContainer extends NodeBase {
     }
 }
 
+const RE_WHITESPACE_TRIM = /^[ \t]*\r?\n[ \t\r\n]*|[ \t]*\r?\n[ \t\r\n]*$/g;
+const RE_WHITESPACE_MERGE = /[ \t]*\r?\n[ \t\r\n]*/g;
+class JSXText extends NodeBase {
+    shouldRender() {
+        return !!this.getRenderedText();
+    }
+    render(code) {
+        const { mode } = this.scope.context.options.jsx;
+        if (mode !== 'preserve') {
+            code.overwrite(this.start, this.end, JSON.stringify(this.getRenderedText()), {
+                contentOnly: true
+            });
+        }
+    }
+    getRenderedText() {
+        if (this.renderedText === undefined)
+            this.renderedText = this.value
+                .replace(RE_WHITESPACE_TRIM, '')
+                .replace(RE_WHITESPACE_MERGE, ' ');
+        return this.renderedText;
+    }
+}
+JSXText.prototype.includeNode = onlyIncludeSelf;
+
 function getRenderedJsxChildren(children) {
     let renderedChildren = 0;
     for (const child of children) {
-        if (!(child instanceof JSXExpressionContainer && child.expression instanceof JSXEmptyExpression)) {
+        if (!(child instanceof JSXExpressionContainer && child.expression instanceof JSXEmptyExpression) &&
+            (!(child instanceof JSXText) || child.shouldRender())) {
             renderedChildren++;
         }
     }
@@ -15116,8 +15454,9 @@ class JSXElementBase extends NodeBase {
         let childrenEnd = openingEnd;
         let firstChild = null;
         for (const child of children) {
-            if (child instanceof JSXExpressionContainer &&
-                child.expression instanceof JSXEmptyExpression) {
+            if ((child instanceof JSXExpressionContainer &&
+                child.expression instanceof JSXEmptyExpression) ||
+                (child instanceof JSXText && !child.shouldRender())) {
                 code.remove(childrenEnd, child.end);
             }
             else {
@@ -15193,9 +15532,9 @@ class JSXElement extends JSXElementBase {
     }
     renderAutomaticMode(code, options) {
         const { snippets: { getPropertyAccess }, useOriginalName } = options;
-        const { closingElement, end, factoryVariable, openingElement: { end: openindEnd, selfClosing } } = this;
+        const { closingElement, end, factoryVariable, openingElement: { end: openingEnd, selfClosing } } = this;
         let { firstAttribute, hasAttributes, hasSpread, inObject, keyAttribute, previousEnd } = this.renderAttributes(code, options, factoryVariable.getName(getPropertyAccess, useOriginalName), true);
-        const { firstChild, hasMultipleChildren, childrenEnd } = this.renderChildren(code, options, openindEnd);
+        const { firstChild, hasMultipleChildren, childrenEnd } = this.renderChildren(code, options, openingEnd);
         if (firstChild) {
             code.prependRight(firstChild.start, `children: ${hasMultipleChildren ? '[' : ''}`);
             if (!inObject) {
@@ -15207,16 +15546,21 @@ class JSXElement extends JSXElementBase {
                 code.appendLeft(previousEnd, ']');
             }
         }
-        this.wrapAttributes(code, inObject, hasAttributes || !!firstChild, hasSpread, firstAttribute || firstChild, '{}', childrenEnd);
+        // This ensures that attributesEnd never corresponds to this.end. This is
+        // important because we must never use code.move with this.end as target.
+        // Otherwise, this would interfere with parent elements that try to append
+        // code to this.end, which would appear BEFORE the moved code.
+        const attributesEnd = firstChild ? childrenEnd : previousEnd;
+        this.wrapAttributes(code, inObject, hasAttributes || !!firstChild, hasSpread, firstAttribute || firstChild, '{}', attributesEnd);
         if (keyAttribute) {
             const { value } = keyAttribute;
             // This will appear to the left of the moved code...
-            code.appendLeft(childrenEnd, ', ');
+            code.appendLeft(attributesEnd, ', ');
             if (value) {
-                code.move(value.start, value.end, childrenEnd);
+                code.move(value.start, value.end, attributesEnd);
             }
             else {
-                code.appendLeft(childrenEnd, 'true');
+                code.appendLeft(attributesEnd, 'true');
             }
         }
         if (selfClosing) {
@@ -15266,9 +15610,7 @@ class JSXElement extends JSXElementBase {
                 hasSpread = true;
             }
             previousEnd = attribute.end;
-            if (!firstAttribute) {
-                firstAttribute = attribute;
-            }
+            firstAttribute ??= attribute;
         }
         code.remove(attributes.at(-1)?.end || previousEnd, openingEnd);
         return { firstAttribute, hasAttributes, hasSpread, inObject, keyAttribute, previousEnd };
@@ -15422,18 +15764,6 @@ class JSXSpreadChild extends NodeBase {
         }
     }
 }
-
-class JSXText extends NodeBase {
-    render(code) {
-        const { mode } = this.scope.context.options.jsx;
-        if (mode !== 'preserve') {
-            code.overwrite(this.start, this.end, JSON.stringify(this.value), {
-                contentOnly: true
-            });
-        }
-    }
-}
-JSXText.prototype.includeNode = onlyIncludeSelf;
 
 class LabeledStatement extends NodeBase {
     hasEffects(context) {
@@ -15655,7 +15985,8 @@ class LogicalExpression extends NodeBase {
             this.isBranchResolutionAnalysed = true;
             const leftValue = this.left.getLiteralValueAtPath(EMPTY_PATH, SHARED_RECURSION_TRACKER, this);
             const booleanOrUnknown = tryCastLiteralValueToBoolean(leftValue);
-            if (typeof booleanOrUnknown === 'symbol') {
+            if (typeof booleanOrUnknown === 'symbol' ||
+                (this.operator === '??' && typeof leftValue === 'symbol')) {
                 return null;
             }
             else {
@@ -15806,7 +16137,11 @@ class ObjectExpression extends NodeBase {
             if (property.computed) {
                 const keyValue = property.key.getLiteralValueAtPath(EMPTY_PATH, SHARED_RECURSION_TRACKER, this);
                 if (typeof keyValue === 'symbol') {
-                    properties.push({ key: UnknownKey, kind: property.kind, property });
+                    properties.push({
+                        key: isAnyWellKnown(keyValue) ? keyValue : UnknownKey,
+                        kind: property.kind,
+                        property
+                    });
                     continue;
                 }
                 else {
@@ -15836,7 +16171,7 @@ ObjectExpression.prototype.applyDeoptimizations = doNotDeoptimize;
 
 class PanicError extends NodeBase {
     initialise() {
-        const id = this.scope.context.module.id;
+        const { id } = this.scope.context.module;
         // This simulates the current nested error structure. We could also just
         // replace it with a flat error.
         const parseError = parseAst_js.getRollupError(parseAst_js.logParseError(this.message));
@@ -15848,7 +16183,7 @@ class PanicError extends NodeBase {
 class ParseError extends NodeBase {
     initialise() {
         const pos = this.start;
-        const id = this.scope.context.module.id;
+        const { id } = this.scope.context.module;
         // This simulates the current nested error structure. We could also just
         // replace it with a flat error.
         const parseError = parseAst_js.getRollupError(parseAst_js.logParseError(this.message, pos));
@@ -15965,13 +16300,16 @@ class Property extends MethodBase {
         if ((included ||= this.key.hasEffects(createHasEffectsContext()))) {
             this.key.include(context, false);
             if (!this.value.included) {
-                this.value.included = true;
+                this.value.includeNode(context);
                 // Unfortunately, we need to include the value again now, so that any
                 // declared variables are properly included.
                 this.value.includeDestructuredIfNecessary(context, path, init);
             }
         }
-        return (this.included = included);
+        if (!this.included && included) {
+            this.includeNode(context);
+        }
+        return this.included;
     }
     include(context, includeChildrenRecursively) {
         this.included = true;
@@ -16299,13 +16637,10 @@ SwitchStatement.prototype.applyDeoptimizations = doNotDeoptimize;
 
 class TaggedTemplateExpression extends CallExpressionBase {
     get hasCheckedForWarnings() {
-        return isFlagSet(this.flags, 268435456 /* Flag.checkedForWarnings */);
+        return isFlagSet(this.flags, 134217728 /* Flag.checkedForWarnings */);
     }
     set hasCheckedForWarnings(value) {
-        this.flags = setFlag(this.flags, 268435456 /* Flag.checkedForWarnings */, value);
-    }
-    bind() {
-        super.bind();
+        this.flags = setFlag(this.flags, 134217728 /* Flag.checkedForWarnings */, value);
     }
     hasEffects(context) {
         if (!this.deoptimized)
@@ -16426,18 +16761,19 @@ class TemplateLiteral extends NodeBase {
 }
 
 class ModuleScope extends ChildScope {
-    constructor(parent, context) {
+    constructor(parent, context, importDescriptions) {
         super(parent, context);
+        this.importDescriptions = importDescriptions;
         this.variables.set('this', new LocalVariable('this', null, UNDEFINED_EXPRESSION, EMPTY_PATH, context, 'other'));
     }
     addDeclaration(identifier, context, init, destructuredInitPath, kind) {
-        if (this.context.module.importDescriptions.has(identifier.name)) {
+        if (this.importDescriptions.has(identifier.name)) {
             context.error(parseAst_js.logRedeclarationError(identifier.name), identifier.start);
         }
         return super.addDeclaration(identifier, context, init, destructuredInitPath, kind);
     }
-    addExportDefaultDeclaration(name, exportDefaultDeclaration, context) {
-        const variable = new ExportDefaultVariable(name, exportDefaultDeclaration, context);
+    addExportDefaultDeclaration(exportDefaultDeclaration, context) {
+        const variable = new ExportDefaultVariable(exportDefaultDeclaration, context);
         this.variables.set('default', variable);
         return variable;
     }
@@ -16666,8 +17002,11 @@ class UnaryExpression extends NodeBase {
         if (!this.deoptimized)
             this.applyDeoptimizations();
         this.included = true;
+        // Check if the argument is an identifier that should be preserved as a reference for readability
+        const shouldPreserveArgument = this.argument instanceof Identifier && this.argument.variable?.included;
         if (typeof this.getRenderedLiteralValue(includeChildrenRecursively) === 'symbol' ||
-            this.argument.shouldBeIncluded(context)) {
+            this.argument.shouldBeIncluded(context) ||
+            shouldPreserveArgument) {
             this.argument.include(context, includeChildrenRecursively);
             this.renderedLiteralValue = UnknownValue;
         }
@@ -16686,33 +17025,6 @@ class UnaryExpression extends NodeBase {
     }
 }
 const CHARACTERS_THAT_DO_NOT_REQUIRE_SPACE = /[\s([=%&*+-/<>^|,?:;]/;
-function getRenderedLiteralValue(value) {
-    if (value === undefined) {
-        // At the moment, the undefined only happens when the operator is void
-        return 'void 0';
-    }
-    if (typeof value === 'boolean') {
-        return String(value);
-    }
-    if (typeof value === 'string') {
-        return JSON.stringify(value);
-    }
-    if (typeof value === 'number') {
-        return getSimplifiedNumber(value);
-    }
-    return UnknownValue;
-}
-function getSimplifiedNumber(value) {
-    if (Object.is(-0, value)) {
-        return '-0';
-    }
-    const exp = value.toExponential();
-    const [base, exponent] = exp.split('e');
-    const floatLength = base.split('.')[1]?.length || 0;
-    const finalizedExp = `${base.replace('.', '')}e${parseInt(exponent) - floatLength}`;
-    const stringifiedValue = String(value).replace('+', '');
-    return finalizedExp.length < stringifiedValue.length ? finalizedExp : stringifiedValue;
-}
 UnaryExpression.prototype.includeNode = onlyIncludeSelf;
 
 class UpdateExpression extends NodeBase {
@@ -16767,23 +17079,10 @@ class UpdateExpression extends NodeBase {
 }
 UpdateExpression.prototype.includeNode = onlyIncludeSelf;
 
-function areAllDeclarationsIncludedAndNotExported(declarations, exportNamesByVariable) {
-    for (const declarator of declarations) {
-        if (!declarator.id.included)
-            return false;
-        if (declarator.id.type === parseAst_js.Identifier) {
-            if (exportNamesByVariable.has(declarator.id.variable))
-                return false;
-        }
-        else {
-            const exportedVariables = [];
-            declarator.id.addExportedVariables(exportedVariables, exportNamesByVariable);
-            if (exportedVariables.length > 0)
-                return false;
-        }
-    }
-    return true;
+function isReassignedExportsMember(variable, exportNamesByVariable) {
+    return (variable.renderBaseName !== null && exportNamesByVariable.has(variable) && variable.isReassigned);
 }
+
 class VariableDeclaration extends NodeBase {
     deoptimizePath() {
         for (const declarator of this.declarations) {
@@ -16813,17 +17112,15 @@ class VariableDeclaration extends NodeBase {
     }
     initialise() {
         super.initialise();
-        this.isUsingDeclaration = this.kind === 'await using' || this.kind === 'using';
         for (const declarator of this.declarations) {
-            declarator.declareDeclarator(this.kind, this.isUsingDeclaration);
+            declarator.declareDeclarator(this.kind);
         }
     }
     removeAnnotations(code) {
         this.declarations[0].removeAnnotations(code);
     }
     render(code, options, nodeRenderOptions = parseAst_js.BLANK) {
-        if (this.isUsingDeclaration ||
-            areAllDeclarationsIncludedAndNotExported(this.declarations, options.exportNamesByVariable)) {
+        if (this.areAllDeclarationsIncludedAndNotExported(options.exportNamesByVariable)) {
             for (const declarator of this.declarations) {
                 declarator.render(code, options);
             }
@@ -16923,6 +17220,26 @@ class VariableDeclaration extends NodeBase {
         }
         this.renderDeclarationEnd(code, separatorString, lastSeparatorPos, actualContentEnd, renderedContentEnd, aggregatedSystemExports, options);
     }
+    areAllDeclarationsIncludedAndNotExported(exportNamesByVariable) {
+        if (this.kind === 'await using' || this.kind === 'using') {
+            return true;
+        }
+        for (const declarator of this.declarations) {
+            if (!declarator.id.included)
+                return false;
+            if (declarator.id.type === parseAst_js.Identifier) {
+                if (exportNamesByVariable.has(declarator.id.variable))
+                    return false;
+            }
+            else {
+                const exportedVariables = [];
+                declarator.id.addExportedVariables(exportedVariables, exportNamesByVariable);
+                if (exportedVariables.length > 0)
+                    return false;
+            }
+        }
+        return true;
+    }
 }
 function gatherSystemExportsAndGetSingleExport(separatedNodes, options, aggregatedSystemExports) {
     let singleSystemExport = null;
@@ -16950,6 +17267,92 @@ function gatherSystemExportsAndGetSingleExport(separatedNodes, options, aggregat
 }
 VariableDeclaration.prototype.includeNode = onlyIncludeSelfNoDeoptimize;
 VariableDeclaration.prototype.applyDeoptimizations = doNotDeoptimize;
+
+class VariableDeclarator extends NodeBase {
+    declareDeclarator(kind) {
+        this.isUsingDeclaration = kind === 'using';
+        this.isAsyncUsingDeclaration = kind === 'await using';
+        this.id.declare(kind, EMPTY_PATH, this.init || UNDEFINED_EXPRESSION);
+    }
+    deoptimizePath(path) {
+        this.id.deoptimizePath(path);
+    }
+    hasEffects(context) {
+        const initEffect = this.init?.hasEffects(context);
+        this.id.markDeclarationReached();
+        return (initEffect ||
+            this.isUsingDeclaration ||
+            this.isAsyncUsingDeclaration ||
+            this.id.hasEffects(context) ||
+            (this.scope.context.options.treeshake
+                .propertyReadSideEffects &&
+                this.id.hasEffectsWhenDestructuring(context, EMPTY_PATH, this.init || UNDEFINED_EXPRESSION)));
+    }
+    include(context, includeChildrenRecursively) {
+        const { id, init } = this;
+        if (!this.included)
+            this.includeNode(context);
+        init?.include(context, includeChildrenRecursively);
+        id.markDeclarationReached();
+        if (includeChildrenRecursively) {
+            id.include(context, includeChildrenRecursively);
+        }
+        else {
+            id.includeDestructuredIfNecessary(context, EMPTY_PATH, init || UNDEFINED_EXPRESSION);
+        }
+    }
+    removeAnnotations(code) {
+        this.init?.removeAnnotations(code);
+    }
+    render(code, options) {
+        const { exportNamesByVariable, snippets: { _, getPropertyAccess } } = options;
+        const { end, id, init, start } = this;
+        const renderId = id.included || this.isUsingDeclaration || this.isAsyncUsingDeclaration;
+        if (renderId) {
+            id.render(code, options);
+        }
+        else {
+            const operatorPos = findFirstOccurrenceOutsideComment(code.original, '=', id.end);
+            code.remove(start, findNonWhiteSpace(code.original, operatorPos + 1));
+        }
+        if (init) {
+            if (id instanceof Identifier && init instanceof ClassExpression && !init.id) {
+                const renderedVariable = id.variable.getName(getPropertyAccess);
+                if (renderedVariable !== id.name) {
+                    code.appendLeft(init.start + 5, ` ${id.name}`);
+                }
+            }
+            init.render(code, options, renderId ? parseAst_js.BLANK : { renderedSurroundingElement: parseAst_js.ExpressionStatement });
+        }
+        else if (id instanceof Identifier &&
+            isReassignedExportsMember(id.variable, exportNamesByVariable)) {
+            code.appendLeft(end, `${_}=${_}void 0`);
+        }
+    }
+    includeNode(context) {
+        this.included = true;
+        const { id, init } = this;
+        if (init) {
+            if (this.isUsingDeclaration) {
+                init.includePath(SYMBOL_DISPOSE_PATH, context);
+            }
+            else if (this.isAsyncUsingDeclaration) {
+                init.includePath(SYMBOL_ASYNC_DISPOSE_PATH, context);
+            }
+            if (id instanceof Identifier && init instanceof ClassExpression && !init.id) {
+                const { name, variable } = id;
+                for (const accessedVariable of init.scope.accessedOutsideVariables.values()) {
+                    if (accessedVariable !== variable) {
+                        accessedVariable.forbidName(name);
+                    }
+                }
+            }
+        }
+    }
+}
+VariableDeclarator.prototype.applyDeoptimizations = doNotDeoptimize;
+const SYMBOL_DISPOSE_PATH = [SymbolDispose];
+const SYMBOL_ASYNC_DISPOSE_PATH = [SymbolAsyncDispose];
 
 class WhileStatement extends NodeBase {
     hasEffects(context) {
@@ -17276,7 +17679,10 @@ const bufferParsers = [
             const body = (node.body = new Array(length));
             for (let index = 0; index < length; index++) {
                 const nodePosition = buffer[bodyPosition + 1 + index];
-                body[index] = convertNode(node, (buffer[nodePosition + 3] & 1) === 0 ? scope.instanceScope : scope, nodePosition, buffer);
+                body[index] = convertNode(node, buffer[nodePosition] !== 79 &&
+                    (buffer[nodePosition + 3] & /* the static flag is always first */ 1) === 0
+                    ? scope.instanceScope
+                    : scope, nodePosition, buffer);
             }
         }
         else {
@@ -17438,6 +17844,8 @@ const bufferParsers = [
         node.specifiers = convertNodeList(node, scope, buffer[position], buffer);
         node.source = convertNode(node, scope, buffer[position + 1], buffer);
         node.attributes = convertNodeList(node, scope, buffer[position + 2], buffer);
+        const phaseIndex = buffer[position + 3];
+        node.phase = phaseIndex === 0 ? undefined : parseAst_js.FIXED_STRINGS[phaseIndex];
     },
     function importDefaultSpecifier(node, position, buffer) {
         const { scope } = node;
@@ -17449,6 +17857,8 @@ const bufferParsers = [
         node.sourceAstNode = parseAst_js.convertNode(buffer[position], buffer);
         const optionsPosition = buffer[position + 1];
         node.options = optionsPosition === 0 ? null : convertNode(node, scope, optionsPosition, buffer);
+        const phaseIndex = buffer[position + 2];
+        node.phase = phaseIndex === 0 ? undefined : parseAst_js.FIXED_STRINGS[phaseIndex];
     },
     function importNamespaceSpecifier(node, position, buffer) {
         const { scope } = node;
@@ -17679,7 +18089,7 @@ const bufferParsers = [
         const flags = buffer[position];
         node.tail = (flags & 1) === 1;
         const cookedPosition = buffer[position + 1];
-        const cooked = cookedPosition === 0 ? undefined : buffer.convertString(cookedPosition);
+        const cooked = cookedPosition === 0 ? null : buffer.convertString(cookedPosition);
         const raw = buffer.convertString(buffer[position + 2]);
         node.value = { cooked, raw };
     },
@@ -17964,14 +18374,18 @@ function getOriginalLocation(sourcemapChain, location) {
         if (line) {
             const filteredLine = line.filter((segment) => segment.length > 1);
             const lastSegment = filteredLine[filteredLine.length - 1];
-            for (const segment of filteredLine) {
+            let previousSegment = filteredLine[0];
+            for (let segment of filteredLine) {
                 if (segment[0] >= location.column || segment === lastSegment) {
+                    const notMatched = segment[0] !== location.column;
+                    segment = notMatched ? previousSegment : segment;
                     location = {
                         column: segment[3],
                         line: segment[2] + 1
                     };
                     continue traceSourcemap;
                 }
+                previousSegment = segment;
             }
         }
         throw new Error("Can't resolve original location of error.");
@@ -18151,7 +18565,7 @@ const MISSING_EXPORT_SHIM_DESCRIPTION = {
     identifier: null,
     localName: MISSING_EXPORT_SHIM_VARIABLE
 };
-function getVariableForExportNameRecursive(target, name, importerForSideEffects, isExportAllSearch, searchedNamesAndModules = new Map()) {
+function getVariableForExportNameRecursive(target, name, importerForSideEffects, isExportAllSearch, searchedNamesAndModules = new Map(), importChain, sideEffectModules, exportOrReexportModules) {
     const searchedModules = searchedNamesAndModules.get(name);
     if (searchedModules) {
         if (searchedModules.has(target)) {
@@ -18163,9 +18577,12 @@ function getVariableForExportNameRecursive(target, name, importerForSideEffects,
         searchedNamesAndModules.set(name, new Set([target]));
     }
     return target.getVariableForExportName(name, {
+        exportOrReexportModules,
+        importChain,
         importerForSideEffects,
         isExportAllSearch,
-        searchedNamesAndModules
+        searchedNamesAndModules,
+        sideEffectModules
     });
 }
 function getAndExtendSideEffectModules(variable, module) {
@@ -18216,34 +18633,34 @@ class Module {
         this.importedFromNotTreeshaken = false;
         this.importers = [];
         this.includedDynamicImporters = [];
-        this.includedDirectTopLevelAwaitingDynamicImporters = new Set();
+        this.includedTopLevelAwaitingDynamicImporters = new Set();
         this.includedImports = new Set();
         this.isExecuted = false;
         this.isUserDefinedEntryPoint = false;
         this.needsExportShim = false;
         this.sideEffectDependenciesByVariable = new Map();
+        this.sourcePhaseSources = new Set();
         this.sourcesWithAttributes = new Map();
-        this.allExportNames = null;
         this.allExportsIncluded = false;
         this.ast = null;
         this.exportAllModules = [];
         this.exportAllSources = new Set();
+        this.exportDescriptions = new Map();
+        this.exportedVariablesByName = null;
         this.exportNamesByVariable = null;
         this.exportShimVariable = new ExportShimVariable(this);
-        this.exports = new Map();
         this.namespaceReexportsByName = new Map();
         this.reexportDescriptions = new Map();
         this.relevantDependencies = null;
         this.syntheticExports = new Map();
         this.syntheticNamespace = null;
         this.transformDependencies = [];
-        this.transitiveReexports = null;
         this.excludeFromSourcemap = /\0/.test(id);
         this.context = options.moduleContext(id);
         this.preserveSignature = this.options.preserveEntrySignatures;
         // eslint-disable-next-line @typescript-eslint/no-this-alias
         const module = this;
-        const { dynamicImports, dynamicImporters, exportAllSources, exports, implicitlyLoadedAfter, implicitlyLoadedBefore, importers, reexportDescriptions, sourcesWithAttributes } = this;
+        const { dynamicImports, dynamicImporters, exportAllSources, exportDescriptions, implicitlyLoadedAfter, implicitlyLoadedBefore, importers, reexportDescriptions, sourcesWithAttributes } = this;
         this.info = {
             ast: null,
             attributes,
@@ -18262,7 +18679,7 @@ class Module {
                 return dynamicImporters.sort();
             },
             get exportedBindings() {
-                const exportBindings = { '.': [...exports.keys()] };
+                const exportBindings = { '.': [...exportDescriptions.keys()] };
                 for (const [name, { source }] of reexportDescriptions) {
                     (exportBindings[source] ??= []).push(name);
                 }
@@ -18273,7 +18690,7 @@ class Module {
             },
             get exports() {
                 return [
-                    ...exports.keys(),
+                    ...exportDescriptions.keys(),
                     ...reexportDescriptions.keys(),
                     ...[...exportAllSources].map(() => '*')
                 ];
@@ -18283,7 +18700,7 @@ class Module {
                 if (!module.ast) {
                     return null;
                 }
-                return module.exports.has('default') || reexportDescriptions.has('default');
+                return module.exportDescriptions.has('default') || reexportDescriptions.has('default');
             },
             id,
             get implicitlyLoadedAfterOneOf() {
@@ -18313,6 +18730,7 @@ class Module {
             },
             meta: { ...meta },
             moduleSideEffects,
+            safeVariableNames: null,
             syntheticNamedExports
         };
     }
@@ -18355,28 +18773,6 @@ class Module {
         }
         return size;
     }
-    getAllExportNames() {
-        if (this.allExportNames) {
-            return this.allExportNames;
-        }
-        this.allExportNames = new Set([...this.exports.keys(), ...this.reexportDescriptions.keys()]);
-        for (const module of this.exportAllModules) {
-            if (module instanceof ExternalModule) {
-                this.allExportNames.add(`*${module.id}`);
-                continue;
-            }
-            for (const name of module.getAllExportNames()) {
-                if (name !== 'default')
-                    this.allExportNames.add(name);
-            }
-        }
-        // We do not count the synthetic namespace as a regular export to hide it
-        // from entry signatures and namespace objects
-        if (typeof this.info.syntheticNamedExports === 'string') {
-            this.allExportNames.delete(this.info.syntheticNamedExports);
-        }
-        return this.allExportNames;
-    }
     getDependenciesToBeIncluded() {
         if (this.relevantDependencies)
             return this.relevantDependencies;
@@ -18388,10 +18784,9 @@ class Module {
             this.includedDynamicImporters.length > 0 ||
             this.namespace.included ||
             this.implicitlyLoadedAfter.size > 0) {
-            for (const exportName of [...this.getReexports(), ...this.getExports()]) {
-                const [exportedVariable] = this.getVariableForExportName(exportName);
-                if (exportedVariable?.included) {
-                    dependencyVariables.add(exportedVariable);
+            for (const variable of this.getExportedVariablesByName().values()) {
+                if (variable.included) {
+                    dependencyVariables.add(variable);
                 }
             }
         }
@@ -18423,18 +18818,56 @@ class Module {
         }
         return this.relevantDependencies;
     }
+    getExportedVariablesByName() {
+        if (this.exportedVariablesByName) {
+            return this.exportedVariablesByName;
+        }
+        const exportedVariablesByName = (this.exportedVariablesByName = new Map());
+        for (const name of this.exportDescriptions.keys()) {
+            // We do not count the synthetic namespace as a regular export to hide it
+            // from entry signatures and namespace objects
+            if (name !== this.info.syntheticNamedExports) {
+                const [exportedVariable] = this.getVariableForExportName(name);
+                if (exportedVariable) {
+                    exportedVariablesByName.set(name, exportedVariable);
+                }
+                else {
+                    return parseAst_js.error(parseAst_js.logMissingEntryExport(name, this.id));
+                }
+            }
+        }
+        for (const name of this.reexportDescriptions.keys()) {
+            const [exportedVariable] = this.getVariableForExportName(name);
+            if (exportedVariable) {
+                exportedVariablesByName.set(name, exportedVariable);
+            }
+        }
+        for (const module of this.exportAllModules) {
+            if (module instanceof ExternalModule) {
+                exportedVariablesByName.set(`*${module.id}`, module.getVariableForExportName('*', {
+                    importChain: [this.id]
+                })[0]);
+                continue;
+            }
+            for (const name of module.getExportedVariablesByName().keys()) {
+                if (name !== 'default' && !exportedVariablesByName.has(name)) {
+                    const [exportedVariable] = this.getVariableForExportName(name);
+                    if (exportedVariable) {
+                        exportedVariablesByName.set(name, exportedVariable);
+                    }
+                }
+            }
+        }
+        return (this.exportedVariablesByName = new Map([...exportedVariablesByName].sort(sortExportedVariables)));
+    }
     getExportNamesByVariable() {
         if (this.exportNamesByVariable) {
             return this.exportNamesByVariable;
         }
         const exportNamesByVariable = new Map();
-        for (const exportName of this.getAllExportNames()) {
-            let [tracedVariable] = this.getVariableForExportName(exportName);
-            if (tracedVariable instanceof ExportDefaultVariable) {
-                tracedVariable = tracedVariable.getOriginalVariable();
-            }
-            if (!tracedVariable ||
-                !(tracedVariable.included || tracedVariable instanceof ExternalVariable)) {
+        for (const [exportName, variable] of this.getExportedVariablesByName().entries()) {
+            const tracedVariable = variable instanceof ExportDefaultVariable ? variable.getOriginalVariable() : variable;
+            if (!variable || !(variable.included || variable instanceof ExternalVariable)) {
                 continue;
             }
             const existingExportNames = exportNamesByVariable.get(tracedVariable);
@@ -18447,36 +18880,14 @@ class Module {
         }
         return (this.exportNamesByVariable = exportNamesByVariable);
     }
-    getExports() {
-        return [...this.exports.keys()];
-    }
-    getReexports() {
-        if (this.transitiveReexports) {
-            return this.transitiveReexports;
-        }
-        // to avoid infinite recursion when using circular `export * from X`
-        this.transitiveReexports = [];
-        const reexports = new Set(this.reexportDescriptions.keys());
-        for (const module of this.exportAllModules) {
-            if (module instanceof ExternalModule) {
-                reexports.add(`*${module.id}`);
-            }
-            else {
-                for (const name of [...module.getReexports(), ...module.getExports()]) {
-                    if (name !== 'default')
-                        reexports.add(name);
-                }
-            }
-        }
-        return (this.transitiveReexports = [...reexports]);
-    }
     getRenderedExports() {
         // only direct exports are counted here, not reexports at all
         const renderedExports = [];
         const removedExports = [];
-        for (const exportName of this.exports.keys()) {
-            const [variable] = this.getVariableForExportName(exportName);
-            (variable?.included ? renderedExports : removedExports).push(exportName);
+        for (const exportName of this.exportDescriptions.keys()) {
+            (this.getExportedVariablesByName().get(exportName)?.included
+                ? renderedExports
+                : removedExports).push(exportName);
         }
         return { removedExports, renderedExports };
     }
@@ -18492,7 +18903,7 @@ class Module {
         }
         return this.syntheticNamespace;
     }
-    getVariableForExportName(name, { importerForSideEffects, isExportAllSearch, onlyExplicit, searchedNamesAndModules } = parseAst_js.EMPTY_OBJECT) {
+    getVariableForExportName(name, { importerForSideEffects, importChain = [], isExportAllSearch, onlyExplicit, searchedNamesAndModules, sideEffectModules, exportOrReexportModules } = parseAst_js.EMPTY_OBJECT) {
         if (name[0] === '*') {
             if (name.length === 1) {
                 // export * from './other'
@@ -18500,14 +18911,16 @@ class Module {
             }
             // export * from 'external'
             const module = this.graph.modulesById.get(name.slice(1));
-            return module.getVariableForExportName('*');
+            return module.getVariableForExportName('*', {
+                importChain: [...importChain, this.id]
+            });
         }
         // export { foo } from './other'
         const reexportDeclaration = this.reexportDescriptions.get(name);
         if (reexportDeclaration) {
-            const [variable] = getVariableForExportNameRecursive(reexportDeclaration.module, reexportDeclaration.localName, importerForSideEffects, false, searchedNamesAndModules);
+            const [variable, options] = getVariableForExportNameRecursive(reexportDeclaration.module, reexportDeclaration.localName, importerForSideEffects, false, searchedNamesAndModules, [...importChain, this.id], sideEffectModules, exportOrReexportModules);
             if (!variable) {
-                return this.error(parseAst_js.logMissingExport(reexportDeclaration.localName, this.id, reexportDeclaration.module.id), reexportDeclaration.start);
+                return this.error(parseAst_js.logMissingExport(reexportDeclaration.localName, this.id, reexportDeclaration.module.id, !!options?.missingButExportExists), reexportDeclaration.start);
             }
             if (importerForSideEffects) {
                 setAlternativeExporterIfCyclic(variable, importerForSideEffects, this);
@@ -18515,22 +18928,33 @@ class Module {
                     getOrCreate(importerForSideEffects.sideEffectDependenciesByVariable, variable, (getNewSet)).add(this);
                 }
             }
+            if (this.info.moduleSideEffects) {
+                sideEffectModules?.add(this);
+            }
+            exportOrReexportModules?.add(this);
             return [variable];
         }
-        const exportDeclaration = this.exports.get(name);
+        const exportDeclaration = this.exportDescriptions.get(name);
         if (exportDeclaration) {
             if (exportDeclaration === MISSING_EXPORT_SHIM_DESCRIPTION) {
                 return [this.exportShimVariable];
             }
             const name = exportDeclaration.localName;
             const variable = this.traceVariable(name, {
+                exportOrReexportModules,
                 importerForSideEffects,
-                searchedNamesAndModules
+                searchedNamesAndModules,
+                sideEffectModules
             });
+            if (!variable) {
+                return [null, { missingButExportExists: true }];
+            }
             if (importerForSideEffects) {
                 setAlternativeExporterIfCyclic(variable, importerForSideEffects, this);
                 getOrCreate(importerForSideEffects.sideEffectDependenciesByVariable, variable, (getNewSet)).add(this);
             }
+            sideEffectModules?.add(this);
+            exportOrReexportModules?.add(this);
             return [variable];
         }
         if (onlyExplicit) {
@@ -18538,9 +18962,22 @@ class Module {
         }
         if (name !== 'default') {
             const foundNamespaceReexport = this.namespaceReexportsByName.get(name) ??
-                this.getVariableFromNamespaceReexports(name, importerForSideEffects, searchedNamesAndModules);
+                this.getVariableFromNamespaceReexports(name, importerForSideEffects, searchedNamesAndModules, [...importChain, this.id]);
             this.namespaceReexportsByName.set(name, foundNamespaceReexport);
             if (foundNamespaceReexport[0]) {
+                const [namespaceReexportVariable, namespaceReexportOptions] = foundNamespaceReexport;
+                if (importerForSideEffects) {
+                    const { exportOrReexportModules, sideEffectModules } = namespaceReexportOptions;
+                    for (const module of exportOrReexportModules) {
+                        if (importerForSideEffects.alternativeReexportModules.has(namespaceReexportVariable)) {
+                            continue;
+                        }
+                        setAlternativeExporterIfCyclic(namespaceReexportVariable, importerForSideEffects, module);
+                    }
+                    for (const module of sideEffectModules) {
+                        getOrCreate(importerForSideEffects.sideEffectDependenciesByVariable, namespaceReexportVariable, (getNewSet)).add(module);
+                    }
+                }
                 return foundNamespaceReexport;
             }
         }
@@ -18565,62 +19002,28 @@ class Module {
         if (this.ast.shouldBeIncluded(context))
             this.ast.include(context, false);
     }
-    includeAllExports(includeNamespaceMembers) {
-        if (includeNamespaceMembers) {
-            this.namespace.setMergedNamespaces(this.includeAndGetAdditionalMergedNamespaces());
-        }
+    includeAllExports() {
         if (this.allExportsIncluded)
             return;
         this.allExportsIncluded = true;
-        if (!this.isExecuted) {
-            markModuleAndImpureDependenciesAsExecuted(this);
-            this.graph.needsTreeshakingPass = true;
-        }
+        this.includeModuleInExecution();
         const inclusionContext = createInclusionContext();
-        for (const exportName of this.exports.keys()) {
-            if (includeNamespaceMembers || exportName !== this.info.syntheticNamedExports) {
-                const variable = this.getVariableForExportName(exportName)[0];
-                if (!variable) {
-                    return parseAst_js.error(parseAst_js.logMissingEntryExport(exportName, this.id));
-                }
-                this.includeVariable(variable, UNKNOWN_PATH, inclusionContext);
-                variable.deoptimizePath(UNKNOWN_PATH);
-            }
-        }
-        for (const name of this.getReexports()) {
-            const [variable] = this.getVariableForExportName(name);
-            if (variable) {
-                variable.deoptimizePath(UNKNOWN_PATH);
-                this.includeVariable(variable, UNKNOWN_PATH, inclusionContext);
-                if (variable instanceof ExternalVariable) {
-                    variable.module.reexported = true;
-                }
+        for (const variable of this.getExportedVariablesByName().values()) {
+            this.includeVariable(variable, UNKNOWN_PATH, inclusionContext);
+            variable.deoptimizePath(UNKNOWN_PATH);
+            if (variable instanceof ExternalVariable) {
+                variable.module.reexported = true;
             }
         }
     }
     includeAllInBundle() {
         this.ast.include(createInclusionContext(), true);
-        this.includeAllExports(false);
+        this.includeAllExports();
     }
-    includeExportsByNames(names) {
+    includeModuleInExecution() {
         if (!this.isExecuted) {
             markModuleAndImpureDependenciesAsExecuted(this);
             this.graph.needsTreeshakingPass = true;
-        }
-        let includeNamespaceMembers = false;
-        const inclusionContext = createInclusionContext();
-        for (const name of names) {
-            const variable = this.getVariableForExportName(name)[0];
-            if (variable) {
-                variable.deoptimizePath(UNKNOWN_PATH);
-                this.includeVariable(variable, UNKNOWN_PATH, inclusionContext);
-            }
-            if (!this.exports.has(name) && !this.reexportDescriptions.has(name)) {
-                includeNamespaceMembers = true;
-            }
-        }
-        if (includeNamespaceMembers) {
-            this.namespace.setMergedNamespaces(this.includeAndGetAdditionalMergedNamespaces());
         }
     }
     isIncluded() {
@@ -18660,13 +19063,14 @@ class Module {
         }
         return { source, usesTopLevelAwait };
     }
-    async setSource({ ast, code, customTransformCache, originalCode, originalSourcemap, resolvedIds, sourcemapChain, transformDependencies, transformFiles, ...moduleOptions }) {
+    async setSource({ ast, code, customTransformCache, originalCode, originalSourcemap, resolvedIds, sourcemapChain, transformDependencies, transformFiles, safeVariableNames, ...moduleOptions }) {
         timeStart('generate ast', 3);
         if (code.startsWith('#!')) {
             const shebangEndPosition = code.indexOf('\n');
             this.shebang = code.slice(2, shebangEndPosition);
         }
         this.info.code = code;
+        this.info.safeVariableNames = safeVariableNames;
         this.originalCode = originalCode;
         // We need to call decodedSourcemap on the input in case they were hydrated from json in the cache and don't
         // have the lazy evaluation cache configured. Right now this isn't enforced by the type system because the
@@ -18699,14 +19103,11 @@ class Module {
             deoptimizationTracker: this.graph.deoptimizationTracker,
             error: this.error.bind(this),
             fileName, // Needed for warnings
-            getExports: this.getExports.bind(this),
             getImportedJsxFactoryVariable: this.getImportedJsxFactoryVariable.bind(this),
             getModuleExecIndex: () => this.execIndex,
             getModuleName: this.basename.bind(this),
             getNodeConstructor: (name) => nodeConstructors[name] || nodeConstructors.UnknownNode,
-            getReexports: this.getReexports.bind(this),
             importDescriptions: this.importDescriptions,
-            includeAllExports: () => this.includeAllExports(true),
             includeDynamicImport: this.includeDynamicImport.bind(this),
             includeVariableInModule: this.includeVariableInModule.bind(this),
             log: this.log.bind(this),
@@ -18717,11 +19118,11 @@ class Module {
             newlyIncludedVariableInits: this.graph.newlyIncludedVariableInits,
             options: this.options,
             requestTreeshakingPass: () => (this.graph.needsTreeshakingPass = true),
-            traceExport: (name) => this.getVariableForExportName(name)[0],
+            traceExport: (name) => this.getVariableForExportName(name),
             traceVariable: this.traceVariable.bind(this),
             usesTopLevelAwait: false
         };
-        this.scope = new ModuleScope(this.graph.scope, this.astContext);
+        this.scope = new ModuleScope(this.graph.scope, this.astContext, this.importDescriptions);
         this.namespace = new NamespaceVariable(this.astContext);
         const programParent = { context: this.astContext, type: 'Module' };
         if (ast) {
@@ -18773,13 +19174,14 @@ class Module {
             originalCode: this.originalCode,
             originalSourcemap: this.originalSourcemap,
             resolvedIds: this.resolvedIds,
+            safeVariableNames: this.info.safeVariableNames,
             sourcemapChain: this.sourcemapChain,
             syntheticNamedExports: this.info.syntheticNamedExports,
             transformDependencies: this.transformDependencies,
             transformFiles: this.transformFiles
         };
     }
-    traceVariable(name, { importerForSideEffects, isExportAllSearch, searchedNamesAndModules } = parseAst_js.EMPTY_OBJECT) {
+    traceVariable(name, { importerForSideEffects, isExportAllSearch, searchedNamesAndModules, sideEffectModules, exportOrReexportModules } = parseAst_js.EMPTY_OBJECT) {
         const localVariable = this.scope.variables.get(name);
         if (localVariable) {
             return localVariable;
@@ -18790,9 +19192,9 @@ class Module {
             if (otherModule instanceof Module && importDescription.name === '*') {
                 return otherModule.namespace;
             }
-            const [declaration] = getVariableForExportNameRecursive(otherModule, importDescription.name, importerForSideEffects || this, isExportAllSearch, searchedNamesAndModules);
+            const [declaration, options] = getVariableForExportNameRecursive(otherModule, importDescription.name, importerForSideEffects || this, isExportAllSearch, searchedNamesAndModules, [this.id], sideEffectModules, exportOrReexportModules);
             if (!declaration) {
-                return this.error(parseAst_js.logMissingExport(importDescription.name, this.id, otherModule.id), importDescription.start);
+                return this.error(parseAst_js.logMissingExport(importDescription.name, this.id, otherModule.id, !!options?.missingButExportExists), importDescription.start);
             }
             return declaration;
         }
@@ -18821,10 +19223,10 @@ class Module {
             typeof argument.value === 'string') {
             argument = argument.value;
         }
-        this.dynamicImports.push({ argument, id: null, node, resolution: null });
+        this.dynamicImports.push({ argument, id: null, node });
     }
     assertUniqueExportName(name, nodeStart) {
-        if (this.exports.has(name) || this.reexportDescriptions.has(name)) {
+        if (this.exportDescriptions.has(name) || this.reexportDescriptions.has(name)) {
             this.error(parseAst_js.logDuplicateExportError(name), nodeStart);
         }
     }
@@ -18832,7 +19234,7 @@ class Module {
         if (node instanceof ExportDefaultDeclaration) {
             // export default foo;
             this.assertUniqueExportName('default', node.start);
-            this.exports.set('default', {
+            this.exportDescriptions.set('default', {
                 identifier: node.variable.getAssignedVariableName(),
                 localName: 'default'
             });
@@ -18879,7 +19281,7 @@ class Module {
                 for (const declarator of declaration.declarations) {
                     for (const localName of extractAssignedNames(declarator.id)) {
                         this.assertUniqueExportName(localName, declarator.id.start);
-                        this.exports.set(localName, { identifier: null, localName });
+                        this.exportDescriptions.set(localName, { identifier: null, localName });
                     }
                 }
             }
@@ -18887,7 +19289,7 @@ class Module {
                 // export function foo () {}
                 const localName = declaration.id.name;
                 this.assertUniqueExportName(localName, declaration.id.start);
-                this.exports.set(localName, { identifier: null, localName });
+                this.exportDescriptions.set(localName, { identifier: null, localName });
             }
         }
         else {
@@ -18897,7 +19299,7 @@ class Module {
                 const localName = local.name;
                 const exportedName = exported instanceof Identifier ? exported.name : exported.value;
                 this.assertUniqueExportName(exportedName, exported.start);
-                this.exports.set(exportedName, { identifier: null, localName });
+                this.exportDescriptions.set(exportedName, { identifier: null, localName });
             }
         }
     }
@@ -18909,16 +19311,19 @@ class Module {
             if (this.scope.variables.has(localName) || this.importDescriptions.has(localName)) {
                 this.error(parseAst_js.logRedeclarationError(localName), specifier.local.start);
             }
-            const name = specifier instanceof ImportDefaultSpecifier
-                ? 'default'
-                : specifier instanceof ImportNamespaceSpecifier
-                    ? '*'
-                    : specifier.imported instanceof Identifier
-                        ? specifier.imported.name
-                        : specifier.imported.value;
+            const name = node.phase === 'source'
+                ? SOURCE_PHASE_IMPORT
+                : specifier instanceof ImportDefaultSpecifier
+                    ? 'default'
+                    : specifier instanceof ImportNamespaceSpecifier
+                        ? '*'
+                        : specifier.imported instanceof Identifier
+                            ? specifier.imported.name
+                            : specifier.imported.value;
             this.importDescriptions.set(localName, {
                 module: null, // filled in later
                 name,
+                phase: node.phase === 'source' ? 'source' : 'instance',
                 source,
                 start: specifier.start
             });
@@ -18991,30 +19396,35 @@ class Module {
         else {
             this.sourcesWithAttributes.set(source, parsedAttributes);
         }
+        if (declaration.phase === 'source') {
+            this.sourcePhaseSources.add(source);
+        }
     }
     getImportedJsxFactoryVariable(baseName, nodeStart, importSource) {
         const { id } = this.resolvedIds[importSource];
         const module = this.graph.modulesById.get(id);
-        const [variable] = module.getVariableForExportName(baseName);
+        const [variable] = module.getVariableForExportName(baseName, { importChain: [this.id] });
         if (!variable) {
             return this.error(parseAst_js.logMissingJsxExport(baseName, id, this.id), nodeStart);
         }
         return variable;
     }
-    getVariableFromNamespaceReexports(name, importerForSideEffects, searchedNamesAndModules) {
+    getVariableFromNamespaceReexports(name, importerForSideEffects, searchedNamesAndModules, importChain) {
         let foundSyntheticDeclaration = null;
         const foundInternalDeclarations = new Map();
         const foundExternalDeclarations = new Set();
+        const sideEffectModules = new Set();
+        const exportOrReexportModules = new Set();
         for (const module of this.exportAllModules) {
             // Synthetic namespaces should not hide "regular" exports of the same name
             if (module.info.syntheticNamedExports === name) {
                 continue;
             }
-            const [variable, indirectExternal] = getVariableForExportNameRecursive(module, name, importerForSideEffects, true, 
+            const [variable, options] = getVariableForExportNameRecursive(module, name, importerForSideEffects, true, 
             // We are creating a copy to handle the case where the same binding is
             // imported through different namespace reexports gracefully
-            copyNameToModulesMap(searchedNamesAndModules));
-            if (module instanceof ExternalModule || indirectExternal) {
+            copyNameToModulesMap(searchedNamesAndModules), importChain, sideEffectModules, exportOrReexportModules);
+            if (module instanceof ExternalModule || options?.indirectExternal) {
                 foundExternalDeclarations.add(variable);
             }
             else if (variable instanceof SyntheticNamedExportVariable) {
@@ -19030,7 +19440,7 @@ class Module {
             const foundDeclarationList = [...foundInternalDeclarations];
             const usedDeclaration = foundDeclarationList[0][0];
             if (foundDeclarationList.length === 1) {
-                return [usedDeclaration];
+                return [usedDeclaration, { exportOrReexportModules, sideEffectModules }];
             }
             this.options.onLog(parseAst_js.LOGLEVEL_WARN, parseAst_js.logNamespaceConflict(name, this.id, foundDeclarationList.map(([, module]) => module.id)));
             // TODO we are pretending it was not found while it should behave like "undefined"
@@ -19042,10 +19452,13 @@ class Module {
             if (foundDeclarationList.length > 1) {
                 this.options.onLog(parseAst_js.LOGLEVEL_WARN, parseAst_js.logAmbiguousExternalNamespaces(name, this.id, usedDeclaration.module.id, foundDeclarationList.map(declaration => declaration.module.id)));
             }
-            return [usedDeclaration, true];
+            return [
+                usedDeclaration,
+                { exportOrReexportModules, indirectExternal: true, sideEffectModules }
+            ];
         }
         if (foundSyntheticDeclaration) {
-            return [foundSyntheticDeclaration];
+            return [foundSyntheticDeclaration, { exportOrReexportModules, sideEffectModules }];
         }
         return [null];
     }
@@ -19054,7 +19467,9 @@ class Module {
         const syntheticNamespaces = new Set();
         for (const module of [this, ...this.exportAllModules]) {
             if (module instanceof ExternalModule) {
-                const [externalVariable] = module.getVariableForExportName('*');
+                const [externalVariable] = module.getVariableForExportName('*', {
+                    importChain: [this.id]
+                });
                 externalVariable.includePath(UNKNOWN_PATH, createInclusionContext());
                 this.includedImports.add(externalVariable);
                 externalNamespaces.add(externalVariable);
@@ -19069,22 +19484,15 @@ class Module {
         return [...syntheticNamespaces, ...externalNamespaces];
     }
     includeDynamicImport(node) {
-        const resolution = this.dynamicImports.find(dynamicImport => dynamicImport.node === node).resolution;
+        const { resolution } = node;
         if (resolution instanceof Module) {
             if (!resolution.includedDynamicImporters.includes(this)) {
                 resolution.includedDynamicImporters.push(this);
-                if (node.withinTopLevelAwait) {
-                    resolution.includedDirectTopLevelAwaitingDynamicImporters.add(this);
+                // If a module has a top-level await, removing this entry can create
+                // deadlocks.
+                if (this.astContext.usesTopLevelAwait) {
+                    resolution.includedTopLevelAwaitingDynamicImporters.add(this);
                 }
-            }
-            const importedNames = this.options.treeshake
-                ? node.getDeterministicImportedNames()
-                : undefined;
-            if (importedNames) {
-                resolution.includeExportsByNames(importedNames);
-            }
-            else {
-                resolution.includeAllExports(true);
             }
         }
     }
@@ -19095,21 +19503,17 @@ class Module {
             if (variableModule instanceof Module && variableModule !== this) {
                 getAndExtendSideEffectModules(variable, this);
             }
+            return;
         }
-        else {
-            this.graph.needsTreeshakingPass = true;
-            if (variableModule instanceof Module) {
-                if (!variableModule.isExecuted) {
-                    markModuleAndImpureDependenciesAsExecuted(variableModule);
-                }
-                if (variableModule !== this) {
-                    const sideEffectModules = getAndExtendSideEffectModules(variable, this);
-                    for (const module of sideEffectModules) {
-                        if (!module.isExecuted) {
-                            markModuleAndImpureDependenciesAsExecuted(module);
-                        }
-                    }
-                }
+        this.graph.needsTreeshakingPass = true;
+        if (!(variableModule instanceof Module)) {
+            return;
+        }
+        variableModule.includeModuleInExecution();
+        if (variableModule !== this) {
+            const sideEffectModules = getAndExtendSideEffectModules(variable, this);
+            for (const module of sideEffectModules) {
+                module.includeModuleInExecution();
             }
         }
     }
@@ -19122,7 +19526,7 @@ class Module {
     }
     shimMissingExport(name) {
         this.options.onLog(parseAst_js.LOGLEVEL_WARN, parseAst_js.logShimmedExport(this.id, name));
-        this.exports.set(name, MISSING_EXPORT_SHIM_DESCRIPTION);
+        this.exportDescriptions.set(name, MISSING_EXPORT_SHIM_DESCRIPTION);
     }
     tryParse() {
         try {
@@ -19152,9 +19556,10 @@ function setAlternativeExporterIfCyclic(variable, importer, reexporter) {
 }
 const copyNameToModulesMap = (searchedNamesAndModules) => searchedNamesAndModules &&
     new Map(Array.from(searchedNamesAndModules, ([name, modules]) => [name, new Set(modules)]));
+const sortExportedVariables = ([a], [b]) => a < b ? -1 : a > b ? 1 : 0;
 
-const concatSeparator = (out, next) => (next ? `${out}\n${next}` : out);
-const concatDblSeparator = (out, next) => (next ? `${out}\n\n${next}` : out);
+const concatSeparator = (out, next) => [out, next].filter(Boolean).join('\n');
+const concatDblSeparator = (out, next) => [out, next].filter(Boolean).join('\n\n');
 async function createAddons(options, outputPluginDriver, chunk) {
     try {
         let [banner, footer, intro, outro] = await Promise.all([
@@ -19211,6 +19616,9 @@ function deconflictImportsEsmOrSystem(usedNames, imports, dependenciesToBeDeconf
             variable.setRenderNames(null, (module instanceof ExternalModule
                 ? externalChunkByModule.get(module)
                 : chunkByModule.get(module)).variableName);
+        }
+        else if (module instanceof ExternalModule && variable.isSourcePhase) {
+            variable.setRenderNames(null, getSafeName(module.suggestedVariableName + '__source', usedNames, variable.forbiddenNames));
         }
         else if (module instanceof ExternalModule && name === 'default') {
             variable.setRenderNames(null, getSafeName([...module.exportedVariables].some(([exportedVariable, exportedName]) => exportedName === '*' && exportedVariable.included)
@@ -19282,12 +19690,22 @@ function deconflictImportsOther(usedNames, imports, { deconflictedDefault, decon
 }
 function deconflictTopLevelVariables(usedNames, modules, includedNamespaces) {
     for (const module of modules) {
+        module.info.safeVariableNames ||= {};
         for (const variable of module.scope.variables.values()) {
             if (variable.included &&
                 // this will only happen for exports in some formats
                 !(variable.renderBaseName ||
                     (variable instanceof ExportDefaultVariable && variable.getOriginalVariable() !== variable))) {
+                // We need to make sure that variables that corresponding to object
+                // prototype methods are not accidentally matched.
+                const cachedSafeVariableName = Object.getOwnPropertyDescriptor(module.info.safeVariableNames, variable.name)?.value;
+                if (cachedSafeVariableName && !usedNames.has(cachedSafeVariableName)) {
+                    usedNames.add(cachedSafeVariableName);
+                    variable.setRenderNames(null, cachedSafeVariableName);
+                    continue;
+                }
                 variable.setRenderNames(null, getSafeName(variable.name, usedNames, variable.forbiddenNames));
+                module.info.safeVariableNames[variable.name] = variable.renderName;
             }
         }
         if (includedNamespaces.has(module)) {
@@ -19423,6 +19841,16 @@ function addStaticDependencies(module, staticDependencies, handledModules, chunk
     }
 }
 
+const RESERVED_USED_NAMES = [
+    'Object',
+    'Promise',
+    'module',
+    'exports',
+    'require',
+    '__filename',
+    '__dirname',
+    ...HELPER_NAMES
+];
 const NON_ASSET_EXTENSIONS = new Set([
     '.js',
     '.jsx',
@@ -19466,6 +19894,7 @@ class Chunk {
         this.facadeModule = null;
         this.namespaceVariableName = '';
         this.variableName = '';
+        this.isManualChunk = false;
         this.accessedGlobalsByScope = new Map();
         this.dynamicEntryModules = [];
         this.dynamicName = null;
@@ -19513,6 +19942,8 @@ class Chunk {
                         includedNamespaces.add(module);
                         this.exports.add(module.namespace);
                     }
+                    // This only needs to run once
+                    break;
                 }
             }
             if (module.implicitlyLoadedAfter.size > 0) {
@@ -19520,6 +19951,7 @@ class Chunk {
             }
         }
         this.suggestedVariableName = makeLegal(this.generateVariableName());
+        this.isManualChunk = manualChunkAlias !== null;
     }
     static generateFacade(inputOptions, outputOptions, unsetOptions, pluginDriver, modulesById, chunkByModule, externalChunkByModule, facadeChunkByModule, includedNamespaces, facadedModule, facadeName, getPlaceholder, bundle, inputBase, snippets) {
         const chunk = new Chunk([], inputOptions, outputOptions, unsetOptions, pluginDriver, modulesById, chunkByModule, externalChunkByModule, facadeChunkByModule, includedNamespaces, null, getPlaceholder, bundle, inputBase, snippets);
@@ -19759,38 +20191,39 @@ class Chunk {
         if (this.preliminarySourcemapFileName) {
             return this.preliminarySourcemapFileName;
         }
-        let sourcemapFileName = null;
-        let hashPlaceholder = null;
         const { sourcemapFileNames, format } = this.outputOptions;
-        if (sourcemapFileNames) {
-            const [pattern, patternName] = [sourcemapFileNames, 'output.sourcemapFileNames'];
-            sourcemapFileName = renderNamePattern(typeof pattern === 'function' ? pattern(this.getPreRenderedChunkInfo()) : pattern, patternName, {
-                chunkhash: () => this.getPreliminaryFileName().hashPlaceholder || '',
-                format: () => format,
-                hash: size => hashPlaceholder ||
-                    (hashPlaceholder = this.getPlaceholder(patternName, size || DEFAULT_HASH_SIZE)),
-                name: () => this.getChunkName()
-            });
-            if (!hashPlaceholder) {
-                sourcemapFileName = makeUnique(sourcemapFileName, this.bundle);
-            }
-        }
-        else {
+        if (!sourcemapFileNames) {
             return null;
         }
-        return (this.preliminarySourcemapFileName = { fileName: sourcemapFileName, hashPlaceholder });
+        let hashPlaceholder = null;
+        const [pattern, patternName] = [sourcemapFileNames, 'output.sourcemapFileNames'];
+        let sourcemapFileName = renderNamePattern(typeof pattern === 'function' ? pattern(this.getPreRenderedChunkInfo()) : pattern, patternName, {
+            chunkhash: () => this.getPreliminaryFileName().hashPlaceholder || '',
+            format: () => format,
+            hash: size => hashPlaceholder ||
+                (hashPlaceholder = this.getPlaceholder(patternName, size || DEFAULT_HASH_SIZE)),
+            name: () => this.getChunkName()
+        });
+        if (!hashPlaceholder) {
+            sourcemapFileName = makeUnique(sourcemapFileName, this.bundle);
+        }
+        return (this.preliminarySourcemapFileName = {
+            fileName: sourcemapFileName,
+            hashPlaceholder
+        });
     }
     getRenderedChunkInfo() {
         if (this.renderedChunkInfo) {
             return this.renderedChunkInfo;
         }
+        const renderedDependencies = this.getRenderedDependencies();
         return (this.renderedChunkInfo = {
             ...this.getPreRenderedChunkInfo(),
             dynamicImports: this.getDynamicDependencies().map(resolveFileName),
             fileName: this.getFileName(),
             implicitlyLoadedBefore: Array.from(this.implicitlyLoadedBefore, resolveFileName),
-            importedBindings: getImportedBindingsPerDependency(this.getRenderedDependencies(), resolveFileName),
-            imports: Array.from(this.dependencies, resolveFileName),
+            importedBindings: getImportedBindingsPerDependency(renderedDependencies, resolveFileName),
+            imports: Array.from(renderedDependencies.keys(), resolveFileName),
             modules: this.renderedModules,
             referencedFiles: this.getReferencedFiles()
         });
@@ -19814,9 +20247,9 @@ class Chunk {
         // for static and dynamic entry points, add transitive dependencies to this
         // chunk's dependencies to avoid loading latency
         if (hoistTransitiveImports && !preserveModules && facadeModule !== null) {
-            for (const dep of dependencies) {
-                if (dep instanceof Chunk)
-                    this.inlineChunkDependencies(dep);
+            for (const dependency of dependencies) {
+                if (dependency instanceof Chunk)
+                    this.inlineChunkDependencies(dependency);
             }
         }
     }
@@ -19988,11 +20421,11 @@ class Chunk {
                         if (!chunk || format !== 'es') {
                             continue;
                         }
-                        const chunkDep = this.renderedDependencies.get(chunk);
-                        if (!chunkDep) {
+                        const chunkDependency = this.renderedDependencies.get(chunk);
+                        if (!chunkDependency) {
                             continue;
                         }
-                        const { imports, reexports } = chunkDep;
+                        const { imports, reexports } = chunkDependency;
                         const importedByReexported = reexports?.find(({ reexported }) => reexported === exportName);
                         const isImported = imports?.find(({ imported }) => imported === importedByReexported?.imported);
                         if (!isImported) {
@@ -20048,7 +20481,7 @@ class Chunk {
                         else if (variable.isNamespace &&
                             namespaceInteropHelpersByInteropType[interop(module.id)] &&
                             (this.imports.has(variable) ||
-                                !this.exportNamesByVariable.get(variable)?.every(name => name.startsWith('*')))) {
+                                !this.exportNamesByVariable.get(variable)?.every(name => name[0] === '*'))) {
                             // We only need to deconflict it if the namespace is actually
                             // created as a variable, i.e. because it is used internally or
                             // because it is reexported as an object
@@ -20086,13 +20519,18 @@ class Chunk {
             (resolution instanceof Chunk || resolution instanceof ExternalChunk));
     }
     getDynamicImportStringAndAttributes(resolution, fileName, node) {
+        const { externalImportAttributes } = this.outputOptions;
+        const keepExternalImportAttributes = ['es', 'cjs'].includes(this.outputOptions.format) && externalImportAttributes;
         if (resolution instanceof ExternalModule) {
             const chunk = this.externalChunkByModule.get(resolution);
-            return [`'${chunk.getImportPath(fileName)}'`, chunk.getImportAttributes(this.snippets)];
+            const dynamicAttributes = chunk.getImportAttributes(this.snippets);
+            return [
+                `'${chunk.getImportPath(fileName)}'`,
+                dynamicAttributes || (keepExternalImportAttributes ? true : null)
+            ];
         }
         let attributes = null;
-        if (['es', 'cjs'].includes(this.outputOptions.format) &&
-            this.outputOptions.externalImportAttributes) {
+        if (keepExternalImportAttributes) {
             const attributesFromImportAttributes = getAttributesFromImportExpression(node);
             attributes =
                 attributesFromImportAttributes === parseAst_js.EMPTY_OBJECT
@@ -20120,10 +20558,14 @@ class Chunk {
             const module = variable.module;
             let dependency;
             let imported;
+            const isSourcePhase = module instanceof ExternalModule && variable.isSourcePhase;
             if (module instanceof ExternalModule) {
                 dependency = this.externalChunkByModule.get(module);
                 imported = variable.name;
-                if (imported !== 'default' && imported !== '*' && interop(module.id) === 'defaultOnly') {
+                if (!isSourcePhase &&
+                    imported !== 'default' &&
+                    imported !== '*' &&
+                    interop(module.id) === 'defaultOnly') {
                     return parseAst_js.error(parseAst_js.logUnexpectedNamedImport(module.id, imported, false));
                 }
             }
@@ -20133,7 +20575,8 @@ class Chunk {
             }
             getOrCreate(importsByDependency, dependency, getNewArray).push({
                 imported,
-                local: variable.getName(this.snippets.getPropertyAccess)
+                local: variable.getName(this.snippets.getPropertyAccess),
+                phase: isSourcePhase ? 'source' : 'instance'
             });
         }
         return importsByDependency;
@@ -20144,10 +20587,11 @@ class Chunk {
         }
         const includedDynamicImports = [];
         for (const module of this.orderedModules) {
-            for (const { node, resolution } of module.dynamicImports) {
+            for (const { node } of module.dynamicImports) {
                 if (!node.included) {
                     continue;
                 }
+                const { resolution } = node;
                 includedDynamicImports.push(resolution instanceof Module
                     ? {
                         chunk: this.chunkByModule.get(resolution),
@@ -20191,6 +20635,10 @@ class Chunk {
             return predefinedChunkName;
         const { preserveModulesRoot, sanitizeFileName } = this.outputOptions;
         const sanitizedId = sanitizeFileName(parseAst_js.normalize(module.id.split(QUERY_HASH_REGEX, 1)[0]));
+        // The module id was sanitized, so the base must be sanitized as well before
+        // comparing paths; otherwise ids containing sanitized characters escape the
+        // base via "../" and trip the placeholder validation (#5446).
+        const sanitizedBase = sanitizeFileName(this.inputBase);
         const extensionName = path.extname(sanitizedId);
         const idWithoutExtension = NON_ASSET_EXTENSIONS.has(extensionName)
             ? sanitizedId.slice(0, -extensionName.length)
@@ -20201,10 +20649,10 @@ class Chunk {
             }
             else {
                 // handle edge case in Windows
-                if (this.inputBase === '/' && !idWithoutExtension.startsWith('/')) {
-                    return parseAst_js.relative(this.inputBase, idWithoutExtension.replace(/^[a-zA-Z]:[/\\]/, '/'));
+                if (sanitizedBase === '/' && idWithoutExtension[0] !== '/') {
+                    return parseAst_js.relative(sanitizedBase, idWithoutExtension.replace(/^[a-zA-Z]:[/\\]/, '/'));
                 }
-                return parseAst_js.relative(this.inputBase, idWithoutExtension);
+                return parseAst_js.relative(sanitizedBase, idWithoutExtension);
             }
         }
         else {
@@ -20217,7 +20665,7 @@ class Chunk {
         for (let exportName of this.getExportNames()) {
             let dependency;
             let imported;
-            let needsLiveBinding = false;
+            let needsLiveBinding;
             if (exportName[0] === '*') {
                 const id = exportName.slice(1);
                 if (interop(id) === 'defaultOnly') {
@@ -20281,8 +20729,23 @@ class Chunk {
         for (const dependency of this.dependencies) {
             const imports = importSpecifiers.get(dependency) || null;
             const reexports = reexportSpecifiers.get(dependency) || null;
+            if (imports === null &&
+                reexports === null &&
+                dependency instanceof ExternalChunk &&
+                !dependency.moduleSideEffects &&
+                !this.outputOptions.hoistTransitiveImports) {
+                // A side-effect-free external dependency without imported or
+                // re-exported bindings can only be present because chunk assignment
+                // placed otherwise unrelated modules into this chunk. When transitive
+                // import hoisting is disabled, rendering it would emit a spurious
+                // side effect import, see https://github.com/rollup/rollup/issues/6111
+                continue;
+            }
             const namedExportsMode = dependency instanceof ExternalChunk || dependency.exportMode !== 'default';
             const importPath = dependency.getImportPath(fileName);
+            // Separate source-phase imports from regular imports
+            const sourcePhaseImport = imports?.find(index => index.phase === 'source');
+            const instanceImports = imports?.filter(index => index.phase !== 'source') ?? null;
             renderedDependencies.set(dependency, {
                 attributes: dependency instanceof ExternalChunk
                     ? dependency.getImportAttributes(this.snippets)
@@ -20292,23 +20755,24 @@ class Chunk {
                     (this.outputOptions.format === 'umd' || this.outputOptions.format === 'iife') &&
                     getGlobalName(dependency, this.outputOptions.globals, (imports || reexports) !== null, this.inputOptions.onLog),
                 importPath,
-                imports,
+                imports: instanceImports && instanceImports.length > 0 ? instanceImports : null,
                 isChunk: dependency instanceof Chunk,
                 name: dependency.variableName,
                 namedExportsMode,
                 namespaceVariableName: dependency.namespaceVariableName,
-                reexports
+                reexports,
+                sourcePhaseImport: sourcePhaseImport?.local
             });
         }
         return (this.renderedDependencies = renderedDependencies);
     }
     inlineChunkDependencies(chunk) {
-        for (const dep of chunk.dependencies) {
-            if (this.dependencies.has(dep))
+        for (const dependency of chunk.dependencies) {
+            if (this.dependencies.has(dependency))
                 continue;
-            this.dependencies.add(dep);
-            if (dep instanceof Chunk) {
-                this.inlineChunkDependencies(dep);
+            this.dependencies.add(dependency);
+            if (dependency instanceof Chunk) {
+                this.inlineChunkDependencies(dependency);
             }
         }
     }
@@ -20405,18 +20869,28 @@ class Chunk {
                     node.setInternalResolution(resolution.namespace);
                 }
                 else {
-                    node.setExternalResolution((facadeChunk || chunk).exportMode, resolution, outputOptions, snippets, pluginDriver, accessedGlobalsByScope, `'${(facadeChunk || chunk).getImportPath(fileName)}'`, !facadeChunk?.strictFacade && chunk.exportNamesByVariable.get(resolution.namespace)[0], null, this, facadeChunk || chunk);
+                    node.setExternalResolution((facadeChunk || chunk).exportMode, outputOptions, snippets, pluginDriver, accessedGlobalsByScope, `'${(facadeChunk || chunk).getImportPath(fileName)}'`, !facadeChunk?.strictFacade && chunk.exportNamesByVariable.get(resolution.namespace)[0], null, this, facadeChunk || chunk);
                 }
             }
             else {
                 const { node, resolution } = resolvedDynamicImport;
                 const [resolutionString, attributes] = this.getDynamicImportStringAndAttributes(resolution, fileName, node);
-                node.setExternalResolution('external', resolution, outputOptions, snippets, pluginDriver, accessedGlobalsByScope, resolutionString, false, attributes, this, null);
+                node.setExternalResolution('external', outputOptions, snippets, pluginDriver, accessedGlobalsByScope, resolutionString, false, attributes, this, null);
             }
         }
     }
     setIdentifierRenderResolutions() {
         const { format, generatedCode: { symbols }, interop, preserveModules, externalLiveBindings } = this.outputOptions;
+        // Reset stale render names from previous output renderings of the same
+        // module graph. Without this, variables that were renamed during a prior
+        // output's import deconfliction (e.g. given a chunk-prefixed
+        // `renderBaseName` like `vendor`) would carry that name into the next
+        // output, producing invalid identifiers such as `function vendor.foo()`.
+        for (const module of this.orderedModules) {
+            for (const variable of module.scope.variables.values()) {
+                variable.setRenderNames(null, null);
+            }
+        }
         const syntheticExports = new Set();
         for (const exportName of this.getExportNames()) {
             const exportVariable = this.exportsByName.get(exportName);
@@ -20439,31 +20913,12 @@ class Chunk {
                 break;
             }
         }
-        const usedNames = new Set(['Object', 'Promise']);
+        const usedNames = new Set(RESERVED_USED_NAMES);
         if (this.needsExportsShim) {
             usedNames.add(MISSING_EXPORT_SHIM_VARIABLE);
         }
         if (symbols) {
             usedNames.add('Symbol');
-        }
-        switch (format) {
-            case 'system': {
-                usedNames.add('module').add('exports');
-                break;
-            }
-            case 'es': {
-                break;
-            }
-            case 'cjs': {
-                usedNames.add('module').add('require').add('__filename').add('__dirname');
-            }
-            // fallthrough
-            default: {
-                usedNames.add('exports');
-                for (const helper of HELPER_NAMES) {
-                    usedNames.add(helper);
-                }
-            }
         }
         deconflictChunk(this.orderedModules, this.getDependenciesToBeDeconflicted(format !== 'es' && format !== 'system', format === 'amd' || format === 'umd' || format === 'iife', interop), this.imports, usedNames, format, interop, preserveModules, externalLiveBindings, this.chunkByModule, this.externalChunkByModule, syntheticExports, this.exportNamesByVariable, this.accessedGlobalsByScope, this.includedNamespaces);
     }
@@ -20483,8 +20938,7 @@ class Chunk {
         // when we are not preserving modules, we need to make all namespace variables available for
         // rendering the namespace object
         if (!this.outputOptions.preserveModules && this.includedNamespaces.has(module)) {
-            const memberVariables = module.namespace.getMemberVariables();
-            for (const variable of Object.values(memberVariables)) {
+            for (const variable of module.getExportedVariablesByName().values()) {
                 if (variable.included) {
                     moduleImports.add(variable);
                 }
@@ -20515,8 +20969,8 @@ class Chunk {
             module.includedDynamicImporters.some(importer => this.chunkByModule.get(importer) !== this)) {
             this.ensureReexportsAreAvailableForModule(module);
         }
-        for (const { node, resolution } of module.dynamicImports) {
-            if (node.included &&
+        for (const { node: { included, resolution } } of module.dynamicImports) {
+            if (included &&
                 resolution instanceof Module &&
                 this.chunkByModule.get(resolution) === this &&
                 !this.includedNamespaces.has(resolution)) {
@@ -20675,16 +21129,16 @@ function* concatLazy(iterables) {
  * those chunks that are already loaded for that dynamic entry and create
  * another round of chunks.
  */
-function getChunkAssignments(entries, manualChunkAliasByEntry, minChunkSize, log) {
-    const { chunkDefinitions, modulesInManualChunks } = getChunkDefinitionsFromManualChunks(manualChunkAliasByEntry);
-    const { allEntries, dependentEntriesByModule, dynamicallyDependentEntriesByDynamicEntry, dynamicImportsByEntry, dynamicallyDependentEntriesByAwaitedDynamicEntry, awaitedDynamicImportsByEntry } = analyzeModuleGraph(entries);
+function getChunkAssignments(entries, manualChunkAliasByEntry, minChunkSize, log, isManualChunksFunctionForm, onlyExplicitManualChunks) {
+    const { chunkDefinitions, manualChunkModules, manualChunkModulesByModule } = getChunkDefinitionsFromManualChunks(manualChunkAliasByEntry, isManualChunksFunctionForm, onlyExplicitManualChunks);
+    const { entriesAndManualChunksCount, dependentEntriesByModule, dynamicallyDependentEntriesByDynamicEntry, dynamicImportsByEntry, dynamicallyDependentEntriesByAwaitedDynamicEntry, awaitedDynamicImportsByEntry } = analyzeModuleGraph(entries, manualChunkModules, manualChunkModulesByModule);
     // Each chunk is identified by its position in this array
-    const chunkAtoms = getChunksWithSameDependentEntries(getModulesWithDependentEntries(dependentEntriesByModule, modulesInManualChunks));
-    const staticDependencyAtomsByEntry = getStaticDependencyAtomsByEntry(allEntries, chunkAtoms);
+    const chunkAtoms = getChunksWithSameDependentEntries(getModulesWithDependentEntriesAndHandleTLACycles(dependentEntriesByModule, manualChunkModulesByModule, chunkDefinitions));
+    const staticDependencyAtomsByEntry = getStaticDependencyAtomsByEntry(entriesAndManualChunksCount, chunkAtoms);
     // Warning: This will consume dynamicallyDependentEntriesByDynamicEntry.
     // If we no longer want this, we should make a copy here.
-    const alreadyLoadedAtomsByEntry = getAlreadyLoadedAtomsByEntry(staticDependencyAtomsByEntry, dynamicallyDependentEntriesByDynamicEntry, dynamicImportsByEntry, allEntries);
-    const awaitedAlreadyLoadedAtomsByEntry = getAlreadyLoadedAtomsByEntry(staticDependencyAtomsByEntry, dynamicallyDependentEntriesByAwaitedDynamicEntry, awaitedDynamicImportsByEntry, allEntries);
+    const alreadyLoadedAtomsByEntry = getAlreadyLoadedAtomsByEntry(staticDependencyAtomsByEntry, dynamicallyDependentEntriesByDynamicEntry, dynamicImportsByEntry, entriesAndManualChunksCount);
+    const awaitedAlreadyLoadedAtomsByEntry = getAlreadyLoadedAtomsByEntry(staticDependencyAtomsByEntry, dynamicallyDependentEntriesByAwaitedDynamicEntry, awaitedDynamicImportsByEntry, entriesAndManualChunksCount);
     // This mutates the dependentEntries in chunkAtoms
     removeUnnecessaryDependentEntries(chunkAtoms, alreadyLoadedAtomsByEntry, awaitedAlreadyLoadedAtomsByEntry);
     const { chunks, sideEffectAtoms, sizeByAtom } = getChunksWithSameDependentEntriesAndCorrelatedAtoms(chunkAtoms, staticDependencyAtomsByEntry, alreadyLoadedAtomsByEntry, minChunkSize);
@@ -20694,19 +21148,33 @@ function getChunkAssignments(entries, manualChunkAliasByEntry, minChunkSize, log
     })));
     return chunkDefinitions;
 }
-function getChunkDefinitionsFromManualChunks(manualChunkAliasByEntry) {
+function getChunkDefinitionsFromManualChunks(manualChunkAliasByEntry, isManualChunksFunctionForm, onlyExplicitManualChunks) {
     const modulesInManualChunks = new Set(manualChunkAliasByEntry.keys());
     const manualChunkModulesByAlias = Object.create(null);
-    for (const [entry, alias] of manualChunkAliasByEntry) {
-        addStaticDependenciesToManualChunk(entry, (manualChunkModulesByAlias[alias] ||= []), modulesInManualChunks);
+    const sortedEntriesWithAlias = [...manualChunkAliasByEntry].sort(([entryA], [entryB]) => entryA.execIndex - entryB.execIndex);
+    for (const [entry, alias] of sortedEntriesWithAlias) {
+        const chunkModules = (manualChunkModulesByAlias[alias] ||= []);
+        if (isManualChunksFunctionForm && onlyExplicitManualChunks) {
+            chunkModules.push(entry);
+        }
+        else {
+            addStaticDependenciesToManualChunk(entry, chunkModules, modulesInManualChunks);
+        }
     }
     const manualChunks = Object.entries(manualChunkModulesByAlias);
+    const manualChunkModules = new Array(manualChunks.length);
     const chunkDefinitions = new Array(manualChunks.length);
+    const manualChunkModulesByModule = new Map();
     let index = 0;
     for (const [alias, modules] of manualChunks) {
-        chunkDefinitions[index++] = { alias, modules };
+        chunkDefinitions[index] = { alias, modules };
+        manualChunkModules[index] = modules;
+        for (const module of modules) {
+            manualChunkModulesByModule.set(module, modules);
+        }
+        index++;
     }
-    return { chunkDefinitions, modulesInManualChunks };
+    return { chunkDefinitions, manualChunkModules, manualChunkModulesByModule };
 }
 function addStaticDependenciesToManualChunk(entry, manualChunkModules, modulesInManualChunks) {
     const modulesToHandle = new Set([entry]);
@@ -20720,36 +21188,49 @@ function addStaticDependenciesToManualChunk(entry, manualChunkModules, modulesIn
         }
     }
 }
-function analyzeModuleGraph(entries) {
+function analyzeModuleGraph(entries, manualChunkModules, manualChunkModulesByModule) {
     const dynamicEntryModules = new Set();
     const awaitedDynamicEntryModules = new Set();
     const dependentEntriesByModule = new Map();
     const allEntriesSet = new Set(entries);
-    const dynamicImportModulesByEntry = new Array(allEntriesSet.size);
-    const awaitedDynamicImportModulesByEntry = new Array(allEntriesSet.size);
-    let entryIndex = 0;
-    for (const currentEntry of allEntriesSet) {
+    // Each entry is defined by its position in this array
+    const allEntriesAndManualChunks = entries.map(module => [module]).concat(manualChunkModules);
+    const dynamicImportModulesByEntry = new Array(allEntriesAndManualChunks.length);
+    const awaitedDynamicImportModulesByEntry = new Array(allEntriesAndManualChunks.length);
+    let entryOrManualChunkIndex = 0;
+    for (const currentEntryModules of allEntriesAndManualChunks) {
         const dynamicImportsForCurrentEntry = new Set();
         const awaitedDynamicImportsForCurrentEntry = new Set();
-        dynamicImportModulesByEntry[entryIndex] = dynamicImportsForCurrentEntry;
-        awaitedDynamicImportModulesByEntry[entryIndex] = awaitedDynamicImportsForCurrentEntry;
-        const staticDependencies = new Set([currentEntry]);
+        dynamicImportModulesByEntry[entryOrManualChunkIndex] = dynamicImportsForCurrentEntry;
+        awaitedDynamicImportModulesByEntry[entryOrManualChunkIndex] =
+            awaitedDynamicImportsForCurrentEntry;
+        const staticDependencies = new Set(currentEntryModules);
+        // If we have a very large manual chunk, tracking if it is already added to the dependencies will improve performance
+        const addedManualChunks = new Set();
         for (const module of staticDependencies) {
-            getOrCreate(dependentEntriesByModule, module, (getNewSet)).add(entryIndex);
+            getOrCreate(dependentEntriesByModule, module, (getNewSet)).add(entryOrManualChunkIndex);
+            const manualChunkMembers = manualChunkModulesByModule.get(module);
+            if (manualChunkMembers && !addedManualChunks.has(manualChunkMembers)) {
+                addedManualChunks.add(manualChunkMembers);
+                for (const manualChunkMember of manualChunkMembers) {
+                    staticDependencies.add(manualChunkMember);
+                }
+            }
             for (const dependency of module.getDependenciesToBeIncluded()) {
                 if (!(dependency instanceof ExternalModule)) {
                     staticDependencies.add(dependency);
                 }
             }
-            for (const { resolution } of module.dynamicImports) {
+            for (const { node: { resolution } } of module.dynamicImports) {
                 if (resolution instanceof Module &&
                     resolution.includedDynamicImporters.length > 0 &&
                     !allEntriesSet.has(resolution)) {
                     dynamicEntryModules.add(resolution);
                     allEntriesSet.add(resolution);
+                    allEntriesAndManualChunks.push([resolution]);
                     dynamicImportsForCurrentEntry.add(resolution);
-                    for (const includedDirectTopLevelAwaitingDynamicImporter of resolution.includedDirectTopLevelAwaitingDynamicImporters) {
-                        if (staticDependencies.has(includedDirectTopLevelAwaitingDynamicImporter)) {
+                    for (const includedTopLevelAwaitingDynamicImporter of resolution.includedTopLevelAwaitingDynamicImporters) {
+                        if (staticDependencies.has(includedTopLevelAwaitingDynamicImporter)) {
                             awaitedDynamicEntryModules.add(resolution);
                             awaitedDynamicImportsForCurrentEntry.add(resolution);
                             break;
@@ -20761,33 +21242,35 @@ function analyzeModuleGraph(entries) {
                 if (!allEntriesSet.has(dependency)) {
                     dynamicEntryModules.add(dependency);
                     allEntriesSet.add(dependency);
+                    allEntriesAndManualChunks.push([dependency]);
                 }
             }
         }
-        entryIndex++;
+        entryOrManualChunkIndex++;
     }
-    const allEntries = [...allEntriesSet];
-    const { awaitedDynamicEntries, awaitedDynamicImportsByEntry, dynamicEntries, dynamicImportsByEntry } = getDynamicEntries(allEntries, dynamicEntryModules, dynamicImportModulesByEntry, awaitedDynamicEntryModules, awaitedDynamicImportModulesByEntry);
+    const { awaitedDynamicEntries, awaitedDynamicImportsByEntry, dynamicEntries, dynamicImportsByEntry } = getDynamicEntries(allEntriesAndManualChunks, dynamicEntryModules, dynamicImportModulesByEntry, awaitedDynamicEntryModules, awaitedDynamicImportModulesByEntry);
     return {
-        allEntries,
         awaitedDynamicImportsByEntry,
         dependentEntriesByModule,
-        dynamicallyDependentEntriesByAwaitedDynamicEntry: getDynamicallyDependentEntriesByDynamicEntry(dependentEntriesByModule, awaitedDynamicEntries, allEntries, dynamicEntry => dynamicEntry.includedDirectTopLevelAwaitingDynamicImporters),
-        dynamicallyDependentEntriesByDynamicEntry: getDynamicallyDependentEntriesByDynamicEntry(dependentEntriesByModule, dynamicEntries, allEntries, dynamicEntry => dynamicEntry.includedDynamicImporters),
-        dynamicImportsByEntry
+        dynamicallyDependentEntriesByAwaitedDynamicEntry: getDynamicallyDependentEntriesByDynamicEntry(dependentEntriesByModule, awaitedDynamicEntries, allEntriesAndManualChunks, dynamicEntry => dynamicEntry.includedTopLevelAwaitingDynamicImporters),
+        dynamicallyDependentEntriesByDynamicEntry: getDynamicallyDependentEntriesByDynamicEntry(dependentEntriesByModule, dynamicEntries, allEntriesAndManualChunks, dynamicEntry => dynamicEntry.includedDynamicImporters),
+        dynamicImportsByEntry,
+        entriesAndManualChunksCount: allEntriesAndManualChunks.length
     };
 }
-function getDynamicEntries(allEntries, dynamicEntryModules, dynamicImportModulesByEntry, awaitedDynamicEntryModules, awaitedDynamicImportModulesByEntry) {
+function getDynamicEntries(allEntriesAndManualChunks, dynamicEntryModules, dynamicImportModulesByEntry, awaitedDynamicEntryModules, awaitedDynamicImportModulesByEntry) {
     const entryIndexByModule = new Map();
     const dynamicEntries = new Set();
     const awaitedDynamicEntries = new Set();
-    for (const [entryIndex, entry] of allEntries.entries()) {
-        entryIndexByModule.set(entry, entryIndex);
-        if (dynamicEntryModules.has(entry)) {
-            dynamicEntries.add(entryIndex);
-        }
-        if (awaitedDynamicEntryModules.has(entry)) {
-            awaitedDynamicEntries.add(entryIndex);
+    for (const [entryIndex, entryModules] of allEntriesAndManualChunks.entries()) {
+        for (const entryModule of entryModules) {
+            entryIndexByModule.set(entryModule, entryIndex);
+            if (dynamicEntryModules.has(entryModule)) {
+                dynamicEntries.add(entryIndex);
+            }
+            if (awaitedDynamicEntryModules.has(entryModule)) {
+                awaitedDynamicEntries.add(entryIndex);
+            }
         }
     }
     const dynamicImportsByEntry = getDynamicImportsByEntry(dynamicImportModulesByEntry, entryIndexByModule);
@@ -20811,25 +21294,31 @@ function getDynamicImportsByEntry(dynamicImportModulesByEntry, entryIndexByModul
     }
     return dynamicImportsByEntry;
 }
-function getDynamicallyDependentEntriesByDynamicEntry(dependentEntriesByModule, dynamicEntries, allEntries, getDynamicImporters) {
+function getDynamicallyDependentEntriesByDynamicEntry(dependentEntriesByModule, dynamicEntries, allEntriesAndManualChunks, getDynamicImporters) {
     const dynamicallyDependentEntriesByDynamicEntry = new Map();
     for (const dynamicEntryIndex of dynamicEntries) {
         const dynamicallyDependentEntries = getOrCreate(dynamicallyDependentEntriesByDynamicEntry, dynamicEntryIndex, (getNewSet));
-        const dynamicEntry = allEntries[dynamicEntryIndex];
-        for (const importer of concatLazy([
-            getDynamicImporters(dynamicEntry),
-            dynamicEntry.implicitlyLoadedAfter
-        ])) {
-            for (const entry of dependentEntriesByModule.get(importer)) {
-                dynamicallyDependentEntries.add(entry);
+        const dynamicEntryModules = allEntriesAndManualChunks[dynamicEntryIndex];
+        for (const dynamicEntryModule of dynamicEntryModules) {
+            for (const importer of concatLazy([
+                getDynamicImporters(dynamicEntryModule),
+                dynamicEntryModule.implicitlyLoadedAfter
+            ])) {
+                const importerEntries = dependentEntriesByModule.get(importer);
+                if (!importerEntries) {
+                    continue;
+                }
+                for (const entry of importerEntries) {
+                    dynamicallyDependentEntries.add(entry);
+                }
             }
         }
     }
     return dynamicallyDependentEntriesByDynamicEntry;
 }
-function getChunksWithSameDependentEntries(modulesWithDependentEntries) {
+function getChunksWithSameDependentEntries(moduleWithDependentEntries) {
     const chunkModules = Object.create(null);
-    for (const { dependentEntries, modules } of modulesWithDependentEntries) {
+    for (const { dependentEntries, module } of moduleWithDependentEntries) {
         let chunkSignature = 0n;
         for (const entryIndex of dependentEntries) {
             chunkSignature |= 1n << BigInt(entryIndex);
@@ -20837,21 +21326,28 @@ function getChunksWithSameDependentEntries(modulesWithDependentEntries) {
         (chunkModules[String(chunkSignature)] ||= {
             dependentEntries: new Set(dependentEntries),
             modules: []
-        }).modules.push(...modules);
+        }).modules.push(module);
     }
     return Object.values(chunkModules);
 }
-function* getModulesWithDependentEntries(dependentEntriesByModule, modulesInManualChunks) {
+function* getModulesWithDependentEntriesAndHandleTLACycles(dependentEntriesByModule, modulesInManualChunks, chunkDefinitions) {
     for (const [module, dependentEntries] of dependentEntriesByModule) {
         if (!modulesInManualChunks.has(module)) {
-            yield { dependentEntries, modules: [module] };
+            if (module.cycles.size > 0 && module.includedTopLevelAwaitingDynamicImporters.size > 0) {
+                chunkDefinitions.push({
+                    alias: null,
+                    modules: [module]
+                });
+                continue;
+            }
+            yield { dependentEntries, module };
         }
     }
 }
-function getStaticDependencyAtomsByEntry(allEntries, chunkAtoms) {
+function getStaticDependencyAtomsByEntry(entriesAndManualChunksCount, chunkAtoms) {
     // The indices correspond to the indices in allEntries. The atoms correspond
     // to bits in the bigint values where chunk 0 is the lowest bit.
-    const staticDependencyAtomsByEntry = allEntries.map(() => 0n);
+    const staticDependencyAtomsByEntry = new Array(entriesAndManualChunksCount).fill(0n);
     // This toggles the bits for each atom that is a dependency of an entry
     let atomMask = 1n;
     for (const { dependentEntries } of chunkAtoms) {
@@ -20863,11 +21359,11 @@ function getStaticDependencyAtomsByEntry(allEntries, chunkAtoms) {
     return staticDependencyAtomsByEntry;
 }
 // Warning: This will consume dynamicallyDependentEntriesByDynamicEntry.
-function getAlreadyLoadedAtomsByEntry(staticDependencyAtomsByEntry, dynamicallyDependentEntriesByDynamicEntry, dynamicImportsByEntry, allEntries) {
+function getAlreadyLoadedAtomsByEntry(staticDependencyAtomsByEntry, dynamicallyDependentEntriesByDynamicEntry, dynamicImportsByEntry, allEntriesCount) {
     // Dynamic entries have all atoms as already loaded initially because we then
     // intersect with the static dependency atoms of all dynamic importers.
     // Static entries cannot have already loaded atoms.
-    const alreadyLoadedAtomsByEntry = allEntries.map((_entry, entryIndex) => dynamicallyDependentEntriesByDynamicEntry.has(entryIndex) ? -1n : 0n);
+    const alreadyLoadedAtomsByEntry = Array.from({ length: allEntriesCount }, (_entry, entryIndex) => (dynamicallyDependentEntriesByDynamicEntry.has(entryIndex) ? -1n : 0n));
     for (const [dynamicEntryIndex, dynamicallyDependentEntries] of dynamicallyDependentEntriesByDynamicEntry) {
         // We delete here so that they can be added again if necessary to be handled
         // again by the loop
@@ -20898,7 +21394,7 @@ function getAlreadyLoadedAtomsByEntry(staticDependencyAtomsByEntry, dynamicallyD
  */
 function removeUnnecessaryDependentEntries(chunkAtoms, alreadyLoadedAtomsByEntry, awaitedAlreadyLoadedAtomsByEntry) {
     // Remove entries from dependent entries if a chunk is already loaded without
-    // that entry. Do not remove already loaded atoms where all dynamic imports
+    // that entry. Do not remove already loaded atoms where some dynamic imports
     // are awaited to avoid cycles in the output.
     let chunkMask = 1n;
     for (const { dependentEntries } of chunkAtoms) {
@@ -21275,9 +21771,9 @@ function analyseModuleExecution(entryModules) {
             for (const dependency of module.implicitlyLoadedBefore) {
                 dynamicImports.add(dependency);
             }
-            for (const { resolution, node } of module.dynamicImports) {
+            for (const { node: { resolution, scope } } of module.dynamicImports) {
                 if (resolution instanceof Module) {
-                    if (node.withinTopLevelAwait) {
+                    if (scope.context.usesTopLevelAwait) {
                         handleSyncLoadedModule(resolution, module);
                     }
                     else {
@@ -21450,13 +21946,19 @@ class Link {
             return null;
         // binary search through segments for the given column
         let searchStart = 0;
-        let searchEnd = segments.length - 1;
+        const lastSegmentIndex = segments.length - 1;
+        let searchEnd = lastSegmentIndex;
         while (searchStart <= searchEnd) {
             const m = (searchStart + searchEnd) >> 1;
-            const segment = segments[m];
+            let segment = segments[m];
             // If a sourcemap does not have sufficient resolution to contain a
-            // necessary mapping, e.g. because it only contains line information, we
-            // use the best approximation we could find
+            // necessary mapping, e.g. because it only contains line information or
+            // the column is not precise (e.g. the sourcemap is generated by esbuild, segment[0] may be shorter than the location of the first letter),
+            // we approximate by finding the closest segment whose segment[0] is less than the given column
+            if (segment[0] !== column && searchStart === searchEnd) {
+                const approximatedSegmentIndex = segments[searchStart][0] > column ? Math.max(0, searchStart - 1) : searchStart;
+                segment = segments[approximatedSegmentIndex];
+            }
             if (segment[0] === column || searchStart === searchEnd) {
                 if (segment.length == 1)
                     return null;
@@ -21515,11 +22017,16 @@ function collapseSourcemaps(file, map, modules, bundleSourcemapChain, excludeCon
         sources = sources.map((source) => path.relative(directory, source));
         file = path.basename(file);
     }
-    sourcesContent = (excludeContent ? null : sourcesContent);
     for (const module of modules) {
         resetSourcemapCache(module.originalSourcemap, module.sourcemapChain);
     }
-    return new SourceMap({ file, mappings, names, sources, sourcesContent });
+    return new SourceMap({
+        file,
+        mappings,
+        names,
+        sources,
+        sourcesContent: excludeContent ? undefined : sourcesContent
+    });
 }
 function collapseSourcemap(id, originalCode, originalSourcemap, sourcemapChain, log) {
     if (sourcemapChain.length === 0) {
@@ -21719,7 +22226,7 @@ function addChunksToBundle(renderedChunksByPlaceholder, hashesByPlaceholder, bun
             finalSourcemapFileName = sourcemapFileName
                 ? replacePlaceholders(sourcemapFileName, hashesByPlaceholder)
                 : `${finalFileName}.map`;
-            map.file = replacePlaceholders(map.file, hashesByPlaceholder);
+            map.file = replacePlaceholders(map.file ?? '', hashesByPlaceholder);
             updatedCode += emitSourceMapAndGetComment(finalSourcemapFileName, map, pluginDriver, options);
         }
         bundle[finalFileName] = chunk.finalizeChunk(updatedCode, map, finalSourcemapFileName, hashesByPlaceholder);
@@ -21816,6 +22323,7 @@ class Bundle {
             isWrite
         ]);
         this.finaliseAssets(outputBundle);
+        validateOutputBundleFileNames(outputBundle);
         timeEnd('generate bundle', 2);
         timeEnd('GENERATE', 1);
         return outputBundleBase;
@@ -21834,7 +22342,7 @@ class Bundle {
         return manualChunkAliasByEntry;
     }
     assignManualChunks(getManualChunk) {
-        const manualChunkAliasesWithEntry = [];
+        const manualChunkAliasByEntry = new Map();
         const manualChunksApi = {
             getModuleIds: () => this.graph.modulesById.keys(),
             getModuleInfo: this.graph.getModuleInfo
@@ -21843,14 +22351,9 @@ class Bundle {
             if (module instanceof Module) {
                 const manualChunkAlias = getManualChunk(module.id, manualChunksApi);
                 if (typeof manualChunkAlias === 'string') {
-                    manualChunkAliasesWithEntry.push([manualChunkAlias, module]);
+                    addModuleToManualChunk(manualChunkAlias, module, manualChunkAliasByEntry);
                 }
             }
-        }
-        manualChunkAliasesWithEntry.sort(([aliasA], [aliasB]) => aliasA > aliasB ? 1 : aliasA < aliasB ? -1 : 0);
-        const manualChunkAliasByEntry = new Map();
-        for (const [alias, module] of manualChunkAliasesWithEntry) {
-            addModuleToManualChunk(alias, module, manualChunkAliasByEntry);
         }
         return manualChunkAliasByEntry;
     }
@@ -21870,7 +22373,7 @@ class Bundle {
         this.pluginDriver.finaliseAssets();
     }
     async generateChunks(bundle, getHashPlaceholder) {
-        const { experimentalMinChunkSize, inlineDynamicImports, manualChunks, preserveModules } = this.outputOptions;
+        const { experimentalMinChunkSize, inlineDynamicImports, manualChunks, preserveModules, onlyExplicitManualChunks } = this.outputOptions;
         const manualChunkAliasByEntry = typeof manualChunks === 'object'
             ? await this.addManualChunks(manualChunks)
             : this.assignManualChunks(manualChunks);
@@ -21882,7 +22385,7 @@ class Bundle {
             ? [{ alias: null, modules: includedModules }]
             : preserveModules
                 ? includedModules.map(module => ({ alias: null, modules: [module] }))
-                : getChunkAssignments(this.graph.entryModules, manualChunkAliasByEntry, experimentalMinChunkSize, this.inputOptions.onLog);
+                : getChunkAssignments(this.graph.entryModules, manualChunkAliasByEntry, experimentalMinChunkSize, this.inputOptions.onLog, typeof manualChunks === 'function', onlyExplicitManualChunks);
         const chunks = new Array(executableModule.length);
         const chunkByModule = new Map();
         let index = 0;
@@ -21894,11 +22397,51 @@ class Bundle {
         for (const chunk of chunks) {
             chunk.link();
         }
+        if (!inlineDynamicImports && !preserveModules) {
+            this.checkCircularChunks(chunks);
+        }
         const facades = [];
         for (const chunk of chunks) {
             facades.push(...chunk.generateFacades());
         }
         return [...chunks, ...facades];
+    }
+    checkCircularChunks(chunks) {
+        const visited = new Set();
+        const parents = new Map();
+        const handleDependency = (chunk, parent) => {
+            if (parents.has(chunk)) {
+                if (!visited.has(chunk)) {
+                    const path = [chunk.getChunkName()];
+                    let isManualChunkConflict = chunk.isManualChunk;
+                    let nextChunk = parent;
+                    while (nextChunk !== chunk && nextChunk) {
+                        path.push(nextChunk.getChunkName());
+                        isManualChunkConflict &&= nextChunk.isManualChunk;
+                        nextChunk = parents.get(nextChunk);
+                    }
+                    path.push(path[0]);
+                    path.reverse();
+                    this.inputOptions.onLog(parseAst_js.LOGLEVEL_WARN, parseAst_js.logCircularChunk(path, isManualChunkConflict));
+                }
+                return;
+            }
+            parents.set(chunk, parent);
+            analyseChunk(chunk);
+        };
+        const analyseChunk = (chunk) => {
+            for (const dependency of chunk.dependencies) {
+                if (dependency instanceof Chunk) {
+                    handleDependency(dependency, chunk);
+                }
+            }
+            visited.add(chunk);
+        };
+        for (const chunk of chunks) {
+            if (!parents.has(chunk)) {
+                analyseChunk(chunk);
+            }
+        }
     }
 }
 function validateOptionsForMultiChunkOutput(outputOptions, log) {
@@ -21945,6 +22488,28 @@ function addModuleToManualChunk(alias, module, manualChunkAliasByEntry) {
         return parseAst_js.error(parseAst_js.logCannotAssignModuleToChunk(module.id, alias, existingAlias));
     }
     manualChunkAliasByEntry.set(module, alias);
+}
+function isFileNameOutsideOutputDirectory(fileName) {
+    // Use join() to normalize ".." segments, then replace backslashes so the
+    // string checks below work identically on Windows and POSIX.
+    const normalized = path.join(fileName).replaceAll('\\', '/');
+    return (normalized === '..' ||
+        normalized.startsWith('../') ||
+        normalized === '.' ||
+        parseAst_js.isAbsolute(normalized));
+}
+function validateOutputBundleFileNames(bundle) {
+    for (const [bundleKey, entry] of Object.entries(bundle)) {
+        if (isFileNameOutsideOutputDirectory(bundleKey)) {
+            return parseAst_js.error(parseAst_js.logFileNameOutsideOutputDirectory(bundleKey));
+        }
+        if (entry.type !== 'placeholder') {
+            const { fileName } = entry;
+            if (fileName !== bundleKey && isFileNameOutsideOutputDirectory(fileName)) {
+                return parseAst_js.error(parseAst_js.logFileNameOutsideOutputDirectory(fileName));
+            }
+        }
+    }
 }
 
 function flru (max) {
@@ -22007,7 +22572,7 @@ class GlobalScope extends Scope {
     }
 }
 
-function resolveIdViaPlugins(source, importer, pluginDriver, moduleLoaderResolveId, skip, customOptions, isEntry, attributes) {
+function resolveIdViaPlugins(source, importer, pluginDriver, moduleLoaderResolveId, skip, customOptions, isEntry, attributes, importerAttributes) {
     let skipped = null;
     let replaceContext = null;
     if (skip) {
@@ -22019,17 +22584,27 @@ function resolveIdViaPlugins(source, importer, pluginDriver, moduleLoaderResolve
         }
         replaceContext = (pluginContext, plugin) => ({
             ...pluginContext,
-            resolve: (source, importer, { attributes, custom, isEntry, skipSelf } = parseAst_js.BLANK) => {
+            resolve: (source, importer, { attributes, custom, isEntry, skipSelf, importerAttributes } = parseAst_js.BLANK) => {
                 skipSelf ??= true;
-                return moduleLoaderResolveId(source, importer, custom, isEntry, attributes || parseAst_js.EMPTY_OBJECT, skipSelf ? [...skip, { importer, plugin, source }] : skip);
+                if (skipSelf &&
+                    skip.findIndex(skippedCall => {
+                        return (skippedCall.plugin === plugin &&
+                            skippedCall.source === source &&
+                            skippedCall.importer === importer);
+                    }) !== -1) {
+                    // This means that the plugin recursively called itself
+                    // Thus returning Promise.resolve(null) in purpose of fallback to default behavior of `resolveId` plugin hook.
+                    return Promise.resolve(null);
+                }
+                return moduleLoaderResolveId(source, importer, custom, isEntry, attributes || parseAst_js.EMPTY_OBJECT, importerAttributes, skipSelf ? [...skip, { importer, plugin, source }] : skip);
             }
         });
     }
-    return pluginDriver.hookFirstAndGetPlugin('resolveId', [source, importer, { attributes, custom: customOptions, isEntry }], replaceContext, skipped);
+    return pluginDriver.hookFirstAndGetPlugin('resolveId', [source, importer, { attributes, custom: customOptions, importerAttributes, isEntry }], replaceContext, skipped);
 }
 
-async function resolveId(source, importer, preserveSymlinks, pluginDriver, moduleLoaderResolveId, skip, customOptions, isEntry, attributes) {
-    const pluginResult = await resolveIdViaPlugins(source, importer, pluginDriver, moduleLoaderResolveId, skip, customOptions, isEntry, attributes);
+async function resolveId(source, importer, preserveSymlinks, pluginDriver, moduleLoaderResolveId, skip, customOptions, isEntry, attributes, importerAttributes, fs) {
+    const pluginResult = await resolveIdViaPlugins(source, importer, pluginDriver, moduleLoaderResolveId, skip, customOptions, isEntry, attributes, importerAttributes);
     if (pluginResult != null) {
         const [resolveIdResult, plugin] = pluginResult;
         if (typeof resolveIdResult === 'object' && !resolveIdResult.resolvedBy) {
@@ -22054,22 +22629,22 @@ async function resolveId(source, importer, preserveSymlinks, pluginDriver, modul
     // absolute path is created. Absolute importees therefore shortcircuit the
     // resolve call and require no special handing on our part.
     // See https://nodejs.org/api/path.html#path_path_resolve_paths
-    return addJsExtensionIfNecessary(importer ? path.resolve(path.dirname(importer), source) : path.resolve(source), preserveSymlinks);
+    return addJsExtensionIfNecessary(importer ? path.resolve(path.dirname(importer), source) : path.resolve(source), preserveSymlinks, fs);
 }
-async function addJsExtensionIfNecessary(file, preserveSymlinks) {
-    return ((await findFile(file, preserveSymlinks)) ??
-        (await findFile(file + '.mjs', preserveSymlinks)) ??
-        (await findFile(file + '.js', preserveSymlinks)));
+async function addJsExtensionIfNecessary(file, preserveSymlinks, fs) {
+    return ((await findFile(file, preserveSymlinks, fs)) ??
+        (await findFile(file + '.mjs', preserveSymlinks, fs)) ??
+        (await findFile(file + '.js', preserveSymlinks, fs)));
 }
-async function findFile(file, preserveSymlinks) {
+async function findFile(file, preserveSymlinks, fs) {
     try {
-        const stats = await promises.lstat(file);
+        const stats = await fs.lstat(file);
         if (!preserveSymlinks && stats.isSymbolicLink())
-            return await findFile(await promises.realpath(file), preserveSymlinks);
+            return await findFile(await fs.realpath(file), preserveSymlinks, fs);
         if ((preserveSymlinks && stats.isSymbolicLink()) || stats.isFile()) {
             // check case
             const name = path.basename(file);
-            const files = await promises.readdir(path.dirname(file));
+            const files = await fs.readdir(path.dirname(file));
             if (files.includes(name))
                 return file;
         }
@@ -22086,7 +22661,7 @@ function stripBom(content) {
     return content;
 }
 
-async function transform(source, module, pluginDriver, log) {
+async function transform(source, module, pluginDriver, options) {
     const id = module.id;
     const sourcemapChain = [];
     let originalSourcemap = source.map === null ? null : decodedSourcemap(source.map);
@@ -22108,9 +22683,12 @@ async function transform(source, module, pluginDriver, log) {
             module.updateOptions(result);
             if (result.code == null) {
                 if (result.map || result.ast) {
-                    log(parseAst_js.LOGLEVEL_WARN, parseAst_js.logNoTransformMapOrAstWithoutCode(plugin.name));
+                    options.onLog(parseAst_js.LOGLEVEL_WARN, parseAst_js.logNoTransformMapOrAstWithoutCode(plugin.name));
                 }
                 return previousCode;
+            }
+            if (result.attributes) {
+                parseAst_js.warnDeprecation('Returning attributes from the "transform" hook is forbidden.', parseAst_js.URL_TRANSFORM, false, options);
             }
             ({ code, map, ast } = result);
         }
@@ -22138,7 +22716,13 @@ async function transform(source, module, pluginDriver, log) {
     };
     let code;
     try {
-        code = await pluginDriver.hookReduceArg0('transform', [currentSource, id], transformReducer, (pluginContext, plugin) => {
+        code = await pluginDriver.hookReduceArg0('transform', [
+            currentSource,
+            id,
+            {
+                attributes: module.info.attributes
+            }
+        ], transformReducer, (pluginContext, plugin) => {
             pluginName = plugin.name;
             return {
                 ...pluginContext,
@@ -22164,7 +22748,7 @@ async function transform(source, module, pluginDriver, log) {
                     return pluginContext.error(error_);
                 },
                 getCombinedSourcemap() {
-                    const combinedMap = collapseSourcemap(id, originalCode, originalSourcemap, sourcemapChain, log);
+                    const combinedMap = collapseSourcemap(id, originalCode, originalSourcemap, sourcemapChain, options.onLog);
                     if (!combinedMap) {
                         const magicString = new MagicString(originalCode);
                         return magicString.generateMap({ hires: true, includeContent: true, source: id });
@@ -22175,7 +22759,6 @@ async function transform(source, module, pluginDriver, log) {
                     }
                     return new SourceMap({
                         ...combinedMap,
-                        file: null,
                         sourcesContent: combinedMap.sourcesContent
                     });
                 },
@@ -22199,6 +22782,7 @@ async function transform(source, module, pluginDriver, log) {
         customTransformCache,
         originalCode,
         originalSourcemap,
+        safeVariableNames: null,
         sourcemapChain,
         transformDependencies
     };
@@ -22212,51 +22796,44 @@ class ModuleLoader {
         this.options = options;
         this.pluginDriver = pluginDriver;
         this.implicitEntryModules = new Set();
-        this.indexedEntryModules = [];
+        this.sortedEntryModules = [];
+        this.entryModules = new Set();
         this.latestLoadModulesPromise = Promise.resolve();
         this.moduleLoadPromises = new Map();
         this.modulesWithLoadedDependencies = new Set();
-        this.nextChunkNamePriority = 0;
-        this.nextEntryModuleIndex = 0;
-        this.resolveId = async (source, importer, customOptions, isEntry, attributes, skip = null) => this.getResolvedIdWithDefaults(this.getNormalizedResolvedIdWithoutDefaults(this.options.external(source, importer, false)
+        this.resolveId = async (source, importer, customOptions, isEntry, attributes, importerAttributes, skip = null) => this.getResolvedIdWithDefaults(this.getNormalizedResolvedIdWithoutDefaults(this.options.external(source, importer, false)
             ? false
-            : await resolveId(source, importer, this.options.preserveSymlinks, this.pluginDriver, this.resolveId, skip, customOptions, typeof isEntry === 'boolean' ? isEntry : !importer, attributes), importer, source), attributes);
+            : await resolveId(source, importer, this.options.preserveSymlinks, this.pluginDriver, this.resolveId, skip, customOptions, typeof isEntry === 'boolean' ? isEntry : !importer, attributes, importerAttributes, this.options.fs), importer, source), attributes);
         this.hasModuleSideEffects = options.treeshake
             ? options.treeshake.moduleSideEffects
             : () => true;
     }
     async addAdditionalModules(unresolvedModules, isAddForManualChunks) {
-        const result = this.extendLoadModulesPromise(Promise.all(unresolvedModules.map(id => this.loadEntryModule(id, false, undefined, null, isAddForManualChunks))));
+        const result = this.extendLoadModulesPromise(Promise.all(unresolvedModules.map(id => this.loadEntryModule(id, false, undefined, null, isAddForManualChunks, undefined))));
         await this.awaitLoadModulesPromise();
         return result;
     }
     async addEntryModules(unresolvedEntryModules, isUserDefined) {
-        const firstEntryModuleIndex = this.nextEntryModuleIndex;
-        this.nextEntryModuleIndex += unresolvedEntryModules.length;
-        const firstChunkNamePriority = this.nextChunkNamePriority;
-        this.nextChunkNamePriority += unresolvedEntryModules.length;
-        const newEntryModules = await this.extendLoadModulesPromise(Promise.all(unresolvedEntryModules.map(({ id, importer }) => this.loadEntryModule(id, true, importer, null))).then(entryModules => {
+        const newEntryModules = await this.extendLoadModulesPromise(Promise.all(unresolvedEntryModules.map(({ id, importer }) => this.loadEntryModule(id, true, importer, null, undefined, undefined))).then(entryModules => {
+            let shouldReorder = false;
             for (const [index, entryModule] of entryModules.entries()) {
                 entryModule.isUserDefinedEntryPoint =
                     entryModule.isUserDefinedEntryPoint || isUserDefined;
-                addChunkNamesToModule(entryModule, unresolvedEntryModules[index], isUserDefined, firstChunkNamePriority + index);
-                const existingIndexedModule = this.indexedEntryModules.find(indexedModule => indexedModule.module === entryModule);
-                if (existingIndexedModule) {
-                    existingIndexedModule.index = Math.min(existingIndexedModule.index, firstEntryModuleIndex + index);
-                }
-                else {
-                    this.indexedEntryModules.push({
-                        index: firstEntryModuleIndex + index,
-                        module: entryModule
-                    });
+                addChunkNamesToModule(entryModule, unresolvedEntryModules[index], isUserDefined);
+                if (!this.entryModules.has(entryModule)) {
+                    this.sortedEntryModules.push(entryModule);
+                    this.entryModules.add(entryModule);
+                    shouldReorder = true;
                 }
             }
-            this.indexedEntryModules.sort(({ index: indexA }, { index: indexB }) => indexA > indexB ? 1 : -1);
+            if (shouldReorder) {
+                this.sortedEntryModules.sort((a, b) => (a.id > b.id ? 1 : -1));
+            }
             return entryModules;
         }));
         await this.awaitLoadModulesPromise();
         return {
-            entryModules: this.indexedEntryModules.map(({ module }) => module),
+            entryModules: this.sortedEntryModules,
             implicitEntryModules: [...this.implicitEntryModules],
             newEntryModules
         };
@@ -22281,11 +22858,10 @@ class ModuleLoader {
         return module.info;
     }
     addEntryWithImplicitDependants(unresolvedModule, implicitlyLoadedAfter) {
-        const chunkNamePriority = this.nextChunkNamePriority++;
-        return this.extendLoadModulesPromise(this.loadEntryModule(unresolvedModule.id, false, unresolvedModule.importer, null).then(async (entryModule) => {
-            addChunkNamesToModule(entryModule, unresolvedModule, false, chunkNamePriority);
+        return this.extendLoadModulesPromise(this.loadEntryModule(unresolvedModule.id, false, unresolvedModule.importer, null, undefined, undefined).then(async (entryModule) => {
+            addChunkNamesToModule(entryModule, unresolvedModule, false);
             if (!entryModule.info.isEntry) {
-                const implicitlyLoadedAfterModules = await Promise.all(implicitlyLoadedAfter.map(id => this.loadEntryModule(id, false, unresolvedModule.importer, entryModule.id)));
+                const implicitlyLoadedAfterModules = await Promise.all(implicitlyLoadedAfter.map(id => this.loadEntryModule(id, false, unresolvedModule.importer, entryModule.id, undefined, undefined)));
                 // We need to check again if this is still an entry module as these
                 // changes need to be performed atomically to avoid race conditions
                 // if the same module is re-emitted as an entry module.
@@ -22295,8 +22871,8 @@ class ModuleLoader {
                     for (const module of implicitlyLoadedAfterModules) {
                         entryModule.implicitlyLoadedAfter.add(module);
                     }
-                    for (const dependant of entryModule.implicitlyLoadedAfter) {
-                        dependant.implicitlyLoadedBefore.add(entryModule);
+                    for (const dependent of entryModule.implicitlyLoadedAfter) {
+                        dependent.implicitlyLoadedBefore.add(entryModule);
                     }
                 }
             }
@@ -22307,11 +22883,18 @@ class ModuleLoader {
         let source;
         try {
             source = await this.graph.fileOperationQueue.run(async () => {
-                const content = await this.pluginDriver.hookFirst('load', [id]);
-                if (content !== null)
+                const content = await this.pluginDriver.hookFirst('load', [
+                    id,
+                    { attributes: module.info.attributes }
+                ]);
+                if (content !== null) {
+                    if (typeof content === 'object' && content.attributes) {
+                        parseAst_js.warnDeprecation('Returning attributes from the "load" hook is forbidden.', parseAst_js.URL_LOAD, false, this.options);
+                    }
                     return content;
+                }
                 this.graph.watchFiles[id] = true;
-                return await promises.readFile(id, 'utf8');
+                return (await this.options.fs.readFile(id, { encoding: 'utf8' }));
             });
         }
         catch (error_) {
@@ -22335,6 +22918,7 @@ class ModuleLoader {
             !(await this.pluginDriver.hookFirst('shouldTransformCachedModule', [
                 {
                     ast: cachedModule.ast,
+                    attributes: cachedModule.attributes,
                     code: cachedModule.code,
                     id: cachedModule.id,
                     meta: cachedModule.meta,
@@ -22351,7 +22935,7 @@ class ModuleLoader {
         }
         else {
             module.updateOptions(sourceDescription);
-            await module.setSource(await transform(sourceDescription, module, this.pluginDriver, this.options.onLog));
+            await module.setSource(await transform(sourceDescription, module, this.pluginDriver, this.options));
         }
     }
     async awaitLoadModulesPromise() {
@@ -22372,14 +22956,17 @@ class ModuleLoader {
         return loadNewModulesPromise;
     }
     async fetchDynamicDependencies(module, resolveDynamicImportPromises) {
-        const dependencies = await Promise.all(resolveDynamicImportPromises.map(resolveDynamicImportPromise => resolveDynamicImportPromise.then(async ([dynamicImport, resolvedId]) => {
+        const dependencies = await Promise.all(resolveDynamicImportPromises.map(resolveDynamicImportPromise => resolveDynamicImportPromise.then(async ([{ argument, node }, resolvedId]) => {
             if (resolvedId === null)
                 return null;
             if (typeof resolvedId === 'string') {
-                dynamicImport.resolution = resolvedId;
+                node.resolution = resolvedId;
                 return null;
             }
-            return (dynamicImport.resolution = await this.fetchResolvedDependency(parseAst_js.relativeId(resolvedId.id), module.id, resolvedId));
+            if (node.phase === 'source' && !resolvedId.external) {
+                return parseAst_js.error(parseAst_js.logNonExternalSourcePhaseImport(typeof argument === 'string' ? argument : parseAst_js.relativeId(resolvedId.id), module.id));
+            }
+            return (node.resolution = await this.fetchResolvedDependency(parseAst_js.relativeId(resolvedId.id), module.id, resolvedId));
         })));
         for (const dependency of dependencies) {
             if (dependency) {
@@ -22458,7 +23045,12 @@ class ModuleLoader {
         return this.fetchModule(resolvedId, importer, false, false);
     }
     async fetchStaticDependencies(module, resolveStaticDependencyPromises) {
-        for (const dependency of await Promise.all(resolveStaticDependencyPromises.map(resolveStaticDependencyPromise => resolveStaticDependencyPromise.then(([source, resolvedId]) => this.fetchResolvedDependency(source, module.id, resolvedId))))) {
+        for (const dependency of await Promise.all(resolveStaticDependencyPromises.map(resolveStaticDependencyPromise => resolveStaticDependencyPromise.then(([source, resolvedId]) => {
+            if (module.sourcePhaseSources.has(source) && !resolvedId.external) {
+                return parseAst_js.error(parseAst_js.logNonExternalSourcePhaseImport(source, module.id));
+            }
+            return this.fetchResolvedDependency(source, module.id, resolvedId);
+        })))) {
             module.dependencies.add(dependency);
             dependency.importers.push(module.id);
         }
@@ -22509,7 +23101,11 @@ class ModuleLoader {
     getResolveDynamicImportPromises(module) {
         return module.dynamicImports.map(async (dynamicImport) => {
             const resolvedId = await this.resolveDynamicImport(module, dynamicImport.argument, module.id, getAttributesFromImportExpression(dynamicImport.node));
-            if (resolvedId && typeof resolvedId === 'object') {
+            if (!resolvedId || typeof resolvedId === 'string') {
+                dynamicImport.node.shouldIncludeDynamicAttributes = true;
+            }
+            else {
+                dynamicImport.node.shouldIncludeDynamicAttributes = !!resolvedId.external;
                 dynamicImport.id = resolvedId.id;
             }
             return [dynamicImport, resolvedId];
@@ -22520,7 +23116,7 @@ class ModuleLoader {
             source,
             (module.resolvedIds[source] =
                 module.resolvedIds[source] ||
-                    this.handleInvalidResolvedId(await this.resolveId(source, module.id, parseAst_js.EMPTY_OBJECT, false, attributes), source, module.id, attributes))
+                    this.handleInvalidResolvedId(await this.resolveId(source, module.id, parseAst_js.EMPTY_OBJECT, false, attributes, module.info.attributes), source, module.id, attributes))
         ]);
     }
     getResolvedIdWithDefaults(resolvedId, attributes) {
@@ -22550,8 +23146,8 @@ class ModuleLoader {
             // be performed atomically
             module.info.isEntry = true;
             this.implicitEntryModules.delete(module);
-            for (const dependant of module.implicitlyLoadedAfter) {
-                dependant.implicitlyLoadedBefore.delete(module);
+            for (const dependent of module.implicitlyLoadedAfter) {
+                dependent.implicitlyLoadedBefore.delete(module);
             }
             module.implicitlyLoadedAfter.clear();
         }
@@ -22578,8 +23174,8 @@ class ModuleLoader {
         }
         return resolvedId;
     }
-    async loadEntryModule(unresolvedId, isEntry, importer, implicitlyLoadedBefore, isLoadForManualChunks = false) {
-        const resolveIdResult = await resolveId(unresolvedId, importer, this.options.preserveSymlinks, this.pluginDriver, this.resolveId, null, parseAst_js.EMPTY_OBJECT, true, parseAst_js.EMPTY_OBJECT);
+    async loadEntryModule(unresolvedId, isEntry, importer, implicitlyLoadedBefore, isLoadForManualChunks = false, importerAttributes) {
+        const resolveIdResult = await resolveId(unresolvedId, importer, this.options.preserveSymlinks, this.pluginDriver, this.resolveId, null, parseAst_js.EMPTY_OBJECT, true, parseAst_js.EMPTY_OBJECT, importerAttributes, this.options.fs);
         if (resolveIdResult == null) {
             return parseAst_js.error(implicitlyLoadedBefore === null
                 ? parseAst_js.logUnresolvedEntry(unresolvedId)
@@ -22601,7 +23197,7 @@ class ModuleLoader {
         const resolution = await this.pluginDriver.hookFirst('resolveDynamicImport', [
             specifier,
             importer,
-            { attributes }
+            { attributes, importerAttributes: module.info.attributes }
         ]);
         if (typeof specifier !== 'string') {
             if (typeof resolution === 'string') {
@@ -22620,7 +23216,7 @@ class ModuleLoader {
                 }
                 return existingResolution;
             }
-            return (module.resolvedIds[specifier] = this.handleInvalidResolvedId(await this.resolveId(specifier, module.id, parseAst_js.EMPTY_OBJECT, false, attributes), specifier, module.id, attributes));
+            return (module.resolvedIds[specifier] = this.handleInvalidResolvedId(await this.resolveId(specifier, module.id, parseAst_js.EMPTY_OBJECT, false, attributes, module.info.attributes), specifier, module.id, attributes));
         }
         return this.handleInvalidResolvedId(this.getResolvedIdWithDefaults(this.getNormalizedResolvedIdWithoutDefaults(resolution, importer, specifier), attributes), specifier, importer, attributes);
     }
@@ -22632,16 +23228,13 @@ function normalizeRelativeExternalId(source, importer) {
             : path.resolve(source)
         : source;
 }
-function addChunkNamesToModule(module, { fileName, name }, isUserDefined, priority) {
+function addChunkNamesToModule(module, { fileName, name }, isUserDefined) {
     if (fileName !== null) {
         module.chunkFileNames.add(fileName);
     }
     else if (name !== null) {
-        // Always keep chunkNames sorted by priority
-        let namePosition = 0;
-        while (module.chunkNames[namePosition]?.priority < priority)
-            namePosition++;
-        module.chunkNames.splice(namePosition, 0, { isUserDefined, name, priority });
+        module.chunkNames.push({ isUserDefined, name });
+        module.chunkNames.sort((a, b) => (a.name > b.name ? 1 : -1));
     }
 }
 function isNotAbsoluteExternal(id, source, makeAbsoluteExternalsRelative) {
@@ -22757,7 +23350,7 @@ class Graph {
         timeEnd('generate module graph', 2);
         timeStart('sort and bind modules', 2);
         this.phase = BuildPhase.ANALYSE;
-        this.sortModules();
+        this.sortAndBindModules();
         timeEnd('sort and bind modules', 2);
         timeStart('mark included statements', 2);
         this.includeStatements();
@@ -22830,7 +23423,7 @@ class Graph {
                     // the TDZ detection logic
                     for (const module of entryModules) {
                         if (module.preserveSignature !== false) {
-                            module.includeAllExports(false);
+                            module.includeAllExports();
                             this.needsTreeshakingPass = true;
                         }
                     }
@@ -22845,14 +23438,14 @@ class Graph {
         for (const externalModule of this.externalModules)
             externalModule.warnUnusedImports();
         for (const module of this.implicitEntryModules) {
-            for (const dependant of module.implicitlyLoadedAfter) {
-                if (!(dependant.info.isEntry || dependant.isIncluded())) {
-                    parseAst_js.error(parseAst_js.logImplicitDependantIsNotIncluded(dependant));
+            for (const dependent of module.implicitlyLoadedAfter) {
+                if (!(dependent.info.isEntry || dependent.isIncluded())) {
+                    parseAst_js.error(parseAst_js.logImplicitDependantIsNotIncluded(dependent));
                 }
             }
         }
     }
-    sortModules() {
+    sortAndBindModules() {
         const { orderedModules, cyclePaths } = analyseModuleExecution(this.entryModules);
         for (const cyclePath of cyclePaths) {
             this.options.onLog(parseAst_js.LOGLEVEL_WARN, parseAst_js.logCircularDependency(cyclePath));
@@ -22866,9 +23459,11 @@ class Graph {
     warnForMissingExports() {
         for (const module of this.modules) {
             for (const importDescription of module.importDescriptions.values()) {
-                if (importDescription.name !== '*' &&
-                    !importDescription.module.getVariableForExportName(importDescription.name)[0]) {
-                    module.log(parseAst_js.LOGLEVEL_WARN, parseAst_js.logMissingExport(importDescription.name, module.id, importDescription.module.id), importDescription.start);
+                if (importDescription.name !== '*' && importDescription.phase !== 'source') {
+                    const [variable, options] = importDescription.module.getVariableForExportName(importDescription.name, { importChain: [module.id] });
+                    if (!variable) {
+                        module.log(parseAst_js.LOGLEVEL_WARN, parseAst_js.logMissingExport(importDescription.name, module.id, importDescription.module.id, !!options?.missingButExportExists), importDescription.start);
+                    }
                 }
             }
         }
@@ -22929,6 +23524,10 @@ async function catchUnfinishedHookActions(pluginDriver, callback) {
 
 async function initWasm() { }
 
+const fs = /*#__PURE__*/_mergeNamespaces({
+  __proto__: null
+}, [promises__namespace]);
+
 async function normalizeInputOptions(config, watchMode) {
     // These are options that may trigger special warnings or behaviour later
     // if the user did not select an explicit value
@@ -22945,6 +23544,7 @@ async function normalizeInputOptions(config, watchMode) {
         experimentalCacheExpiry: config.experimentalCacheExpiry ?? 10,
         experimentalLogSideEffects: config.experimentalLogSideEffects || false,
         external: getIdMatcher(config.external),
+        fs: config.fs ?? fs,
         input: getInput(config),
         jsx: getJsx(config),
         logLevel,
@@ -22971,7 +23571,7 @@ const getIdMatcher = (option) => {
         return () => true;
     }
     if (typeof option === 'function') {
-        return (id, ...parameters) => (!id.startsWith('\0') && option(id, ...parameters)) || false;
+        return (id, ...parameters) => (id[0] !== '\0' && option(id, ...parameters)) || false;
     }
     if (option) {
         const ids = new Set();
@@ -23039,7 +23639,7 @@ const getMaxParallelFileOps = (config) => {
             return Infinity;
         return maxParallelFileOps;
     }
-    return 20;
+    return 1000;
 };
 const getModuleContext = (config, context) => {
     const configModuleContext = config.moduleContext;
@@ -23081,7 +23681,7 @@ const getHasModuleSideEffects = (moduleSideEffectsOption) => {
         return (_id, external) => !external;
     }
     if (typeof moduleSideEffectsOption === 'function') {
-        return (id, external) => id.startsWith('\0') ? true : moduleSideEffectsOption(id, external) !== false;
+        return (id, external) => id[0] === '\0' ? true : moduleSideEffectsOption(id, external) !== false;
     }
     if (Array.isArray(moduleSideEffectsOption)) {
         const ids = new Set(moduleSideEffectsOption);
@@ -23149,6 +23749,7 @@ async function normalizeOutputOptions(config, inputOptions, unsetInputOptions) {
         minifyInternalExports: getMinifyInternalExports(config, format, compact),
         name: config.name,
         noConflict: config.noConflict || false,
+        onlyExplicitManualChunks: config.onlyExplicitManualChunks || false,
         outro: getAddon(config, 'outro'),
         paths: config.paths || {},
         plugins: await normalizePluginOption(config.plugins),
@@ -23383,6 +23984,7 @@ const getSourcemapBaseUrl = (config) => {
     }
 };
 
+const rollupVersion = package_.version;
 // @ts-expect-error TS2540: the polyfill of `asyncDispose`.
 Symbol.asyncDispose ??= Symbol('Symbol.asyncDispose');
 function rollup(rawInputOptions) {
@@ -23437,7 +24039,9 @@ async function rollupInternal(rawInputOptions, watcher) {
     });
     timeEnd('BUILD', 1);
     const result = {
-        cache: useCache ? graph.getCache() : undefined,
+        get cache() {
+            return useCache ? graph.getCache() : undefined;
+        },
         async close() {
             if (result.closed)
                 return;
@@ -23486,7 +24090,7 @@ async function getProcessedInputOptions(inputOptions, watchMode) {
             debug: getLogHandler(parseAst_js.LOGLEVEL_DEBUG, 'PLUGIN_LOG', logger, name, logLevel),
             error: (error_) => parseAst_js.error(parseAst_js.logPluginError(normalizeLog(error_), name, { hook: 'onLog' })),
             info: getLogHandler(parseAst_js.LOGLEVEL_INFO, 'PLUGIN_LOG', logger, name, logLevel),
-            meta: { rollupVersion: version, watchMode },
+            meta: { rollupVersion, watchMode },
             warn: getLogHandler(parseAst_js.LOGLEVEL_WARN, 'PLUGIN_WARNING', logger, name, logLevel)
         }, inputOptions);
         if (processedOptions) {
@@ -23512,7 +24116,7 @@ async function handleGenerateWrite(isWrite, inputOptions, unsetInputOptions, raw
             if (!outputOptions.dir && !outputOptions.file) {
                 return parseAst_js.error(parseAst_js.logMissingFileOrDirOption());
             }
-            await Promise.all(Object.values(generated).map(chunk => graph.fileOperationQueue.run(() => writeOutputFile(chunk, outputOptions))));
+            await Promise.all(Object.values(generated).map(chunk => graph.fileOperationQueue.run(() => writeOutputFile(chunk, outputOptions, inputOptions))));
             await outputPluginDriver.hookParallel('writeBundle', [outputOptions, generated]);
             timeEnd('WRITE', 1);
         }
@@ -23561,11 +24165,11 @@ function getSortingFileType(file) {
     }
     return SortingFileType.SECONDARY_CHUNK;
 }
-async function writeOutputFile(outputFile, outputOptions) {
+async function writeOutputFile(outputFile, outputOptions, { fs: { mkdir, writeFile } }) {
     const fileName = path.resolve(outputOptions.dir || path.dirname(outputOptions.file), outputFile.fileName);
     // 'recursive: true' does not throw if the folder structure, or parts of it, already exist
-    await promises.mkdir(path.dirname(fileName), { recursive: true });
-    return promises.writeFile(fileName, outputFile.type === 'asset' ? outputFile.source : outputFile.code);
+    await mkdir(path.dirname(fileName), { recursive: true });
+    return writeFile(fileName, outputFile.type === 'asset' ? outputFile.source : outputFile.code);
 }
 /**
  * Auxiliary function for defining rollup configuration
@@ -23593,11 +24197,11 @@ exports.handleError = handleError;
 exports.isWatchEnabled = isWatchEnabled;
 exports.mergeOptions = mergeOptions;
 exports.normalizePluginOption = normalizePluginOption;
+exports.package_ = package_;
 exports.pc = pc;
 exports.rollup = rollup;
 exports.rollupInternal = rollupInternal;
 exports.stderr = stderr;
 exports.underline = underline;
-exports.version = version;
 exports.yellow = yellow;
 //# sourceMappingURL=rollup.js.map

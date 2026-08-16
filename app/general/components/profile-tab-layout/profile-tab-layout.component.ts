@@ -4,13 +4,13 @@ import {
   computed,
   inject,
 } from '@angular/core';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { SeparatorComponent } from 'src/app/design/atoms/separator/separator.component';
-import { LinkTabsComponent } from 'src/app/design/molecules/link-tabs/link-tabs.component';
-import { PageContainerComponent } from 'src/app/design/organisms/page-container/page-container.component';
-import { GlobalStore } from 'src/app/global.store';
-import { NavigationStore } from 'src/app/navigation.store';
+import { RoutingService } from '../../../_services/routing.service';
+import { SeparatorComponent } from '../../../design/atoms/separator/separator.component';
 import { ArticleFooterComponent } from '../../../design/molecules/article-footer/article-footer.component';
+import { LinkTabsComponent } from '../../../design/molecules/link-tabs/link-tabs.component';
+import { PageContainerComponent } from '../../../design/organisms/page-container/page-container.component';
+import { GlobalStore } from '../../../global.store';
+import { NavigationStore } from '../../../navigation.store';
 import { getProfileTabs } from '../../_models/profileTabs';
 
 @Component({
@@ -26,21 +26,21 @@ import { getProfileTabs } from '../../_models/profileTabs';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ProfileTabLayoutComponent {
-  routingService = inject(RoutingService);
-  navStore = inject(NavigationStore);
-  globalStore = inject(GlobalStore);
+  readonly routingService = inject(RoutingService);
+  readonly navStore = inject(NavigationStore);
+  readonly globalStore = inject(GlobalStore);
 
-  backUrl = computed(() => {
+  readonly backUrl = computed(() => {
     const campaignName = this.globalStore.campaignName();
     const fallbackUrl = this.routingService.getRoutePath('campaign-overview');
     return campaignName
       ? this.routingService.getRoutePath('home', { campaign: campaignName })
       : fallbackUrl;
   });
-  footerLabel = computed(() => {
+  readonly footerLabel = computed(() => {
     const campaignName = this.globalStore.campaignName();
     return `Back to ${campaignName ?? 'Campaigns'}`;
   });
 
-  tabs = getProfileTabs(this.routingService);
+  readonly tabs = getProfileTabs(this.routingService);
 }

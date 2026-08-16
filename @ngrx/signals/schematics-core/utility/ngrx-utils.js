@@ -1,40 +1,37 @@
 "use strict";
-var __values = (this && this.__values) || function(o) {
-    var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
-    if (m) return m.call(o);
-    if (o && typeof o.length === "number") return {
-        next: function () {
-            if (o && i >= o.length) o = void 0;
-            return { value: o && o[i++], done: !o };
-        }
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
     };
-    throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
-};
-var __read = (this && this.__read) || function (o, n) {
-    var m = typeof Symbol === "function" && o[Symbol.iterator];
-    if (!m) return o;
-    var i = m.call(o), r, ar = [], e;
-    try {
-        while ((n === void 0 || n-- > 0) && !(r = i.next()).done) ar.push(r.value);
-    }
-    catch (error) { e = { error: error }; }
-    finally {
-        try {
-            if (r && !r.done && (m = i["return"])) m.call(i);
-        }
-        finally { if (e) throw e.error; }
-    }
-    return ar;
-};
-var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
-    if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
-        if (ar || !(i in from)) {
-            if (!ar) ar = Array.prototype.slice.call(from, 0, i);
-            ar[i] = from[i];
-        }
-    }
-    return to.concat(ar || Array.prototype.slice.call(from));
-};
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.addReducerToState = addReducerToState;
 exports.addReducerToStateInterface = addReducerToStateInterface;
@@ -42,54 +39,43 @@ exports.addReducerToActionReducerMap = addReducerToActionReducerMap;
 exports.addReducerImportToNgModule = addReducerImportToNgModule;
 exports.omit = omit;
 exports.getPrefix = getPrefix;
-var ts = require("typescript");
-var stringUtils = require("./strings");
-var change_1 = require("./change");
-var schematics_1 = require("@angular-devkit/schematics");
-var core_1 = require("@angular-devkit/core");
-var find_module_1 = require("./find-module");
-var ast_utils_1 = require("./ast-utils");
+const ts = __importStar(require("typescript"));
+const stringUtils = __importStar(require("./strings"));
+const change_1 = require("./change");
+const schematics_1 = require("@angular-devkit/schematics");
+const core_1 = require("@angular-devkit/core");
+const find_module_1 = require("./find-module");
+const ast_utils_1 = require("./ast-utils");
 function addReducerToState(options) {
-    return function (host) {
-        var e_1, _a;
+    return (host) => {
         if (!options.reducers) {
             return host;
         }
-        var reducersPath = (0, core_1.normalize)("/".concat(options.path, "/").concat(options.reducers));
+        const reducersPath = (0, core_1.normalize)(`/${options.path}/${options.reducers}`);
         if (!host.exists(reducersPath)) {
-            throw new Error("Specified reducers path ".concat(reducersPath, " does not exist"));
+            throw new Error(`Specified reducers path ${reducersPath} does not exist`);
         }
-        var text = host.read(reducersPath);
+        const text = host.read(reducersPath);
         if (text === null) {
-            throw new schematics_1.SchematicsException("File ".concat(reducersPath, " does not exist."));
+            throw new schematics_1.SchematicsException(`File ${reducersPath} does not exist.`);
         }
-        var sourceText = text.toString('utf-8');
-        var source = ts.createSourceFile(reducersPath, sourceText, ts.ScriptTarget.Latest, true);
-        var reducerPath = "/".concat(options.path, "/") +
+        const sourceText = text.toString('utf-8');
+        const source = ts.createSourceFile(reducersPath, sourceText, ts.ScriptTarget.Latest, true);
+        const reducerPath = `/${options.path}/` +
             (options.flat ? '' : stringUtils.dasherize(options.name) + '/') +
             (options.group ? 'reducers/' : '') +
             stringUtils.dasherize(options.name) +
             '.reducer';
-        var relativePath = (0, find_module_1.buildRelativePath)(reducersPath, reducerPath);
-        var reducerImport = (0, ast_utils_1.insertImport)(source, reducersPath, "* as from".concat(stringUtils.classify(options.name)), relativePath, true);
-        var stateInterfaceInsert = addReducerToStateInterface(source, reducersPath, options);
-        var reducerMapInsert = addReducerToActionReducerMap(source, reducersPath, options);
-        var changes = [reducerImport, stateInterfaceInsert, reducerMapInsert];
-        var recorder = host.beginUpdate(reducersPath);
-        try {
-            for (var changes_1 = __values(changes), changes_1_1 = changes_1.next(); !changes_1_1.done; changes_1_1 = changes_1.next()) {
-                var change = changes_1_1.value;
-                if (change instanceof change_1.InsertChange) {
-                    recorder.insertLeft(change.pos, change.toAdd);
-                }
+        const relativePath = (0, find_module_1.buildRelativePath)(reducersPath, reducerPath);
+        const reducerImport = (0, ast_utils_1.insertImport)(source, reducersPath, `* as from${stringUtils.classify(options.name)}`, relativePath, true);
+        const stateInterfaceInsert = addReducerToStateInterface(source, reducersPath, options);
+        const reducerMapInsert = addReducerToActionReducerMap(source, reducersPath, options);
+        const changes = [reducerImport, stateInterfaceInsert, reducerMapInsert];
+        const recorder = host.beginUpdate(reducersPath);
+        for (const change of changes) {
+            if (change instanceof change_1.InsertChange) {
+                recorder.insertLeft(change.pos, change.toAdd);
             }
-        }
-        catch (e_1_1) { e_1 = { error: e_1_1 }; }
-        finally {
-            try {
-                if (changes_1_1 && !changes_1_1.done && (_a = changes_1.return)) _a.call(changes_1);
-            }
-            finally { if (e_1) throw e_1.error; }
         }
         host.commitUpdate(recorder);
         return host;
@@ -99,33 +85,33 @@ function addReducerToState(options) {
  * Insert the reducer into the first defined top level interface
  */
 function addReducerToStateInterface(source, reducersPath, options) {
-    var stateInterface = source.statements.find(function (stm) { return stm.kind === ts.SyntaxKind.InterfaceDeclaration; });
-    var node = stateInterface;
+    const stateInterface = source.statements.find((stm) => stm.kind === ts.SyntaxKind.InterfaceDeclaration);
+    let node = stateInterface;
     if (!node) {
         return new change_1.NoopChange();
     }
-    var state = options.plural
+    const state = options.plural
         ? stringUtils.pluralize(options.name)
         : stringUtils.camelize(options.name);
-    var keyInsert = "[from".concat(stringUtils.classify(options.name), ".").concat(stringUtils.camelize(state), "FeatureKey]: from").concat(stringUtils.classify(options.name), ".State;");
-    var expr = node;
-    var position;
-    var toInsert;
+    const keyInsert = `[from${stringUtils.classify(options.name)}.${stringUtils.camelize(state)}FeatureKey]: from${stringUtils.classify(options.name)}.State;`;
+    const expr = node;
+    let position;
+    let toInsert;
     if (expr.members.length === 0) {
         position = expr.getEnd() - 1;
-        toInsert = "  ".concat(keyInsert, "\n");
+        toInsert = `  ${keyInsert}\n`;
     }
     else {
         node = expr.members[expr.members.length - 1];
         position = node.getEnd() + 1;
         // Get the indentation of the last element, if any.
-        var text = node.getFullText(source);
-        var matches = text.match(/^\r?\n+(\s*)/);
+        const text = node.getFullText(source);
+        const matches = text.match(/^\r?\n+(\s*)/);
         if (matches && matches.length > 0) {
-            toInsert = "".concat(matches[1]).concat(keyInsert, "\n");
+            toInsert = `${matches[1]}${keyInsert}\n`;
         }
         else {
-            toInsert = "\n".concat(keyInsert);
+            toInsert = `\n${keyInsert}`;
         }
     }
     return new change_1.InsertChange(reducersPath, position, toInsert);
@@ -134,47 +120,44 @@ function addReducerToStateInterface(source, reducersPath, options) {
  * Insert the reducer into the ActionReducerMap
  */
 function addReducerToActionReducerMap(source, reducersPath, options) {
-    var initializer;
-    var actionReducerMap = source.statements
-        .filter(function (stm) { return stm.kind === ts.SyntaxKind.VariableStatement; })
-        .filter(function (stm) { return !!stm.declarationList; })
-        .map(function (stm) {
-        var declarations = stm.declarationList.declarations;
-        var variable = declarations.find(function (decl) { return decl.kind === ts.SyntaxKind.VariableDeclaration; });
-        var type = variable ? variable.type : {};
-        return { initializer: variable.initializer, type: type };
+    let initializer;
+    const actionReducerMap = source.statements
+        .filter((stm) => stm.kind === ts.SyntaxKind.VariableStatement)
+        .filter((stm) => !!stm.declarationList)
+        .map((stm) => {
+        const { declarations, } = stm.declarationList;
+        const variable = declarations.find((decl) => decl.kind === ts.SyntaxKind.VariableDeclaration);
+        const type = variable ? variable.type : {};
+        return { initializer: variable.initializer, type };
     })
-        .filter(function (initWithType) { return initWithType.type !== undefined; })
-        .find(function (_a) {
-        var type = _a.type;
-        return type.typeName.text === 'ActionReducerMap';
-    });
+        .filter((initWithType) => initWithType.type !== undefined)
+        .find(({ type }) => type.typeName.text === 'ActionReducerMap');
     if (!actionReducerMap || !actionReducerMap.initializer) {
         return new change_1.NoopChange();
     }
-    var node = actionReducerMap.initializer;
-    var state = options.plural
+    let node = actionReducerMap.initializer;
+    const state = options.plural
         ? stringUtils.pluralize(options.name)
         : stringUtils.camelize(options.name);
-    var keyInsert = "[from".concat(stringUtils.classify(options.name), ".").concat(stringUtils.camelize(state), "FeatureKey]: from").concat(stringUtils.classify(options.name), ".reducer,");
-    var expr = node;
-    var position;
-    var toInsert;
+    const keyInsert = `[from${stringUtils.classify(options.name)}.${stringUtils.camelize(state)}FeatureKey]: from${stringUtils.classify(options.name)}.reducer,`;
+    const expr = node;
+    let position;
+    let toInsert;
     if (expr.properties.length === 0) {
         position = expr.getEnd() - 1;
-        toInsert = "  ".concat(keyInsert, "\n");
+        toInsert = `  ${keyInsert}\n`;
     }
     else {
         node = expr.properties[expr.properties.length - 1];
         position = node.getEnd() + 1;
         // Get the indentation of the last element, if any.
-        var text = node.getFullText(source);
-        var matches = text.match(/^\r?\n+(\s*)/);
+        const text = node.getFullText(source);
+        const matches = text.match(/^\r?\n+(\s*)/);
         if (matches && matches.length > 0) {
-            toInsert = "\n".concat(matches[1]).concat(keyInsert);
+            toInsert = `\n${matches[1]}${keyInsert}`;
         }
         else {
-            toInsert = "\n".concat(keyInsert);
+            toInsert = `\n${keyInsert}`;
         }
     }
     return new change_1.InsertChange(reducersPath, position, toInsert);
@@ -183,51 +166,40 @@ function addReducerToActionReducerMap(source, reducersPath, options) {
  * Add reducer feature to NgModule
  */
 function addReducerImportToNgModule(options) {
-    return function (host) {
-        var e_2, _a;
+    return (host) => {
         if (!options.module) {
             return host;
         }
-        var modulePath = options.module;
+        const modulePath = options.module;
         if (!host.exists(options.module)) {
-            throw new Error("Specified module path ".concat(modulePath, " does not exist"));
+            throw new Error(`Specified module path ${modulePath} does not exist`);
         }
-        var text = host.read(modulePath);
+        const text = host.read(modulePath);
         if (text === null) {
-            throw new schematics_1.SchematicsException("File ".concat(modulePath, " does not exist."));
+            throw new schematics_1.SchematicsException(`File ${modulePath} does not exist.`);
         }
-        var sourceText = text.toString('utf-8');
-        var source = ts.createSourceFile(modulePath, sourceText, ts.ScriptTarget.Latest, true);
-        var commonImports = [
+        const sourceText = text.toString('utf-8');
+        const source = ts.createSourceFile(modulePath, sourceText, ts.ScriptTarget.Latest, true);
+        const commonImports = [
             (0, ast_utils_1.insertImport)(source, modulePath, 'StoreModule', '@ngrx/store'),
         ];
-        var reducerPath = "/".concat(options.path, "/") +
+        const reducerPath = `/${options.path}/` +
             (options.flat ? '' : stringUtils.dasherize(options.name) + '/') +
             (options.group ? 'reducers/' : '') +
             stringUtils.dasherize(options.name) +
             '.reducer';
-        var relativePath = (0, find_module_1.buildRelativePath)(modulePath, reducerPath);
-        var reducerImport = (0, ast_utils_1.insertImport)(source, modulePath, "* as from".concat(stringUtils.classify(options.name)), relativePath, true);
-        var state = options.plural
+        const relativePath = (0, find_module_1.buildRelativePath)(modulePath, reducerPath);
+        const reducerImport = (0, ast_utils_1.insertImport)(source, modulePath, `* as from${stringUtils.classify(options.name)}`, relativePath, true);
+        const state = options.plural
             ? stringUtils.pluralize(options.name)
             : stringUtils.camelize(options.name);
-        var _b = __read((0, ast_utils_1.addImportToModule)(source, modulePath, "StoreModule.forFeature(from".concat(stringUtils.classify(options.name), ".").concat(state, "FeatureKey, from").concat(stringUtils.classify(options.name), ".reducer)"), relativePath), 1), storeNgModuleImport = _b[0];
-        var changes = __spreadArray(__spreadArray([], __read(commonImports), false), [reducerImport, storeNgModuleImport], false);
-        var recorder = host.beginUpdate(modulePath);
-        try {
-            for (var changes_2 = __values(changes), changes_2_1 = changes_2.next(); !changes_2_1.done; changes_2_1 = changes_2.next()) {
-                var change = changes_2_1.value;
-                if (change instanceof change_1.InsertChange) {
-                    recorder.insertLeft(change.pos, change.toAdd);
-                }
+        const [storeNgModuleImport] = (0, ast_utils_1.addImportToModule)(source, modulePath, `StoreModule.forFeature(from${stringUtils.classify(options.name)}.${state}FeatureKey, from${stringUtils.classify(options.name)}.reducer)`, relativePath);
+        const changes = [...commonImports, reducerImport, storeNgModuleImport];
+        const recorder = host.beginUpdate(modulePath);
+        for (const change of changes) {
+            if (change instanceof change_1.InsertChange) {
+                recorder.insertLeft(change.pos, change.toAdd);
             }
-        }
-        catch (e_2_1) { e_2 = { error: e_2_1 }; }
-        finally {
-            try {
-                if (changes_2_1 && !changes_2_1.done && (_a = changes_2.return)) _a.call(changes_2);
-            }
-            finally { if (e_2) throw e_2.error; }
         }
         host.commitUpdate(recorder);
         return host;
@@ -235,11 +207,8 @@ function addReducerImportToNgModule(options) {
 }
 function omit(object, keyToRemove) {
     return Object.keys(object)
-        .filter(function (key) { return key !== keyToRemove; })
-        .reduce(function (result, key) {
-        var _a;
-        return Object.assign(result, (_a = {}, _a[key] = object[key], _a));
-    }, {});
+        .filter((key) => key !== keyToRemove)
+        .reduce((result, key) => Object.assign(result, { [key]: object[key] }), {});
 }
 function getPrefix(options) {
     return stringUtils.camelize(options.prefix || 'load');

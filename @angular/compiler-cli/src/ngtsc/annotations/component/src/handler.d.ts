@@ -23,9 +23,9 @@ import { ExtendedTemplateChecker } from '../../../typecheck/extended/api';
 import { TemplateSemanticsChecker } from '../../../typecheck/template_semantics/api/api';
 import { Xi18nContext } from '../../../xi18n';
 import { InjectableClassRegistry, ReferencesRegistry, ResourceLoader } from '../../common';
+import { JitDeclarationRegistry } from '../../common/src/jit_declaration_registry';
 import { ComponentAnalysisData, ComponentResolutionData } from './metadata';
 import { ComponentSymbol } from './symbol';
-import { JitDeclarationRegistry } from '../../common/src/jit_declaration_registry';
 /**
  * `DecoratorHandler` which handles the `@Component` annotation.
  */
@@ -75,9 +75,12 @@ export declare class ComponentDecoratorHandler implements DecoratorHandler<Decor
     private readonly implicitStandaloneValue;
     private readonly typeCheckHostBindings;
     private readonly enableSelectorless;
-    constructor(reflector: ReflectionHost, evaluator: PartialEvaluator, metaRegistry: MetadataRegistry, metaReader: MetadataReader, scopeReader: ComponentScopeReader, compilerHost: Pick<ts.CompilerHost, 'getCanonicalFileName'>, scopeRegistry: LocalModuleScopeRegistry, typeCheckScopeRegistry: TypeCheckScopeRegistry, resourceRegistry: ResourceRegistry, isCore: boolean, strictCtorDeps: boolean, resourceLoader: ResourceLoader, rootDirs: ReadonlyArray<string>, defaultPreserveWhitespaces: boolean, i18nUseExternalIds: boolean, enableI18nLegacyMessageIdFormat: boolean, usePoisonedData: boolean, i18nNormalizeLineEndingsInICUs: boolean, moduleResolver: ModuleResolver, cycleAnalyzer: CycleAnalyzer, cycleHandlingStrategy: CycleHandlingStrategy, refEmitter: ReferenceEmitter, referencesRegistry: ReferencesRegistry, depTracker: DependencyTracker | null, injectableRegistry: InjectableClassRegistry, semanticDepGraphUpdater: SemanticDepGraphUpdater | null, annotateForClosureCompiler: boolean, perf: PerfRecorder, hostDirectivesResolver: HostDirectivesResolver, importTracker: ImportedSymbolsTracker, includeClassMetadata: boolean, compilationMode: CompilationMode, deferredSymbolTracker: DeferredSymbolTracker, forbidOrphanRendering: boolean, enableBlockSyntax: boolean, enableLetSyntax: boolean, externalRuntimeStyles: boolean, localCompilationExtraImportsTracker: LocalCompilationExtraImportsTracker | null, jitDeclarationRegistry: JitDeclarationRegistry, i18nPreserveSignificantWhitespace: boolean, strictStandalone: boolean, enableHmr: boolean, implicitStandaloneValue: boolean, typeCheckHostBindings: boolean, enableSelectorless: boolean);
+    private readonly emitDeclarationOnly;
+    private readonly legacyOptionalChaining;
+    constructor(reflector: ReflectionHost, evaluator: PartialEvaluator, metaRegistry: MetadataRegistry, metaReader: MetadataReader, scopeReader: ComponentScopeReader, compilerHost: Pick<ts.CompilerHost, 'getCanonicalFileName'>, scopeRegistry: LocalModuleScopeRegistry, typeCheckScopeRegistry: TypeCheckScopeRegistry, resourceRegistry: ResourceRegistry, isCore: boolean, strictCtorDeps: boolean, resourceLoader: ResourceLoader, rootDirs: ReadonlyArray<string>, defaultPreserveWhitespaces: boolean, i18nUseExternalIds: boolean, enableI18nLegacyMessageIdFormat: boolean, usePoisonedData: boolean, i18nNormalizeLineEndingsInICUs: boolean, moduleResolver: ModuleResolver, cycleAnalyzer: CycleAnalyzer, cycleHandlingStrategy: CycleHandlingStrategy, refEmitter: ReferenceEmitter, referencesRegistry: ReferencesRegistry, depTracker: DependencyTracker | null, injectableRegistry: InjectableClassRegistry, semanticDepGraphUpdater: SemanticDepGraphUpdater | null, annotateForClosureCompiler: boolean, perf: PerfRecorder, hostDirectivesResolver: HostDirectivesResolver, importTracker: ImportedSymbolsTracker, includeClassMetadata: boolean, compilationMode: CompilationMode, deferredSymbolTracker: DeferredSymbolTracker, forbidOrphanRendering: boolean, enableBlockSyntax: boolean, enableLetSyntax: boolean, externalRuntimeStyles: boolean, localCompilationExtraImportsTracker: LocalCompilationExtraImportsTracker | null, jitDeclarationRegistry: JitDeclarationRegistry, i18nPreserveSignificantWhitespace: boolean, strictStandalone: boolean, enableHmr: boolean, implicitStandaloneValue: boolean, typeCheckHostBindings: boolean, enableSelectorless: boolean, emitDeclarationOnly: boolean, legacyOptionalChaining: boolean);
     private literalCache;
     private elementSchemaRegistry;
+    private readonly undecoratedMetadataExtractor;
     /**
      * During the asynchronous preanalyze phase, it's necessary to parse the template to extract
      * any potential <link> tags which might need to be loaded. This cache ensures that work is not
@@ -143,6 +146,10 @@ export declare class ComponentDecoratorHandler implements DecoratorHandler<Decor
     private _checkForCyclicImport;
     private maybeRecordSyntheticImport;
     /**
+     * Resolves imported foreign components for code generation.
+     */
+    private resolveForeignComponentImports;
+    /**
      * Resolves information about defer blocks dependencies to make it
      * available for the final `compile` step.
      */
@@ -152,6 +159,8 @@ export declare class ComponentDecoratorHandler implements DecoratorHandler<Decor
      * `@Component.deferredImports`) and registers imported types as deferrable
      * candidates.
      */
-    private registerDeferrableCandidates;
+    private registerDeferrableCandidate;
     private compileDeferBlocks;
+    /** Creates a new binding parser. */
+    private getNewBindingParser;
 }

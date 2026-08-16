@@ -86,3 +86,4 @@ class RunCommandModule extends architect_base_command_module_1.ArchitectBaseComm
     }
 }
 exports.default = RunCommandModule;
+//# sourceMappingURL=cli.js.map

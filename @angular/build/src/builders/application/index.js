@@ -6,6 +6,39 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.dev/license
  */
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -16,18 +49,18 @@ const architect_1 = require("@angular-devkit/architect");
 const node_assert_1 = __importDefault(require("node:assert"));
 const promises_1 = __importDefault(require("node:fs/promises"));
 const node_path_1 = __importDefault(require("node:path"));
-const bundler_context_1 = require("../../tools/esbuild/bundler-context");
+const bundler_files_1 = require("../../tools/esbuild/bundler-files");
 const utils_1 = require("../../tools/esbuild/utils");
 const color_1 = require("../../utils/color");
 const delete_output_dir_1 = require("../../utils/delete-output-dir");
 const environment_options_1 = require("../../utils/environment-options");
+const path_1 = require("../../utils/path");
 const purge_cache_1 = require("../../utils/purge-cache");
 const version_1 = require("../../utils/version");
 const build_action_1 = require("./build-action");
 const execute_build_1 = require("./execute-build");
 const options_1 = require("./options");
 const results_1 = require("./results");
-const isNodeV22orHigher = Number(process.versions.node.split('.', 1)[0]) >= 22;
 async function* buildApplicationInternal(options, 
 // TODO: Integrate abort signal support into builder system
 context, extensions) {
@@ -43,6 +76,12 @@ context, extensions) {
         // Only the vite-based dev server current uses the errors value
         yield { kind: results_1.ResultKind.Failure, errors: [] };
         return;
+    }
+    if (environment_options_1.bazelEsbuildPluginPath) {
+        extensions ??= {};
+        extensions.codePlugins ??= [];
+        const { default: bazelEsbuildPlugin } = await Promise.resolve(`${environment_options_1.bazelEsbuildPluginPath}`).then(s => __importStar(require(s)));
+        extensions.codePlugins.push(bazelEsbuildPlugin);
     }
     const normalizedOptions = await (0, options_1.normalizeOptions)(context, projectName, options, extensions);
     if (!normalizedOptions.outputOptions.ignoreServer) {
@@ -81,7 +120,8 @@ context, extensions) {
             }
             const buildTime = Number(process.hrtime.bigint() - startTime) / 10 ** 9;
             const hasError = result.errors.length > 0;
-            result.addLog(`Application bundle generation ${hasError ? 'failed' : 'complete'}. [${buildTime.toFixed(3)} seconds]\n`);
+            result.addLog(`Application bundle generation ${hasError ? 'failed' : 'complete'}.` +
+                ` [${buildTime.toFixed(3)} seconds] - ${new Date().toISOString()}\n`);
         }
         return result;
     }, {
@@ -144,45 +184,51 @@ async function* buildApplication(options, context, extensions) {
         }
         // Writes the output files to disk and ensures the containing directories are present
         const directoryExists = new Set();
-        await (0, utils_1.emitFilesToDisk)(Object.entries(result.files), async ([filePath, file]) => {
-            if (outputOptions.ignoreServer &&
-                (file.type === bundler_context_1.BuildOutputFileType.ServerApplication ||
-                    file.type === bundler_context_1.BuildOutputFileType.ServerRoot)) {
-                return;
-            }
-            const fullFilePath = generateFullPath(filePath, file.type, outputOptions);
-            // Ensure output subdirectories exist
-            const fileBasePath = node_path_1.default.dirname(fullFilePath);
-            if (fileBasePath && !directoryExists.has(fileBasePath)) {
-                await promises_1.default.mkdir(fileBasePath, { recursive: true });
-                directoryExists.add(fileBasePath);
-            }
-            if (file.origin === 'memory') {
-                // Write file contents
-                await promises_1.default.writeFile(fullFilePath, file.contents);
-            }
-            else {
-                // Copy file contents
-                if (isNodeV22orHigher) {
-                    // Use newer `cp` API on Node.js 22+ (minimum v22 for CLI is 22.11)
+        try {
+            await (0, utils_1.emitFilesToDisk)(Object.entries(result.files), async ([filePath, file]) => {
+                if (outputOptions.ignoreServer &&
+                    (file.type === bundler_files_1.BuildOutputFileType.ServerApplication ||
+                        file.type === bundler_files_1.BuildOutputFileType.ServerRoot)) {
+                    return;
+                }
+                const fullFilePath = generateFullPath(filePath, file.type, outputOptions);
+                // Ensure output subdirectories exist
+                const fileBasePath = node_path_1.default.dirname(fullFilePath);
+                if (fileBasePath && !directoryExists.has(fileBasePath)) {
+                    await promises_1.default.mkdir(fileBasePath, { recursive: true });
+                    directoryExists.add(fileBasePath);
+                }
+                if (file.origin === 'memory') {
+                    // Write file contents
+                    await promises_1.default.writeFile(fullFilePath, file.contents);
+                }
+                else {
+                    // Copy file contents
                     await promises_1.default.cp(file.inputPath, fullFilePath, {
                         mode: promises_1.default.constants.COPYFILE_FICLONE,
                         preserveTimestamps: true,
                     });
                 }
-                else {
-                    // For Node.js 20 use `copyFile` (`cp` is not stable for v20)
-                    // TODO: Remove when Node.js 20 is no longer supported
-                    await promises_1.default.copyFile(file.inputPath, fullFilePath, promises_1.default.constants.COPYFILE_FICLONE);
-                }
-            }
-        });
+            });
+        }
+        catch (error) {
+            context.logger.error(error instanceof Error ? error.message : String(error));
+            yield { success: false };
+            continue;
+        }
         // Delete any removed files if incremental
         if (result.kind === results_1.ResultKind.Incremental && result.removed?.length) {
-            await Promise.all(result.removed.map((file) => {
-                const fullFilePath = generateFullPath(file.path, file.type, outputOptions);
-                return promises_1.default.rm(fullFilePath, { force: true, maxRetries: 3 });
-            }));
+            try {
+                await Promise.all(result.removed.map((file) => {
+                    const fullFilePath = generateFullPath(file.path, file.type, outputOptions);
+                    return promises_1.default.rm(fullFilePath, { force: true, maxRetries: 3 });
+                }));
+            }
+            catch (error) {
+                context.logger.error(error instanceof Error ? error.message : String(error));
+                yield { success: false };
+                continue;
+            }
         }
         yield { success: true };
     }
@@ -190,23 +236,27 @@ async function* buildApplication(options, context, extensions) {
 function generateFullPath(filePath, type, outputOptions) {
     let typeDirectory;
     switch (type) {
-        case bundler_context_1.BuildOutputFileType.Browser:
-        case bundler_context_1.BuildOutputFileType.Media:
+        case bundler_files_1.BuildOutputFileType.Browser:
+        case bundler_files_1.BuildOutputFileType.Media:
             typeDirectory = outputOptions.browser;
             break;
-        case bundler_context_1.BuildOutputFileType.ServerApplication:
-        case bundler_context_1.BuildOutputFileType.ServerRoot:
+        case bundler_files_1.BuildOutputFileType.ServerApplication:
+        case bundler_files_1.BuildOutputFileType.ServerRoot:
             typeDirectory = outputOptions.server;
             break;
-        case bundler_context_1.BuildOutputFileType.Root:
+        case bundler_files_1.BuildOutputFileType.Root:
             typeDirectory = '';
             break;
         default:
-            throw new Error(`Unhandled write for file "${filePath}" with type "${bundler_context_1.BuildOutputFileType[type]}".`);
+            throw new Error(`Unhandled write for file "${filePath}" with type "${bundler_files_1.BuildOutputFileType[type]}".`);
     }
     // NOTE: 'base' is a fully resolved path at this point
     const fullFilePath = node_path_1.default.join(outputOptions.base, typeDirectory, filePath);
+    if (!(0, path_1.isSubDirectory)(outputOptions.base, fullFilePath)) {
+        throw new Error(`The output file path "${fullFilePath}" is outside of the configured output path "${outputOptions.base}".`);
+    }
     return fullFilePath;
 }
 const builder = (0, architect_1.createBuilder)(buildApplication);
 exports.default = builder;
+//# sourceMappingURL=index.js.map

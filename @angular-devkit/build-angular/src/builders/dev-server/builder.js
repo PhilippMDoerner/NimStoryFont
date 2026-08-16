@@ -41,7 +41,6 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.execute = execute;
-exports.isEsbuildBased = isEsbuildBased;
 const private_1 = require("@angular/build/private");
 const rxjs_1 = require("rxjs");
 const options_1 = require("./options");
@@ -67,9 +66,11 @@ function execute(options, context, transforms = {}, extensions) {
         context.logger.error(`The "dev-server" builder requires a target to be specified.`);
         return rxjs_1.EMPTY;
     }
+    context.logger.warn('The "@angular-devkit/build-angular:dev-server" builder is deprecated as part of Angular\'s Webpack support deprecation. ' +
+        'Use "@angular/build:dev-server" instead. For more information, see https://angular.dev/tools/cli/build-system-migration.');
     return (0, rxjs_1.defer)(() => initialize(options, projectName, context, extensions?.builderSelector)).pipe((0, rxjs_1.switchMap)(({ builderName, normalizedOptions }) => {
         // Use vite-based development server for esbuild-based builds
-        if (isEsbuildBased(builderName)) {
+        if ((0, options_1.isEsbuildBased)(builderName)) {
             if (transforms?.logging || transforms?.webpackConfiguration) {
                 throw new Error(`The "application" and "browser-esbuild" builders do not support Webpack transforms.`);
             }
@@ -144,16 +145,8 @@ case.
         normalizedOptions,
     };
 }
-function isEsbuildBased(builderName) {
-    if (builderName === '@angular/build:application' ||
-        builderName === '@angular-devkit/build-angular:application' ||
-        builderName === '@angular-devkit/build-angular:browser-esbuild') {
-        return true;
-    }
-    return false;
-}
 function defaultBuilderSelector(info, logger) {
-    if (isEsbuildBased(info.builderName)) {
+    if ((0, options_1.isEsbuildBased)(info.builderName)) {
         return info.builderName;
     }
     if (info.forceEsbuild) {
@@ -166,3 +159,4 @@ function defaultBuilderSelector(info, logger) {
     }
     return info.builderName;
 }
+//# sourceMappingURL=builder.js.map

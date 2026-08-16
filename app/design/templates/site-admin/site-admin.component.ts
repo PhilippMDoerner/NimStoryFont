@@ -9,15 +9,15 @@ import {
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { FormlyFieldConfig } from '@ngx-formly/core';
-import { PermissionGroup } from 'src/app/_models/auth';
+import { PermissionGroup } from '../../../_models/auth';
 import {
   BaseCampaignData,
   Campaign,
   WikiStatistics,
-} from 'src/app/_models/campaign';
-import { User } from 'src/app/_models/user';
-import { FormlyService } from 'src/app/_services/formly/formly-service.service';
-import { RoutingService } from 'src/app/_services/routing.service';
+} from '../../../_models/campaign';
+import { User } from '../../../_models/user';
+import { FormlyService } from '../../../_services/formly/formly-service.service';
+import { RoutingService } from '../../../_services/routing.service';
 import { ButtonLinkComponent } from '../../atoms/button-link/button-link.component';
 import { ButtonComponent } from '../../atoms/button/button.component';
 import { CardComponent } from '../../atoms/card/card.component';
@@ -52,11 +52,11 @@ type UserState = 'CREATE' | 'DISPLAY';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SiteAdminComponent {
-  users = input.required<User[] | undefined>();
-  campaigns = input.required<Campaign[] | undefined>();
-  allGroups = input.required<PermissionGroup[] | undefined>();
-  statistics = input.required<WikiStatistics | undefined>();
-  serverUrl = input.required<string>();
+  readonly users = input.required<User[] | undefined>();
+  readonly campaigns = input.required<Campaign[] | undefined>();
+  readonly allGroups = input.required<PermissionGroup[] | undefined>();
+  readonly statistics = input.required<WikiStatistics | undefined>();
+  readonly serverUrl = input.required<string>();
 
   readonly createCampaign = output<BaseCampaignData>();
   readonly createUser = output<User>();
@@ -65,9 +65,10 @@ export class SiteAdminComponent {
   readonly downloadDatabase = output<void>();
   readonly deleteUser = output<User>();
 
-  campaignOverviewUrl = this.routingService.getRoutePath('campaign-overview');
+  readonly campaignOverviewUrl =
+    this.routingService.getRoutePath('campaign-overview');
 
-  userCards = computed<{ isOpen: boolean; user: User }[]>(() => {
+  readonly userCards = computed<{ isOpen: boolean; user: User }[]>(() => {
     return (this.users() ?? [])
       .map((user) => ({ isOpen: false, user }))
       .sort((entry1, entry2) =>
@@ -76,9 +77,9 @@ export class SiteAdminComponent {
           : -1,
       );
   });
-  userState = signal<UserState>('DISPLAY');
+  readonly userState = signal<UserState>('DISPLAY');
   userModel!: Partial<User>;
-  userFields: FormlyFieldConfig[] = [
+  readonly userFields: FormlyFieldConfig[] = [
     this.formlyService.buildInputConfig({
       key: 'username',
       inputKind: 'NAME',
@@ -92,7 +93,8 @@ export class SiteAdminComponent {
     }),
   ];
 
-  createCampaignUrl = this.routingService.getRoutePath('campaign-create');
+  readonly createCampaignUrl =
+    this.routingService.getRoutePath('campaign-create');
   constructor(
     private routingService: RoutingService,
     private formlyService: FormlyService,

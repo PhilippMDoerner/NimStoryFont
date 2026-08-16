@@ -1,4 +1,4 @@
-import { RangeIterable } from './util/RangeIterable.js';
+import { ExtendedIterable } from '@harperfast/extended-iterable';
 import {
 	getAddress,
 	Cursor,
@@ -23,10 +23,10 @@ import {
 	notifyUserCallbacks,
 	attemptLock,
 	unlock,
+	isLittleEndian,
 } from './native.js';
 import { saveKey } from './keys.js';
 const IF_EXISTS = 3.542694326329068e-103;
-const DEFAULT_BEGINNING_KEY = Buffer.from([5]); // the default starting key for iteration, which excludes symbols/metadata
 const ITERATOR_DONE = { done: true, value: undefined };
 const Uint8ArraySlice = Uint8Array.prototype.slice;
 let getValueBytes = globalBuffer;
@@ -108,11 +108,11 @@ export function addReadMethods(
 					);
 				if (rc == -30000)
 					// int32 overflow, read uint32
-					rc = this.lastSize = keyBytesView.getUint32(0, true);
+					rc = this.lastSize = keyBytesView.getUint32(0, isLittleEndian);
 				else if (rc == -30001) {
 					// shared buffer
-					this.lastSize = keyBytesView.getUint32(0, true);
-					let bufferId = keyBytesView.getUint32(4, true);
+					this.lastSize = keyBytesView.getUint32(0, isLittleEndian);
+					let bufferId = keyBytesView.getUint32(4, isLittleEndian);
 					let bytes = getMMapBuffer(bufferId, this.lastSize);
 					return asSafeBuffer ? Buffer.from(bytes) : bytes;
 				} else throw lmdbError(rc);
@@ -356,6 +356,9 @@ export function addReadMethods(
 			}
 			return result;
 		},
+		getSync(id, options) {
+			return this.get(id, options);
+		},
 		getEntry(id, options) {
 			let value = this.get(id, options);
 			if (value !== undefined) {
@@ -421,6 +424,11 @@ export function addReadMethods(
 			keyBytes.dataView.setFloat64(4, version);
 			let keySize = this.writeKey(id, keyBytes, 12);
 			return attemptLock(env.address, keySize, callback);
+		},
+
+		// simplified API
+		tryLock(id, callback) {
+			return this.attemptLock(id, undefined, callback);
 		},
 
 		unlock(id, version, onlyCheck) {
@@ -512,7 +520,7 @@ export function addReadMethods(
 			return this.getRange(options).iterate();
 		},
 		getRange(options) {
-			let iterable = new RangeIterable();
+			let iterable = new ExtendedIterable();
 			let textDecoder = new TextDecoder();
 			if (!options) options = {};
 			let includeValues = options.values !== false;
@@ -532,7 +540,7 @@ export function addReadMethods(
 					? options.key
 					: reverse || 'start' in options
 						? options.start
-						: DEFAULT_BEGINNING_KEY;
+						: this.defaultBeginningKey;
 				let count = 0;
 				let cursor, cursorRenewId, cursorAddress;
 				let txn;
@@ -582,6 +590,10 @@ export function addReadMethods(
 						if (snapshot === false) {
 							cursorRenewId = renewId; // use shared read transaction
 							txn.renewingRefCount = (txn.renewingRefCount || 0) + 1; // need to know how many are renewing cursors
+							// Track renewing cursors so that if this txn is orphaned (notCurrent) and its
+							// non-renewing refs later drain, we can release the snapshot instead of letting
+							// these cursors pin it (they don't need a stable snapshot). See Txn.done.
+							(txn.renewingCursors || (txn.renewingCursors = new Set())).add(cursor);
 						}
 					} catch (error) {
 						if (cursor) {
@@ -624,7 +636,7 @@ export function addReadMethods(
 								keyBytesView.setFloat64(
 									START_ADDRESS_POSITION,
 									startAddress,
-									true,
+									isLittleEndian,
 								);
 								endAddress = saveKey(
 									options.end,
@@ -645,7 +657,7 @@ export function addReadMethods(
 								keyBytesView.setFloat64(
 									START_ADDRESS_POSITION,
 									startAddress,
-									true,
+									isLittleEndian,
 								);
 								endAddress = saveKey(
 									options.end,
@@ -668,7 +680,7 @@ export function addReadMethods(
 					} else
 						endAddress = saveKey(
 							reverse && !('end' in options)
-								? DEFAULT_BEGINNING_KEY
+								? store.defaultBeginningKey
 								: options.end,
 							store.writeKey,
 							iterable,
@@ -686,7 +698,10 @@ export function addReadMethods(
 				function finishCursor() {
 					if (!cursor || txn.isDone) return;
 					if (iterable.onDone) iterable.onDone();
-					if (cursorRenewId) txn.renewingRefCount--;
+					if (cursorRenewId) {
+						txn.renewingRefCount--;
+						txn.renewingCursors?.delete(cursor);
+					}
 					if (txn.refCount <= 1 && txn.notCurrent) {
 						cursor.close(); // this must be closed before the transaction is aborted or it can cause a
 						// segmentation fault
@@ -736,8 +751,8 @@ export function addReadMethods(
 						}
 						if (includeValues) {
 							let value;
-							lastSize = keyBytesView.getUint32(0, true);
-							let bufferId = keyBytesView.getUint32(4, true);
+							lastSize = keyBytesView.getUint32(0, isLittleEndian);
+							let bufferId = keyBytesView.getUint32(4, isLittleEndian);
 							let bytes;
 							if (bufferId) {
 								bytes = getMMapBuffer(bufferId, lastSize);
@@ -757,7 +772,12 @@ export function addReadMethods(
 								} else bytes.length = lastSize;
 							}
 							if (store.decoder) {
-								value = store.decoder.decode(bytes, lastSize);
+								value = store.decoder.decode(
+									!store.decoderCopies && bytes.isGlobal
+										? Uint8ArraySlice.call(bytes, 0, lastSize)
+										: bytes,
+									lastSize,
+								);
 							} else if (store.encoding == 'binary')
 								value = bytes.isGlobal
 									? Uint8ArraySlice.call(bytes, 0, lastSize)
@@ -850,9 +870,9 @@ export function addReadMethods(
 				return; //undefined
 			}
 			return this.lastSize;
-			this.lastSize = keyBytesView.getUint32(0, true);
-			let bufferIndex = keyBytesView.getUint32(12, true);
-			lastOffset = keyBytesView.getUint32(8, true);
+			this.lastSize = keyBytesView.getUint32(0, isLittleEndian);
+			let bufferIndex = keyBytesView.getUint32(12, isLittleEndian);
+			lastOffset = keyBytesView.getUint32(8, isLittleEndian);
 			let buffer = buffers[bufferIndex];
 			let startOffset;
 			if (
@@ -1001,7 +1021,7 @@ export function addReadMethods(
 		if (!buffer) {
 			buffer = mmaps[bufferId] = getSharedBuffer(bufferId, env.address);
 		}
-		let offset = keyBytesView.getUint32(8, true);
+		let offset = keyBytesView.getUint32(8, isLittleEndian);
 		return new Uint8Array(buffer, offset, size);
 	}
 	function renewReadTxn(store) {
@@ -1047,6 +1067,17 @@ export function addReadMethods(
 				readTxn.notCurrent = true;
 				lastReadTxnRef = new WeakRef(readTxn);
 				readTxn = null;
+			} else if (readTxn.renewingRefCount > 0 && !readTxn.isDone) {
+				// Only renewing (snapshot:false) cursors remain attached. Because resetReadTxn runs on
+				// a setTimeout(0) macrotask, a renewing cursor present here is one whose iterator is
+				// suspended across the tick (a synchronous scan can't hold a cursor across this reset).
+				// Rather than resetTxn-in-place and leave those cursors renewing against the reset txn,
+				// release the snapshot the same way Txn.done does for orphaned txns, so the suspended
+				// iterators cleanly reposition on a fresh read txn via the txn.isDone path. This is the
+				// sibling of the orphaned-snapshot release for the reset-in-place path.
+				readTxn.notCurrent = true;
+				readTxn.releaseToRenewingCursors();
+				readTxn = null;
 			} else if (readTxn.address && !readTxn.isDone) {
 				resetTxn(readTxn.address);
 			} else {
@@ -1073,8 +1104,31 @@ Txn.prototype.done = function () {
 	if (this.refCount === 0 && this.notCurrent) {
 		this.abort();
 		this.isDone = true;
+	} else if (
+		this.notCurrent &&
+		!this.isDone &&
+		this.refCount > 0 &&
+		this.refCount === (this.renewingRefCount || 0)
+	) {
+		// The only remaining refs on this orphaned snapshot are renewing (snapshot:false)
+		// cursors, which don't need a stable snapshot. Release it now rather than letting
+		// them pin it until they next iterate (they may be suspended across an await).
+		this.releaseToRenewingCursors();
 	} else if (this.refCount < 0)
 		throw new Error('Can not finish a transaction more times than it was used');
+};
+// Release the read snapshot held by an orphaned/reset txn whose only attached refs are renewing
+// (snapshot:false) cursors. Close those cursors first — aborting a txn with attached open cursors
+// is unsafe (segfault) — then abort, freeing the snapshot. Suspended iterators re-acquire on the
+// current read txn via the txn.isDone reposition path in the range iterator. Shared by Txn.done
+// (orphaned-then-drained path) and resetReadTxn (reset-while-renewing-cursors-attached path).
+Txn.prototype.releaseToRenewingCursors = function () {
+	if (this.renewingCursors) {
+		for (const cursor of this.renewingCursors) cursor.close();
+		this.renewingCursors.clear();
+	}
+	this.abort();
+	this.isDone = true;
 };
 Txn.prototype.use = function () {
 	this.refCount = (this.refCount || 0) + 1;
@@ -1152,7 +1206,7 @@ export function recordReadInstruction(
 	uint32Instructions[(start >> 2) + 3] = length; // save the length
 	uint32Instructions[(start >> 2) + 2] = dbi;
 	savePosition = (savePosition + 12) & 0xfffffc;
-	instructionsDataView.setFloat64(start, txnAddress, true);
+	instructionsDataView.setFloat64(start, txnAddress, isLittleEndian);
 	let callbackId = addReadCallback(() => {
 		let position = start >> 2;
 		let rc = thisInstructions[position];

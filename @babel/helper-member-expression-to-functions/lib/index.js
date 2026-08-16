@@ -1,28 +1,4 @@
-'use strict';
-
-Object.defineProperty(exports, '__esModule', { value: true });
-
-var _t = require('@babel/types');
-
-function _interopNamespace(e) {
-  if (e && e.__esModule) return e;
-  var n = Object.create(null);
-  if (e) {
-    Object.keys(e).forEach(function (k) {
-      if (k !== 'default') {
-        var d = Object.getOwnPropertyDescriptor(e, k);
-        Object.defineProperty(n, k, d.get ? d : {
-          enumerable: true,
-          get: function () { return e[k]; }
-        });
-      }
-    });
-  }
-  n.default = e;
-  return Object.freeze(n);
-}
-
-var _t__namespace = /*#__PURE__*/_interopNamespace(_t);
+import * as _t from '@babel/types';
 
 function willPathCastToBoolean(path) {
   const maybeWrapped = path;
@@ -53,7 +29,9 @@ function willPathCastToBoolean(path) {
     test: node
   }) || parentPath.isUnaryExpression({
     operator: "!"
-  }) || parentPath.isLoop({
+  }) || parentPath.isForStatement({
+    test: node
+  }) || parentPath.isWhile({
     test: node
   });
 }
@@ -64,6 +42,7 @@ const {
   assignmentExpression,
   binaryExpression,
   booleanLiteral,
+  buildUndefinedNode,
   callExpression,
   cloneNode,
   conditionalExpression,
@@ -79,10 +58,10 @@ const {
   optionalMemberExpression,
   sequenceExpression,
   updateExpression
-} = _t__namespace;
+} = _t;
 class AssignmentMemoiser {
+  _map;
   constructor() {
-    this._map = void 0;
     this._map = new WeakMap();
   }
   has(key) {
@@ -146,7 +125,7 @@ function isInDetachedTree(path) {
   }
   return false;
 }
-const handle = {
+const handler = {
   memoise() {},
   handle(member, noDocumentAll) {
     const {
@@ -205,11 +184,11 @@ const handle = {
       }
       const startingNode = startingOptional.isOptionalMemberExpression() ? startingOptional.node.object : startingOptional.node.callee;
       const baseNeedsMemoised = scope.maybeGenerateMemoised(startingNode);
-      const baseRef = baseNeedsMemoised != null ? baseNeedsMemoised : startingNode;
+      const baseRef = baseNeedsMemoised ?? startingNode;
       const parentIsOptionalCall = parentPath.isOptionalCallExpression({
         callee: node
       });
-      const isOptionalCall = parent => parentIsOptionalCall;
+      const isOptionalCall = _ => parentIsOptionalCall;
       const parentIsCall = parentPath.isCallExpression({
         callee: node
       });
@@ -222,7 +201,7 @@ const handle = {
         }
       } else if (parentIsCall) {
         member.replaceWith(this.boundGet(member));
-      } else if (this.delete && parentPath.isUnaryExpression({
+      } else if (parentPath.isUnaryExpression({
         operator: "delete"
       })) {
         parentPath.replaceWith(this.delete(member));
@@ -266,7 +245,7 @@ const handle = {
         if (noDocumentAll) {
           nonNullishCheck = binaryExpression("!=", baseMemoised, nullLiteral());
         } else {
-          nonNullishCheck = logicalExpression("&&", binaryExpression("!==", baseMemoised, nullLiteral()), binaryExpression("!==", cloneNode(baseRef), scope.buildUndefinedNode()));
+          nonNullishCheck = logicalExpression("&&", binaryExpression("!==", baseMemoised, nullLiteral()), binaryExpression("!==", cloneNode(baseRef), buildUndefinedNode()));
         }
         replacementPath.replaceWith(logicalExpression("&&", nonNullishCheck, regular));
       } else {
@@ -274,9 +253,9 @@ const handle = {
         if (noDocumentAll) {
           nullishCheck = binaryExpression("==", baseMemoised, nullLiteral());
         } else {
-          nullishCheck = logicalExpression("||", binaryExpression("===", baseMemoised, nullLiteral()), binaryExpression("===", cloneNode(baseRef), scope.buildUndefinedNode()));
+          nullishCheck = logicalExpression("||", binaryExpression("===", baseMemoised, nullLiteral()), binaryExpression("===", cloneNode(baseRef), buildUndefinedNode()));
         }
-        replacementPath.replaceWith(conditionalExpression(nullishCheck, isDeleteOperation ? booleanLiteral(true) : scope.buildUndefinedNode(), regular));
+        replacementPath.replaceWith(conditionalExpression(nullishCheck, isDeleteOperation ? booleanLiteral(true) : buildUndefinedNode(), regular));
       }
       if (context) {
         const endParent = endParentPath.node;
@@ -339,7 +318,7 @@ const handle = {
       parentPath.replaceWith(this.optionalCall(member, parentPath.node.arguments));
       return;
     }
-    if (this.delete && parentPath.isUnaryExpression({
+    if (parentPath.isUnaryExpression({
       operator: "delete"
     })) {
       parentPath.replaceWith(this.delete(member));
@@ -389,10 +368,12 @@ function handleAssignment(state, member, parentPath) {
   }
 }
 function memberExpressionToFunctions(path, visitor, state) {
-  path.traverse(visitor, Object.assign({}, handle, state, {
+  path.traverse(visitor, {
+    ...handler,
+    ...state,
     memoiser: new AssignmentMemoiser()
-  }));
+  });
 }
 
-exports.default = memberExpressionToFunctions;
+export { memberExpressionToFunctions as default };
 //# sourceMappingURL=index.js.map

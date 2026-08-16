@@ -28,6 +28,215 @@
     (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.Immutable = {}));
 })(this, (function (exports) { 'use strict';
 
+    var IS_INDEXED_SYMBOL = '@@__IMMUTABLE_INDEXED__@@';
+    /**
+     * True if `maybeIndexed` is a Collection.Indexed, or any of its subclasses.
+     *
+     * ```js
+     * import { isIndexed, Map, List, Stack, Set } from 'immutable';
+     *
+     * isIndexed([]); // false
+     * isIndexed({}); // false
+     * isIndexed(Map()); // false
+     * isIndexed(List()); // true
+     * isIndexed(Stack()); // true
+     * isIndexed(Set()); // false
+     * ```
+     */
+    function isIndexed(maybeIndexed) {
+        return Boolean(maybeIndexed &&
+            // @ts-expect-error: maybeIndexed is typed as `{}`, need to change in 6.0 to `maybeIndexed && typeof maybeIndexed === 'object' && IS_INDEXED_SYMBOL in maybeIndexed`
+            maybeIndexed[IS_INDEXED_SYMBOL]);
+    }
+
+    var IS_KEYED_SYMBOL = '@@__IMMUTABLE_KEYED__@@';
+    /**
+     * True if `maybeKeyed` is a Collection.Keyed, or any of its subclasses.
+     *
+     * ```js
+     * import { isKeyed, Map, List, Stack } from 'immutable';
+     *
+     * isKeyed([]); // false
+     * isKeyed({}); // false
+     * isKeyed(Map()); // true
+     * isKeyed(List()); // false
+     * isKeyed(Stack()); // false
+     * ```
+     */
+    function isKeyed(maybeKeyed) {
+        return Boolean(maybeKeyed &&
+            // @ts-expect-error: maybeKeyed is typed as `{}`, need to change in 6.0 to `maybeKeyed && typeof maybeKeyed === 'object' && IS_KEYED_SYMBOL in maybeKeyed`
+            maybeKeyed[IS_KEYED_SYMBOL]);
+    }
+
+    /**
+     * True if `maybeAssociative` is either a Keyed or Indexed Collection.
+     *
+     * ```js
+     * import { isAssociative, Map, List, Stack, Set } from 'immutable';
+     *
+     * isAssociative([]); // false
+     * isAssociative({}); // false
+     * isAssociative(Map()); // true
+     * isAssociative(List()); // true
+     * isAssociative(Stack()); // true
+     * isAssociative(Set()); // false
+     * ```
+     */
+    function isAssociative(maybeAssociative) {
+        return isKeyed(maybeAssociative) || isIndexed(maybeAssociative);
+    }
+
+    // Note: value is unchanged to not break immutable-devtools.
+    var IS_COLLECTION_SYMBOL = '@@__IMMUTABLE_ITERABLE__@@';
+    /**
+     * True if `maybeCollection` is a Collection, or any of its subclasses.
+     *
+     * ```js
+     * import { isCollection, Map, List, Stack } from 'immutable';
+     *
+     * isCollection([]); // false
+     * isCollection({}); // false
+     * isCollection(Map()); // true
+     * isCollection(List()); // true
+     * isCollection(Stack()); // true
+     * ```
+     */
+    function isCollection(maybeCollection) {
+        return Boolean(maybeCollection &&
+            // @ts-expect-error: maybeCollection is typed as `{}`, need to change in 6.0 to `maybeCollection && typeof maybeCollection === 'object' && IS_COLLECTION_SYMBOL in maybeCollection`
+            maybeCollection[IS_COLLECTION_SYMBOL]);
+    }
+
+    var Collection = function Collection(value) {
+      // eslint-disable-next-line no-constructor-return
+      return isCollection(value) ? value : Seq(value);
+    };
+
+    var KeyedCollection = /*@__PURE__*/(function (Collection) {
+      function KeyedCollection(value) {
+        // eslint-disable-next-line no-constructor-return
+        return isKeyed(value) ? value : KeyedSeq(value);
+      }
+
+      if ( Collection ) KeyedCollection.__proto__ = Collection;
+      KeyedCollection.prototype = Object.create( Collection && Collection.prototype );
+      KeyedCollection.prototype.constructor = KeyedCollection;
+
+      return KeyedCollection;
+    }(Collection));
+
+    var IndexedCollection = /*@__PURE__*/(function (Collection) {
+      function IndexedCollection(value) {
+        // eslint-disable-next-line no-constructor-return
+        return isIndexed(value) ? value : IndexedSeq(value);
+      }
+
+      if ( Collection ) IndexedCollection.__proto__ = Collection;
+      IndexedCollection.prototype = Object.create( Collection && Collection.prototype );
+      IndexedCollection.prototype.constructor = IndexedCollection;
+
+      return IndexedCollection;
+    }(Collection));
+
+    var SetCollection = /*@__PURE__*/(function (Collection) {
+      function SetCollection(value) {
+        // eslint-disable-next-line no-constructor-return
+        return isCollection(value) && !isAssociative(value) ? value : SetSeq(value);
+      }
+
+      if ( Collection ) SetCollection.__proto__ = Collection;
+      SetCollection.prototype = Object.create( Collection && Collection.prototype );
+      SetCollection.prototype.constructor = SetCollection;
+
+      return SetCollection;
+    }(Collection));
+
+    Collection.Keyed = KeyedCollection;
+    Collection.Indexed = IndexedCollection;
+    Collection.Set = SetCollection;
+
+    var ITERATE_KEYS = 0;
+    var ITERATE_VALUES = 1;
+    var ITERATE_ENTRIES = 2;
+    // TODO Symbol is widely available in modern JavaScript environments, clean this
+    var REAL_ITERATOR_SYMBOL = typeof Symbol === 'function' && Symbol.iterator;
+    var FAUX_ITERATOR_SYMBOL = '@@iterator';
+    var ITERATOR_SYMBOL = REAL_ITERATOR_SYMBOL || FAUX_ITERATOR_SYMBOL;
+    // @ts-expect-error: properties are not supported in buble
+    var Iterator = function Iterator(next) {
+        // @ts-expect-error: properties are not supported in buble
+        this.next = next;
+    };
+    Iterator.prototype.toString = function toString () {
+        return '[Iterator]';
+    };
+    // @ts-expect-error: static properties are not supported in buble
+    Iterator.KEYS = ITERATE_KEYS;
+    // @ts-expect-error: static properties are not supported in buble
+    Iterator.VALUES = ITERATE_VALUES;
+    // @ts-expect-error: static properties are not supported in buble
+    Iterator.ENTRIES = ITERATE_ENTRIES;
+    // @ts-expect-error: properties are not supported in buble
+    Iterator.prototype.inspect = Iterator.prototype.toSource = function () {
+        return this.toString();
+    };
+    // @ts-expect-error don't know how to type this
+    Iterator.prototype[ITERATOR_SYMBOL] = function () {
+        return this;
+    };
+    function iteratorValue(type, k, v, iteratorResult) {
+        var value = type === ITERATE_KEYS ? k : type === ITERATE_VALUES ? v : [k, v];
+        // eslint-disable-next-line @typescript-eslint/no-unused-expressions -- TODO enable eslint here
+        iteratorResult
+            ? (iteratorResult.value = value)
+            : (iteratorResult = {
+                // @ts-expect-error ensure value is not undefined
+                value: value,
+                done: false,
+            });
+        return iteratorResult;
+    }
+    function iteratorDone() {
+        return { value: undefined, done: true };
+    }
+    function hasIterator(maybeIterable) {
+        if (Array.isArray(maybeIterable)) {
+            // IE11 trick as it does not support `Symbol.iterator`
+            return true;
+        }
+        return !!getIteratorFn(maybeIterable);
+    }
+    function isIterator(maybeIterator) {
+        return !!(maybeIterator &&
+            // @ts-expect-error: maybeIterator is typed as `{}`
+            typeof maybeIterator.next === 'function');
+    }
+    function getIterator(iterable) {
+        var iteratorFn = getIteratorFn(iterable);
+        return iteratorFn && iteratorFn.call(iterable);
+    }
+    function getIteratorFn(iterable) {
+        var iteratorFn = iterable &&
+            // @ts-expect-error: maybeIterator is typed as `{}`
+            ((REAL_ITERATOR_SYMBOL && iterable[REAL_ITERATOR_SYMBOL]) ||
+                // @ts-expect-error: maybeIterator is typed as `{}`
+                iterable[FAUX_ITERATOR_SYMBOL]);
+        if (typeof iteratorFn === 'function') {
+            return iteratorFn;
+        }
+    }
+    function isEntriesIterable(maybeIterable) {
+        var iteratorFn = getIteratorFn(maybeIterable);
+        // @ts-expect-error: maybeIterator is typed as `{}`
+        return iteratorFn && iteratorFn === maybeIterable.entries;
+    }
+    function isKeysIterable(maybeIterable) {
+        var iteratorFn = getIteratorFn(maybeIterable);
+        // @ts-expect-error: maybeIterator is typed as `{}`
+        return iteratorFn && iteratorFn === maybeIterable.keys;
+    }
+
     // Used for setting prototype methods that IE8 chokes on.
     var DELETE = 'delete';
     // Constants describing the size of trie nodes.
@@ -108,144 +317,6 @@
         return value < 0 || (value === 0 && 1 / value === -Infinity);
     }
 
-    // Note: value is unchanged to not break immutable-devtools.
-    var IS_COLLECTION_SYMBOL = '@@__IMMUTABLE_ITERABLE__@@';
-    /**
-     * True if `maybeCollection` is a Collection, or any of its subclasses.
-     *
-     * ```js
-     * import { isCollection, Map, List, Stack } from 'immutable';
-     *
-     * isCollection([]); // false
-     * isCollection({}); // false
-     * isCollection(Map()); // true
-     * isCollection(List()); // true
-     * isCollection(Stack()); // true
-     * ```
-     */
-    function isCollection(maybeCollection) {
-        return Boolean(maybeCollection &&
-            // @ts-expect-error: maybeCollection is typed as `{}`, need to change in 6.0 to `maybeCollection && typeof maybeCollection === 'object' && IS_COLLECTION_SYMBOL in maybeCollection`
-            maybeCollection[IS_COLLECTION_SYMBOL]);
-    }
-
-    var IS_KEYED_SYMBOL = '@@__IMMUTABLE_KEYED__@@';
-    /**
-     * True if `maybeKeyed` is a Collection.Keyed, or any of its subclasses.
-     *
-     * ```js
-     * import { isKeyed, Map, List, Stack } from 'immutable';
-     *
-     * isKeyed([]); // false
-     * isKeyed({}); // false
-     * isKeyed(Map()); // true
-     * isKeyed(List()); // false
-     * isKeyed(Stack()); // false
-     * ```
-     */
-    function isKeyed(maybeKeyed) {
-        return Boolean(maybeKeyed &&
-            // @ts-expect-error: maybeKeyed is typed as `{}`, need to change in 6.0 to `maybeKeyed && typeof maybeKeyed === 'object' && IS_KEYED_SYMBOL in maybeKeyed`
-            maybeKeyed[IS_KEYED_SYMBOL]);
-    }
-
-    var IS_INDEXED_SYMBOL = '@@__IMMUTABLE_INDEXED__@@';
-    /**
-     * True if `maybeIndexed` is a Collection.Indexed, or any of its subclasses.
-     *
-     * ```js
-     * import { isIndexed, Map, List, Stack, Set } from 'immutable';
-     *
-     * isIndexed([]); // false
-     * isIndexed({}); // false
-     * isIndexed(Map()); // false
-     * isIndexed(List()); // true
-     * isIndexed(Stack()); // true
-     * isIndexed(Set()); // false
-     * ```
-     */
-    function isIndexed(maybeIndexed) {
-        return Boolean(maybeIndexed &&
-            // @ts-expect-error: maybeIndexed is typed as `{}`, need to change in 6.0 to `maybeIndexed && typeof maybeIndexed === 'object' && IS_INDEXED_SYMBOL in maybeIndexed`
-            maybeIndexed[IS_INDEXED_SYMBOL]);
-    }
-
-    /**
-     * True if `maybeAssociative` is either a Keyed or Indexed Collection.
-     *
-     * ```js
-     * import { isAssociative, Map, List, Stack, Set } from 'immutable';
-     *
-     * isAssociative([]); // false
-     * isAssociative({}); // false
-     * isAssociative(Map()); // true
-     * isAssociative(List()); // true
-     * isAssociative(Stack()); // true
-     * isAssociative(Set()); // false
-     * ```
-     */
-    function isAssociative(maybeAssociative) {
-        return isKeyed(maybeAssociative) || isIndexed(maybeAssociative);
-    }
-
-    var Collection = function Collection(value) {
-      // eslint-disable-next-line no-constructor-return
-      return isCollection(value) ? value : Seq(value);
-    };
-
-    var KeyedCollection = /*@__PURE__*/(function (Collection) {
-      function KeyedCollection(value) {
-        // eslint-disable-next-line no-constructor-return
-        return isKeyed(value) ? value : KeyedSeq(value);
-      }
-
-      if ( Collection ) KeyedCollection.__proto__ = Collection;
-      KeyedCollection.prototype = Object.create( Collection && Collection.prototype );
-      KeyedCollection.prototype.constructor = KeyedCollection;
-
-      return KeyedCollection;
-    }(Collection));
-
-    var IndexedCollection = /*@__PURE__*/(function (Collection) {
-      function IndexedCollection(value) {
-        // eslint-disable-next-line no-constructor-return
-        return isIndexed(value) ? value : IndexedSeq(value);
-      }
-
-      if ( Collection ) IndexedCollection.__proto__ = Collection;
-      IndexedCollection.prototype = Object.create( Collection && Collection.prototype );
-      IndexedCollection.prototype.constructor = IndexedCollection;
-
-      return IndexedCollection;
-    }(Collection));
-
-    var SetCollection = /*@__PURE__*/(function (Collection) {
-      function SetCollection(value) {
-        // eslint-disable-next-line no-constructor-return
-        return isCollection(value) && !isAssociative(value) ? value : SetSeq(value);
-      }
-
-      if ( Collection ) SetCollection.__proto__ = Collection;
-      SetCollection.prototype = Object.create( Collection && Collection.prototype );
-      SetCollection.prototype.constructor = SetCollection;
-
-      return SetCollection;
-    }(Collection));
-
-    Collection.Keyed = KeyedCollection;
-    Collection.Indexed = IndexedCollection;
-    Collection.Set = SetCollection;
-
-    var IS_SEQ_SYMBOL = '@@__IMMUTABLE_SEQ__@@';
-    /**
-     * True if `maybeSeq` is a Seq.
-     */
-    function isSeq(maybeSeq) {
-        return Boolean(maybeSeq &&
-            // @ts-expect-error: maybeSeq is typed as `{}`, need to change in 6.0 to `maybeSeq && typeof maybeSeq === 'object' && MAYBE_SEQ_SYMBOL in maybeSeq`
-            maybeSeq[IS_SEQ_SYMBOL]);
-    }
-
     var IS_RECORD_SYMBOL = '@@__IMMUTABLE_RECORD__@@';
     /**
      * True if `maybeRecord` is a Record.
@@ -282,87 +353,14 @@
             maybeOrdered[IS_ORDERED_SYMBOL]);
     }
 
-    var ITERATE_KEYS = 0;
-    var ITERATE_VALUES = 1;
-    var ITERATE_ENTRIES = 2;
-
-    var REAL_ITERATOR_SYMBOL = typeof Symbol === 'function' && Symbol.iterator;
-    var FAUX_ITERATOR_SYMBOL = '@@iterator';
-
-    var ITERATOR_SYMBOL = REAL_ITERATOR_SYMBOL || FAUX_ITERATOR_SYMBOL;
-
-    var Iterator = function Iterator(next) {
-      this.next = next;
-    };
-
-    Iterator.prototype.toString = function toString () {
-      return '[Iterator]';
-    };
-
-    Iterator.KEYS = ITERATE_KEYS;
-    Iterator.VALUES = ITERATE_VALUES;
-    Iterator.ENTRIES = ITERATE_ENTRIES;
-
-    Iterator.prototype.inspect = Iterator.prototype.toSource = function () {
-      return this.toString();
-    };
-    Iterator.prototype[ITERATOR_SYMBOL] = function () {
-      return this;
-    };
-
-    function iteratorValue(type, k, v, iteratorResult) {
-      var value =
-        type === ITERATE_KEYS ? k : type === ITERATE_VALUES ? v : [k, v];
-      // eslint-disable-next-line @typescript-eslint/no-unused-expressions -- TODO enable eslint here
-      iteratorResult
-        ? (iteratorResult.value = value)
-        : (iteratorResult = {
-            value: value,
-            done: false,
-          });
-      return iteratorResult;
-    }
-
-    function iteratorDone() {
-      return { value: undefined, done: true };
-    }
-
-    function hasIterator(maybeIterable) {
-      if (Array.isArray(maybeIterable)) {
-        // IE11 trick as it does not support `Symbol.iterator`
-        return true;
-      }
-
-      return !!getIteratorFn(maybeIterable);
-    }
-
-    function isIterator(maybeIterator) {
-      return maybeIterator && typeof maybeIterator.next === 'function';
-    }
-
-    function getIterator(iterable) {
-      var iteratorFn = getIteratorFn(iterable);
-      return iteratorFn && iteratorFn.call(iterable);
-    }
-
-    function getIteratorFn(iterable) {
-      var iteratorFn =
-        iterable &&
-        ((REAL_ITERATOR_SYMBOL && iterable[REAL_ITERATOR_SYMBOL]) ||
-          iterable[FAUX_ITERATOR_SYMBOL]);
-      if (typeof iteratorFn === 'function') {
-        return iteratorFn;
-      }
-    }
-
-    function isEntriesIterable(maybeIterable) {
-      var iteratorFn = getIteratorFn(maybeIterable);
-      return iteratorFn && iteratorFn === maybeIterable.entries;
-    }
-
-    function isKeysIterable(maybeIterable) {
-      var iteratorFn = getIteratorFn(maybeIterable);
-      return iteratorFn && iteratorFn === maybeIterable.keys;
+    var IS_SEQ_SYMBOL = '@@__IMMUTABLE_SEQ__@@';
+    /**
+     * True if `maybeSeq` is a Seq.
+     */
+    function isSeq(maybeSeq) {
+        return Boolean(maybeSeq &&
+            // @ts-expect-error: maybeSeq is typed as `{}`, need to change in 6.0 to `maybeSeq && typeof maybeSeq === 'object' && MAYBE_SEQ_SYMBOL in maybeSeq`
+            maybeSeq[IS_SEQ_SYMBOL]);
     }
 
     var hasOwnProperty = Object.prototype.hasOwnProperty;
@@ -751,119 +749,16 @@
           : undefined;
     }
 
-    var IS_MAP_SYMBOL = '@@__IMMUTABLE_MAP__@@';
-    /**
-     * True if `maybeMap` is a Map.
-     *
-     * Also true for OrderedMaps.
-     */
-    function isMap(maybeMap) {
-        return Boolean(maybeMap &&
-            // @ts-expect-error: maybeMap is typed as `{}`, need to change in 6.0 to `maybeMap && typeof maybeMap === 'object' && IS_MAP_SYMBOL in maybeMap`
-            maybeMap[IS_MAP_SYMBOL]);
+    function asImmutable() {
+      return this.__ensureOwner();
     }
 
-    /**
-     * True if `maybeOrderedMap` is an OrderedMap.
-     */
-    function isOrderedMap(maybeOrderedMap) {
-        return isMap(maybeOrderedMap) && isOrdered(maybeOrderedMap);
+    function asMutable() {
+      return this.__ownerID ? this : this.__ensureOwner(new OwnerID());
     }
 
-    /**
-     * True if `maybeValue` is a JavaScript Object which has *both* `equals()`
-     * and `hashCode()` methods.
-     *
-     * Any two instances of *value objects* can be compared for value equality with
-     * `Immutable.is()` and can be used as keys in a `Map` or members in a `Set`.
-     */
-    function isValueObject(maybeValue) {
-        return Boolean(maybeValue &&
-            // @ts-expect-error: maybeValue is typed as `{}`
-            typeof maybeValue.equals === 'function' &&
-            // @ts-expect-error: maybeValue is typed as `{}`
-            typeof maybeValue.hashCode === 'function');
-    }
-
-    /**
-     * An extension of the "same-value" algorithm as [described for use by ES6 Map
-     * and Set](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map#Key_equality)
-     *
-     * NaN is considered the same as NaN, however -0 and 0 are considered the same
-     * value, which is different from the algorithm described by
-     * [`Object.is`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/is).
-     *
-     * This is extended further to allow Objects to describe the values they
-     * represent, by way of `valueOf` or `equals` (and `hashCode`).
-     *
-     * Note: because of this extension, the key equality of Immutable.Map and the
-     * value equality of Immutable.Set will differ from ES6 Map and Set.
-     *
-     * ### Defining custom values
-     *
-     * The easiest way to describe the value an object represents is by implementing
-     * `valueOf`. For example, `Date` represents a value by returning a unix
-     * timestamp for `valueOf`:
-     *
-     *     var date1 = new Date(1234567890000); // Fri Feb 13 2009 ...
-     *     var date2 = new Date(1234567890000);
-     *     date1.valueOf(); // 1234567890000
-     *     assert( date1 !== date2 );
-     *     assert( Immutable.is( date1, date2 ) );
-     *
-     * Note: overriding `valueOf` may have other implications if you use this object
-     * where JavaScript expects a primitive, such as implicit string coercion.
-     *
-     * For more complex types, especially collections, implementing `valueOf` may
-     * not be performant. An alternative is to implement `equals` and `hashCode`.
-     *
-     * `equals` takes another object, presumably of similar type, and returns true
-     * if it is equal. Equality is symmetrical, so the same result should be
-     * returned if this and the argument are flipped.
-     *
-     *     assert( a.equals(b) === b.equals(a) );
-     *
-     * `hashCode` returns a 32bit integer number representing the object which will
-     * be used to determine how to store the value object in a Map or Set. You must
-     * provide both or neither methods, one must not exist without the other.
-     *
-     * Also, an important relationship between these methods must be upheld: if two
-     * values are equal, they *must* return the same hashCode. If the values are not
-     * equal, they might have the same hashCode; this is called a hash collision,
-     * and while undesirable for performance reasons, it is acceptable.
-     *
-     *     if (a.equals(b)) {
-     *       assert( a.hashCode() === b.hashCode() );
-     *     }
-     *
-     * All Immutable collections are Value Objects: they implement `equals()`
-     * and `hashCode()`.
-     */
-    function is(valueA, valueB) {
-        if (valueA === valueB || (valueA !== valueA && valueB !== valueB)) {
-            return true;
-        }
-        if (!valueA || !valueB) {
-            return false;
-        }
-        if (typeof valueA.valueOf === 'function' &&
-            typeof valueB.valueOf === 'function') {
-            valueA = valueA.valueOf();
-            valueB = valueB.valueOf();
-            if (valueA === valueB || (valueA !== valueA && valueB !== valueB)) {
-                return true;
-            }
-            if (!valueA || !valueB) {
-                return false;
-            }
-        }
-        return !!(isValueObject(valueA) &&
-            isValueObject(valueB) &&
-            valueA.equals(valueB));
-    }
-
-    var imul =
-      typeof Math.imul === 'function' && Math.imul(0xffffffff, 2) === -2
+    // TODO remove in v6 as Math.imul is widely available now: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/imul
+    var imul = typeof Math.imul === 'function' && Math.imul(0xffffffff, 2) === -2
         ? Math.imul
         : function imul(a, b) {
             a |= 0; // int
@@ -872,247 +767,258 @@
             var d = b & 0xffff;
             // Shift by 0 fixes the sign on the high part.
             return (c * d + ((((a >>> 16) * d + c * (b >>> 16)) << 16) >>> 0)) | 0; // int
-          };
-
+        };
     // v8 has an optimization for storing 31-bit signed numbers.
     // Values which have either 00 or 11 as the high order bits qualify.
     // This function drops the highest order bit in a signed number, maintaining
     // the sign bit.
     function smi(i32) {
-      return ((i32 >>> 1) & 0x40000000) | (i32 & 0xbfffffff);
+        return ((i32 >>> 1) & 0x40000000) | (i32 & 0xbfffffff);
     }
 
     var defaultValueOf = Object.prototype.valueOf;
-
     function hash(o) {
-      // eslint-disable-next-line eqeqeq
-      if (o == null) {
-        return hashNullish(o);
-      }
-
-      if (typeof o.hashCode === 'function') {
-        // Drop any high bits from accidentally long hash codes.
-        return smi(o.hashCode(o));
-      }
-
-      var v = valueOf(o);
-
-      // eslint-disable-next-line eqeqeq
-      if (v == null) {
-        return hashNullish(v);
-      }
-
-      switch (typeof v) {
-        case 'boolean':
-          // The hash values for built-in constants are a 1 value for each 5-byte
-          // shift region expect for the first, which encodes the value. This
-          // reduces the odds of a hash collision for these common values.
-          return v ? 0x42108421 : 0x42108420;
-        case 'number':
-          return hashNumber(v);
-        case 'string':
-          return v.length > STRING_HASH_CACHE_MIN_STRLEN
-            ? cachedHashString(v)
-            : hashString(v);
-        case 'object':
-        case 'function':
-          return hashJSObj(v);
-        case 'symbol':
-          return hashSymbol(v);
-        default:
-          if (typeof v.toString === 'function') {
-            return hashString(v.toString());
-          }
-          throw new Error('Value type ' + typeof v + ' cannot be hashed.');
-      }
+        // eslint-disable-next-line eqeqeq
+        if (o == null) {
+            return hashNullish(o);
+        }
+        // @ts-expect-error don't care about object beeing typed as `{}` here
+        if (typeof o.hashCode === 'function') {
+            // Drop any high bits from accidentally long hash codes.
+            // @ts-expect-error don't care about object beeing typed as `{}` here
+            return smi(o.hashCode(o));
+        }
+        var v = valueOf(o);
+        // eslint-disable-next-line eqeqeq
+        if (v == null) {
+            return hashNullish(v);
+        }
+        switch (typeof v) {
+            case 'boolean':
+                // The hash values for built-in constants are a 1 value for each 5-byte
+                // shift region expect for the first, which encodes the value. This
+                // reduces the odds of a hash collision for these common values.
+                return v ? 0x42108421 : 0x42108420;
+            case 'number':
+                return hashNumber(v);
+            case 'string':
+                return v.length > STRING_HASH_CACHE_MIN_STRLEN
+                    ? cachedHashString(v)
+                    : hashString(v);
+            case 'object':
+            case 'function':
+                return hashJSObj(v);
+            case 'symbol':
+                return hashSymbol(v);
+            default:
+                if (typeof v.toString === 'function') {
+                    return hashString(v.toString());
+                }
+                throw new Error('Value type ' + typeof v + ' cannot be hashed.');
+        }
     }
-
     function hashNullish(nullish) {
-      return nullish === null ? 0x42108422 : /* undefined */ 0x42108423;
+        return nullish === null ? 0x42108422 : /* undefined */ 0x42108423;
     }
-
     // Compress arbitrarily large numbers into smi hashes.
     function hashNumber(n) {
-      if (n !== n || n === Infinity) {
-        return 0;
-      }
-      var hash = n | 0;
-      if (hash !== n) {
-        hash ^= n * 0xffffffff;
-      }
-      while (n > 0xffffffff) {
-        n /= 0xffffffff;
-        hash ^= n;
-      }
-      return smi(hash);
-    }
-
-    function cachedHashString(string) {
-      var hashed = stringHashCache[string];
-      if (hashed === undefined) {
-        hashed = hashString(string);
-        if (STRING_HASH_CACHE_SIZE === STRING_HASH_CACHE_MAX_SIZE) {
-          STRING_HASH_CACHE_SIZE = 0;
-          stringHashCache = {};
+        if (n !== n || n === Infinity) {
+            return 0;
         }
-        STRING_HASH_CACHE_SIZE++;
-        stringHashCache[string] = hashed;
-      }
-      return hashed;
+        var hash = n | 0;
+        if (hash !== n) {
+            hash ^= n * 0xffffffff;
+        }
+        while (n > 0xffffffff) {
+            n /= 0xffffffff;
+            hash ^= n;
+        }
+        return smi(hash);
     }
-
+    function cachedHashString(string) {
+        var hashed = stringHashCache[string];
+        if (hashed === undefined) {
+            hashed = hashString(string);
+            if (STRING_HASH_CACHE_SIZE === STRING_HASH_CACHE_MAX_SIZE) {
+                STRING_HASH_CACHE_SIZE = 0;
+                stringHashCache = {};
+            }
+            STRING_HASH_CACHE_SIZE++;
+            stringHashCache[string] = hashed;
+        }
+        return hashed;
+    }
     // http://jsperf.com/hashing-strings
     function hashString(string) {
-      // This is the hash from JVM
-      // The hash code for a string is computed as
-      // s[0] * 31 ^ (n - 1) + s[1] * 31 ^ (n - 2) + ... + s[n - 1],
-      // where s[i] is the ith character of the string and n is the length of
-      // the string. We "mod" the result to make it between 0 (inclusive) and 2^31
-      // (exclusive) by dropping high bits.
-      var hashed = 0;
-      for (var ii = 0; ii < string.length; ii++) {
-        hashed = (31 * hashed + string.charCodeAt(ii)) | 0;
-      }
-      return smi(hashed);
+        // This is the hash from JVM
+        // The hash code for a string is computed as
+        // s[0] * 31 ^ (n - 1) + s[1] * 31 ^ (n - 2) + ... + s[n - 1],
+        // where s[i] is the ith character of the string and n is the length of
+        // the string. We "mod" the result to make it between 0 (inclusive) and 2^31
+        // (exclusive) by dropping high bits.
+        var hashed = 0;
+        for (var ii = 0; ii < string.length; ii++) {
+            hashed = (31 * hashed + string.charCodeAt(ii)) | 0;
+        }
+        return smi(hashed);
     }
-
+    // Per-process seed for the secondary collision hash. Never exposed nor
+    // serialized, so the public `hash()` stays deterministic. An odd base in
+    // [3, 2^20) keeps `base * h` exact as a double (no `Math.imul`).
+    var COLLISION_HASH_BASE = ((Math.random() * 0x100000) | 1) % 0x100000 || 0x9e37;
+    // Secondary hash to index entries within a `HashCollisionNode`, where every key
+    // shares the same primary `hash()`. Using a different, seeded base scatters
+    // crafted collision families (e.g. "Aa"/"BB", which only collide under base 31)
+    // that an attacker cannot precompute without the seed. It only narrows
+    // candidates — `is()` still decides equality — so non-string keys can safely
+    // fall back to the (here constant) primary hash and a linear scan.
+    function hashCollisionKey(key) {
+        if (typeof key !== 'string') {
+            return hash(key);
+        }
+        var hashed = 0;
+        for (var ii = 0; ii < key.length; ii++) {
+            hashed = (COLLISION_HASH_BASE * hashed + key.charCodeAt(ii)) | 0;
+        }
+        return hashed;
+    }
     function hashSymbol(sym) {
-      var hashed = symbolMap[sym];
-      if (hashed !== undefined) {
+        var hashed = symbolMap[sym];
+        if (hashed !== undefined) {
+            return hashed;
+        }
+        hashed = nextHash();
+        symbolMap[sym] = hashed;
         return hashed;
-      }
-
-      hashed = nextHash();
-
-      symbolMap[sym] = hashed;
-
-      return hashed;
     }
-
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
     function hashJSObj(obj) {
-      var hashed;
-      if (usingWeakMap) {
-        hashed = weakMap.get(obj);
-        if (hashed !== undefined) {
-          return hashed;
+        var hashed;
+        if (usingWeakMap) {
+            // @ts-expect-error weakMap is defined
+            hashed = weakMap.get(obj);
+            if (hashed !== undefined) {
+                return hashed;
+            }
         }
-      }
-
-      hashed = obj[UID_HASH_KEY];
-      if (hashed !== undefined) {
+        // @ts-expect-error used for old code, will be removed
+        hashed = obj[UID_HASH_KEY];
+        if (hashed !== undefined) {
+            return hashed;
+        }
+        if (!canDefineProperty) {
+            // @ts-expect-error used for old code, will be removed
+            hashed = obj.propertyIsEnumerable && obj.propertyIsEnumerable[UID_HASH_KEY];
+            if (hashed !== undefined) {
+                return hashed;
+            }
+            hashed = getIENodeHash(obj);
+            if (hashed !== undefined) {
+                return hashed;
+            }
+        }
+        hashed = nextHash();
+        if (usingWeakMap) {
+            // @ts-expect-error weakMap is defined
+            weakMap.set(obj, hashed);
+        }
+        else if (isExtensible !== undefined && isExtensible(obj) === false) {
+            throw new Error('Non-extensible objects are not allowed as keys.');
+        }
+        else if (canDefineProperty) {
+            Object.defineProperty(obj, UID_HASH_KEY, {
+                enumerable: false,
+                configurable: false,
+                writable: false,
+                value: hashed,
+            });
+        }
+        else if (obj.propertyIsEnumerable !== undefined &&
+            obj.propertyIsEnumerable === obj.constructor.prototype.propertyIsEnumerable) {
+            // Since we can't define a non-enumerable property on the object
+            // we'll hijack one of the less-used non-enumerable properties to
+            // save our hash on it. Since this is a function it will not show up in
+            // `JSON.stringify` which is what we want.
+            obj.propertyIsEnumerable = function () {
+                return this.constructor.prototype.propertyIsEnumerable.apply(this, 
+                // eslint-disable-next-line prefer-rest-params
+                arguments);
+            };
+            // @ts-expect-error used for old code, will be removed
+            obj.propertyIsEnumerable[UID_HASH_KEY] = hashed;
+            // @ts-expect-error used for old code, will be removed
+        }
+        else if (obj.nodeType !== undefined) {
+            // At this point we couldn't get the IE `uniqueID` to use as a hash
+            // and we couldn't use a non-enumerable property to exploit the
+            // dontEnum bug so we simply add the `UID_HASH_KEY` on the node
+            // itself.
+            // @ts-expect-error used for old code, will be removed
+            obj[UID_HASH_KEY] = hashed;
+        }
+        else {
+            throw new Error('Unable to set a non-enumerable property on object.');
+        }
         return hashed;
-      }
-
-      if (!canDefineProperty) {
-        hashed = obj.propertyIsEnumerable && obj.propertyIsEnumerable[UID_HASH_KEY];
-        if (hashed !== undefined) {
-          return hashed;
-        }
-
-        hashed = getIENodeHash(obj);
-        if (hashed !== undefined) {
-          return hashed;
-        }
-      }
-
-      hashed = nextHash();
-
-      if (usingWeakMap) {
-        weakMap.set(obj, hashed);
-      } else if (isExtensible !== undefined && isExtensible(obj) === false) {
-        throw new Error('Non-extensible objects are not allowed as keys.');
-      } else if (canDefineProperty) {
-        Object.defineProperty(obj, UID_HASH_KEY, {
-          enumerable: false,
-          configurable: false,
-          writable: false,
-          value: hashed,
-        });
-      } else if (
-        obj.propertyIsEnumerable !== undefined &&
-        obj.propertyIsEnumerable === obj.constructor.prototype.propertyIsEnumerable
-      ) {
-        // Since we can't define a non-enumerable property on the object
-        // we'll hijack one of the less-used non-enumerable properties to
-        // save our hash on it. Since this is a function it will not show up in
-        // `JSON.stringify` which is what we want.
-        obj.propertyIsEnumerable = function () {
-          return this.constructor.prototype.propertyIsEnumerable.apply(
-            this,
-            arguments
-          );
-        };
-        obj.propertyIsEnumerable[UID_HASH_KEY] = hashed;
-      } else if (obj.nodeType !== undefined) {
-        // At this point we couldn't get the IE `uniqueID` to use as a hash
-        // and we couldn't use a non-enumerable property to exploit the
-        // dontEnum bug so we simply add the `UID_HASH_KEY` on the node
-        // itself.
-        obj[UID_HASH_KEY] = hashed;
-      } else {
-        throw new Error('Unable to set a non-enumerable property on object.');
-      }
-
-      return hashed;
     }
-
     // Get references to ES5 object methods.
     var isExtensible = Object.isExtensible;
-
     // True if Object.defineProperty works as expected. IE8 fails this test.
+    // TODO remove this as widely available https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/defineProperty
     var canDefineProperty = (function () {
-      try {
-        Object.defineProperty({}, '@', {});
-        return true;
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      } catch (e) {
-        return false;
-      }
+        try {
+            Object.defineProperty({}, '@', {});
+            return true;
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        }
+        catch (e) {
+            return false;
+        }
     })();
-
     // IE has a `uniqueID` property on DOM nodes. We can construct the hash from it
     // and avoid memory leaks from the IE cloneNode bug.
+    // TODO remove this method as only used if `canDefineProperty` is false
     function getIENodeHash(node) {
-      if (node && node.nodeType > 0) {
-        switch (node.nodeType) {
-          case 1: // Element
-            return node.uniqueID;
-          case 9: // Document
-            return node.documentElement && node.documentElement.uniqueID;
+        // @ts-expect-error don't care
+        if (node && node.nodeType > 0) {
+            // @ts-expect-error don't care
+            switch (node.nodeType) {
+                case 1: // Element
+                    // @ts-expect-error don't care
+                    return node.uniqueID;
+                case 9: // Document
+                    // @ts-expect-error don't care
+                    return node.documentElement && node.documentElement.uniqueID;
+            }
         }
-      }
     }
-
     function valueOf(obj) {
-      return obj.valueOf !== defaultValueOf && typeof obj.valueOf === 'function'
-        ? obj.valueOf(obj)
-        : obj;
+        return obj.valueOf !== defaultValueOf && typeof obj.valueOf === 'function'
+            ? // @ts-expect-error weird the "obj" parameter as `valueOf` should not have a parameter
+                obj.valueOf(obj)
+            : obj;
     }
-
     function nextHash() {
-      var nextHash = ++_objHashUID;
-      if (_objHashUID & 0x40000000) {
-        _objHashUID = 0;
-      }
-      return nextHash;
+        var nextHash = ++_objHashUID;
+        if (_objHashUID & 0x40000000) {
+            _objHashUID = 0;
+        }
+        return nextHash;
     }
-
     // If possible, use a WeakMap.
+    // TODO using WeakMap should be true everywhere now that WeakMap is widely supported: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/WeakMap
     var usingWeakMap = typeof WeakMap === 'function';
     var weakMap;
     if (usingWeakMap) {
-      weakMap = new WeakMap();
+        weakMap = new WeakMap();
     }
-
     var symbolMap = Object.create(null);
-
     var _objHashUID = 0;
-
+    // TODO remove string as Symbol is now widely supported: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Symbol
     var UID_HASH_KEY = '__immutablehash__';
     if (typeof Symbol === 'function') {
-      UID_HASH_KEY = Symbol(UID_HASH_KEY);
+        UID_HASH_KEY = Symbol(UID_HASH_KEY);
     }
-
     var STRING_HASH_CACHE_MIN_STRLEN = 16;
     var STRING_HASH_CACHE_MAX_SIZE = 255;
     var STRING_HASH_CACHE_SIZE = 0;
@@ -1401,8 +1307,6 @@
     }
 
     function reverseFactory(collection, useKeys) {
-      var this$1$1 = this;
-
       var reversedSequence = makeSequence(collection);
       reversedSequence._iter = collection;
       reversedSequence.size = collection.size;
@@ -1442,7 +1346,9 @@
           var entry = step.value;
           return iteratorValue(
             type,
-            useKeys ? entry[0] : reverse ? this$1$1.size - ++i : i++,
+            // `__iterator` is an arrow function, so `this` is not the reversed
+            // sequence here — read `reversedSequence.size` explicitly.
+            useKeys ? entry[0] : reverse ? reversedSequence.size - ++i : i++,
             entry[1],
             step
           );
@@ -2128,255 +2034,102 @@
       return a > b ? 1 : a < b ? -1 : 0;
     }
 
-    // http://jsperf.com/copy-array-inline
-    function arrCopy(arr, offset) {
-        offset = offset || 0;
-        var len = Math.max(0, arr.length - offset);
-        var newArr = new Array(len);
-        for (var ii = 0; ii < len; ii++) {
-            // @ts-expect-error We may want to guard for undefined values with `if (arr[ii + offset] !== undefined`, but ths should not happen by design
-            newArr[ii] = arr[ii + offset];
-        }
-        return newArr;
+    /**
+     * True if `maybeValue` is a JavaScript Object which has *both* `equals()`
+     * and `hashCode()` methods.
+     *
+     * Any two instances of *value objects* can be compared for value equality with
+     * `Immutable.is()` and can be used as keys in a `Map` or members in a `Set`.
+     */
+    function isValueObject(maybeValue) {
+        return Boolean(maybeValue &&
+            // @ts-expect-error: maybeValue is typed as `{}`
+            typeof maybeValue.equals === 'function' &&
+            // @ts-expect-error: maybeValue is typed as `{}`
+            typeof maybeValue.hashCode === 'function');
     }
 
-    function invariant(condition, error) {
-        if (!condition)
-            { throw new Error(error); }
-    }
-
-    function assertNotInfinite(size) {
-        invariant(size !== Infinity, 'Cannot perform this action with an infinite size.');
-    }
-
-    function coerceKeyPath(keyPath) {
-        if (isArrayLike(keyPath) && typeof keyPath !== 'string') {
-            return keyPath;
-        }
-        if (isOrdered(keyPath)) {
-            return keyPath.toArray();
-        }
-        throw new TypeError('Invalid keyPath: expected Ordered Collection or Array: ' + keyPath);
-    }
-
-    var toString = Object.prototype.toString;
-    function isPlainObject(value) {
-        // The base prototype's toString deals with Argument objects and native namespaces like Math
-        if (!value ||
-            typeof value !== 'object' ||
-            toString.call(value) !== '[object Object]') {
-            return false;
-        }
-        var proto = Object.getPrototypeOf(value);
-        if (proto === null) {
+    /**
+     * An extension of the "same-value" algorithm as [described for use by ES6 Map
+     * and Set](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map#Key_equality)
+     *
+     * NaN is considered the same as NaN, however -0 and 0 are considered the same
+     * value, which is different from the algorithm described by
+     * [`Object.is`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/is).
+     *
+     * This is extended further to allow Objects to describe the values they
+     * represent, by way of `valueOf` or `equals` (and `hashCode`).
+     *
+     * Note: because of this extension, the key equality of Immutable.Map and the
+     * value equality of Immutable.Set will differ from ES6 Map and Set.
+     *
+     * ### Defining custom values
+     *
+     * The easiest way to describe the value an object represents is by implementing
+     * `valueOf`. For example, `Date` represents a value by returning a unix
+     * timestamp for `valueOf`:
+     *
+     *     var date1 = new Date(1234567890000); // Fri Feb 13 2009 ...
+     *     var date2 = new Date(1234567890000);
+     *     date1.valueOf(); // 1234567890000
+     *     assert( date1 !== date2 );
+     *     assert( Immutable.is( date1, date2 ) );
+     *
+     * Note: overriding `valueOf` may have other implications if you use this object
+     * where JavaScript expects a primitive, such as implicit string coercion.
+     *
+     * For more complex types, especially collections, implementing `valueOf` may
+     * not be performant. An alternative is to implement `equals` and `hashCode`.
+     *
+     * `equals` takes another object, presumably of similar type, and returns true
+     * if it is equal. Equality is symmetrical, so the same result should be
+     * returned if this and the argument are flipped.
+     *
+     *     assert( a.equals(b) === b.equals(a) );
+     *
+     * `hashCode` returns a 32bit integer number representing the object which will
+     * be used to determine how to store the value object in a Map or Set. You must
+     * provide both or neither methods, one must not exist without the other.
+     *
+     * Also, an important relationship between these methods must be upheld: if two
+     * values are equal, they *must* return the same hashCode. If the values are not
+     * equal, they might have the same hashCode; this is called a hash collision,
+     * and while undesirable for performance reasons, it is acceptable.
+     *
+     *     if (a.equals(b)) {
+     *       assert( a.hashCode() === b.hashCode() );
+     *     }
+     *
+     * All Immutable collections are Value Objects: they implement `equals()`
+     * and `hashCode()`.
+     */
+    function is(valueA, valueB) {
+        if (valueA === valueB || (valueA !== valueA && valueB !== valueB)) {
             return true;
         }
-        // Iteratively going up the prototype chain is needed for cross-realm environments (differing contexts, iframes, etc)
-        var parentProto = proto;
-        var nextProto = Object.getPrototypeOf(proto);
-        while (nextProto !== null) {
-            parentProto = nextProto;
-            nextProto = Object.getPrototypeOf(parentProto);
+        if (!valueA || !valueB) {
+            return false;
         }
-        return parentProto === proto;
-    }
-
-    /**
-     * Returns true if the value is a potentially-persistent data structure, either
-     * provided by Immutable.js or a plain Array or Object.
-     */
-    function isDataStructure(value) {
-        return (typeof value === 'object' &&
-            (isImmutable(value) || Array.isArray(value) || isPlainObject(value)));
-    }
-
-    /**
-     * Converts a value to a string, adding quotes if a string was provided.
-     */
-    function quoteString(value) {
-        try {
-            return typeof value === 'string' ? JSON.stringify(value) : String(value);
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        }
-        catch (_ignoreError) {
-            return JSON.stringify(value);
-        }
-    }
-
-    /**
-     * Returns true if the key is defined in the provided collection.
-     *
-     * A functional alternative to `collection.has(key)` which will also work with
-     * plain Objects and Arrays as an alternative for
-     * `collection.hasOwnProperty(key)`.
-     */
-    function has(collection, key) {
-        return isImmutable(collection)
-            ? // @ts-expect-error key might be a number or symbol, which is not handled be Record key type
-                collection.has(key)
-            : // @ts-expect-error key might be anything else than PropertyKey, and will return false in that case but runtime is OK
-                isDataStructure(collection) && hasOwnProperty.call(collection, key);
-    }
-
-    function get(collection, key, notSetValue) {
-        return isImmutable(collection)
-            ? collection.get(key, notSetValue)
-            : !has(collection, key)
-                ? notSetValue
-                : // @ts-expect-error weird "get" here,
-                    typeof collection.get === 'function'
-                        ? // @ts-expect-error weird "get" here,
-                            collection.get(key)
-                        : // @ts-expect-error key is unknown here,
-                            collection[key];
-    }
-
-    function shallowCopy(from) {
-        if (Array.isArray(from)) {
-            return arrCopy(from);
-        }
-        var to = {};
-        for (var key in from) {
-            if (hasOwnProperty.call(from, key)) {
-                to[key] = from[key];
+        if (typeof valueA.valueOf === 'function' &&
+            typeof valueB.valueOf === 'function') {
+            valueA = valueA.valueOf();
+            valueB = valueB.valueOf();
+            if (valueA === valueB || (valueA !== valueA && valueB !== valueB)) {
+                return true;
+            }
+            if (!valueA || !valueB) {
+                return false;
             }
         }
-        return to;
-    }
-
-    function remove(collection, key) {
-        if (!isDataStructure(collection)) {
-            throw new TypeError('Cannot update non-data-structure value: ' + collection);
-        }
-        if (isImmutable(collection)) {
-            // @ts-expect-error weird "remove" here,
-            if (!collection.remove) {
-                throw new TypeError('Cannot update immutable value without .remove() method: ' + collection);
-            }
-            // @ts-expect-error weird "remove" here,
-            return collection.remove(key);
-        }
-        // @ts-expect-error assert that key is a string, a number or a symbol here
-        if (!hasOwnProperty.call(collection, key)) {
-            return collection;
-        }
-        var collectionCopy = shallowCopy(collection);
-        if (Array.isArray(collectionCopy)) {
-            // @ts-expect-error assert that key is a number here
-            collectionCopy.splice(key, 1);
-        }
-        else {
-            // @ts-expect-error assert that key is a string, a number or a symbol here
-            delete collectionCopy[key];
-        }
-        return collectionCopy;
-    }
-
-    function set(collection, key, value) {
-        if (!isDataStructure(collection)) {
-            throw new TypeError('Cannot update non-data-structure value: ' + collection);
-        }
-        if (isImmutable(collection)) {
-            // @ts-expect-error weird "set" here,
-            if (!collection.set) {
-                throw new TypeError('Cannot update immutable value without .set() method: ' + collection);
-            }
-            // @ts-expect-error weird "set" here,
-            return collection.set(key, value);
-        }
-        // @ts-expect-error mix of key and string here. Probably need a more fine type here
-        if (hasOwnProperty.call(collection, key) && value === collection[key]) {
-            return collection;
-        }
-        var collectionCopy = shallowCopy(collection);
-        // @ts-expect-error mix of key and string here. Probably need a more fine type here
-        collectionCopy[key] = value;
-        return collectionCopy;
-    }
-
-    function updateIn$1(collection, keyPath, notSetValue, updater) {
-        if (!updater) {
-            // handle the fact that `notSetValue` is optional here, in that case `updater` is the updater function
-            // @ts-expect-error updater is a function here
-            updater = notSetValue;
-            notSetValue = undefined;
-        }
-        var updatedValue = updateInDeeply(isImmutable(collection), 
-        // @ts-expect-error type issues with Record and mixed types
-        collection, coerceKeyPath(keyPath), 0, notSetValue, updater);
-        // @ts-expect-error mixed return type
-        return updatedValue === NOT_SET ? notSetValue : updatedValue;
-    }
-    function updateInDeeply(inImmutable, existing, keyPath, i, notSetValue, updater) {
-        var wasNotSet = existing === NOT_SET;
-        if (i === keyPath.length) {
-            var existingValue = wasNotSet ? notSetValue : existing;
-            // @ts-expect-error mixed type with optional value
-            var newValue = updater(existingValue);
-            // @ts-expect-error mixed type
-            return newValue === existingValue ? existing : newValue;
-        }
-        if (!wasNotSet && !isDataStructure(existing)) {
-            throw new TypeError('Cannot update within non-data-structure value in path [' +
-                Array.from(keyPath).slice(0, i).map(quoteString) +
-                ']: ' +
-                existing);
-        }
-        var key = keyPath[i];
-        var nextExisting = wasNotSet ? NOT_SET : get(existing, key, NOT_SET);
-        var nextUpdated = updateInDeeply(nextExisting === NOT_SET ? inImmutable : isImmutable(nextExisting), 
-        // @ts-expect-error mixed type
-        nextExisting, keyPath, i + 1, notSetValue, updater);
-        return nextUpdated === nextExisting
-            ? existing
-            : nextUpdated === NOT_SET
-                ? remove(existing, key)
-                : set(wasNotSet ? (inImmutable ? emptyMap() : {}) : existing, key, nextUpdated);
-    }
-
-    /**
-     * Returns a copy of the collection with the value at the key path set to the
-     * provided value.
-     *
-     * A functional alternative to `collection.setIn(keypath)` which will also
-     * work with plain Objects and Arrays.
-     */
-    function setIn$1(collection, keyPath, value) {
-        return updateIn$1(collection, keyPath, NOT_SET, function () { return value; });
-    }
-
-    function setIn(keyPath, v) {
-      return setIn$1(this, keyPath, v);
-    }
-
-    /**
-     * Returns a copy of the collection with the value at the key path removed.
-     *
-     * A functional alternative to `collection.removeIn(keypath)` which will also
-     * work with plain Objects and Arrays.
-     */
-    function removeIn(collection, keyPath) {
-        return updateIn$1(collection, keyPath, function () { return NOT_SET; });
-    }
-
-    function deleteIn(keyPath) {
-      return removeIn(this, keyPath);
+        return !!(isValueObject(valueA) &&
+            isValueObject(valueB) &&
+            valueA.equals(valueB));
     }
 
     function update$1(collection, key, notSetValue, updater) {
-        return updateIn$1(
+        return updateIn(
         // @ts-expect-error Index signature for type string is missing in type V[]
         collection, [key], notSetValue, updater);
-    }
-
-    function update(key, notSetValue, updater) {
-      return arguments.length === 1
-        ? key(this)
-        : update$1(this, key, notSetValue, updater);
-    }
-
-    function updateIn(keyPath, notSetValue, updater) {
-      return updateIn$1(this, keyPath, notSetValue, updater);
     }
 
     function merge$1() {
@@ -2429,6 +2182,69 @@
           iters[ii].forEach(mergeIntoCollection);
         }
       });
+    }
+
+    var toString = Object.prototype.toString;
+    function isPlainObject(value) {
+        // The base prototype's toString deals with Argument objects and native namespaces like Math
+        if (!value ||
+            typeof value !== 'object' ||
+            toString.call(value) !== '[object Object]') {
+            return false;
+        }
+        var proto = Object.getPrototypeOf(value);
+        if (proto === null) {
+            return true;
+        }
+        // Iteratively going up the prototype chain is needed for cross-realm environments (differing contexts, iframes, etc)
+        var parentProto = proto;
+        var nextProto = Object.getPrototypeOf(proto);
+        while (nextProto !== null) {
+            parentProto = nextProto;
+            nextProto = Object.getPrototypeOf(parentProto);
+        }
+        return parentProto === proto;
+    }
+
+    /**
+     * Returns true if the value is a potentially-persistent data structure, either
+     * provided by Immutable.js or a plain Array or Object.
+     */
+    function isDataStructure(value) {
+        return (typeof value === 'object' &&
+            (isImmutable(value) || Array.isArray(value) || isPlainObject(value)));
+    }
+
+    function isProtoKey(key) {
+        return (typeof key === 'string' && (key === '__proto__' || key === 'constructor'));
+    }
+
+    // http://jsperf.com/copy-array-inline
+    function arrCopy(arr, offset) {
+        offset = offset || 0;
+        var len = Math.max(0, arr.length - offset);
+        var newArr = new Array(len);
+        for (var ii = 0; ii < len; ii++) {
+            // @ts-expect-error We may want to guard for undefined values with `if (arr[ii + offset] !== undefined`, but ths should not happen by design
+            newArr[ii] = arr[ii + offset];
+        }
+        return newArr;
+    }
+
+    function shallowCopy(from) {
+        if (Array.isArray(from)) {
+            return arrCopy(from);
+        }
+        var to = {};
+        for (var key in from) {
+            if (isProtoKey(key)) {
+                continue;
+            }
+            if (hasOwnProperty.call(from, key)) {
+                to[key] = from[key];
+            }
+        }
+        return to;
     }
 
     function merge(collection) {
@@ -2488,6 +2304,10 @@
             merged.push(value);
           }
         : function (value, key) {
+            if (isProtoKey(key)) {
+              return;
+            }
+
             var hasVal = hasOwnProperty.call(merged, key);
             var nextVal =
               hasVal && merger ? merger(merged[key], value, key) : value;
@@ -2548,19 +2368,48 @@
       return mergeDeepWithSources(this, iters, merger);
     }
 
-    function mergeIn(keyPath) {
-      var iters = [], len = arguments.length - 1;
-      while ( len-- > 0 ) iters[ len ] = arguments[ len + 1 ];
-
-      return updateIn$1(this, keyPath, emptyMap(), function (m) { return mergeWithSources(m, iters); });
-    }
-
     function mergeDeepIn(keyPath) {
       var iters = [], len = arguments.length - 1;
       while ( len-- > 0 ) iters[ len ] = arguments[ len + 1 ];
 
-      return updateIn$1(this, keyPath, emptyMap(), function (m) { return mergeDeepWithSources(m, iters); }
+      return updateIn(this, keyPath, emptyMap(), function (m) { return mergeDeepWithSources(m, iters); }
       );
+    }
+
+    function mergeIn(keyPath) {
+      var iters = [], len = arguments.length - 1;
+      while ( len-- > 0 ) iters[ len ] = arguments[ len + 1 ];
+
+      return updateIn(this, keyPath, emptyMap(), function (m) { return mergeWithSources(m, iters); });
+    }
+
+    /**
+     * Returns a copy of the collection with the value at the key path set to the
+     * provided value.
+     *
+     * A functional alternative to `collection.setIn(keypath)` which will also
+     * work with plain Objects and Arrays.
+     */
+    function setIn$1(collection, keyPath, value) {
+        return updateIn(collection, keyPath, NOT_SET, function () { return value; });
+    }
+
+    function setIn(keyPath, v) {
+      return setIn$1(this, keyPath, v);
+    }
+
+    function update(key, notSetValue, updater) {
+      return arguments.length === 1
+        ? key(this)
+        : update$1(this, key, notSetValue, updater);
+    }
+
+    function updateIn$1(keyPath, notSetValue, updater) {
+      return updateIn(this, keyPath, notSetValue, updater);
+    }
+
+    function wasAltered() {
+      return this.__altered;
     }
 
     function withMutations(fn) {
@@ -2569,16 +2418,25 @@
       return mutable.wasAltered() ? mutable.__ensureOwner(this.__ownerID) : this;
     }
 
-    function asMutable() {
-      return this.__ownerID ? this : this.__ensureOwner(new OwnerID());
+    var IS_MAP_SYMBOL = '@@__IMMUTABLE_MAP__@@';
+    /**
+     * True if `maybeMap` is a Map.
+     *
+     * Also true for OrderedMaps.
+     */
+    function isMap(maybeMap) {
+        return Boolean(maybeMap &&
+            // @ts-expect-error: maybeMap is typed as `{}`, need to change in 6.0 to `maybeMap && typeof maybeMap === 'object' && IS_MAP_SYMBOL in maybeMap`
+            maybeMap[IS_MAP_SYMBOL]);
     }
 
-    function asImmutable() {
-      return this.__ensureOwner();
+    function invariant(condition, error) {
+        if (!condition)
+            { throw new Error(error); }
     }
 
-    function wasAltered() {
-      return this.__altered;
+    function assertNotInfinite(size) {
+        invariant(size !== Infinity, 'Cannot perform this action with an infinite size.');
     }
 
     var Map = /*@__PURE__*/(function (KeyedCollection) {
@@ -2715,7 +2573,7 @@
     MapPrototype.setIn = setIn;
     MapPrototype.removeIn = MapPrototype.deleteIn = deleteIn;
     MapPrototype.update = update;
-    MapPrototype.updateIn = updateIn;
+    MapPrototype.updateIn = updateIn$1;
     MapPrototype.merge = MapPrototype.concat = merge$1;
     MapPrototype.mergeWith = mergeWith$1;
     MapPrototype.mergeDeep = mergeDeep;
@@ -2956,20 +2814,79 @@
       return new HashArrayMapNode(ownerID, newCount, newNodes);
     };
 
+    /**
+     * Trie leaf gathering entries whose keys all share the same 32-bit `hash()`.
+     * The trie routes by hash, so colliding keys cannot be separated and land here
+     * in a flat `entries` array, disambiguated by `is()`.
+     *
+     * To guard against hash-flooding DoS (CWE-407), large buckets build a secondary
+     * index keyed by a per-process seeded hash (`hashCollisionKey`). `is()` still
+     * decides equality, so the index can only ever narrow candidates, never lose a key.
+     */
     var HashCollisionNode = function HashCollisionNode(ownerID, keyHash, entries) {
       this.ownerID = ownerID;
       this.keyHash = keyHash;
       this.entries = entries;
+      // Lazy `{ [secondaryHash]: number[] }`, built only past
+      // MIN_HASH_COLLISION_INDEX_SIZE so small buckets keep their linear path.
+      this._index = undefined;
+    };
+
+    // Returns the position of `key` in `this.entries`, or -1. Uses the secondary
+    // index when present; builds it only when `buildIndex` is true (reads and
+    // transient inserts, where the node is reused so the O(n) build amortizes).
+    // Persistent inserts already pay an O(n) copy, so a throwaway index is skipped.
+    HashCollisionNode.prototype._positionOf = function _positionOf (key, buildIndex) {
+      var entries = this.entries;
+      var index = this._index;
+      if (
+        index === undefined &&
+        buildIndex &&
+        entries.length >= MIN_HASH_COLLISION_INDEX_SIZE
+      ) {
+        index = this._buildIndex();
+      }
+      if (index !== undefined) {
+        var positions = index[hashCollisionKey(key)];
+        if (positions !== undefined) {
+          for (var jj = 0; jj < positions.length; jj++) {
+            var ii = positions[jj];
+            if (is(key, entries[ii][0])) {
+              return ii;
+            }
+          }
+        }
+        return -1;
+      }
+      for (var ii$1 = 0, len = entries.length; ii$1 < len; ii$1++) {
+        if (is(key, entries[ii$1][0])) {
+          return ii$1;
+        }
+      }
+      return -1;
+    };
+
+    // Builds and memoizes the secondary index. A plain object, not `Map` — which
+    // in this module resolves to the *Immutable* Map, not the native one.
+    HashCollisionNode.prototype._buildIndex = function _buildIndex () {
+      var index = Object.create(null);
+      var entries = this.entries;
+      for (var ii = 0, len = entries.length; ii < len; ii++) {
+        var secondaryHash = hashCollisionKey(entries[ii][0]);
+        var positions = index[secondaryHash];
+        if (positions !== undefined) {
+          positions.push(ii);
+        } else {
+          index[secondaryHash] = [ii];
+        }
+      }
+      this._index = index;
+      return index;
     };
 
     HashCollisionNode.prototype.get = function get (shift, keyHash, key, notSetValue) {
-      var entries = this.entries;
-      for (var ii = 0, len = entries.length; ii < len; ii++) {
-        if (is(key, entries[ii][0])) {
-          return entries[ii][1];
-        }
-      }
-      return notSetValue;
+      var idx = this._positionOf(key, true);
+      return idx === -1 ? notSetValue : this.entries[idx][1];
     };
 
     HashCollisionNode.prototype.update = function update (ownerID, shift, keyHash, key, value, didChangeSize, didAlter) {
@@ -2989,14 +2906,11 @@
       }
 
       var entries = this.entries;
-      var idx = 0;
       var len = entries.length;
-      for (; idx < len; idx++) {
-        if (is(key, entries[idx][0])) {
-          break;
-        }
-      }
-      var exists = idx < len;
+      var isEditable = ownerID && ownerID === this.ownerID;
+      var foundIdx = this._positionOf(key, isEditable);
+      var idx = foundIdx === -1 ? len : foundIdx;
+      var exists = foundIdx !== -1;
 
       if (exists ? entries[idx][1] === value : removed) {
         return this;
@@ -3010,7 +2924,6 @@
         return new ValueNode(ownerID, this.keyHash, entries[idx ^ 1]);
       }
 
-      var isEditable = ownerID && ownerID === this.ownerID;
       var newEntries = isEditable ? entries : arrCopy(entries);
 
       if (exists) {
@@ -3019,11 +2932,27 @@
           idx === len - 1
             ? newEntries.pop()
             : (newEntries[idx] = newEntries.pop());
+          // The swap-pop reshuffles positions; drop the stale index (rebuilt lazily).
+          if (isEditable) {
+            this._index = undefined;
+          }
         } else {
+          // Same key, same position: the index stays valid.
           newEntries[idx] = [key, value];
         }
       } else {
         newEntries.push([key, value]);
+        // Keep the index in sync on the transient insert path. Persistent inserts
+        // return a fresh node below whose index rebuilds lazily, so skip them.
+        if (isEditable && this._index !== undefined) {
+          var secondaryHash = hashCollisionKey(key);
+          var positions = this._index[secondaryHash];
+          if (positions !== undefined) {
+            positions.push(len);
+          } else {
+            this._index[secondaryHash] = [len];
+          }
+        }
       }
 
       if (isEditable) {
@@ -3357,6 +3286,170 @@
     var MAX_BITMAP_INDEXED_SIZE = SIZE / 2;
     var MIN_HASH_ARRAY_MAP_SIZE = SIZE / 4;
 
+    // Above this many colliding entries, a `HashCollisionNode` builds a seeded
+    // secondary index instead of scanning linearly. Kept small so the rare,
+    // naturally-occurring collision buckets stay overhead-free, while adversarial
+    // hash-flooding (thousands of keys sharing one hash) degrades gracefully.
+    var MIN_HASH_COLLISION_INDEX_SIZE = 16;
+
+    function coerceKeyPath(keyPath) {
+        if (isArrayLike(keyPath) && typeof keyPath !== 'string') {
+            return keyPath;
+        }
+        if (isOrdered(keyPath)) {
+            return keyPath.toArray();
+        }
+        throw new TypeError('Invalid keyPath: expected Ordered Collection or Array: ' + keyPath);
+    }
+
+    /**
+     * Converts a value to a string, adding quotes if a string was provided.
+     */
+    function quoteString(value) {
+        try {
+            return typeof value === 'string' ? JSON.stringify(value) : String(value);
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        }
+        catch (_ignoreError) {
+            return JSON.stringify(value);
+        }
+    }
+
+    /**
+     * Returns true if the key is defined in the provided collection.
+     *
+     * A functional alternative to `collection.has(key)` which will also work with
+     * plain Objects and Arrays as an alternative for
+     * `collection.hasOwnProperty(key)`.
+     */
+    function has(collection, key) {
+        return isImmutable(collection)
+            ? // @ts-expect-error key might be a number or symbol, which is not handled be Record key type
+                collection.has(key)
+            : // @ts-expect-error key might be anything else than PropertyKey, and will return false in that case but runtime is OK
+                isDataStructure(collection) && hasOwnProperty.call(collection, key);
+    }
+
+    function get(collection, key, notSetValue) {
+        return isImmutable(collection)
+            ? collection.get(key, notSetValue)
+            : !has(collection, key)
+                ? notSetValue
+                : // @ts-expect-error weird "get" here,
+                    typeof collection.get === 'function'
+                        ? // @ts-expect-error weird "get" here,
+                            collection.get(key)
+                        : // @ts-expect-error key is unknown here,
+                            collection[key];
+    }
+
+    function remove(collection, key) {
+        if (!isDataStructure(collection)) {
+            throw new TypeError('Cannot update non-data-structure value: ' + collection);
+        }
+        if (isImmutable(collection)) {
+            // @ts-expect-error weird "remove" here,
+            if (!collection.remove) {
+                throw new TypeError('Cannot update immutable value without .remove() method: ' + collection);
+            }
+            // @ts-expect-error weird "remove" here,
+            return collection.remove(key);
+        }
+        // @ts-expect-error assert that key is a string, a number or a symbol here
+        if (!hasOwnProperty.call(collection, key)) {
+            return collection;
+        }
+        var collectionCopy = shallowCopy(collection);
+        if (Array.isArray(collectionCopy)) {
+            // @ts-expect-error assert that key is a number here
+            collectionCopy.splice(key, 1);
+        }
+        else {
+            // @ts-expect-error assert that key is a string, a number or a symbol here
+            delete collectionCopy[key];
+        }
+        return collectionCopy;
+    }
+
+    function set(collection, key, value) {
+        if (isProtoKey(key)) {
+            return collection;
+        }
+        if (!isDataStructure(collection)) {
+            throw new TypeError('Cannot update non-data-structure value: ' + collection);
+        }
+        if (isImmutable(collection)) {
+            // @ts-expect-error weird "set" here,
+            if (!collection.set) {
+                throw new TypeError('Cannot update immutable value without .set() method: ' + collection);
+            }
+            // @ts-expect-error weird "set" here,
+            return collection.set(key, value);
+        }
+        // @ts-expect-error mix of key and string here. Probably need a more fine type here
+        if (hasOwnProperty.call(collection, key) && value === collection[key]) {
+            return collection;
+        }
+        var collectionCopy = shallowCopy(collection);
+        // @ts-expect-error mix of key and string here. Probably need a more fine type here
+        collectionCopy[key] = value;
+        return collectionCopy;
+    }
+
+    function updateIn(collection, keyPath, notSetValue, updater) {
+        if (!updater) {
+            // handle the fact that `notSetValue` is optional here, in that case `updater` is the updater function
+            // @ts-expect-error updater is a function here
+            updater = notSetValue;
+            notSetValue = undefined;
+        }
+        var updatedValue = updateInDeeply(isImmutable(collection), 
+        // @ts-expect-error type issues with Record and mixed types
+        collection, coerceKeyPath(keyPath), 0, notSetValue, updater);
+        // @ts-expect-error mixed return type
+        return updatedValue === NOT_SET ? notSetValue : updatedValue;
+    }
+    function updateInDeeply(inImmutable, existing, keyPath, i, notSetValue, updater) {
+        var wasNotSet = existing === NOT_SET;
+        if (i === keyPath.length) {
+            var existingValue = wasNotSet ? notSetValue : existing;
+            // @ts-expect-error mixed type with optional value
+            var newValue = updater(existingValue);
+            // @ts-expect-error mixed type
+            return newValue === existingValue ? existing : newValue;
+        }
+        if (!wasNotSet && !isDataStructure(existing)) {
+            throw new TypeError('Cannot update within non-data-structure value in path [' +
+                Array.from(keyPath).slice(0, i).map(quoteString) +
+                ']: ' +
+                existing);
+        }
+        var key = keyPath[i];
+        var nextExisting = wasNotSet ? NOT_SET : get(existing, key, NOT_SET);
+        var nextUpdated = updateInDeeply(nextExisting === NOT_SET ? inImmutable : isImmutable(nextExisting), 
+        // @ts-expect-error mixed type
+        nextExisting, keyPath, i + 1, notSetValue, updater);
+        return nextUpdated === nextExisting
+            ? existing
+            : nextUpdated === NOT_SET
+                ? remove(existing, key)
+                : set(wasNotSet ? (inImmutable ? emptyMap() : {}) : existing, key, nextUpdated);
+    }
+
+    /**
+     * Returns a copy of the collection with the value at the key path removed.
+     *
+     * A functional alternative to `collection.removeIn(keypath)` which will also
+     * work with plain Objects and Arrays.
+     */
+    function removeIn(collection, keyPath) {
+        return updateIn(collection, keyPath, function () { return NOT_SET; });
+    }
+
+    function deleteIn(keyPath) {
+      return removeIn(this, keyPath);
+    }
+
     var IS_LIST_SYMBOL = '@@__IMMUTABLE_LIST__@@';
     /**
      * True if `maybeList` is a List.
@@ -3387,7 +3480,7 @@
         assertNotInfinite(size);
         if (size > 0 && size < SIZE) {
           // eslint-disable-next-line no-constructor-return
-          return makeList(0, size, SHIFT, null, new VNode(iter.toArray()));
+          return makeList(0, size, SHIFT, undefined, new VNode(iter.toArray()));
         }
         // eslint-disable-next-line no-constructor-return
         return empty.withMutations(function (list) {
@@ -3616,7 +3709,7 @@
     ListPrototype.setIn = setIn;
     ListPrototype.deleteIn = ListPrototype.removeIn = deleteIn;
     ListPrototype.update = update;
-    ListPrototype.updateIn = updateIn;
+    ListPrototype.updateIn = updateIn$1;
     ListPrototype.mergeIn = mergeIn;
     ListPrototype.mergeDeepIn = mergeDeepIn;
     ListPrototype.withMutations = withMutations;
@@ -3630,6 +3723,13 @@
       return obj.asImmutable();
     };
 
+    /**
+     * A node in the List's 32-wide trie. At inner levels `array` holds child
+     * `VNode`s; at the leaf level it holds the List's values. Missing slots are
+     * `undefined` array holes.
+     *
+     * @template T
+     */
     var VNode = function VNode(array, ownerID) {
       this.array = array;
       this.ownerID = ownerID;
@@ -3766,6 +3866,16 @@
       }
     }
 
+    /**
+     * @param {number} origin
+     * @param {number} capacity
+     * @param {number} level
+     * @param {VNode | undefined} [root] The trie root, or `undefined` when every
+     *   in-range value lives in the tail (or is a virtual `undefined`).
+     * @param {VNode | undefined} [tail]
+     * @param {OwnerID} [ownerID]
+     * @param {number} [hash]
+     */
     function makeList(origin, capacity, level, root, tail, ownerID, hash) {
       var list = Object.create(ListPrototype);
       list.size = capacity - origin;
@@ -3883,6 +3993,14 @@
       return new VNode(node ? node.array.slice() : [], ownerID);
     }
 
+    /**
+     * Returns the leaf `VNode` holding `rawIndex`, or `undefined` when no node is
+     * allocated for it (an all-`undefined` region).
+     *
+     * @param {List} list
+     * @param {number} rawIndex
+     * @returns {VNode | undefined}
+     */
     function listNodeFor(list, rawIndex) {
       if (rawIndex >= getTailOffset(list._capacity)) {
         return list._tail;
@@ -3898,7 +4016,39 @@
       }
     }
 
+    /**
+     * Validates requested bounds before int32 coercion in setListBounds().
+     * Throws when origin/capacity would exceed the trie's safe range.
+     */
+    function validateListBoundsRequest(list, begin, end) {
+      var requestedOrigin = list._origin + (begin === undefined ? 0 : begin);
+      var requestedCapacity =
+        end === undefined
+          ? list._capacity
+          : end < 0
+            ? list._capacity + end
+            : list._origin + end;
+
+      // Keep origin/capacity within the trie's safe signed 32-bit range.
+      if (
+        (Number.isFinite(requestedCapacity) && requestedCapacity > MAX_LIST_SIZE) ||
+        (Number.isFinite(requestedOrigin) && requestedOrigin < -MAX_LIST_SIZE) ||
+        (Number.isFinite(requestedCapacity) &&
+          Number.isFinite(requestedOrigin) &&
+          requestedCapacity - requestedOrigin > MAX_LIST_SIZE)
+      ) {
+        throw new RangeError(
+          'Invalid List size: a List cannot hold more than ' +
+            MAX_LIST_SIZE +
+            ' (2 ** 30) values.'
+        );
+      }
+    }
+
     function setListBounds(list, begin, end) {
+      // Validate full-precision bounds before int32 coercion.
+      validateListBoundsRequest(list, begin, end);
+
       // Sanitize begin & end using this shorthand for ToInt32(argument)
       // http://www.ecma-international.org/ecma-262/6.0/#sec-toint32
       if (begin !== undefined) {
@@ -3937,7 +4087,8 @@
           owner
         );
         newLevel += SHIFT;
-        offsetShift += 1 << newLevel;
+        // Shift origin into non-negative space as trie height grows.
+        offsetShift += levelCapacity(newLevel);
       }
       if (offsetShift) {
         newOrigin += offsetShift;
@@ -3950,7 +4101,7 @@
       var newTailOffset = getTailOffset(newCapacity);
 
       // New size might need creating a higher root.
-      while (newTailOffset >= 1 << (newLevel + SHIFT)) {
+      while (newTailOffset >= levelCapacity(newLevel + SHIFT)) {
         newRoot = new VNode(
           newRoot && newRoot.array.length ? [newRoot] : [],
           owner
@@ -3993,7 +4144,7 @@
         newOrigin -= newTailOffset;
         newCapacity -= newTailOffset;
         newLevel = SHIFT;
-        newRoot = null;
+        newRoot = undefined;
         newTail = newTail && newTail.removeBefore(owner, 0, newOrigin);
 
         // Otherwise, if the root has been trimmed, garbage collect.
@@ -4046,6 +4197,26 @@
 
     function getTailOffset(size) {
       return size < SIZE ? 0 : ((size - 1) >>> SHIFT) << SHIFT;
+    }
+
+    // The largest number of values a List can hold. Above this the 32-bit trie math
+    // in setListBounds() stays in the safe signed 32-bit range.
+    var MAX_LIST_SIZE = Math.pow( 2, 30 ); // 1073741824
+
+    /**
+     * Computes 2 ** exp for the trie level-raising loops in setListBounds().
+     * Use the cheap bitwise operator shift whenever possible, otherwise fall back to exponentiation.
+     * This is necessary because bitwise operators in JavaScript only work on 32-bit signed integers, so for exp >= 31, we need to use exponentiation to avoid overflow.
+     */
+    function levelCapacity(exp) {
+      return exp < 31 ? 1 << exp : Math.pow( 2, exp );
+    }
+
+    /**
+     * True if `maybeOrderedMap` is an OrderedMap.
+     */
+    function isOrderedMap(maybeOrderedMap) {
+        return isMap(maybeOrderedMap) && isOrdered(maybeOrderedMap);
     }
 
     var OrderedMap = /*@__PURE__*/(function (Map) {
@@ -4446,23 +4617,48 @@
       return EMPTY_STACK || (EMPTY_STACK = makeStack(0));
     }
 
-    var IS_SET_SYMBOL = '@@__IMMUTABLE_SET__@@';
-    /**
-     * True if `maybeSet` is a Set.
-     *
-     * Also true for OrderedSets.
-     */
-    function isSet(maybeSet) {
-        return Boolean(maybeSet &&
-            // @ts-expect-error: maybeSet is typed as `{}`,  need to change in 6.0 to `maybeSeq && typeof maybeSet === 'object' && MAYBE_SET_SYMBOL in maybeSet`
-            maybeSet[IS_SET_SYMBOL]);
+    function reduce(collection, reducer, reduction, context, useFirst, reverse) {
+        // @ts-expect-error Migrate to CollectionImpl in v6
+        assertNotInfinite(collection.size);
+        // @ts-expect-error Migrate to CollectionImpl in v6
+        collection.__iterate(function (v, k, c) {
+            if (useFirst) {
+                useFirst = false;
+                reduction = v;
+            }
+            else {
+                // `reduction` has already been seeded here (either with the provided
+                // initial value or with the first iterated value), so it is never the
+                // `undefined` placeholder — only a `V` or a `R`.
+                reduction = reducer.call(context, reduction, v, k, c);
+            }
+        }, reverse);
+        return reduction;
     }
+    function keyMapper(v, k) {
+        return k;
+    }
+    function entryMapper(v, k) {
+        return [k, v];
+    }
+    function not(predicate) {
+        return function () {
+            var args = [], len = arguments.length;
+            while ( len-- ) args[ len ] = arguments[ len ];
 
-    /**
-     * True if `maybeOrderedSet` is an OrderedSet.
-     */
-    function isOrderedSet(maybeOrderedSet) {
-        return isSet(maybeOrderedSet) && isOrdered(maybeOrderedSet);
+            return !predicate.apply(this, args);
+        };
+    }
+    function neg(predicate) {
+        return function () {
+            var args = [], len = arguments.length;
+            while ( len-- ) args[ len ] = arguments[ len ];
+
+            return -predicate.apply(this, args);
+        };
+    }
+    function defaultNegComparator(a, b) {
+        return a < b ? 1 : a > b ? -1 : 0;
     }
 
     function deepEqual(a, b) {
@@ -4535,44 +4731,154 @@
     }
 
     /**
-     * Contributes additional methods to a constructor
+     * Returns a lazy seq of nums from start (inclusive) to end
+     * (exclusive), by step, where start defaults to 0, step to 1, and end to
+     * infinity. When start is equal to end, returns empty list.
      */
-    function mixin(ctor, 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
-    methods) {
-        var keyCopier = function (key) {
-            // @ts-expect-error how to handle symbol ?
-            ctor.prototype[key] = methods[key];
-        };
-        Object.keys(methods).forEach(keyCopier);
-        // eslint-disable-next-line @typescript-eslint/no-unused-expressions -- TODO enable eslint here
-        Object.getOwnPropertySymbols &&
-            Object.getOwnPropertySymbols(methods).forEach(keyCopier);
-        return ctor;
-    }
+    var Range = /*@__PURE__*/(function (IndexedSeq) {
+      function Range(start, end, step) {
+        if ( step === void 0 ) step = 1;
 
-    function toJS(value) {
-      if (!value || typeof value !== 'object') {
-        return value;
-      }
-      if (!isCollection(value)) {
-        if (!isDataStructure(value)) {
-          return value;
+        if (!(this instanceof Range)) {
+          // eslint-disable-next-line no-constructor-return
+          return new Range(start, end, step);
         }
-        value = Seq(value);
+        invariant(step !== 0, 'Cannot step a Range by 0');
+        invariant(
+          start !== undefined,
+          'You must define a start value when using Range'
+        );
+        invariant(
+          end !== undefined,
+          'You must define an end value when using Range'
+        );
+
+        step = Math.abs(step);
+        if (end < start) {
+          step = -step;
+        }
+        this._start = start;
+        this._end = end;
+        this._step = step;
+        this.size = Math.max(0, Math.ceil((end - start) / step - 1) + 1);
+        if (this.size === 0) {
+          if (EMPTY_RANGE) {
+            // eslint-disable-next-line no-constructor-return
+            return EMPTY_RANGE;
+          }
+          // eslint-disable-next-line @typescript-eslint/no-this-alias
+          EMPTY_RANGE = this;
+        }
       }
-      if (isKeyed(value)) {
-        var result$1 = {};
-        value.__iterate(function (v, k) {
-          result$1[k] = toJS(v);
+
+      if ( IndexedSeq ) Range.__proto__ = IndexedSeq;
+      Range.prototype = Object.create( IndexedSeq && IndexedSeq.prototype );
+      Range.prototype.constructor = Range;
+
+      Range.prototype.toString = function toString () {
+        return this.size === 0
+          ? 'Range []'
+          : ("Range [ " + (this._start) + "..." + (this._end) + (this._step !== 1 ? ' by ' + this._step : '') + " ]");
+      };
+
+      Range.prototype.get = function get (index, notSetValue) {
+        return this.has(index)
+          ? this._start + wrapIndex(this, index) * this._step
+          : notSetValue;
+      };
+
+      Range.prototype.includes = function includes (searchValue) {
+        var possibleIndex = (searchValue - this._start) / this._step;
+        return (
+          possibleIndex >= 0 &&
+          possibleIndex < this.size &&
+          possibleIndex === Math.floor(possibleIndex)
+        );
+      };
+
+      Range.prototype.slice = function slice (begin, end) {
+        if (wholeSlice(begin, end, this.size)) {
+          return this;
+        }
+        begin = resolveBegin(begin, this.size);
+        end = resolveEnd(end, this.size);
+        if (end <= begin) {
+          return new Range(0, 0);
+        }
+        return new Range(
+          this.get(begin, this._end),
+          this.get(end, this._end),
+          this._step
+        );
+      };
+
+      Range.prototype.indexOf = function indexOf (searchValue) {
+        var offsetValue = searchValue - this._start;
+        if (offsetValue % this._step === 0) {
+          var index = offsetValue / this._step;
+          if (index >= 0 && index < this.size) {
+            return index;
+          }
+        }
+        return -1;
+      };
+
+      Range.prototype.lastIndexOf = function lastIndexOf (searchValue) {
+        return this.indexOf(searchValue);
+      };
+
+      Range.prototype.__iterate = function __iterate (fn, reverse) {
+        var size = this.size;
+        var step = this._step;
+        var value = reverse ? this._start + (size - 1) * step : this._start;
+        var i = 0;
+        while (i !== size) {
+          if (fn(value, reverse ? size - ++i : i++, this) === false) {
+            break;
+          }
+          value += reverse ? -step : step;
+        }
+        return i;
+      };
+
+      Range.prototype.__iterator = function __iterator (type, reverse) {
+        var size = this.size;
+        var step = this._step;
+        var value = reverse ? this._start + (size - 1) * step : this._start;
+        var i = 0;
+        return new Iterator(function () {
+          if (i === size) {
+            return iteratorDone();
+          }
+          var v = value;
+          value += reverse ? -step : step;
+          return iteratorValue(type, reverse ? size - ++i : i++, v);
         });
-        return result$1;
-      }
-      var result = [];
-      value.__iterate(function (v) {
-        result.push(toJS(v));
-      });
-      return result;
+      };
+
+      Range.prototype.equals = function equals (other) {
+        return other instanceof Range
+          ? this._start === other._start &&
+              this._end === other._end &&
+              this._step === other._step
+          : deepEqual(this, other);
+      };
+
+      return Range;
+    }(IndexedSeq));
+
+    var EMPTY_RANGE;
+
+    var IS_SET_SYMBOL = '@@__IMMUTABLE_SET__@@';
+    /**
+     * True if `maybeSet` is a Set.
+     *
+     * Also true for OrderedSets.
+     */
+    function isSet(maybeSet) {
+        return Boolean(maybeSet &&
+            // @ts-expect-error: maybeSet is typed as `{}`,  need to change in 6.0 to `maybeSeq && typeof maybeSet === 'object' && MAYBE_SET_SYMBOL in maybeSet`
+            maybeSet[IS_SET_SYMBOL]);
     }
 
     var Set = /*@__PURE__*/(function (SetCollection) {
@@ -4818,145 +5124,6 @@
     }
 
     /**
-     * Returns a lazy seq of nums from start (inclusive) to end
-     * (exclusive), by step, where start defaults to 0, step to 1, and end to
-     * infinity. When start is equal to end, returns empty list.
-     */
-    var Range = /*@__PURE__*/(function (IndexedSeq) {
-      function Range(start, end, step) {
-        if ( step === void 0 ) step = 1;
-
-        if (!(this instanceof Range)) {
-          // eslint-disable-next-line no-constructor-return
-          return new Range(start, end, step);
-        }
-        invariant(step !== 0, 'Cannot step a Range by 0');
-        invariant(
-          start !== undefined,
-          'You must define a start value when using Range'
-        );
-        invariant(
-          end !== undefined,
-          'You must define an end value when using Range'
-        );
-
-        step = Math.abs(step);
-        if (end < start) {
-          step = -step;
-        }
-        this._start = start;
-        this._end = end;
-        this._step = step;
-        this.size = Math.max(0, Math.ceil((end - start) / step - 1) + 1);
-        if (this.size === 0) {
-          if (EMPTY_RANGE) {
-            // eslint-disable-next-line no-constructor-return
-            return EMPTY_RANGE;
-          }
-          // eslint-disable-next-line @typescript-eslint/no-this-alias
-          EMPTY_RANGE = this;
-        }
-      }
-
-      if ( IndexedSeq ) Range.__proto__ = IndexedSeq;
-      Range.prototype = Object.create( IndexedSeq && IndexedSeq.prototype );
-      Range.prototype.constructor = Range;
-
-      Range.prototype.toString = function toString () {
-        return this.size === 0
-          ? 'Range []'
-          : ("Range [ " + (this._start) + "..." + (this._end) + (this._step !== 1 ? ' by ' + this._step : '') + " ]");
-      };
-
-      Range.prototype.get = function get (index, notSetValue) {
-        return this.has(index)
-          ? this._start + wrapIndex(this, index) * this._step
-          : notSetValue;
-      };
-
-      Range.prototype.includes = function includes (searchValue) {
-        var possibleIndex = (searchValue - this._start) / this._step;
-        return (
-          possibleIndex >= 0 &&
-          possibleIndex < this.size &&
-          possibleIndex === Math.floor(possibleIndex)
-        );
-      };
-
-      Range.prototype.slice = function slice (begin, end) {
-        if (wholeSlice(begin, end, this.size)) {
-          return this;
-        }
-        begin = resolveBegin(begin, this.size);
-        end = resolveEnd(end, this.size);
-        if (end <= begin) {
-          return new Range(0, 0);
-        }
-        return new Range(
-          this.get(begin, this._end),
-          this.get(end, this._end),
-          this._step
-        );
-      };
-
-      Range.prototype.indexOf = function indexOf (searchValue) {
-        var offsetValue = searchValue - this._start;
-        if (offsetValue % this._step === 0) {
-          var index = offsetValue / this._step;
-          if (index >= 0 && index < this.size) {
-            return index;
-          }
-        }
-        return -1;
-      };
-
-      Range.prototype.lastIndexOf = function lastIndexOf (searchValue) {
-        return this.indexOf(searchValue);
-      };
-
-      Range.prototype.__iterate = function __iterate (fn, reverse) {
-        var size = this.size;
-        var step = this._step;
-        var value = reverse ? this._start + (size - 1) * step : this._start;
-        var i = 0;
-        while (i !== size) {
-          if (fn(value, reverse ? size - ++i : i++, this) === false) {
-            break;
-          }
-          value += reverse ? -step : step;
-        }
-        return i;
-      };
-
-      Range.prototype.__iterator = function __iterator (type, reverse) {
-        var size = this.size;
-        var step = this._step;
-        var value = reverse ? this._start + (size - 1) * step : this._start;
-        var i = 0;
-        return new Iterator(function () {
-          if (i === size) {
-            return iteratorDone();
-          }
-          var v = value;
-          value += reverse ? -step : step;
-          return iteratorValue(type, reverse ? size - ++i : i++, v);
-        });
-      };
-
-      Range.prototype.equals = function equals (other) {
-        return other instanceof Range
-          ? this._start === other._start &&
-              this._end === other._end &&
-              this._step === other._step
-          : deepEqual(this, other);
-      };
-
-      return Range;
-    }(IndexedSeq));
-
-    var EMPTY_RANGE;
-
-    /**
      * Returns the value at the provided key path starting at the provided
      * collection, or notSetValue if the key path is not defined.
      *
@@ -4998,9 +5165,101 @@
       assertNotInfinite(this.size);
       var object = {};
       this.__iterate(function (v, k) {
+        if (isProtoKey(k)) {
+          return;
+        }
+
         object[k] = v;
       });
       return object;
+    }
+
+    function toJS(value) {
+        if (!value || typeof value !== 'object') {
+            return value;
+        }
+        if (!isCollection(value)) {
+            if (!isDataStructure(value)) {
+                return value;
+            }
+            // @ts-expect-error until Seq has been migrated to TypeScript
+            value = Seq(value);
+        }
+        if (isKeyed(value)) {
+            var result$1 = {};
+            // @ts-expect-error `__iterate` exists on all Keyed collections but method is not defined in the type
+            value.__iterate(function (v, k) {
+                if (isProtoKey(k)) {
+                    return;
+                }
+                result$1[k] = toJS(v);
+            });
+            return result$1;
+        }
+        var result = [];
+        // @ts-expect-error value "should" be a non-keyed collection, but we may need to assert for stricter types
+        value.__iterate(function (v) {
+            result.push(toJS(v));
+        });
+        return result;
+    }
+
+    function hashCollection(collection) {
+        // @ts-expect-error Migrate to CollectionImpl in v6
+        if (collection.size === Infinity) {
+            return 0;
+        }
+        var ordered = isOrdered(collection);
+        var keyed = isKeyed(collection);
+        var h = ordered ? 1 : 0;
+        // @ts-expect-error Migrate to CollectionImpl in v6
+        collection.__iterate(keyed
+            ? ordered
+                ? function (v, k) {
+                    h = (31 * h + hashMerge(hash(v), hash(k))) | 0;
+                }
+                : function (v, k) {
+                    h = (h + hashMerge(hash(v), hash(k))) | 0;
+                }
+            : ordered
+                ? function (v) {
+                    h = (31 * h + hash(v)) | 0;
+                }
+                : function (v) {
+                    h = (h + hash(v)) | 0;
+                });
+        // @ts-expect-error Migrate to CollectionImpl in v6
+        return murmurHashOfSize(collection.size, h);
+    }
+    function murmurHashOfSize(size, h) {
+        h = imul(h, 0xcc9e2d51);
+        h = imul((h << 15) | (h >>> -15), 0x1b873593);
+        h = imul((h << 13) | (h >>> -13), 5);
+        h = ((h + 0xe6546b64) | 0) ^ size;
+        h = imul(h ^ (h >>> 16), 0x85ebca6b);
+        h = imul(h ^ (h >>> 13), 0xc2b2ae35);
+        h = smi(h ^ (h >>> 16));
+        return h;
+    }
+    function hashMerge(a, b) {
+        return (a ^ (b + 0x9e3779b9 + (a << 6) + (a >> 2))) | 0; // int
+    }
+
+    /**
+     * Contributes additional methods to a constructor
+     */
+    function mixin(ctor, 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
+    methods) {
+        var keyCopier = function (key) {
+            // @ts-expect-error how to handle symbol ?
+            ctor.prototype[key] = methods[key];
+        };
+        Object.keys(methods).forEach(keyCopier);
+        // eslint-disable-next-line @typescript-eslint/no-unused-expressions -- TODO enable eslint here
+        Object.getOwnPropertySymbols &&
+            Object.getOwnPropertySymbols(methods).forEach(keyCopier);
+        return ctor;
     }
 
     Collection.Iterator = Iterator;
@@ -5555,11 +5814,12 @@
 
       has: function has(index) {
         index = wrapIndex(this, index);
+
         return (
           index >= 0 &&
           (this.size !== undefined
             ? this.size === Infinity || index < this.size
-            : this.indexOf(index) !== -1)
+            : this.find(function (_, key) { return key === index; }, undefined, NOT_SET) !== NOT_SET)
         );
       },
 
@@ -5641,89 +5901,15 @@
 
     // #pragma Helper functions
 
-    function reduce(collection, reducer, reduction, context, useFirst, reverse) {
-      assertNotInfinite(collection.size);
-      collection.__iterate(function (v, k, c) {
-        if (useFirst) {
-          useFirst = false;
-          reduction = v;
-        } else {
-          reduction = reducer.call(context, reduction, v, k, c);
-        }
-      }, reverse);
-      return reduction;
-    }
-
-    function keyMapper(v, k) {
-      return k;
-    }
-
-    function entryMapper(v, k) {
-      return [k, v];
-    }
-
-    function not(predicate) {
-      return function () {
-        return !predicate.apply(this, arguments);
-      };
-    }
-
-    function neg(predicate) {
-      return function () {
-        return -predicate.apply(this, arguments);
-      };
-    }
-
     function defaultZipper() {
       return arrCopy(arguments);
     }
 
-    function defaultNegComparator(a, b) {
-      return a < b ? 1 : a > b ? -1 : 0;
-    }
-
-    function hashCollection(collection) {
-      if (collection.size === Infinity) {
-        return 0;
-      }
-      var ordered = isOrdered(collection);
-      var keyed = isKeyed(collection);
-      var h = ordered ? 1 : 0;
-
-      collection.__iterate(
-        keyed
-          ? ordered
-            ? function (v, k) {
-                h = (31 * h + hashMerge(hash(v), hash(k))) | 0;
-              }
-            : function (v, k) {
-                h = (h + hashMerge(hash(v), hash(k))) | 0;
-              }
-          : ordered
-            ? function (v) {
-                h = (31 * h + hash(v)) | 0;
-              }
-            : function (v) {
-                h = (h + hash(v)) | 0;
-              }
-      );
-
-      return murmurHashOfSize(collection.size, h);
-    }
-
-    function murmurHashOfSize(size, h) {
-      h = imul(h, 0xcc9e2d51);
-      h = imul((h << 15) | (h >>> -15), 0x1b873593);
-      h = imul((h << 13) | (h >>> -13), 5);
-      h = ((h + 0xe6546b64) | 0) ^ size;
-      h = imul(h ^ (h >>> 16), 0x85ebca6b);
-      h = imul(h ^ (h >>> 13), 0xc2b2ae35);
-      h = smi(h ^ (h >>> 16));
-      return h;
-    }
-
-    function hashMerge(a, b) {
-      return (a ^ (b + 0x9e3779b9 + (a << 6) + (a >> 2))) | 0; // int
+    /**
+     * True if `maybeOrderedSet` is an OrderedSet.
+     */
+    function isOrderedSet(maybeOrderedSet) {
+        return isSet(maybeOrderedSet) && isOrdered(maybeOrderedSet);
     }
 
     var OrderedSet = /*@__PURE__*/(function (Set) {
@@ -5785,9 +5971,12 @@
       );
     }
 
+    /**
+     * Describes which item in a pair should be placed first when sorting
+     */
     var PairSorting = {
-      LeftThenRight: -1,
-      RightThenLeft: 1,
+        LeftThenRight: -1,
+        RightThenLeft: 1,
     };
 
     function throwOnInvalidDefaultValues(defaultValues) {
@@ -5992,7 +6181,7 @@
     RecordPrototype.mergeDeepIn = mergeDeepIn;
     RecordPrototype.setIn = setIn;
     RecordPrototype.update = update;
-    RecordPrototype.updateIn = updateIn;
+    RecordPrototype.updateIn = updateIn$1;
     RecordPrototype.withMutations = withMutations;
     RecordPrototype.asMutable = asMutable;
     RecordPrototype.asImmutable = asImmutable;
@@ -6091,15 +6280,15 @@
       };
 
       Repeat.prototype.indexOf = function indexOf (searchValue) {
-        if (is(this._value, searchValue)) {
+        if (this.size !== 0 && is(this._value, searchValue)) {
           return 0;
         }
         return -1;
       };
 
       Repeat.prototype.lastIndexOf = function lastIndexOf (searchValue) {
-        if (is(this._value, searchValue)) {
-          return this.size;
+        if (this.size !== 0 && is(this._value, searchValue)) {
+          return this.size - 1;
         }
         return -1;
       };
@@ -6180,7 +6369,9 @@
       return isIndexed(v) ? v.toList() : isKeyed(v) ? v.toMap() : v.toSet();
     }
 
-    var version = "5.1.3";
+    var version = "5.1.9";
+
+    /* eslint-disable import/order */
 
     // Note: Iterable is deprecated
     var Iterable = Collection;
@@ -6230,7 +6421,7 @@
     exports.set = set;
     exports.setIn = setIn$1;
     exports.update = update$1;
-    exports.updateIn = updateIn$1;
+    exports.updateIn = updateIn;
     exports.version = version;
 
 }));

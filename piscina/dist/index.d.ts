@@ -59,10 +59,13 @@ export default class Piscina<T = any, R = any> extends EventEmitterAsyncResource
     run(task: T, options?: RunOptions): Promise<R>;
     close(options?: CloseOptions): Promise<void>;
     destroy(): Promise<void>;
+    [Symbol.dispose](): void;
+    [Symbol.asyncDispose](): Promise<void>;
     get maxThreads(): number;
     get minThreads(): number;
     get options(): FilledOptions;
     get threads(): Worker[];
+    get idleThreads(): number;
     get queueSize(): number;
     get completed(): number;
     get histogram(): PiscinaHistogram;
@@ -80,7 +83,7 @@ export default class Piscina<T = any, R = any> extends EventEmitterAsyncResource
     static get valueSymbol(): symbol;
     static get queueOptionsSymbol(): symbol;
 }
-export declare const move: typeof Piscina.move;
-export declare const isWorkerThread: boolean;
-export declare const workerData: any;
-export { Piscina, PiscinaTask, TaskQueue, kTransferable as transferableSymbol, kValue as valueSymbol, kQueueOptions as queueOptionsSymbol, version, FixedQueue };
+declare const move: typeof Piscina.move;
+declare const isWorkerThread: boolean;
+declare const workerData: any;
+export { Piscina, PiscinaTask, TaskQueue, kTransferable as transferableSymbol, kValue as valueSymbol, kQueueOptions as queueOptionsSymbol, version, FixedQueue, ArrayTaskQueue, move, isWorkerThread, workerData };

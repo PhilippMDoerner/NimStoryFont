@@ -1,0 +1,61 @@
+{
+	"name": "make-dir",
+	"version": "5.1.0",
+	"description": "Make a directory and its parents if needed - Think `mkdir -p`",
+	"license": "MIT",
+	"repository": "sindresorhus/make-dir",
+	"funding": "https://github.com/sponsors/sindresorhus",
+	"author": {
+		"name": "Sindre Sorhus",
+		"email": "sindresorhus@gmail.com",
+		"url": "https://sindresorhus.com"
+	},
+	"type": "module",
+	"exports": {
+		"types": "./index.d.ts",
+		"default": "./index.js"
+	},
+	"sideEffects": false,
+	"engines": {
+		"node": ">=18"
+	},
+	"scripts": {
+		"test": "xo && ava && tsd"
+	},
+	"files": [
+		"index.js",
+		"index.d.ts"
+	],
+	"keywords": [
+		"mkdir",
+		"mkdirp",
+		"make",
+		"directories",
+		"folders",
+		"directory",
+		"folder",
+		"path",
+		"parent",
+		"parents",
+		"intermediate",
+		"recursively",
+		"recursive",
+		"create",
+		"fs",
+		"filesystem",
+		"file-system"
+	],
+	"devDependencies": {
+		"@types/graceful-fs": "^4.1.9",
+		"@types/node": "^20.12.8",
+		"ava": "^6.1.2",
+		"graceful-fs": "^4.2.11",
+		"path-type": "^5.0.0",
+		"tempy": "^3.1.0",
+		"tsd": "^0.31.0",
+		"xo": "^0.58.0"
+	},
+	"ava": {
+		"workerThreads": false
+	}
+}

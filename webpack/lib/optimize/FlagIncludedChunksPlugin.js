@@ -16,13 +16,13 @@ const PLUGIN_NAME = "FlagIncludedChunksPlugin";
 
 class FlagIncludedChunksPlugin {
 	/**
-	 * Apply the plugin
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Compiler} compiler the compiler instance
 	 * @returns {void}
 	 */
 	apply(compiler) {
-		compiler.hooks.compilation.tap(PLUGIN_NAME, compilation => {
-			compilation.hooks.optimizeChunkIds.tap(PLUGIN_NAME, chunks => {
+		compiler.hooks.compilation.tap(PLUGIN_NAME, (compilation) => {
+			compilation.hooks.optimizeChunkIds.tap(PLUGIN_NAME, (chunks) => {
 				const chunkGraph = compilation.chunkGraph;
 
 				// prepare two bit integers for each module
@@ -42,7 +42,17 @@ class FlagIncludedChunksPlugin {
 
 				// precalculate the modulo values for each bit
 				const modulo = 1 / (1 / modulesCount) ** (1 / 31);
-				const modulos = Array.from({ length: 31 }, (x, i) => (modulo ** i) | 0);
+				/** @type {number[]} */
+				const modulos = Array.from(
+					{ length: 31 },
+					/**
+					 * Handles the callback logic for this hook.
+					 * @param {number} x x
+					 * @param {number} i i
+					 * @returns {number} result
+					 */
+					(x, i) => (modulo ** i) | 0
+				);
 
 				// iterate all modules to generate bit values
 				let i = 0;
@@ -66,20 +76,28 @@ class FlagIncludedChunksPlugin {
 					chunkModulesHash.set(chunk, hash);
 				}
 
+				// Chunks that received an included id and need their `ids` re-sorted
+				// once, after all pushes — instead of re-sorting on every push
+				// inside the nested loop below (https://github.com/webpack/webpack/issues/18837).
+				/** @type {Set<Chunk>} */
+				const chunksWithIncludedIds = new Set();
+
 				for (const chunkA of chunks) {
 					const chunkAHash =
 						/** @type {number} */
 						(chunkModulesHash.get(chunkA));
 					const chunkAModulesCount = chunkGraph.getNumberOfChunkModules(chunkA);
 					if (chunkAModulesCount === 0) continue;
+					/** @type {undefined | Module} */
 					let bestModule;
 					for (const module of chunkGraph.getChunkModulesIterable(chunkA)) {
 						if (
 							bestModule === undefined ||
 							chunkGraph.getNumberOfModuleChunks(bestModule) >
 								chunkGraph.getNumberOfModuleChunks(module)
-						)
+						) {
 							bestModule = module;
+						}
 					}
 					loopB: for (const chunkB of chunkGraph.getModuleChunksIterable(
 						/** @type {Module} */ (bestModule)
@@ -113,13 +131,18 @@ class FlagIncludedChunksPlugin {
 
 						/** @type {ChunkId[]} */
 						(chunkB.ids).push(/** @type {ChunkId} */ (chunkA.id));
-						// https://github.com/webpack/webpack/issues/18837
-						/** @type {ChunkId[]} */
-						(chunkB.ids).sort(compareIds);
+						chunksWithIncludedIds.add(chunkB);
 					}
+				}
+
+				// Sort each affected chunk's ids once (https://github.com/webpack/webpack/issues/18837).
+				for (const chunk of chunksWithIncludedIds) {
+					/** @type {ChunkId[]} */
+					(chunk.ids).sort(compareIds);
 				}
 			});
 		});
 	}
 }
+
 module.exports = FlagIncludedChunksPlugin;

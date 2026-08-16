@@ -10,17 +10,17 @@ import {
 import { NavigationEnd, Router } from '@angular/router';
 import { NgbTooltipConfig } from '@ng-bootstrap/ng-bootstrap';
 import { filter, map } from 'rxjs';
-import { fadeOut } from 'src/app/design/animations/fadeIn';
-import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
-import { filterNil } from 'src/utils/rxjs-operators';
+import { filterNil } from '../utils/rxjs-operators';
 import { BypassBlockDirective } from './_directives/bypass-block.directive';
 import { BeforeInstallPromptEvent, PwaService } from './_services/pwa.service';
 import { CampaignService } from './_services/utils/campaign.service';
 import { GlobalUrlParamsService } from './_services/utils/global-url-params.service';
 import { TokenService } from './_services/utils/token.service';
 import { AuthStore } from './auth.store';
+import { fadeOut } from './design/animations/fadeIn';
 import { PageComponent } from './design/organisms/page/page.component';
 import { ToastOverlayComponent } from './design/organisms/toast-overlay/toast-overlay.component';
+import { ToastService } from './design/organisms/toast-overlay/toast.service';
 import { OnboardingModalComponent } from './global-components/onboarding/onboarding-modal/onboarding-modal.component';
 import { SearchModalComponent } from './global-components/search/search-modal/search-modal.component';
 import { GlobalStore } from './global.store';
@@ -60,11 +60,11 @@ export class AppComponent {
     filterNil(),
   );
 
-  campaign$ = this.globalStore.currentCampaign;
-  hasCampaignAdminRights = computed(() =>
+  readonly campaign$ = this.globalStore.currentCampaign;
+  readonly hasCampaignAdminRights = computed(() =>
     this.globalStore.isCampaignAdmin(this.globalStore.campaignName()),
   );
-  disableAnimation = signal(false);
+  readonly disableAnimation = signal(false);
 
   constructor() {
     this.trackAnimationSetting();
@@ -76,8 +76,9 @@ export class AppComponent {
     this.globalStore.logout();
   }
 
-  fireEvent(event: BeforeInstallPromptEvent) {
-    this.pwaService.storeInstallEvent(event);
+  fireEvent(event: Event) {
+    const promptEvent = event as BeforeInstallPromptEvent;
+    this.pwaService.storeInstallEvent(promptEvent);
   }
 
   focusMain() {

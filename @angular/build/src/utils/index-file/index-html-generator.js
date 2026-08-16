@@ -103,7 +103,7 @@ class IndexHtmlGenerator {
 }
 exports.IndexHtmlGenerator = IndexHtmlGenerator;
 function augmentIndexHtmlPlugin(generator) {
-    const { deployUrl, crossOrigin, sri = false, entrypoints, imageDomains } = generator.options;
+    const { deployUrl, crossOrigin, sri = false, entrypoints, imageDomains, chunksIntegrity, } = generator.options;
     return async (html, options) => {
         const { lang, baseHref, outputPath = '', files, hints } = options;
         return (0, augment_index_html_1.augmentIndexHtml)({
@@ -118,6 +118,7 @@ function augmentIndexHtmlPlugin(generator) {
             imageDomains,
             files,
             hints,
+            chunksIntegrity,
         });
     };
 }
@@ -151,3 +152,4 @@ function addEventDispatchContractPlugin() {
 function addNgcmAttributePlugin() {
     return (html) => (0, ngcm_attribute_1.addNgcmAttribute)(html);
 }
+//# sourceMappingURL=index-html-generator.js.map

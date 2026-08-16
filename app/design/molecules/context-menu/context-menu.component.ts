@@ -19,13 +19,13 @@ import {
   NgbModal,
   Placement,
 } from '@ng-bootstrap/ng-bootstrap';
-import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
-import { ShortcutAction } from 'src/app/_models/hotkey';
-import { ButtonKind, ElementSize } from 'src/app/design/atoms/_models/button';
-import { Icon } from 'src/app/design/atoms/_models/icon';
-import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
-import { IconComponent } from 'src/app/design/atoms/icon/icon.component';
-import { componentId } from 'src/utils/DOM';
+import { componentId } from '../../../../utils/DOM';
+import { HotkeyDirective } from '../../../_directives/hotkey.directive';
+import { HotkeyAction } from '../../../_models/hotkey';
+import { ButtonKind, ElementSize } from '../../atoms/_models/button';
+import { Icon } from '../../atoms/_models/icon';
+import { ButtonComponent } from '../../atoms/button/button.component';
+import { IconComponent } from '../../atoms/icon/icon.component';
 import { MenuItem } from '../_models/menu';
 import { DeleteModalComponent } from '../delete-modal/delete-modal.component';
 
@@ -57,7 +57,7 @@ export class ContextMenuComponent {
   readonly menuButtonText = input.required<string>();
   readonly menuButtonIcon = input<Icon>();
   readonly menuButtonSize = input<ElementSize>('MEDIUM');
-  readonly menuButtonHotkey = input<ShortcutAction>();
+  readonly menuButtonHotkey = input<HotkeyAction>();
   readonly menuButtonShowText = input<boolean>(true);
   readonly placement = input<PlacementArray>([
     'bottom-start',
@@ -76,14 +76,17 @@ export class ContextMenuComponent {
       read: ElementRef<HTMLButtonElement>,
     });
 
-  modalService = inject(NgbModal);
+  readonly modalService = inject(NgbModal);
 
-  isOpen = signal(false);
-  activeModalItem = signal<Extract<MenuItem, { kind: 'CONFIRM' }> | null>(null);
+  readonly isOpen = signal(false);
+  readonly activeModalItem = signal<Extract<
+    MenuItem,
+    { kind: 'CONFIRM' }
+  > | null>(null);
 
-  id = componentId();
-  menuId = `menu-${this.id}`;
-  triggerId = `trigger-${this.id}`;
+  readonly id = componentId();
+  readonly menuId = `menu-${this.id}`;
+  readonly triggerId = `trigger-${this.id}`;
 
   openAndScrollToMenu(): void {
     const element = this.trigger().nativeElement;

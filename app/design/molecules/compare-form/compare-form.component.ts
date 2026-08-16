@@ -6,9 +6,9 @@ import {
   output,
 } from '@angular/core';
 import { FormlyFieldConfig } from '@ngx-formly/core';
-import { AlertComponent } from 'src/app/design/atoms/alert/alert.component';
-import { IconComponent } from 'src/app/design/atoms/icon/icon.component';
-import { SeparatorComponent } from 'src/app/design/atoms/separator/separator.component';
+import { AlertComponent } from '../../atoms/alert/alert.component';
+import { IconComponent } from '../../atoms/icon/icon.component';
+import { SeparatorComponent } from '../../atoms/separator/separator.component';
 import { FormComponent } from '../form/form.component';
 @Component({
   selector: 'app-compare-form',
@@ -21,11 +21,11 @@ export class CompareFormComponent<
   T extends { update_datetime: string | undefined },
 > implements OnInit
 {
-  fields = input.required<FormlyFieldConfig[]>();
-  modelFromUser = input.required<T>();
-  modelFromServer = input.required<T | undefined>();
-  displayVertically = input(false);
-  enctype = input('application/x-www-form-urlencoded'); //Default form enctype in HTML5
+  readonly fields = input.required<FormlyFieldConfig[]>();
+  readonly modelFromUser = input.required<T>();
+  readonly modelFromServer = input.required<T | undefined>();
+  readonly displayVertically = input(false);
+  readonly enctype = input('application/x-www-form-urlencoded'); //Default form enctype in HTML5
 
   readonly formlySubmit = output<NonNullable<T>>();
   readonly formlyCancel = output<void>();

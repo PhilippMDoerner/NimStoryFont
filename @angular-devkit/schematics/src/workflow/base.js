@@ -53,7 +53,7 @@ class BaseWorkflow {
         this._dryRun = options.dryRun || false;
     }
     get context() {
-        const maybeContext = this._context[this._context.length - 1];
+        const maybeContext = this._context.at(-1);
         if (!maybeContext) {
             throw new Error('Cannot get context when workflow is not executing...');
         }
@@ -99,7 +99,7 @@ class BaseWorkflow {
         ];
     }
     execute(options) {
-        const parentContext = this._context[this._context.length - 1];
+        const parentContext = this._context.at(-1);
         if (!parentContext) {
             this._lifeCycle.next({ kind: 'start' });
         }
@@ -142,3 +142,4 @@ class BaseWorkflow {
     }
 }
 exports.BaseWorkflow = BaseWorkflow;
+//# sourceMappingURL=base.js.map

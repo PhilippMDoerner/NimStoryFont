@@ -6,54 +6,52 @@ function _toPropertyKey(t) { var i = _toPrimitive(t, "string"); return "symbol" 
 function _toPrimitive(t, r) { if ("object" != _typeof(t) || !t) return t; var e = t[Symbol.toPrimitive]; if (void 0 !== e) { var i = e.call(t, r || "default"); if ("object" != _typeof(i)) return i; throw new TypeError("@@toPrimitive must return a primitive value."); } return ("string" === r ? String : Number)(t); }
 import SockJS from "../modules/sockjs-client/index.js";
 import { log } from "../utils/log.js";
+
+/** @typedef {import("../index").EXPECTED_ANY} EXPECTED_ANY */
+
+/**
+ * @implements {CommunicationClient}
+ */
 var SockJSClient = /*#__PURE__*/function () {
   /**
-   * @param {string} url
+   * @param {string} url url
    */
   function SockJSClient(url) {
     _classCallCheck(this, SockJSClient);
     // SockJS requires `http` and `https` protocols
     this.sock = new SockJS(url.replace(/^ws:/i, "http:").replace(/^wss:/i, "https:"));
-    this.sock.onerror =
-    /**
-     * @param {Error} error
-     */
-    function (error) {
+    this.sock.onerror = function (error) {
       log.error(error);
     };
   }
 
   /**
-   * @param {(...args: any[]) => void} f
+   * @param {(...args: EXPECTED_ANY[]) => void} fn function
    */
   return _createClass(SockJSClient, [{
     key: "onOpen",
-    value: function onOpen(f) {
-      this.sock.onopen = f;
+    value: function onOpen(fn) {
+      this.sock.onopen = fn;
     }
 
     /**
-     * @param {(...args: any[]) => void} f
+     * @param {(...args: EXPECTED_ANY[]) => void} fn function
      */
   }, {
     key: "onClose",
-    value: function onClose(f) {
-      this.sock.onclose = f;
+    value: function onClose(fn) {
+      this.sock.onclose = fn;
     }
 
     // call f with the message string as the first argument
     /**
-     * @param {(...args: any[]) => void} f
+     * @param {(...args: EXPECTED_ANY[]) => void} fn function
      */
   }, {
     key: "onMessage",
-    value: function onMessage(f) {
-      this.sock.onmessage =
-      /**
-       * @param {Error & { data: string }} e
-       */
-      function (e) {
-        f(e.data);
+    value: function onMessage(fn) {
+      this.sock.onmessage = function (err) {
+        fn(err.data);
       };
     }
   }]);

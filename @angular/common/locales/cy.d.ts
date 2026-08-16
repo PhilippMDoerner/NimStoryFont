@@ -6,9 +6,9 @@
  * found in the LICENSE file at https://angular.dev/license
  */
 declare function plural(val: number): number;
-declare const _default: (string | number | number[] | (string | undefined)[] | typeof plural | (string[] | undefined)[] | {
+declare const _default: (string | number | number[] | (string | undefined)[] | typeof plural | string[][] | {
     BDT: (string | undefined)[];
-    BWP: never[];
+    BWP: (string | undefined)[];
     BYN: (string | undefined)[];
     HKD: string[];
     JPY: string[];
@@ -18,7 +18,7 @@ declare const _default: (string | number | number[] | (string | undefined)[] | t
     TWD: string[];
     USD: string[];
     XXX: never[];
-    ZAR: never[];
-    ZMW: never[];
+    ZAR: (string | undefined)[];
+    ZMW: (string | undefined)[];
 })[];
 export default _default;

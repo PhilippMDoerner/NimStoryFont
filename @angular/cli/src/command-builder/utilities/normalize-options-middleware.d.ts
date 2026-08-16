@@ -5,7 +5,7 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.dev/license
  */
-import * as yargs from 'yargs';
+import type { Arguments, Argv } from 'yargs';
 /**
  * A Yargs middleware that normalizes non Array options when the argument has been provided multiple times.
  *
@@ -15,4 +15,4 @@ import * as yargs from 'yargs';
  *
  * See: https://github.com/yargs/yargs-parser/pull/163#issuecomment-516566614
  */
-export declare function normalizeOptionsMiddleware(args: yargs.Arguments): void;
+export declare function createNormalizeOptionsMiddleware(localeYargs: Argv): (args: Arguments) => void;

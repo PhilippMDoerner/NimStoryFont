@@ -1,4 +1,5 @@
 import type { TSESLint } from '@typescript-eslint/utils';
-declare const _default: TSESLint.RuleModule<"suggestRemovingNonNull" | "noNonNullOptionalChain", [], import("../../rules").ESLintPluginDocs, TSESLint.RuleListener>;
+declare const _default: TSESLint.RuleModule<"noNonNullOptionalChain" | "suggestRemovingNonNull", [], import("../../rules").ESLintPluginDocs, TSESLint.RuleListener> & {
+    name: string;
+};
 export default _default;
-//# sourceMappingURL=no-non-null-asserted-optional-chain.d.ts.map

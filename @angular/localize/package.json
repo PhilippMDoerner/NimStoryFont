@@ -1,6 +1,6 @@
 {
   "name": "@angular/localize",
-  "version": "20.0.3",
+  "version": "22.1.1",
   "description": "Angular - library for localizing messages",
   "bin": {
     "localize-translate": "./tools/bundles/src/translate/cli.js",
@@ -16,18 +16,18 @@
       "default": "./package.json"
     },
     ".": {
-      "types": "./index.d.ts",
+      "types": "./types/localize.d.ts",
       "default": "./fesm2022/localize.mjs"
     },
     "./init": {
-      "types": "./init/index.d.ts",
+      "types": "./types/init.d.ts",
       "default": "./fesm2022/init.mjs"
     }
   },
   "author": "angular",
   "license": "MIT",
   "engines": {
-    "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
+    "node": "^22.22.3 || ^24.15.0 || >=26.0.0"
   },
   "repository": {
     "type": "git",
@@ -61,16 +61,15 @@
     "./fesm2022/init.mjs"
   ],
   "dependencies": {
-    "@babel/core": "7.27.4",
-    "@types/babel__core": "7.20.5",
+    "@babel/core": "8.0.1",
     "tinyglobby": "^0.2.12",
     "yargs": "^18.0.0"
   },
   "peerDependencies": {
-    "@angular/compiler": "20.0.3",
-    "@angular/compiler-cli": "20.0.3"
+    "@angular/compiler": "22.1.1",
+    "@angular/compiler-cli": "22.1.1"
   },
   "module": "./fesm2022/localize.mjs",
-  "typings": "./index.d.ts",
+  "typings": "./types/localize.d.ts",
   "type": "module"
 }

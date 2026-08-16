@@ -1,15 +1,5 @@
-"use strict";
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.beginHiddenCallStack = beginHiddenCallStack;
-exports.endHiddenCallStack = endHiddenCallStack;
-exports.expectedError = expectedError;
-exports.injectVirtualStackFrame = injectVirtualStackFrame;
-var _Object$getOwnPropert;
 const ErrorToString = Function.call.bind(Error.prototype.toString);
-const SUPPORTED = !!Error.captureStackTrace && ((_Object$getOwnPropert = Object.getOwnPropertyDescriptor(Error, "stackTraceLimit")) == null ? void 0 : _Object$getOwnPropert.writable) === true;
+const SUPPORTED = !!Error.captureStackTrace && Object.getOwnPropertyDescriptor(Error, "stackTraceLimit")?.writable === true;
 const START_HIDING = "startHiding - secret - don't use this - v1";
 const STOP_HIDING = "stopHiding - secret - don't use this - v1";
 const expectedErrors = new WeakSet();
@@ -63,7 +53,7 @@ function setupPrepareStackTrace() {
     prepareStackTrace = defaultPrepareStackTrace
   } = Error;
   const MIN_STACK_TRACE_LIMIT = 50;
-  Error.stackTraceLimit && (Error.stackTraceLimit = Math.max(Error.stackTraceLimit, MIN_STACK_TRACE_LIMIT));
+  Error.stackTraceLimit &&= Math.max(Error.stackTraceLimit, MIN_STACK_TRACE_LIMIT);
   Error.prepareStackTrace = function stackTraceRewriter(err, trace) {
     let newTrace = [];
     const isExpected = expectedErrors.has(err);
@@ -93,6 +83,6 @@ function defaultPrepareStackTrace(err, trace) {
   if (trace.length === 0) return ErrorToString(err);
   return `${ErrorToString(err)}\n    at ${trace.join("\n    at ")}`;
 }
-0 && 0;
 
+export { beginHiddenCallStack, endHiddenCallStack, expectedError, injectVirtualStackFrame };
 //# sourceMappingURL=rewrite-stack-trace.js.map

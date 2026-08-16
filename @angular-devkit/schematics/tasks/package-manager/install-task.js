@@ -57,3 +57,4 @@ class NodePackageInstallTask {
     }
 }
 exports.NodePackageInstallTask = NodePackageInstallTask;
+//# sourceMappingURL=install-task.js.map

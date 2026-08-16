@@ -5,7 +5,8 @@ export type Options = [
         ignoreRestArgs?: boolean;
     }
 ];
-export type MessageIds = 'suggestNever' | 'suggestUnknown' | 'unexpectedAny';
-declare const _default: TSESLint.RuleModule<MessageIds, Options, import("../../rules").ESLintPluginDocs, TSESLint.RuleListener>;
+export type MessageIds = 'suggestNever' | 'suggestPropertyKey' | 'suggestUnknown' | 'unexpectedAny';
+declare const _default: TSESLint.RuleModule<MessageIds, Options, import("../../rules").ESLintPluginDocs, TSESLint.RuleListener> & {
+    name: string;
+};
 export default _default;
-//# sourceMappingURL=no-explicit-any.d.ts.map

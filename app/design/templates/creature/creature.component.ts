@@ -5,13 +5,13 @@ import {
   input,
   output,
 } from '@angular/core';
-import { Creature } from 'src/app/_models/creature';
-import { Image } from 'src/app/_models/image';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { ArticleFooterComponent } from 'src/app/design/molecules';
-import { EditableTextComponent } from 'src/app/design/organisms/editable-text/editable-text.component';
-import { ImageCarouselCardComponent } from 'src/app/design/organisms/image-carousel-card/image-carousel-card.component';
-import { PageContainerComponent } from 'src/app/design/organisms/page-container/page-container.component';
+import { Creature } from '../../../_models/creature';
+import { Image } from '../../../_models/image';
+import { RoutingService } from '../../../_services/routing.service';
+import { ArticleFooterComponent } from '../../../design/molecules';
+import { EditableTextComponent } from '../../../design/organisms/editable-text/editable-text.component';
+import { ImageCarouselCardComponent } from '../../../design/organisms/image-carousel-card/image-carousel-card.component';
+import { PageContainerComponent } from '../../../design/organisms/page-container/page-container.component';
 import { ArticleContextMenuComponent } from '../../molecules/article-context-menu/article-context-menu.component';
 
 @Component({
@@ -28,28 +28,30 @@ import { ArticleContextMenuComponent } from '../../molecules/article-context-men
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CreatureComponent {
-  creature = input.required<Creature>();
-  creatureServerModel = input.required<Creature | undefined>();
-  serverUrl = input.required<string>();
-  canUpdate = input(false);
-  canCreate = input(false);
-  canDelete = input(false);
-  imageServerModel = input<Image>();
+  readonly creature = input.required<Creature>();
+  readonly creatureServerModel = input.required<Creature | undefined>();
+  readonly serverUrl = input.required<string>();
+  readonly canUpdate = input(false);
+  readonly canCreate = input(false);
+  readonly canDelete = input(false);
+  readonly imageServerModel = input<Image>();
 
-  creatureUpdate = output<Creature>();
+  readonly creatureUpdate = output<Creature>();
   readonly creatureDelete = output<Creature>();
   readonly createImage = output<Image>();
   readonly deleteImage = output<Image>();
   readonly updateImage = output<Image>();
 
-  campaignName = computed(() => this.creature().campaign_details?.name);
-  overviewUrl = computed(() =>
+  readonly campaignName = computed(
+    () => this.creature().campaign_details?.name,
+  );
+  readonly overviewUrl = computed(() =>
     this.routingService.getRoutePath('creature-overview', {
       campaign: this.campaignName(),
     }),
   );
 
-  updateUrl = computed(() =>
+  readonly updateUrl = computed(() =>
     this.routingService.getRoutePath('creature-update', {
       campaign: this.campaignName(),
       name: this.creature().name,

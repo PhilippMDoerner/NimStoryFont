@@ -1,6 +1,6 @@
 {
   "name": "@angular/compiler-cli",
-  "version": "20.0.3",
+  "version": "22.1.1",
   "description": "Angular - the compiler CLI for Node.js",
   "typings": "index.d.ts",
   "bin": {
@@ -24,32 +24,28 @@
       "types": "./linker/babel/index.d.ts",
       "default": "./bundles/linker/babel/index.js"
     },
-    "./private/localize": {
-      "types": "./private/localize.d.ts",
-      "default": "./bundles/private/localize.js"
-    },
-    "./private/migrations": {
-      "types": "./private/migrations.d.ts",
-      "default": "./bundles/private/migrations.js"
-    },
-    "./private/tooling": {
-      "types": "./private/tooling.d.ts",
-      "default": "./bundles/private/tooling.js"
+    "./private/*": {
+      "types": "./private/*.d.ts",
+      "default": "./bundles/private/*.js"
     }
   },
   "dependencies": {
-    "@babel/core": "7.27.4",
+    "@babel/core": "8.0.1",
     "@jridgewell/sourcemap-codec": "^1.4.14",
     "reflect-metadata": "^0.2.0",
-    "chokidar": "^4.0.0",
+    "chokidar": "^5.0.0",
     "convert-source-map": "^1.5.1",
     "semver": "^7.0.0",
     "tslib": "^2.3.0",
     "yargs": "^18.0.0"
   },
+  "devDependencies": {
+    "typescript": "6.0.3",
+    "@types/convert-source-map": "^2.0.0"
+  },
   "peerDependencies": {
-    "@angular/compiler": "20.0.3",
-    "typescript": ">=5.8 <5.9"
+    "@angular/compiler": "22.1.1",
+    "typescript": ">=6.0 <6.1"
   },
   "peerDependenciesMeta": {
     "typescript": {
@@ -67,7 +63,7 @@
   ],
   "license": "MIT",
   "engines": {
-    "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
+    "node": "^22.22.3 || ^24.15.0 || >=26.0.0"
   },
   "bugs": {
     "url": "https://github.com/angular/angular/issues"

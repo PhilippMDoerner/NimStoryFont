@@ -32,3 +32,4 @@ function createAngularHeadersMiddleware(server) {
         next();
     };
 }
+//# sourceMappingURL=headers-middleware.js.map

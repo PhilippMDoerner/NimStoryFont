@@ -57,3 +57,4 @@ class JsonWorkspaceMetadata {
     }
 }
 exports.JsonWorkspaceMetadata = JsonWorkspaceMetadata;
+//# sourceMappingURL=metadata.js.map

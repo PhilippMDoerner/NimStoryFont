@@ -5,7 +5,7 @@
       <header class="home__heading-container heading-container">
         <img
           class="heading-container__icon"
-          [ngSrc]="serverUrl() + campaignData()?.icon"
+          [ngSrc]="serverUrl() + $safeNavigationMigration(campaignData()?.icon)"
           [width]="128"
           [height]="128"
           priority

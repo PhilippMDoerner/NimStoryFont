@@ -9,6 +9,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.targetBuildNotFoundError = targetBuildNotFoundError;
 exports.isUsingApplicationBuilder = isUsingApplicationBuilder;
+exports.isZonelessApp = isZonelessApp;
 const schematics_1 = require("@angular-devkit/schematics");
 const workspace_models_1 = require("./workspace-models");
 function targetBuildNotFoundError() {
@@ -19,3 +20,13 @@ function isUsingApplicationBuilder(project) {
     const isUsingApplicationBuilder = buildBuilder === workspace_models_1.Builders.Application || buildBuilder === workspace_models_1.Builders.BuildApplication;
     return isUsingApplicationBuilder;
 }
+function isZonelessApp(project) {
+    const buildTarget = project.targets.get('build');
+    if (!buildTarget?.options?.polyfills) {
+        return true;
+    }
+    const polyfills = buildTarget.options.polyfills;
+    const polyfillsList = Array.isArray(polyfills) ? polyfills : [polyfills];
+    return !polyfillsList.includes('zone.js');
+}
+//# sourceMappingURL=project-targets.js.map

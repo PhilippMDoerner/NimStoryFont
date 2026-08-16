@@ -25,3 +25,4 @@ function supportColor(stream = process.stdout) {
         return process.env['FORCE_COLOR'] !== undefined && process.env['FORCE_COLOR'] !== '0';
     }
 }
+//# sourceMappingURL=color.js.map

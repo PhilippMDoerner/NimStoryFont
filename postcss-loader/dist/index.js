@@ -4,11 +4,11 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.default = loader;
-var _path = _interopRequireDefault(require("path"));
+var _nodePath = _interopRequireDefault(require("node:path"));
 var _package = _interopRequireDefault(require("postcss/package.json"));
 var _options = _interopRequireDefault(require("./options.json"));
 var _utils = require("./utils");
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+function _interopRequireDefault(e) { return e && e.__esModule ? e : { default: e }; }
 let hasExplicitDependencyOnPostCSS = false;
 
 /**
@@ -66,15 +66,12 @@ async function loader(content, sourceMap, meta) {
   let root;
 
   // Reuse PostCSS AST from other loaders
-  if (meta && meta.ast && meta.ast.type === "postcss" &&
-  // eslint-disable-next-line global-require
-  require("semver").satisfies(meta.ast.version, `^${_package.default.version}`)) {
+  if (meta && meta.ast && meta.ast.type === "postcss" && require("semver").satisfies(meta.ast.version, `^${_package.default.version}`)) {
     ({
       root
     } = meta.ast);
   }
   if (!root && options.execute) {
-    // eslint-disable-next-line no-param-reassign
     content = (0, _utils.exec)(content, this);
   }
   let result;
@@ -94,15 +91,15 @@ async function loader(content, sourceMap, meta) {
       if (packageJSONDir) {
         let bufferOfPackageJSON;
         try {
-          bufferOfPackageJSON = this.fs.readFileSync(_path.default.resolve(packageJSONDir, "package.json"), "utf8");
-        } catch (_error) {
+          bufferOfPackageJSON = this.fs.readFileSync(_nodePath.default.resolve(packageJSONDir, "package.json"), "utf8");
+        } catch {
           // Nothing
         }
         if (bufferOfPackageJSON) {
           let pkg;
           try {
             pkg = JSON.parse(bufferOfPackageJSON);
-          } catch (_error) {
+          } catch {
             // Nothing
           }
           if (pkg) {
@@ -126,7 +123,6 @@ async function loader(content, sourceMap, meta) {
     this.emitWarning((0, _utils.warningFactory)(warning));
   }
   for (const message of result.messages) {
-    // eslint-disable-next-line default-case
     switch (message.type) {
       case "dependency":
         this.addDependency(message.file);
@@ -149,8 +145,6 @@ async function loader(content, sourceMap, meta) {
         }
     }
   }
-
-  // eslint-disable-next-line no-undefined
   let map = result.map ? result.map.toJSON() : undefined;
   if (map && useSourceMap) {
     map = (0, _utils.normalizeSourceMapAfterPostcss)(map, this.context);

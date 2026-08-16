@@ -4,17 +4,17 @@ import {
   computed,
   inject,
 } from '@angular/core';
-import { NodeLinkTypeRaw } from 'src/app/_models/graph';
-import { MapMarkerType } from 'src/app/_models/mapMarkerType';
-import { PlayerClass } from 'src/app/_models/playerclass';
-import { ConfigAdministrationPageStore } from 'src/app/administration/pages/config-administration-page/config-administration-page.store';
-import { AuthStore } from 'src/app/auth.store';
-import { ConfigTablesComponent } from 'src/app/design//templates/config-tables/config-tables.component';
+import { NodeLinkTypeRaw } from '../../../_models/graph';
+import { MapMarkerType } from '../../../_models/mapMarkerType';
+import { PlayerClass } from '../../../_models/playerclass';
+import { ConfigAdministrationPageStore } from '../../../administration/pages/config-administration-page/config-administration-page.store';
+import { AuthStore } from '../../../auth.store';
+import { ConfigTablesComponent } from '../../../design//templates/config-tables/config-tables.component';
 import {
   ConfigTableData,
   ConfigTableKind,
-} from 'src/app/design/organisms/_model/config-table';
-import { GlobalStore } from 'src/app/global.store';
+} from '../../../design/organisms/_model/config-table';
+import { GlobalStore } from '../../../global.store';
 
 @Component({
   selector: 'app-campaign-config-administration-page',
@@ -24,11 +24,11 @@ import { GlobalStore } from 'src/app/global.store';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CampaignConfigAdministrationPageComponent {
-  store = inject(ConfigAdministrationPageStore);
-  globalStore = inject(GlobalStore);
-  authStore = inject(AuthStore);
+  readonly store = inject(ConfigAdministrationPageStore);
+  readonly globalStore = inject(GlobalStore);
+  readonly authStore = inject(AuthStore);
 
-  tableData = computed<ConfigTableData>(() => {
+  readonly tableData = computed<ConfigTableData>(() => {
     return {
       MARKER_TYPE: this.store.campaignMarkerTypes(),
       PLAYER_CLASS: this.store.campaignPlayerClasses(),

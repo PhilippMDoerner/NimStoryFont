@@ -4,27 +4,29 @@
 
 "use strict";
 
-/** @typedef {import("./ObjectMiddleware").ObjectDeserializerContext} ObjectDeserializerContext */
-/** @typedef {import("./ObjectMiddleware").ObjectSerializerContext} ObjectSerializerContext */
-
 /** @typedef {EXPECTED_FUNCTION} CacheAssoc */
 
 /**
+ * Defines the shared type used by this module.
  * @template T
  * @typedef {WeakMap<CacheAssoc, ObjectStructure<T>>}
  */
 const cache = new WeakMap();
 
 /**
+ * Represents ObjectStructure.
  * @template T
  */
 class ObjectStructure {
 	constructor() {
+		/** @type {undefined | keyof T[]} */
 		this.keys = undefined;
+		/** @type {undefined | Map<keyof T, ObjectStructure<T>>} */
 		this.children = undefined;
 	}
 
 	/**
+	 * Returns keys.
 	 * @param {keyof T[]} keys keys
 	 * @returns {keyof T[]} keys
 	 */
@@ -34,6 +36,7 @@ class ObjectStructure {
 	}
 
 	/**
+	 * Returns object structure.
 	 * @param {keyof T} key key
 	 * @returns {ObjectStructure<T>} object structure
 	 */
@@ -48,6 +51,7 @@ class ObjectStructure {
 }
 
 /**
+ * Returns keys.
  * @template T
  * @param {(keyof T)[]} keys keys
  * @param {CacheAssoc} cacheAssoc cache assoc fn
@@ -68,9 +72,10 @@ const getCachedKeys = (keys, cacheAssoc) => {
 
 class PlainObjectSerializer {
 	/**
+	 * Serializes this instance into the provided serializer context.
 	 * @template {object} T
 	 * @param {T} obj plain object
-	 * @param {ObjectSerializerContext} context context
+	 * @param {import("./ObjectMiddleware").ObjectSerializerContext<((keyof T)[] | keyof T | null | T[keyof T])[]>} context context
 	 */
 	serialize(obj, context) {
 		const keys = /** @type {(keyof T)[]} */ (Object.keys(obj));
@@ -96,19 +101,24 @@ class PlainObjectSerializer {
 	}
 
 	/**
+	 * Restores this instance from the provided deserializer context.
 	 * @template {object} T
-	 * @param {ObjectDeserializerContext} context context
+	 * @param {import("./ObjectMiddleware").ObjectDeserializerContext<((keyof T)[] | keyof T | null | T[keyof T])[]>} context context
 	 * @returns {T} plain object
 	 */
 	deserialize(context) {
-		const keys = context.read();
+		const keys = /** @type {(keyof T)[] | keyof T | null} */ (context.read());
 		const obj = /** @type {T} */ ({});
 		if (Array.isArray(keys)) {
 			for (const key of keys) {
-				obj[/** @type {keyof T} */ (key)] = context.read();
+				obj[/** @type {keyof T} */ (key)] = /** @type {T[keyof T]} */ (
+					context.read()
+				);
 			}
 		} else if (keys !== null) {
-			obj[/** @type {keyof T} */ (keys)] = context.read();
+			obj[/** @type {keyof T} */ (keys)] = /** @type {T[keyof T]} */ (
+				context.read()
+			);
 		}
 		return obj;
 	}

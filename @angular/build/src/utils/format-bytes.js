@@ -19,3 +19,4 @@ function formatSize(size) {
     const fractionDigits = index === 0 ? 0 : 2;
     return `${roundedSize.toFixed(fractionDigits)} ${abbreviations[index]}`;
 }
+//# sourceMappingURL=format-bytes.js.map

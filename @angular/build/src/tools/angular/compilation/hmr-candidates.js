@@ -267,3 +267,4 @@ function equalRangeText(firstRange, firstSource, secondRange, secondSource) {
     }
     return true;
 }
+//# sourceMappingURL=hmr-candidates.js.map

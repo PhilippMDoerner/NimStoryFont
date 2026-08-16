@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RULE_NAME = void 0;
+exports.RULE_DOCS_EXTENSION = exports.RULE_NAME = void 0;
 const utils_1 = require("@angular-eslint/utils");
 const utils_2 = require("@typescript-eslint/utils");
 const create_eslint_rule_1 = require("../utils/create-eslint-rule");
@@ -96,7 +96,7 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
                     if (value?.type === utils_2.AST_NODE_TYPES.CallExpression) {
                         const callee = value.callee;
                         // A `WritableSignal` can be turned into a `Signal` using
-                        // the `.asReadonly()` method. If that method is being,
+                        // the `.asReadonly()` method. If that method is being
                         // called, then we need to look at the object that the method
                         // is called on to determine if it's being called on a `Signal`.
                         if (callee.type === utils_2.AST_NODE_TYPES.MemberExpression) {
@@ -169,3 +169,6 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
         return listener;
     },
 });
+exports.RULE_DOCS_EXTENSION = {
+    rationale: "Angular signals represent the future of reactivity in Angular, offering fine-grained change detection, better performance, and improved developer experience. Signal-based APIs like input(), viewChild(), and contentChild() provide type-safe, reactive properties that integrate seamlessly with computed values and effects. Unlike decorator-based APIs (@Input(), @ViewChild(), etc.), signals enable more granular tracking of dependencies and updates, allowing Angular to optimize change detection. Signal properties should be marked readonly because signals themselves are stable references - you read their value by calling them, you don't reassign the signal. This prevents bugs where developers might accidentally reassign a signal instead of updating its value. Using signals throughout your components creates a consistent, reactive programming model that makes data flow explicit and easier to understand.",
+};

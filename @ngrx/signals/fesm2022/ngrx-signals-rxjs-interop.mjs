@@ -1,8 +1,47 @@
-import { assertInInjectionContext, inject, Injector, DestroyRef, isSignal, effect, untracked } from '@angular/core';
+import { assertInInjectionContext, inject, Injector, DestroyRef, effect, untracked } from '@angular/core';
 import { Subject, noop, isObservable } from 'rxjs';
 
+/**
+ * @description
+ *
+ * Creates a reactive method for managing side effects by utilizing RxJS APIs.
+ * The method accepts an observable, a signal, a computation function, or
+ * a static value.
+ *
+ * @usageNotes
+ *
+ * ```ts
+ * import { Component, inject, signal } from '@angular/core';
+ * import { switchMap } from 'rxjs';
+ * import { rxMethod } from '@ngrx/signals/rxjs-interop';
+ * import { tapResponse } from '@ngrx/operators';
+ *
+ * \@Component(...)
+ * export class TodoList {
+ *   readonly #todosService = inject(TodosService);
+ *   readonly userId = signal(1);
+ *   readonly todos = signal<Todo[]>([]);
+ *
+ *   readonly loadTodos = rxMethod<number>(
+ *     switchMap((id) =>
+ *       this.#todosService.getByUserId(id).pipe(
+ *         tapResponse({
+ *           next: (todos) => this.todos.set(todos),
+ *           error: console.error,
+ *         })
+ *       )
+ *     )
+ *   );
+ *
+ *   constructor() {
+ *     // 👇 Load todos on `userId` changes.
+ *     this.loadTodos(this.userId);
+ *   }
+ * }
+ * ```
+ */
 function rxMethod(generator, config) {
-    if (!config?.injector) {
+    if (typeof ngDevMode !== 'undefined' && ngDevMode && !config?.injector) {
         assertInInjectionContext(rxMethod);
     }
     const sourceInjector = config?.injector ?? inject(Injector);
@@ -19,14 +58,14 @@ function rxMethod(generator, config) {
             ngDevMode &&
             config?.injector === undefined &&
             callerInjector === undefined) {
-            console.warn('@ngrx/signals/rxjs-interop: The reactive method was called outside', 'the injection context with a signal or observable. This may lead to', 'a memory leak. Make sure to call it within the injection context', '(e.g. in a constructor or field initializer) or pass an injector', 'explicitly via the config parameter.\n\nFor more information, see:', 'https://ngrx.io/guide/signals/rxjs-integration#reactive-methods-and-injector-hierarchies');
+            console.warn('@ngrx/signals/rxjs-interop: Calling a reactive method outside of', 'an injection context with a signal or observable is deprecated.', 'In a future version, this will throw an error.', 'Either call it within an injection context', '(e.g. in a constructor or field initializer) or pass an injector', 'explicitly via the config parameter.\n\nFor more information, see:', 'https://ngrx.io/guide/signals/rxjs-integration#reactive-methods-and-injector-hierarchies');
         }
         const instanceInjector = config?.injector ?? callerInjector ?? sourceInjector;
-        if (isSignal(input)) {
+        if (typeof input === 'function') {
             const watcher = effect(() => {
                 const value = input();
                 untracked(() => source$.next(value));
-            }, { injector: instanceInjector });
+            }, { ...(ngDevMode ? { debugName: "watcher" } : {}), injector: instanceInjector });
             sourceSub.add({ unsubscribe: () => watcher.destroy() });
             return watcher;
         }
@@ -43,7 +82,7 @@ function rxMethod(generator, config) {
     return rxMethodFn;
 }
 function isStatic(value) {
-    return !isSignal(value) && !isObservable(value);
+    return typeof value !== 'function' && !isObservable(value);
 }
 function getCallerInjector() {
     try {

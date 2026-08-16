@@ -57,3 +57,4 @@ class NodeModuleJobRegistry {
     }
 }
 exports.NodeModuleJobRegistry = NodeModuleJobRegistry;
+//# sourceMappingURL=job-registry.js.map

@@ -51,3 +51,4 @@ var architect_1 = require("./architect");
 Object.defineProperty(exports, "Architect", { enumerable: true, get: function () { return architect_1.Architect; } });
 var create_builder_1 = require("./create-builder");
 Object.defineProperty(exports, "createBuilder", { enumerable: true, get: function () { return create_builder_1.createBuilder; } });
+//# sourceMappingURL=index.js.map

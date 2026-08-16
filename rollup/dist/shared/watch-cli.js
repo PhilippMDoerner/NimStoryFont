@@ -1,7 +1,7 @@
 /*
   @license
-	Rollup.js v4.40.2
-	Tue, 06 May 2025 07:26:21 GMT - commit 02da7efedcf373f0f819b78e3acbe50de05d9a5b
+	Rollup.js v4.62.4
+	Sat, 01 Aug 2026 05:20:25 GMT - commit ddc4ffab628944e45dbb8d66d58aae818015440f
 
 	https://github.com/rollup/rollup
 
@@ -15,14 +15,14 @@ const index = require('./index.js');
 const promises = require('node:fs/promises');
 const process$2 = require('node:process');
 const cli = require('../bin/rollup');
+const rollup_js = require('../rollup.js');
 const rollup = require('./rollup.js');
 const parseAst_js = require('./parseAst.js');
 const loadConfigFile_js = require('./loadConfigFile.js');
 const node_child_process = require('node:child_process');
-const rollup_js = require('../rollup.js');
 require('path');
-require('util');
 require('fs');
+require('util');
 require('stream');
 require('os');
 require('./fsevents-importer.js');
@@ -478,7 +478,7 @@ async function watch(command) {
                         if (!resetScreen) {
                             resetScreen = getResetScreen(configs, isTTY);
                         }
-                        resetScreen(rollup.underline(`rollup v${rollup.version}`));
+                        resetScreen(rollup.underline(`rollup v${rollup_js.VERSION}`));
                     }
                     runWatchHook('onStart');
                     break;

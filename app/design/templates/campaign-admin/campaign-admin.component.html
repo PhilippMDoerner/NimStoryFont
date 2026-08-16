@@ -241,13 +241,13 @@
             <div class="user-group__add-user">
               <!-- Form -->
 
-              @if (showResponseForm) {
+              @if (showResponseForm()) {
                 <app-form
                   [model]="responseModel"
                   [fields]="responseFormlyFields"
                   [cancelButtonType]="'DARK'"
                   (formlySubmit)="onAddResponse(responseModel)"
-                  (formlyCancel)="showResponseForm = false"
+                  (formlyCancel)="showResponseForm.set(false)"
                 ></app-form>
               } @else {
                 <ng-container *ngTemplateOutlet="addResponseButton" />

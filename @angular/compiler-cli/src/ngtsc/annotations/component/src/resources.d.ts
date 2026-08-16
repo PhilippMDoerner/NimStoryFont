@@ -5,7 +5,7 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.dev/license
  */
-import { InterpolationConfig, ParsedTemplate, ParseSourceFile, TmplAstNode } from '@angular/compiler';
+import { ParsedTemplate, ParseSourceFile, TmplAstNode } from '@angular/compiler';
 import ts from 'typescript';
 import { FatalDiagnosticError } from '../../../diagnostics';
 import { DependencyTracker } from '../../../incremental/api';
@@ -66,7 +66,6 @@ export interface ParsedTemplateWithSource extends ParsedComponentTemplate {
  */
 interface CommonTemplateDeclaration {
     preserveWhitespaces: boolean;
-    interpolationConfig: InterpolationConfig;
     templateUrl: string;
     resolvedTemplateUrl: string;
 }

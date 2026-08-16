@@ -8,9 +8,9 @@
 const util = require("util");
 const SortableSet = require("./util/SortableSet");
 const {
-	compareLocations,
 	compareChunks,
-	compareIterables
+	compareIterables,
+	compareLocations
 } = require("./util/comparators");
 
 /** @typedef {import("./AsyncDependenciesBlock")} AsyncDependenciesBlock */
@@ -21,13 +21,16 @@ const {
 /** @typedef {import("./Module")} Module */
 /** @typedef {import("./ModuleGraph")} ModuleGraph */
 
-/** @typedef {{id: number}} HasId */
-/** @typedef {{module: Module | null, loc: DependencyLocation, request: string}} OriginRecord */
+/** @typedef {{ module: Module | null, loc: DependencyLocation, request: string }} OriginRecord */
 
 /**
+ * Describes the scheduling hints that can be attached to a chunk group.
+ * These values influence how child groups are ordered for preload/prefetch
+ * and how their fetch priority is exposed to runtime code.
  * @typedef {object} RawChunkGroupOptions
  * @property {number=} preloadOrder
  * @property {number=} prefetchOrder
+ * @property {number=} cssPreloadOrder preload only the chunk's CSS (`as="style"`), not its JS
  * @property {("low" | "high" | "auto")=} fetchPriority
  */
 
@@ -36,17 +39,19 @@ const {
 let debugId = 5000;
 
 /**
+ * Materializes a sortable set as an array without changing its current order.
+ * Used with `SortableSet` caches that expect a stable array result.
  * @template T
  * @param {SortableSet<T>} set set to convert to array.
  * @returns {T[]} the array format of existing set
  */
-const getArray = set => Array.from(set);
+const getArray = (set) => [...set];
 
 /**
  * A convenience method used to sort chunks based on their id's
  * @param {ChunkGroup} a first sorting comparator
  * @param {ChunkGroup} b second sorting comparator
- * @returns {1|0|-1} a sorting index to determine order
+ * @returns {1 | 0 | -1} a sorting index to determine order
  */
 const sortById = (a, b) => {
 	if (a.id < b.id) return -1;
@@ -55,9 +60,11 @@ const sortById = (a, b) => {
 };
 
 /**
+ * Orders origin records by referencing module and then by source location.
+ * This keeps origin metadata deterministic for hashing and diagnostics.
  * @param {OriginRecord} a the first comparator in sort
  * @param {OriginRecord} b the second comparator in sort
- * @returns {1|-1|0} returns sorting order as index
+ * @returns {1 | -1 | 0} returns sorting order as index
  */
 const sortOrigin = (a, b) => {
 	const aIdent = a.module ? a.module.identifier() : "";
@@ -67,9 +74,14 @@ const sortOrigin = (a, b) => {
 	return compareLocations(a.loc, b.loc);
 };
 
+/**
+ * Represents a connected group of chunks along with the parent/child
+ * relationships, async blocks, and traversal metadata webpack tracks for it.
+ */
 class ChunkGroup {
 	/**
-	 * Creates an instance of ChunkGroup.
+	 * Creates a chunk group and initializes the relationship sets and ordering
+	 * metadata used while building and optimizing the chunk graph.
 	 * @param {string | ChunkGroupOptions=} options chunk group options passed to chunkGroup
 	 */
 	constructor(options) {
@@ -80,28 +92,33 @@ class ChunkGroup {
 		}
 		/** @type {number} */
 		this.groupDebugId = debugId++;
-		this.options = /** @type {ChunkGroupOptions} */ (options);
+		/** @type {ChunkGroupOptions} */
+		this.options = options;
 		/** @type {SortableSet<ChunkGroup>} */
 		this._children = new SortableSet(undefined, sortById);
 		/** @type {SortableSet<ChunkGroup>} */
 		this._parents = new SortableSet(undefined, sortById);
 		/** @type {SortableSet<ChunkGroup>} */
 		this._asyncEntrypoints = new SortableSet(undefined, sortById);
+		/** @type {SortableSet<AsyncDependenciesBlock>} */
 		this._blocks = new SortableSet();
 		/** @type {Chunk[]} */
 		this.chunks = [];
 		/** @type {OriginRecord[]} */
 		this.origins = [];
+
+		/** @typedef {Map<Module, number>} OrderIndices */
+
 		/** Indices in top-down order */
 		/**
 		 * @private
-		 * @type {Map<Module, number>}
+		 * @type {OrderIndices}
 		 */
 		this._modulePreOrderIndices = new Map();
 		/** Indices in bottom-up order */
 		/**
 		 * @private
-		 * @type {Map<Module, number>}
+		 * @type {OrderIndices}
 		 */
 		this._modulePostOrderIndices = new Map();
 		/** @type {number | undefined} */
@@ -109,18 +126,19 @@ class ChunkGroup {
 	}
 
 	/**
-	 * when a new chunk is added to a chunkGroup, addingOptions will occur.
+	 * Merges additional options into the chunk group.
+	 * Order-based options are combined by taking the higher priority, while
+	 * unsupported conflicts surface as an explicit error.
 	 * @param {ChunkGroupOptions} options the chunkGroup options passed to addOptions
 	 * @returns {void}
 	 */
 	addOptions(options) {
-		for (const _key of Object.keys(options)) {
-			const key =
-				/** @type {keyof ChunkGroupOptions} */
-				(_key);
+		for (const key of /** @type {(keyof ChunkGroupOptions)[]} */ (
+			Object.keys(options)
+		)) {
 			if (this.options[key] === undefined) {
-				/** @type {EXPECTED_ANY} */
-				(this.options)[key] = options[key];
+				/** @type {ChunkGroupOptions[keyof ChunkGroupOptions]} */
+				(this.options[key]) = options[key];
 			} else if (this.options[key] !== options[key]) {
 				if (key.endsWith("Order")) {
 					const orderKey =
@@ -143,15 +161,15 @@ class ChunkGroup {
 	}
 
 	/**
-	 * returns the name of current ChunkGroup
-	 * @returns {string | null | undefined} returns the ChunkGroup name
+	 * Returns the configured name of the chunk group, if one was assigned.
+	 * @returns {ChunkGroupOptions["name"]} returns the ChunkGroup name
 	 */
 	get name() {
 		return this.options.name;
 	}
 
 	/**
-	 * sets a new name for current ChunkGroup
+	 * Updates the configured name of the chunk group.
 	 * @param {string | undefined} value the new name for ChunkGroup
 	 * @returns {void}
 	 */
@@ -161,23 +179,26 @@ class ChunkGroup {
 
 	/* istanbul ignore next */
 	/**
-	 * get a uniqueId for ChunkGroup, made up of its member Chunk debugId's
+	 * Returns a debug-only identifier derived from the group's member chunk
+	 * debug ids. This is primarily useful in diagnostics and assertions.
 	 * @returns {string} a unique concatenation of chunk debugId's
 	 */
 	get debugId() {
-		return Array.from(this.chunks, x => x.debugId).join("+");
+		return Array.from(this.chunks, (x) => x.debugId).join("+");
 	}
 
 	/**
-	 * get a unique id for ChunkGroup, made up of its member Chunk id's
+	 * Returns an identifier derived from the ids of the chunks currently in
+	 * the group.
 	 * @returns {string} a unique concatenation of chunk ids
 	 */
 	get id() {
-		return Array.from(this.chunks, x => x.id).join("+");
+		return Array.from(this.chunks, (x) => x.id).join("+");
 	}
 
 	/**
-	 * Performs an unshift of a specific chunk
+	 * Moves a chunk to the front of the group or inserts it when it is not
+	 * already present.
 	 * @param {Chunk} chunk chunk being unshifted
 	 * @returns {boolean} returns true if attempted chunk shift is accepted
 	 */
@@ -194,7 +215,8 @@ class ChunkGroup {
 	}
 
 	/**
-	 * inserts a chunk before another existing chunk in group
+	 * Inserts a chunk directly before another chunk that already belongs to the
+	 * group, preserving the rest of the ordering.
 	 * @param {Chunk} chunk Chunk being inserted
 	 * @param {Chunk} before Placeholder/target chunk marking new chunk insertion point
 	 * @returns {boolean} return true if insertion was successful
@@ -216,7 +238,7 @@ class ChunkGroup {
 	}
 
 	/**
-	 * add a chunk into ChunkGroup. Is pushed on or prepended
+	 * Appends a chunk to the group when it is not already a member.
 	 * @param {Chunk} chunk chunk being pushed into ChunkGroupS
 	 * @returns {boolean} returns true if chunk addition was successful.
 	 */
@@ -230,6 +252,8 @@ class ChunkGroup {
 	}
 
 	/**
+	 * Replaces one member chunk with another while preserving the group's
+	 * ordering and avoiding duplicates.
 	 * @param {Chunk} oldChunk chunk to be replaced
 	 * @param {Chunk} newChunk New chunk that will be replaced with
 	 * @returns {boolean | undefined} returns true if the replacement was successful
@@ -253,6 +277,7 @@ class ChunkGroup {
 	}
 
 	/**
+	 * Removes a chunk from this group.
 	 * @param {Chunk} chunk chunk to remove
 	 * @returns {boolean} returns true if chunk was removed
 	 */
@@ -266,6 +291,8 @@ class ChunkGroup {
 	}
 
 	/**
+	 * Indicates whether this chunk group is loaded as part of the initial page
+	 * load instead of being created lazily.
 	 * @returns {boolean} true, when this chunk group will be loaded on initial page load
 	 */
 	isInitial() {
@@ -273,6 +300,7 @@ class ChunkGroup {
 	}
 
 	/**
+	 * Adds a child chunk group to the current group.
 	 * @param {ChunkGroup} group chunk group to add
 	 * @returns {boolean} returns true if chunk group was added
 	 */
@@ -283,6 +311,7 @@ class ChunkGroup {
 	}
 
 	/**
+	 * Returns the child chunk groups reachable from this group.
 	 * @returns {ChunkGroup[]} returns the children of this group
 	 */
 	getChildren() {
@@ -298,6 +327,8 @@ class ChunkGroup {
 	}
 
 	/**
+	 * Removes a child chunk group and clears the corresponding parent link on
+	 * the removed child.
 	 * @param {ChunkGroup} group the chunk group to remove
 	 * @returns {boolean} returns true if the chunk group was removed
 	 */
@@ -312,6 +343,7 @@ class ChunkGroup {
 	}
 
 	/**
+	 * Records a parent chunk group relationship.
 	 * @param {ChunkGroup} parentChunk the parent group to be added into
 	 * @returns {boolean} returns true if this chunk group was added to the parent group
 	 */
@@ -324,6 +356,7 @@ class ChunkGroup {
 	}
 
 	/**
+	 * Returns the parent chunk groups that can lead to this group.
 	 * @returns {ChunkGroup[]} returns the parents of this group
 	 */
 	getParents() {
@@ -335,6 +368,7 @@ class ChunkGroup {
 	}
 
 	/**
+	 * Checks whether the provided group is registered as a parent.
 	 * @param {ChunkGroup} parent the parent group
 	 * @returns {boolean} returns true if the parent group contains this group
 	 */
@@ -347,6 +381,7 @@ class ChunkGroup {
 	}
 
 	/**
+	 * Removes a parent chunk group and clears the reverse child relationship.
 	 * @param {ChunkGroup} chunkGroup the parent group
 	 * @returns {boolean} returns true if this group has been removed from the parent
 	 */
@@ -359,6 +394,7 @@ class ChunkGroup {
 	}
 
 	/**
+	 * Registers an async entrypoint that is rooted in this chunk group.
 	 * @param {Entrypoint} entrypoint entrypoint to add
 	 * @returns {boolean} returns true if entrypoint was added
 	 */
@@ -373,7 +409,8 @@ class ChunkGroup {
 	}
 
 	/**
-	 * @returns {Array<AsyncDependenciesBlock>} an array containing the blocks
+	 * Returns the async dependency blocks that create or reference this group.
+	 * @returns {AsyncDependenciesBlock[]} an array containing the blocks
 	 */
 	getBlocks() {
 		return this._blocks.getFromCache(getArray);
@@ -384,6 +421,7 @@ class ChunkGroup {
 	}
 
 	/**
+	 * Checks whether an async dependency block is associated with this group.
 	 * @param {AsyncDependenciesBlock} block block
 	 * @returns {boolean} true, if block exists
 	 */
@@ -392,6 +430,7 @@ class ChunkGroup {
 	}
 
 	/**
+	 * Exposes the group's async dependency blocks as an iterable.
 	 * @returns {Iterable<AsyncDependenciesBlock>} blocks
 	 */
 	get blocksIterable() {
@@ -399,6 +438,7 @@ class ChunkGroup {
 	}
 
 	/**
+	 * Associates an async dependency block with this chunk group.
 	 * @param {AsyncDependenciesBlock} block a block
 	 * @returns {boolean} false, if block was already added
 	 */
@@ -411,6 +451,8 @@ class ChunkGroup {
 	}
 
 	/**
+	 * Records where this chunk group originated from in user code.
+	 * The origin is used for diagnostics, ordering, and reporting.
 	 * @param {Module | null} module origin module
 	 * @param {DependencyLocation} loc location of the reference in the origin module
 	 * @param {string} request request name of the reference
@@ -425,9 +467,11 @@ class ChunkGroup {
 	}
 
 	/**
+	 * Collects the emitted files produced by every chunk in the group.
 	 * @returns {string[]} the files contained this chunk group
 	 */
 	getFiles() {
+		/** @type {Set<string>} */
 		const files = new Set();
 
 		for (const chunk of this.chunks) {
@@ -436,10 +480,13 @@ class ChunkGroup {
 			}
 		}
 
-		return Array.from(files);
+		return [...files];
 	}
 
 	/**
+	 * Disconnects this group from its parents, children, and chunks.
+	 * Child groups are reconnected to this group's parents so the surrounding
+	 * graph remains intact after removal.
 	 * @returns {void}
 	 */
 	remove() {
@@ -487,7 +534,7 @@ class ChunkGroup {
 	 * Sorting values are based off of number of chunks in ChunkGroup.
 	 * @param {ChunkGraph} chunkGraph the chunk graph
 	 * @param {ChunkGroup} otherGroup the chunkGroup to compare this against
-	 * @returns {-1|0|1} sort position for comparison
+	 * @returns {-1 | 0 | 1} sort position for comparison
 	 */
 	compareTo(chunkGraph, otherGroup) {
 		if (this.chunks.length > otherGroup.chunks.length) return -1;
@@ -499,30 +546,74 @@ class ChunkGroup {
 	}
 
 	/**
+	 * Aggregates per-block `*Order` options for the blocks that bridge this
+	 * chunk group to the given child chunk group. `*Order` options are tied to
+	 * the originating `import()` call and must not be sourced from the child's
+	 * shared options, otherwise a webpackPrefetch/Preload directive from one
+	 * parent would leak into other parents that share the child by name.
+	 * @param {ChunkGroup} childGroup the child chunk group
+	 * @param {ChunkGraph} chunkGraph the chunk graph
+	 * @returns {Record<string, number>} merged `*Order` options for the edge from this group to `childGroup`
+	 */
+	getChildOrderOptions(childGroup, chunkGraph) {
+		/** @type {Record<string, number>} */
+		const result = Object.create(null);
+		let bridged = false;
+		for (const block of childGroup.blocksIterable) {
+			const rootModule = /** @type {Module} */ (block.getRootBlock());
+			if (!chunkGraph.isModuleInChunkGroup(rootModule, this)) continue;
+			bridged = true;
+			const opts = block.groupOptions;
+			if (!opts) continue;
+			for (const key of Object.keys(opts)) {
+				if (!key.endsWith("Order")) continue;
+				const value =
+					/** @type {number} */
+					(opts[/** @type {keyof ChunkGroupOptions} */ (key)]);
+				if (typeof value !== "number") continue;
+				if (result[key] === undefined || value > result[key]) {
+					result[key] = value;
+				}
+			}
+		}
+		// Fall back to the child's own options only when no block bridges
+		// this edge (e.g. a chunk group created by APIs that don't go through
+		// an AsyncDependenciesBlock). Otherwise we'd reintroduce the leak.
+		if (!bridged) {
+			for (const key of Object.keys(childGroup.options)) {
+				if (!key.endsWith("Order")) continue;
+				const value =
+					childGroup.options[/** @type {keyof ChunkGroupOptions} */ (key)];
+				if (typeof value === "number") {
+					result[key] = value;
+				}
+			}
+		}
+		return result;
+	}
+
+	/**
+	 * Groups child chunk groups by their `*Order` options and sorts each group
+	 * by descending order and deterministic chunk-group comparison.
 	 * @param {ModuleGraph} moduleGraph the module graph
 	 * @param {ChunkGraph} chunkGraph the chunk graph
 	 * @returns {Record<string, ChunkGroup[]>} mapping from children type to ordered list of ChunkGroups
 	 */
 	getChildrenByOrders(moduleGraph, chunkGraph) {
-		/** @type {Map<string, {order: number, group: ChunkGroup}[]>} */
+		/** @type {Map<string, { order: number, group: ChunkGroup }[]>} */
 		const lists = new Map();
 		for (const childGroup of this._children) {
-			for (const key of Object.keys(childGroup.options)) {
-				if (key.endsWith("Order")) {
-					const name = key.slice(0, key.length - "Order".length);
-					let list = lists.get(name);
-					if (list === undefined) {
-						lists.set(name, (list = []));
-					}
-					list.push({
-						order:
-							/** @type {number} */
-							(
-								childGroup.options[/** @type {keyof ChunkGroupOptions} */ (key)]
-							),
-						group: childGroup
-					});
+			const edgeOptions = this.getChildOrderOptions(childGroup, chunkGraph);
+			for (const key of Object.keys(edgeOptions)) {
+				const name = key.slice(0, key.length - "Order".length);
+				let list = lists.get(name);
+				if (list === undefined) {
+					lists.set(name, (list = []));
 				}
+				list.push({
+					order: edgeOptions[key],
+					group: childGroup
+				});
 			}
 		}
 		/** @type {Record<string, ChunkGroup[]>} */
@@ -533,13 +624,13 @@ class ChunkGroup {
 				if (cmp !== 0) return cmp;
 				return a.group.compareTo(chunkGraph, b.group);
 			});
-			result[name] = list.map(i => i.group);
+			result[name] = list.map((i) => i.group);
 		}
 		return result;
 	}
 
 	/**
-	 * Sets the top-down index of a module in this ChunkGroup
+	 * Stores the module's top-down traversal index within this group.
 	 * @param {Module} module module for which the index should be set
 	 * @param {number} index the index of the module
 	 * @returns {void}
@@ -549,7 +640,7 @@ class ChunkGroup {
 	}
 
 	/**
-	 * Gets the top-down index of a module in this ChunkGroup
+	 * Returns the module's top-down traversal index within this group.
 	 * @param {Module} module the module
 	 * @returns {number | undefined} index
 	 */
@@ -558,7 +649,7 @@ class ChunkGroup {
 	}
 
 	/**
-	 * Sets the bottom-up index of a module in this ChunkGroup
+	 * Stores the module's bottom-up traversal index within this group.
 	 * @param {Module} module module for which the index should be set
 	 * @param {number} index the index of the module
 	 * @returns {void}
@@ -568,7 +659,7 @@ class ChunkGroup {
 	}
 
 	/**
-	 * Gets the bottom-up index of a module in this ChunkGroup
+	 * Returns the module's bottom-up traversal index within this group.
 	 * @param {Module} module the module
 	 * @returns {number | undefined} index
 	 */

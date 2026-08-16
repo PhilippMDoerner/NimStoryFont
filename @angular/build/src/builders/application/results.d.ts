@@ -5,7 +5,7 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.dev/license
  */
-import { BuildOutputFileType } from '../../tools/esbuild/bundler-context';
+import { BuildOutputFileType } from '../../tools/esbuild/bundler-files';
 export declare enum ResultKind {
     Failure = 0,
     Full = 1,

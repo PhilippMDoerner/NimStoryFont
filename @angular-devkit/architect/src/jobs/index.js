@@ -53,3 +53,4 @@ __exportStar(require("./dispatcher"), exports);
 __exportStar(require("./fallback-registry"), exports);
 __exportStar(require("./simple-registry"), exports);
 __exportStar(require("./simple-scheduler"), exports);
+//# sourceMappingURL=index.js.map

@@ -5,7 +5,7 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.dev/license
  */
-import { Rule } from '@angular-devkit/schematics';
+import { Rule, Tree } from '@angular-devkit/schematics';
 /**
  * An enum used to specify the type of a dependency found within a package manifest
  * file (`package.json`).
@@ -56,6 +56,32 @@ export declare enum ExistingBehavior {
     Replace = 1
 }
 /**
+ * Represents a dependency found in a package manifest.
+ */
+export interface Dependency {
+    /**
+     * The type of the dependency.
+     */
+    type: DependencyType;
+    /**
+     * The name of the package.
+     */
+    name: string;
+    /**
+     * The version specifier of the package.
+     */
+    version: string;
+}
+/**
+ * Gets information about a dependency from a `package.json` file.
+ *
+ * @param tree The schematic's virtual file system representation.
+ * @param name The name of the package to check.
+ * @param packageJsonPath The path to the `package.json` file. Defaults to `/package.json`.
+ * @returns An object containing the dependency's type and version, or null if not found.
+ */
+export declare function getDependency(tree: Tree, name: string, packageJsonPath?: string): Dependency | null;
+/**
  * Adds a package as a dependency to a `package.json`. By default the `package.json` located
  * at the schematic's root will be used. The `manifestPath` option can be used to explicitly specify
  * a `package.json` in different location. The type of the dependency can also be specified instead
@@ -93,4 +119,24 @@ export declare function addDependency(name: string, specifier: string, options?:
      * Defaults to {@link ExistingBehavior.Replace}.
      */
     existing?: ExistingBehavior;
+}): Rule;
+/**
+ * Removes a package from the package.json in the project root.
+ *
+ * @param name The name of the package to remove.
+ * @param options An optional object that can contain a path of a manifest file to modify.
+ * @returns A Schematics {@link Rule}
+ */
+export declare function removeDependency(name: string, options?: {
+    /**
+     * The path of the package manifest file (`package.json`) that will be modified.
+     * Defaults to `/package.json`.
+     */
+    packageJsonPath?: string;
+    /**
+     * The dependency installation behavior to use to determine whether a
+     * {@link NodePackageInstallTask} should be scheduled after removing the dependency.
+     * Defaults to {@link InstallBehavior.Auto}.
+     */
+    install?: InstallBehavior;
 }): Rule;

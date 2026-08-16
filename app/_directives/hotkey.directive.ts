@@ -22,9 +22,9 @@ import {
   switchMap,
   withLatestFrom,
 } from 'rxjs';
-import { debugLog } from 'src/utils/rxjs-operators';
+import { debugLog } from '../../utils/rxjs-operators';
 import { encodeKeyCombination } from '../_functions/keyMapper';
-import { ShortcutAction } from '../_models/hotkey';
+import { HotkeyAction } from '../_models/hotkey';
 import { HotkeyService, WatchOptions } from '../_services/hotkey.service';
 import { ScreenService } from '../_services/screen.service';
 
@@ -41,22 +41,22 @@ type DirectiveWatchOptions = Omit<WatchOptions, 'eventSource'> & {
   },
 })
 export class HotkeyDirective {
-  private tooltip = inject(NgbTooltip);
-  private hotkeyService = inject(HotkeyService);
-  private modalService = inject(NgbModal);
-  public element = inject(ElementRef<HTMLElement>);
+  private readonly tooltip = inject(NgbTooltip);
+  private readonly hotkeyService = inject(HotkeyService);
+  private readonly modalService = inject(NgbModal);
+  public readonly element = inject(ElementRef<HTMLElement>);
 
-  hotkeyAction = input.required<ShortcutAction | undefined>();
-  watchOptions = input<DirectiveWatchOptions>({
+  readonly hotkeyAction = input.required<HotkeyAction | undefined>();
+  readonly watchOptions = input<DirectiveWatchOptions>({
     isModalAction: false,
     suppressEvent: false,
   });
-  actionDisabled = input<boolean>(false);
-  description = input<string>();
+  readonly actionDisabled = input<boolean>(false);
+  readonly description = input<string>();
 
-  actionTriggered = output<{ host: HTMLElement }>();
+  readonly actionTriggered = output<{ host: HTMLElement }>();
 
-  private watchOptions$ = toObservable(this.watchOptions).pipe(
+  private readonly watchOptions$ = toObservable(this.watchOptions).pipe(
     map(
       (options) =>
         ({
@@ -69,13 +69,13 @@ export class HotkeyDirective {
         }) as WatchOptions,
     ),
   );
-  private hotkeyCombination$ = toObservable(this.hotkeyAction).pipe(
+  private readonly hotkeyCombination$ = toObservable(this.hotkeyAction).pipe(
     switchMap((action) => {
       if (!action) return of(undefined);
       return this.hotkeyService.getKeySequence(action);
     }),
   );
-  ariaShortcutText = toSignal(
+  readonly ariaShortcutText = toSignal(
     combineLatest({
       combo: this.hotkeyCombination$,
       watchOptions: this.watchOptions$,
@@ -88,9 +88,9 @@ export class HotkeyDirective {
       }),
     ),
   );
-  private hotkeyCombination = toSignal(this.hotkeyCombination$);
+  private readonly hotkeyCombination = toSignal(this.hotkeyCombination$);
 
-  private tooltipText = computed(() => {
+  private readonly tooltipText = computed(() => {
     const hotkeyCombo = this.hotkeyCombination();
     if (!hotkeyCombo) return undefined;
 

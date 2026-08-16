@@ -2,10 +2,10 @@ import { inject } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { ActivatedRouteSnapshot, CanActivateFn } from '@angular/router';
 import { map } from 'rxjs';
-import { CampaignRole } from 'src/app/_models/token';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { log } from 'src/utils/logging';
-import { filterNil } from 'src/utils/rxjs-operators';
+import { CampaignRole } from '../../app/_models/token';
+import { RoutingService } from '../../app/_services/routing.service';
+import { log } from '../../utils/logging';
+import { filterNil } from '../../utils/rxjs-operators';
 import { AuthStore } from '../auth.store';
 
 export const campaignGuard: CanActivateFn = (next: ActivatedRouteSnapshot) => {

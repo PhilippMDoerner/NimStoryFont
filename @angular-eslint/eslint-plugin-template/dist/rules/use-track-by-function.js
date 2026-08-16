@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RULE_NAME = void 0;
+exports.RULE_DOCS_EXTENSION = exports.RULE_NAME = void 0;
 const utils_1 = require("@angular-eslint/utils");
 const create_eslint_rule_1 = require("../utils/create-eslint-rule");
 exports.RULE_NAME = 'use-track-by-function';
@@ -74,3 +74,6 @@ function isNgForTrackByFactory(alias) {
     const names = [...alias, DEFAULT_NG_FOR_TRACK_BY_ATTRIBUTE_NAME];
     return (attribute) => names.includes(attribute.name);
 }
+exports.RULE_DOCS_EXTENSION = {
+    rationale: "When using *ngFor to render lists, Angular needs to track which items are added, removed, or moved to efficiently update the DOM. Without a trackBy function, Angular tracks items by object identity, meaning any change to the array (like sorting, filtering, or fetching fresh data from an API) causes Angular to destroy and recreate all DOM elements, even for items that haven't changed. This is inefficient and causes problems like: (1) poor performance with large lists, (2) loss of component state (like form input values), and (3) loss of CSS animations or focus. A trackBy function tells Angular how to identify unique items (usually by an id property), allowing Angular to reuse DOM elements for unchanged items. Use trackBy for all lists, especially those that update frequently or contain components with state.",
+};

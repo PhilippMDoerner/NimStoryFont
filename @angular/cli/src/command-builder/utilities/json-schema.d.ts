@@ -7,8 +7,10 @@
  */
 import { json } from '@angular-devkit/core';
 import type { Argv, Options as YargsOptions } from 'yargs';
+import { EventCustomDimension } from '../../analytics/analytics-parameters';
 /**
- * An option description.
+ * An option description that can be used by yargs to create a command.
+ * See: https://github.com/yargs/yargs/blob/main/docs/options.mjs
  */
 export interface Option extends YargsOptions {
     /**
@@ -41,6 +43,17 @@ export interface Option extends YargsOptions {
      */
     itemValueType?: 'string';
 }
+/**
+ * Parses a JSON schema to a list of options that can be used by yargs.
+ *
+ * @param registry A schema registry to use for flattening the schema.
+ * @param schema The JSON schema to parse.
+ * @param interactive Whether to prompt the user for missing options.
+ * @returns A list of options.
+ *
+ * @note The schema definition are not resolved at this stage. This means that `$ref` will not be resolved,
+ * and custom keywords like `x-prompt` will not be processed.
+ */
 export declare function parseJsonSchemaToOptions(registry: json.schema.SchemaRegistry, schema: json.JsonObject, interactive?: boolean): Promise<Option[]>;
 /**
  * Adds schema options to a command also this keeps track of options that are required for analytics.
@@ -48,4 +61,4 @@ export declare function parseJsonSchemaToOptions(registry: json.schema.SchemaReg
  *
  * @returns A map from option name to analytics configuration.
  */
-export declare function addSchemaOptionsToCommand<T>(localYargs: Argv<T>, options: Option[], includeDefaultValues: boolean): Map<string, string>;
+export declare function addSchemaOptionsToCommand<T>(localYargs: Argv<T>, options: Option[], includeDefaultValues: boolean): Map<string, EventCustomDimension>;

@@ -48,6 +48,15 @@ exports.default = (0, util_1.createRule)({
     ],
     create(context, [{ allow, checkParameterProperties, ignoreInferredTypes, treatMethodsAsReadonly, },]) {
         const services = (0, util_1.getParserServices)(context);
+        function getParameterType(actualParam) {
+            if (actualParam.typeAnnotation?.typeAnnotation) {
+                // Get type from annotation node to preserve aliasSymbol
+                const checker = services.program.getTypeChecker();
+                const tsTypeNode = services.esTreeNodeToTSNodeMap.get(actualParam.typeAnnotation.typeAnnotation);
+                return checker.getTypeFromTypeNode(tsTypeNode);
+            }
+            return services.getTypeAtLocation(actualParam);
+        }
         return {
             [[
                 utils_1.AST_NODE_TYPES.ArrowFunctionExpression,
@@ -71,12 +80,12 @@ exports.default = (0, util_1.createRule)({
                     if (ignoreInferredTypes && actualParam.typeAnnotation == null) {
                         continue;
                     }
-                    const type = services.getTypeAtLocation(actualParam);
+                    const type = getParameterType(actualParam);
                     const isReadOnly = (0, util_1.isTypeReadonly)(services.program, type, {
                         allow,
                         treatMethodsAsReadonly: !!treatMethodsAsReadonly,
                     });
-                    if (!isReadOnly) {
+                    if (!isReadOnly && !(0, util_1.isTypeBrandedLiteralLike)(type)) {
                         context.report({
                             node: actualParam,
                             messageId: 'shouldBeReadonly',

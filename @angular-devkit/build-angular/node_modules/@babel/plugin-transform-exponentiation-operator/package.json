@@ -1,0 +1,41 @@
+{
+  "name": "@babel/plugin-transform-exponentiation-operator",
+  "version": "8.0.1",
+  "description": "Compile exponentiation operator to ES5",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/babel/babel.git",
+    "directory": "packages/babel-plugin-transform-exponentiation-operator"
+  },
+  "homepage": "https://babel.dev/docs/en/next/babel-plugin-transform-exponentiation-operator",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "main": "./lib/index.js",
+  "keywords": [
+    "babel-plugin"
+  ],
+  "dependencies": {
+    "@babel/helper-plugin-utils": "^8.0.1"
+  },
+  "peerDependencies": {
+    "@babel/core": "^8.0.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^8.0.1",
+    "@babel/helper-plugin-test-runner": "^8.0.0"
+  },
+  "engines": {
+    "node": "^22.18.0 || >=24.11.0"
+  },
+  "author": "The Babel Team (https://babel.dev/team)",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "type": "module"
+}

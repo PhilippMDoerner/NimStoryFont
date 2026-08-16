@@ -20,8 +20,10 @@ declare class ScopedDirEntry implements DirEntry {
     file(name: PathFragment): FileEntry | null;
     visit(visitor: FileVisitor): void;
 }
+export interface ScopedTree {
+}
 export declare class ScopedTree implements Tree {
-    [TreeSymbol]: () => this;
+    [TreeSymbol]: () => ScopedTree;
     private _base;
     readonly _root: ScopedDirEntry;
     constructor(_base: Tree, scope: string);

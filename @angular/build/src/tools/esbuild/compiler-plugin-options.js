@@ -27,3 +27,4 @@ function createCompilerPluginOptions(options, sourceFileCache, loadResultCache, 
         includeTestMetadata: !optimizationOptions.scripts,
     };
 }
+//# sourceMappingURL=compiler-plugin-options.js.map

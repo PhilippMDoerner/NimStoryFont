@@ -135,13 +135,14 @@ exports.prefixTrackValue = prefixTrackValue
 function prefixTrackValue({ gap, value }) {
   let result = parser(value).nodes.reduce((nodes, node) => {
     if (node.type === 'function' && node.value === 'repeat') {
-      return nodes.concat({
+      nodes.push({
         type: 'word',
         value: transformRepeat(node, { gap })
       })
+      return nodes
     }
     if (gap && node.type === 'space') {
-      return nodes.concat(
+      nodes.push(
         {
           type: 'space',
           value: ' '
@@ -152,8 +153,10 @@ function prefixTrackValue({ gap, value }) {
         },
         node
       )
+      return nodes
     }
-    return nodes.concat(node)
+    nodes.push(node)
+    return nodes
   }, [])
 
   return parser.stringify(result)
@@ -161,7 +164,7 @@ function prefixTrackValue({ gap, value }) {
 
 // Parse grid-template-areas
 
-let DOTS = /^\.+$/
+const DOTS = /^\.+$/
 
 function track(start, end) {
   return { end, span: end - start, start }
@@ -355,6 +358,30 @@ function selectorsEqual(ruleA, ruleB) {
   })
 }
 
+function selectorStartsWith(base, selector) {
+  if (!selector.startsWith(base)) {
+    return false
+  }
+
+  let next = selector[base.length]
+  return !next || /[\s.#[:>+~]/.test(next)
+}
+
+function selectorMayOverlap(previous, current) {
+  let base = previous.replace(/\s*\*\s*/g, ' ').replace(/\s+/g, ' ').trim()
+  let selector = current.replace(/\s+/g, ' ').trim()
+
+  return !base || selectorStartsWith(base, selector)
+}
+
+function selectorsMayOverlap(previous, current) {
+  return previous.some(previousSelector => {
+    return current.some(currentSelector => {
+      return selectorMayOverlap(previousSelector, currentSelector)
+    })
+  })
+}
+
 /**
  * Parse data from all grid-template(-areas) declarations
  * @param  {Root} css css root
@@ -480,6 +507,7 @@ function insertAreas(css, isDisabled) {
 
   // we need to store the rules that we will insert later
   let rulesToInsert = {}
+  let previousGridAreas = []
 
   css.walkDecls('grid-area', gridArea => {
     let gridAreaRule = gridArea.parent
@@ -510,6 +538,20 @@ function insertAreas(css, isDisabled) {
     // prevent doubling of prefixes
     if (hasPrefixedRow) {
       return false
+    }
+
+    function shouldResetSpan(rule, area, dimension) {
+      return previousGridAreas.some(previous => {
+        if (previous.data !== data) {
+          return false
+        }
+        if (!selectorsMayOverlap(previous.selectors, gridAreaRule.selectors)) {
+          return false
+        }
+
+        let previousArea = rule.areas[previous.value]
+        return previousArea && previousArea[dimension].span > area[dimension].span
+      })
     }
 
     // create the empty object with the key as the last area name
@@ -550,8 +592,10 @@ function insertAreas(css, isDisabled) {
 
       if ((!rule.hasDuplicates || !hasDuplicateName) && !rule.params) {
         // grid-template has no duplicates and not inside media rule
+        let addRowSpan = shouldResetSpan(rule, area, 'row')
+        let addColumnSpan = shouldResetSpan(rule, area, 'column')
 
-        getMSDecls(area, false, false)
+        getMSDecls(area, addRowSpan, addColumnSpan)
           .reverse()
           .forEach(i =>
             gridAreaRule.prepend(
@@ -569,8 +613,11 @@ function insertAreas(css, isDisabled) {
         // grid-template has duplicates and not inside media rule
         let cloned = gridAreaRule.clone()
         cloned.removeAll()
+        let addRowSpan = area.row.updateSpan || shouldResetSpan(rule, area, 'row')
+        let addColumnSpan =
+          area.column.updateSpan || shouldResetSpan(rule, area, 'column')
 
-        getMSDecls(area, area.row.updateSpan, area.column.updateSpan)
+        getMSDecls(area, addRowSpan, addColumnSpan)
           .reverse()
           .forEach(i =>
             cloned.prepend(
@@ -601,7 +648,11 @@ function insertAreas(css, isDisabled) {
         // grid-template has duplicates and not inside media rule
         // and the selector is complex
         gridAreaRule.walkDecls(/-ms-grid-(row|column)/, d => d.remove())
-        getMSDecls(area, area.row.updateSpan, area.column.updateSpan)
+        let addRowSpan = area.row.updateSpan || shouldResetSpan(rule, area, 'row')
+        let addColumnSpan =
+          area.column.updateSpan || shouldResetSpan(rule, area, 'column')
+
+        getMSDecls(area, addRowSpan, addColumnSpan)
           .reverse()
           .forEach(i =>
             gridAreaRule.prepend(
@@ -619,8 +670,11 @@ function insertAreas(css, isDisabled) {
         // rules and merge them easily
         let cloned = gridAreaRule.clone()
         cloned.removeAll()
+        let addRowSpan = area.row.updateSpan || shouldResetSpan(rule, area, 'row')
+        let addColumnSpan =
+          area.column.updateSpan || shouldResetSpan(rule, area, 'column')
 
-        getMSDecls(area, area.row.updateSpan, area.column.updateSpan)
+        getMSDecls(area, addRowSpan, addColumnSpan)
           .reverse()
           .forEach(i =>
             cloned.prepend(
@@ -657,6 +711,12 @@ function insertAreas(css, isDisabled) {
         }
       }
     }
+
+    previousGridAreas.push({
+      data,
+      selectors: gridAreaRule.selectors,
+      value
+    })
 
     return undefined
   })
@@ -1046,7 +1106,8 @@ function normalizeRowColumn(str) {
     if (node.type === 'space') {
       return result
     }
-    return result.concat(parser.stringify(node))
+    result.push(parser.stringify(node))
+    return result
   }, [])
 
   return normalized

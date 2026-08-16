@@ -7,16 +7,27 @@
  * found in the LICENSE file at https://angular.dev/license
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.SERVER_APP_ENGINE_MANIFEST_FILENAME = exports.SERVER_APP_MANIFEST_FILENAME = void 0;
+exports.SERVER_GENERATED_EXTERNALS = exports.SERVER_APP_ENGINE_MANIFEST_FILENAME = exports.SERVER_APP_MANIFEST_FILENAME = void 0;
 exports.generateAngularServerAppEngineManifest = generateAngularServerAppEngineManifest;
 exports.generateAngularServerAppManifest = generateAngularServerAppManifest;
 const node_path_1 = require("node:path");
 const node_vm_1 = require("node:vm");
-const bundler_context_1 = require("../../tools/esbuild/bundler-context");
-const utils_1 = require("../../tools/esbuild/utils");
-const environment_options_1 = require("../environment-options");
+const bundler_files_1 = require("../../tools/esbuild/bundler-files");
 exports.SERVER_APP_MANIFEST_FILENAME = 'angular-app-manifest.mjs';
 exports.SERVER_APP_ENGINE_MANIFEST_FILENAME = 'angular-app-engine-manifest.mjs';
+/**
+ * A set of server-generated dependencies that are treated as external.
+ *
+ * These dependencies are marked as external because they are produced by a
+ * separate bundling process and are not included in the primary bundle. This
+ * ensures that these generated files are resolved from an external source rather
+ * than being part of the main bundle.
+ */
+exports.SERVER_GENERATED_EXTERNALS = new Set([
+    './polyfills.server.mjs',
+    './' + exports.SERVER_APP_MANIFEST_FILENAME,
+    './' + exports.SERVER_APP_ENGINE_MANIFEST_FILENAME,
+]);
 const MAIN_SERVER_OUTPUT_FILENAME = 'main.server.mjs';
 /**
  * A mapping of unsafe characters to their escaped Unicode equivalents.
@@ -45,10 +56,11 @@ function escapeUnsafeChars(str) {
  *
  * @param i18nOptions - The internationalization options for the application build. This
  * includes settings for inlining locales and determining the output structure.
+ * @param allowedHosts - A list of hosts that are allowed to access the server-side application.
  * @param baseHref - The base HREF for the application. This is used to set the base URL
  * for all relative URLs in the application.
  */
-function generateAngularServerAppEngineManifest(i18nOptions, baseHref) {
+function generateAngularServerAppEngineManifest(i18nOptions, allowedHosts, baseHref) {
     const entryPoints = {};
     const supportedLocales = {};
     if (i18nOptions.shouldInline && !i18nOptions.flatOutput) {
@@ -65,12 +77,13 @@ function generateAngularServerAppEngineManifest(i18nOptions, baseHref) {
     }
     // Remove trailing slash but retain leading slash.
     let basePath = baseHref || '/';
-    if (basePath.length > 1 && basePath[basePath.length - 1] === '/') {
+    if (basePath.length > 1 && basePath.at(-1) === '/') {
         basePath = basePath.slice(0, -1);
     }
     const manifestContent = `
 export default {
   basePath: '${basePath}',
+  allowedHosts: ${JSON.stringify(allowedHosts, undefined, 2)},
   supportedLocales: ${JSON.stringify(supportedLocales, undefined, 2)},
   entryPoints: {
     ${Object.entries(entryPoints)
@@ -117,7 +130,7 @@ function generateAngularServerAppManifest(additionalHtmlOutputFiles, outputFiles
         if (extension === '.html' || (inlineCriticalCss && extension === '.css')) {
             const jsChunkFilePath = `assets-chunks/${file.path.replace(/[./]/g, '_')}.mjs`;
             const escapedContent = escapeUnsafeChars(file.text);
-            serverAssetsChunks.push((0, utils_1.createOutputFile)(jsChunkFilePath, `export default \`${escapedContent}\`;`, bundler_context_1.BuildOutputFileType.ServerApplication));
+            serverAssetsChunks.push((0, bundler_files_1.createOutputFile)(jsChunkFilePath, `export default \`${escapedContent}\`;`, bundler_files_1.BuildOutputFileType.ServerApplication));
             // This is needed because JavaScript engines script parser convert `\r\n` to `\n` in template literals,
             // which can result in an incorrect byte length.
             const size = (0, node_vm_1.runInThisContext)(`new TextEncoder().encode(\`${escapedContent}\`).byteLength`);
@@ -126,8 +139,7 @@ function generateAngularServerAppManifest(additionalHtmlOutputFiles, outputFiles
         }
     }
     // When routes have been extracted, mappings are no longer needed, as preloads will be included in the metadata.
-    // When shouldOptimizeChunks is enabled the metadata is no longer correct and thus we cannot generate the mappings.
-    const entryPointToBrowserMapping = routes?.length || environment_options_1.shouldOptimizeChunks
+    const entryPointToBrowserMapping = routes?.length
         ? undefined
         : generateLazyLoadedFilesMappings(metafile, initialFiles, publicPath);
     const manifestContent = `
@@ -161,24 +173,15 @@ function generateLazyLoadedFilesMappings(metafile, initialFiles, publicPath = ''
         if (!entryPoint || exports?.length < 1 || !fileName.endsWith('.js')) {
             continue;
         }
-        const importedPaths = [
-            {
-                path: `${publicPath}${fileName}`,
-                dynamicImport: false,
-            },
-        ];
+        const importedPaths = [`${publicPath}${fileName}`];
         for (const { kind, external, path } of imports) {
-            if (external ||
-                initialFiles.has(path) ||
-                (kind !== 'dynamic-import' && kind !== 'import-statement')) {
+            if (external || initialFiles.has(path) || kind !== 'import-statement') {
                 continue;
             }
-            importedPaths.push({
-                path: `${publicPath}${path}`,
-                dynamicImport: kind === 'dynamic-import',
-            });
+            importedPaths.push(`${publicPath}${path}`);
         }
         entryPointToBundles[entryPoint] = importedPaths;
     }
     return entryPointToBundles;
 }
+//# sourceMappingURL=manifest.js.map

@@ -1,0 +1,18 @@
+@import './variables.less';
+@import './functions.less';
+
+.ql-container {
+  .@{namespace}-selection {
+    .setCssVar(select-color, #0589f340);
+
+    display: none;
+    position: absolute;
+    overflow: hidden;
+    pointer-events: none;
+    &__line {
+      position: absolute;
+      background-color: .getCssVar(select-color) [];
+      pointer-events: none;
+    }
+  }
+}

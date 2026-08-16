@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RULE_NAME = void 0;
+exports.RULE_DOCS_EXTENSION = exports.RULE_NAME = void 0;
 const utils_1 = require("@angular-eslint/utils");
 const create_eslint_rule_1 = require("../utils/create-eslint-rule");
 exports.RULE_NAME = 'component-class-suffix';
@@ -51,3 +51,6 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
         };
     },
 });
+exports.RULE_DOCS_EXTENSION = {
+    rationale: "Historically, appending 'Component' to component class names was recommended to make component files easily identifiable. However, as of Angular v20, the Angular Team no longer recommends this convention, favoring simpler class names. This rule remains available for teams that have established this naming pattern and wish to maintain consistency in their existing codebase.",
+};

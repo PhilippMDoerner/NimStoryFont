@@ -12,33 +12,33 @@ import {
 } from '@ngrx/signals';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
 import { distinctUntilChanged, filter, map, pipe, switchMap, take } from 'rxjs';
+import { findByProp, removeByProp, replaceItem } from '../../../../utils/array';
+import { filterNil } from '../../../../utils/rxjs-operators';
+import { withImages } from '../../../../utils/store/withImages';
+import { withQueries } from '../../../../utils/store/withQueries';
+import { withUpdates } from '../../../../utils/store/withUpdates';
 import {
   CharacterDetails,
   CharacterEncounter,
   CharacterOrganizationMembership,
-} from 'src/app/_models/character';
-import { Encounter, EncounterConnection } from 'src/app/_models/encounter';
-import { CharacterPlayerClassConnectionRaw } from 'src/app/_models/playerclass';
-import { Quote, QuoteConnection, QuoteRaw } from 'src/app/_models/quote';
-import { errorToast, httpErrorToast } from 'src/app/_models/toast';
-import { CharacterPlayerClassConnectionService } from 'src/app/_services/article/character-player-class-connection.service';
-import { CharacterService } from 'src/app/_services/article/character.service';
-import { EncounterConnectionService } from 'src/app/_services/article/encounter-connection.service';
-import { EncounterService } from 'src/app/_services/article/encounter.service';
-import { LocationService } from 'src/app/_services/article/location.service';
-import { OrganizationMembershipService } from 'src/app/_services/article/organization-membership.service';
-import { OrganizationService } from 'src/app/_services/article/organization.service';
-import { PlayerClassService } from 'src/app/_services/article/player-class.service';
-import { QuoteConnectionService } from 'src/app/_services/article/quote-connection.service';
-import { QuoteService } from 'src/app/_services/article/quote.service';
-import { SessionService } from 'src/app/_services/article/session.service';
-import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
-import { GlobalStore } from 'src/app/global.store';
-import { findByProp, removeByProp, replaceItem } from 'src/utils/array';
-import { filterNil } from 'src/utils/rxjs-operators';
-import { withImages } from 'src/utils/store/withImages';
-import { withQueries } from 'src/utils/store/withQueries';
-import { withUpdates } from 'src/utils/store/withUpdates';
+} from '../../../_models/character';
+import { Encounter, EncounterConnection } from '../../../_models/encounter';
+import { CharacterPlayerClassConnectionRaw } from '../../../_models/playerclass';
+import { Quote, QuoteConnection, QuoteRaw } from '../../../_models/quote';
+import { errorToast, httpErrorToast } from '../../../_models/toast';
+import { CharacterPlayerClassConnectionService } from '../../../_services/article/character-player-class-connection.service';
+import { CharacterService } from '../../../_services/article/character.service';
+import { EncounterConnectionService } from '../../../_services/article/encounter-connection.service';
+import { EncounterService } from '../../../_services/article/encounter.service';
+import { LocationService } from '../../../_services/article/location.service';
+import { OrganizationMembershipService } from '../../../_services/article/organization-membership.service';
+import { OrganizationService } from '../../../_services/article/organization.service';
+import { PlayerClassService } from '../../../_services/article/player-class.service';
+import { QuoteConnectionService } from '../../../_services/article/quote-connection.service';
+import { QuoteService } from '../../../_services/article/quote.service';
+import { SessionService } from '../../../_services/article/session.service';
+import { ToastService } from '../../../design/organisms/toast-overlay/toast.service';
+import { GlobalStore } from '../../../global.store';
 export interface CharacterPageState {
   encounterServerModel: Encounter | undefined;
   quoteServerModel: Quote | undefined;
@@ -77,12 +77,6 @@ export const CharacterStore = signalStore(
         campaignName$.pipe(
           switchMap((campaign) =>
             characterService.readByParam(campaign, { name }),
-          ),
-        ),
-      campaignNPCCharacters: () =>
-        campaignName$.pipe(
-          switchMap((campaignName) =>
-            characterService.getNonPlayerCharacters(campaignName),
           ),
         ),
       campaignCharacters: () =>
@@ -166,13 +160,16 @@ export const CharacterStore = signalStore(
       patchState(state, { character: updatedChar });
     },
   }),
-  withUpdates(() => {
-    const characterService = inject(CharacterService);
-    return {
-      character: (update: CharacterDetails) =>
-        characterService.patch(update.pk!, update),
-    };
-  }),
+  withUpdates(
+    () => {
+      const characterService = inject(CharacterService);
+      return {
+        character: (update: CharacterDetails) =>
+          characterService.patch(update.pk!, update),
+      };
+    },
+    { suppressUpdateNotification: true },
+  ),
   withMethods((state) => {
     const quoteConnectionService = inject(QuoteConnectionService);
     const toastService = inject(ToastService);

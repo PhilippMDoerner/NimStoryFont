@@ -10,6 +10,8 @@ const { join } = require("./util/fs");
 
 /** @typedef {import("./Compiler")} Compiler */
 /** @typedef {import("./ContextModule").ContextModuleOptions} ContextModuleOptions */
+/** @typedef {import("./ContextModuleFactory").BeforeContextResolveData} BeforeContextResolveData */
+/** @typedef {import("./ContextModuleFactory").AfterContextResolveData} AfterContextResolveData */
 /** @typedef {import("./util/fs").InputFileSystem} InputFileSystem */
 
 /** @typedef {Record<string, string>} NewContentCreateContextMap */
@@ -18,8 +20,9 @@ const PLUGIN_NAME = "ContextReplacementPlugin";
 
 class ContextReplacementPlugin {
 	/**
+	 * Creates an instance of ContextReplacementPlugin.
 	 * @param {RegExp} resourceRegExp A regular expression that determines which files will be selected
-	 * @param {(string | ((context: TODO) => void) | RegExp | boolean)=} newContentResource A new resource to replace the match
+	 * @param {(string | ((context: BeforeContextResolveData | AfterContextResolveData) => void) | RegExp | boolean)=} newContentResource A new resource to replace the match
 	 * @param {(boolean | NewContentCreateContextMap | RegExp)=} newContentRecursive If true, all subdirectories are searched for matches
 	 * @param {RegExp=} newContentRegExp A regular expression that determines which files will be selected
 	 */
@@ -29,6 +32,7 @@ class ContextReplacementPlugin {
 		newContentRecursive,
 		newContentRegExp
 	) {
+		/** @type {RegExp} */
 		this.resourceRegExp = resourceRegExp;
 
 		// new webpack.ContextReplacementPlugin(/selector/, (context) => { /* Logic */ });
@@ -40,8 +44,10 @@ class ContextReplacementPlugin {
 			typeof newContentResource === "string" &&
 			typeof newContentRecursive === "object"
 		) {
+			/** @type {string | undefined} */
 			this.newContentResource = newContentResource;
 			/**
+			 * Stores new content create context map.
 			 * @param {InputFileSystem} fs input file system
 			 * @param {(err: null | Error, newContentRecursive: NewContentCreateContextMap) => void} callback callback
 			 */
@@ -75,9 +81,11 @@ class ContextReplacementPlugin {
 			this.newContentResource =
 				/** @type {string | undefined} */
 				(newContentResource);
+			/** @type {boolean | undefined} */
 			this.newContentRecursive =
 				/** @type {boolean | undefined} */
 				(newContentRecursive);
+			/** @type {RegExp | undefined} */
 			this.newContentRegExp =
 				/** @type {RegExp | undefined} */
 				(newContentRegExp);
@@ -85,7 +93,7 @@ class ContextReplacementPlugin {
 	}
 
 	/**
-	 * Apply the plugin
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Compiler} compiler the compiler instance
 	 * @returns {void}
 	 */
@@ -97,8 +105,8 @@ class ContextReplacementPlugin {
 		const newContentRegExp = this.newContentRegExp;
 		const newContentCreateContextMap = this.newContentCreateContextMap;
 
-		compiler.hooks.contextModuleFactory.tap(PLUGIN_NAME, cmf => {
-			cmf.hooks.beforeResolve.tap(PLUGIN_NAME, result => {
+		compiler.hooks.contextModuleFactory.tap(PLUGIN_NAME, (cmf) => {
+			cmf.hooks.beforeResolve.tap(PLUGIN_NAME, (result) => {
 				if (!result) return;
 				if (resourceRegExp.test(result.request)) {
 					if (newContentResource !== undefined) {
@@ -120,9 +128,16 @@ class ContextReplacementPlugin {
 				}
 				return result;
 			});
-			cmf.hooks.afterResolve.tap(PLUGIN_NAME, result => {
+			cmf.hooks.afterResolve.tap(PLUGIN_NAME, (result) => {
 				if (!result) return;
-				if (resourceRegExp.test(result.resource)) {
+				const isMatchResourceRegExp = () => {
+					if (Array.isArray(result.resource)) {
+						return result.resource.some((item) => resourceRegExp.test(item));
+					}
+
+					return resourceRegExp.test(result.resource);
+				};
+				if (isMatchResourceRegExp()) {
 					if (newContentResource !== undefined) {
 						if (
 							newContentResource.startsWith("/") ||
@@ -130,9 +145,15 @@ class ContextReplacementPlugin {
 						) {
 							result.resource = newContentResource;
 						} else {
+							const rootPath =
+								typeof result.resource === "string"
+									? result.resource
+									: /** @type {string} */
+										(result.resource.find((item) => resourceRegExp.test(item)));
 							result.resource = join(
-								/** @type {InputFileSystem} */ (compiler.inputFileSystem),
-								result.resource,
+								/** @type {InputFileSystem} */
+								(compiler.inputFileSystem),
+								rootPath,
 								newContentResource
 							);
 						}
@@ -152,17 +173,27 @@ class ContextReplacementPlugin {
 					if (typeof newContentCallback === "function") {
 						const origResource = result.resource;
 						newContentCallback(result);
-						if (
-							result.resource !== origResource &&
-							!result.resource.startsWith("/") &&
-							(result.resource.length <= 1 || result.resource[1] !== ":")
-						) {
-							// When the function changed it to an relative path
-							result.resource = join(
-								/** @type {InputFileSystem} */ (compiler.inputFileSystem),
-								origResource,
-								result.resource
-							);
+						if (result.resource !== origResource) {
+							const newResource = Array.isArray(result.resource)
+								? result.resource
+								: [result.resource];
+
+							for (let i = 0; i < newResource.length; i++) {
+								if (
+									!newResource[i].startsWith("/") &&
+									(newResource[i].length <= 1 || newResource[i][1] !== ":")
+								) {
+									// When the function changed it to an relative path
+									newResource[i] = join(
+										/** @type {InputFileSystem} */
+										(compiler.inputFileSystem),
+										origResource[i],
+										newResource[i]
+									);
+								}
+							}
+
+							result.resource = newResource;
 						}
 					} else {
 						for (const d of result.dependencies) {
@@ -177,15 +208,16 @@ class ContextReplacementPlugin {
 }
 
 /**
+ * Creates a resolve dependencies from context map.
  * @param {(fs: InputFileSystem, callback: (err: null | Error, map: NewContentCreateContextMap) => void) => void} createContextMap create context map function
  * @returns {(fs: InputFileSystem, options: ContextModuleOptions, callback: (err: null | Error, dependencies?: ContextElementDependency[]) => void) => void} resolve resolve dependencies from context map function
  */
 const createResolveDependenciesFromContextMap =
-	createContextMap => (fs, options, callback) => {
+	(createContextMap) => (fs, options, callback) => {
 		createContextMap(fs, (err, map) => {
 			if (err) return callback(err);
 			const dependencies = Object.keys(map).map(
-				key =>
+				(key) =>
 					new ContextElementDependency(
 						map[key] + options.resourceQuery + options.resourceFragment,
 						key,

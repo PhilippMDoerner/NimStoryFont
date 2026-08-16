@@ -17,9 +17,16 @@ function _getPrototypeOf(t) { return _getPrototypeOf = Object.setPrototypeOf ? O
 function _classPrivateMethodInitSpec(e, a) { _checkPrivateRedeclaration(e, a), a.add(e); }
 function _checkPrivateRedeclaration(e, t) { if (t.has(e)) throw new TypeError("Cannot initialize the same private elements twice on an object"); }
 function _assertClassBrand(e, t, n) { if ("function" == typeof e ? e === t : e.has(t)) return arguments.length < 3 ? t : n; throw new TypeError("Private element is not present on this object"); }
+/**
+ * @returns {boolean} true when custom elements supported, otherwise false
+ */
 export function isProgressSupported() {
-  return "customElements" in self && !!HTMLElement.prototype.attachShadow;
+  return "customElements" in self && Boolean(HTMLElement.prototype.attachShadow);
 }
+
+/**
+ * @returns {void}
+ */
 export function defineProgressElement() {
   var _WebpackDevServerProgress;
   if (customElements.get("wds-progress")) {
@@ -47,13 +54,23 @@ export function defineProgressElement() {
       }
     }, {
       key: "attributeChangedCallback",
-      value: function attributeChangedCallback(name, oldValue, newValue) {
+      value:
+      /**
+       * @param {string} name name
+       * @param {string} oldValue old value
+       * @param {string} newValue new value
+       */
+      function attributeChangedCallback(name, oldValue, newValue) {
         if (name === "progress") {
           _assertClassBrand(_WebpackDevServerProgress_brand, this, _update).call(this, Number(newValue));
         } else if (name === "type") {
           _assertClassBrand(_WebpackDevServerProgress_brand, this, _reset).call(this);
         }
       }
+
+      /**
+       * @param {number} percent percent
+       */
     }], [{
       key: "observedAttributes",
       get: function get() {
@@ -63,30 +80,36 @@ export function defineProgressElement() {
   }(/*#__PURE__*/_wrapNativeSuper(HTMLElement));
   _WebpackDevServerProgress = WebpackDevServerProgress;
   function _reset() {
-    var _this$getAttribute, _Number;
+    var _this$getAttribute;
     clearTimeout(this.animationTimer);
     this.animationTimer = null;
     var typeAttr = (_this$getAttribute = this.getAttribute("type")) === null || _this$getAttribute === void 0 ? void 0 : _this$getAttribute.toLowerCase();
     this.type = typeAttr === "circular" ? "circular" : "linear";
     var innerHTML = this.type === "circular" ? _circularTemplate.call(_WebpackDevServerProgress) : _linearTemplate.call(_WebpackDevServerProgress);
+    /** @type {ShadowRoot} */
     this.shadowRoot.innerHTML = innerHTML;
-    this.initialProgress = (_Number = Number(this.getAttribute("progress"))) !== null && _Number !== void 0 ? _Number : 0;
+    var progressValue = this.getAttribute("progress");
+    this.initialProgress = progressValue ? Number(progressValue) : 0;
     _assertClassBrand(_WebpackDevServerProgress_brand, this, _update).call(this, this.initialProgress);
   }
   function _circularTemplate() {
-    return "\n        <style>\n        :host {\n            width: 200px;\n            height: 200px;\n            position: fixed;\n            right: 5%;\n            top: 5%;\n            transition: opacity .25s ease-in-out;\n            z-index: 2147483645;\n        }\n\n        circle {\n            fill: #282d35;\n        }\n\n        path {\n            fill: rgba(0, 0, 0, 0);\n            stroke: rgb(186, 223, 172);\n            stroke-dasharray: 219.99078369140625;\n            stroke-dashoffset: -219.99078369140625;\n            stroke-width: 10;\n            transform: rotate(90deg) translate(0px, -80px);\n        }\n\n        text {\n            font-family: 'Open Sans', sans-serif;\n            font-size: 18px;\n            fill: #ffffff;\n            dominant-baseline: middle;\n            text-anchor: middle;\n        }\n\n        tspan#percent-super {\n            fill: #bdc3c7;\n            font-size: 0.45em;\n            baseline-shift: 10%;\n        }\n\n        @keyframes fade {\n            0% { opacity: 1; transform: scale(1); }\n            100% { opacity: 0; transform: scale(0); }\n        }\n\n        .disappear {\n            animation: fade 0.3s;\n            animation-fill-mode: forwards;\n            animation-delay: 0.5s;\n        }\n\n        .hidden {\n            display: none;\n        }\n        </style>\n        <svg id=\"progress\" class=\"hidden noselect\" viewBox=\"0 0 80 80\">\n        <circle cx=\"50%\" cy=\"50%\" r=\"35\"></circle>\n        <path d=\"M5,40a35,35 0 1,0 70,0a35,35 0 1,0 -70,0\"></path>\n        <text x=\"50%\" y=\"51%\">\n            <tspan id=\"percent-value\">0</tspan>\n            <tspan id=\"percent-super\">%</tspan>\n        </text>\n        </svg>\n      ";
+    return "\n        <style>\n        :host {\n            width: 200px;\n            height: 200px;\n            position: fixed;\n            right: 5%;\n            top: 5%;\n            pointer-events: none;\n            transition: opacity .25s ease-in-out;\n            z-index: 2147483645;\n        }\n\n        circle {\n            fill: #282d35;\n        }\n\n        path {\n            fill: rgba(0, 0, 0, 0);\n            stroke: rgb(186, 223, 172);\n            stroke-dasharray: 219.99078369140625;\n            stroke-dashoffset: -219.99078369140625;\n            stroke-width: 10;\n            transform: rotate(90deg) translate(0px, -80px);\n        }\n\n        text {\n            font-family: 'Open Sans', sans-serif;\n            font-size: 18px;\n            fill: #ffffff;\n            dominant-baseline: middle;\n            text-anchor: middle;\n        }\n\n        tspan#percent-super {\n            fill: #bdc3c7;\n            font-size: 0.45em;\n            baseline-shift: 10%;\n        }\n\n        @keyframes fade {\n            0% { opacity: 1; transform: scale(1); }\n            100% { opacity: 0; transform: scale(0); }\n        }\n\n        .disappear {\n            animation: fade 0.3s;\n            animation-fill-mode: forwards;\n            animation-delay: 0.5s;\n        }\n\n        .hidden {\n            display: none;\n        }\n        </style>\n        <svg id=\"progress\" class=\"hidden noselect\" viewBox=\"0 0 80 80\">\n        <circle cx=\"50%\" cy=\"50%\" r=\"35\"></circle>\n        <path d=\"M5,40a35,35 0 1,0 70,0a35,35 0 1,0 -70,0\"></path>\n        <text x=\"50%\" y=\"51%\">\n            <tspan id=\"percent-value\">0</tspan>\n            <tspan id=\"percent-super\">%</tspan>\n        </text>\n        </svg>\n      ";
   }
   function _linearTemplate() {
-    return "\n        <style>\n        :host {\n            position: fixed;\n            top: 0;\n            left: 0;\n            height: 4px;\n            width: 100vw;\n            z-index: 2147483645;\n        }\n\n        #bar {\n            width: 0%;\n            height: 4px;\n            background-color: rgb(186, 223, 172);\n        }\n\n        @keyframes fade {\n            0% { opacity: 1; }\n            100% { opacity: 0; }\n        }\n\n        .disappear {\n            animation: fade 0.3s;\n            animation-fill-mode: forwards;\n            animation-delay: 0.5s;\n        }\n\n        .hidden {\n            display: none;\n        }\n        </style>\n        <div id=\"progress\"></div>\n        ";
+    return "\n        <style>\n        :host {\n            position: fixed;\n            top: 0;\n            left: 0;\n            pointer-events: none;\n            height: 4px;\n            width: 100vw;\n            z-index: 2147483645;\n        }\n\n        #bar {\n            width: 0%;\n            height: 4px;\n            background-color: rgb(186, 223, 172);\n        }\n\n        @keyframes fade {\n            0% { opacity: 1; }\n            100% { opacity: 0; }\n        }\n\n        .disappear {\n            animation: fade 0.3s;\n            animation-fill-mode: forwards;\n            animation-delay: 0.5s;\n        }\n\n        .hidden {\n            display: none;\n        }\n        </style>\n        <div id=\"progress\"></div>\n        ";
   }
   function _update(percent) {
-    var element = this.shadowRoot.querySelector("#progress");
+    var shadowRoot = /** @type {ShadowRoot} */this.shadowRoot;
+    var element = /** @type {HTMLElement} */
+    shadowRoot.querySelector("#progress");
     if (this.type === "circular") {
-      var path = this.shadowRoot.querySelector("path");
-      var value = this.shadowRoot.querySelector("#percent-value");
+      var path = /** @type {SVGPathElement} */
+      shadowRoot.querySelector("path");
+      var value = /** @type {HTMLElement} */
+      shadowRoot.querySelector("#percent-value");
       var offset = (100 - percent) / 100 * this.maxDashOffset;
-      path.style.strokeDashoffset = offset;
-      value.textContent = percent;
+      path.style.strokeDashoffset = String(offset);
+      value.textContent = String(percent);
     } else {
       element.style.width = "".concat(percent, "%");
     }
@@ -97,12 +120,16 @@ export function defineProgressElement() {
     }
   }
   function _show() {
-    var element = this.shadowRoot.querySelector("#progress");
+    var shadowRoot = /** @type {ShadowRoot} */this.shadowRoot;
+    var element = /** @type {HTMLElement} */
+    shadowRoot.querySelector("#progress");
     element.classList.remove("hidden");
   }
   function _hide() {
     var _this2 = this;
-    var element = this.shadowRoot.querySelector("#progress");
+    var shadowRoot = /** @type {ShadowRoot} */this.shadowRoot;
+    var element = /** @type {HTMLElement} */
+    shadowRoot.querySelector("#progress");
     if (this.type === "circular") {
       element.classList.add("disappear");
       element.addEventListener("animationend", function () {

@@ -46,10 +46,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.runEsBuildBuildAction = runEsBuildBuildAction;
 const node_fs_1 = require("node:fs");
 const node_path_1 = __importDefault(require("node:path"));
-const bundler_context_1 = require("../../tools/esbuild/bundler-context");
+const bundler_files_1 = require("../../tools/esbuild/bundler-files");
 const sass_language_1 = require("../../tools/esbuild/stylesheets/sass-language");
 const utils_1 = require("../../tools/esbuild/utils");
 const environment_options_1 = require("../../utils/environment-options");
+const path_1 = require("../../utils/path");
 const results_1 = require("./results");
 // Watch workspace for package manager changes
 const packageWatchFiles = [
@@ -76,56 +77,71 @@ async function* runEsBuildBuildAction(action, options) {
         await (0, utils_1.logMessages)(logger, result, colors, jsonLogs);
     }
     finally {
-        // Ensure Sass workers are shutdown if not watching
-        if (!watch) {
+        // Ensure Sass workers are shutdown if not watching or if the initial build failed
+        if (!watch || !result) {
             (0, sass_language_1.shutdownSassWorkerPool)();
         }
     }
-    // Setup watcher if watch mode enabled
     let watcher;
-    if (watch) {
-        if (progress) {
-            logger.info('Watch mode enabled. Watching for file changes...');
-        }
-        const ignored = [
-            // Ignore the output and cache paths to avoid infinite rebuild cycles
-            outputOptions.base,
-            cacheOptions.basePath,
-            `${workspaceRoot.replace(/\\/g, '/')}/**/.*/**`,
-        ];
-        // Setup a watcher
-        const { createWatcher } = await Promise.resolve().then(() => __importStar(require('../../tools/esbuild/watcher')));
-        watcher = createWatcher({
-            polling: typeof poll === 'number',
-            interval: poll,
-            followSymlinks: preserveSymlinks,
-            ignored,
-        });
-        // Setup abort support
-        options.signal?.addEventListener('abort', () => void watcher?.close());
-        // Watch the entire project root if 'NG_BUILD_WATCH_ROOT' environment variable is set
-        if (environment_options_1.shouldWatchRoot) {
-            if (!preserveSymlinks) {
-                // Ignore all node modules directories to avoid excessive file watchers.
-                // Package changes are handled below by watching manifest and lock files.
-                // NOTE: this is not enable when preserveSymlinks is true as this would break `npm link` usages.
-                ignored.push('**/node_modules/**');
-                watcher.add(packageWatchFiles
-                    .map((file) => node_path_1.default.join(workspaceRoot, file))
-                    .filter((file) => (0, node_fs_1.existsSync)(file)));
+    let watchLoopStarted = false;
+    try {
+        // Setup watcher if watch mode enabled
+        if (watch) {
+            if (progress) {
+                logger.info('Watch mode enabled. Watching for file changes...');
             }
-            watcher.add(projectRoot);
+            const ignored = [
+                // Ignore the output and cache paths to avoid infinite rebuild cycles
+                outputOptions.base,
+                cacheOptions.basePath,
+                `${(0, path_1.toPosixPath)(workspaceRoot)}/**/.*/**`,
+            ];
+            // Setup a watcher
+            const { createWatcher } = await Promise.resolve().then(() => __importStar(require('../../tools/esbuild/watcher')));
+            watcher = createWatcher({
+                polling: typeof poll === 'number',
+                interval: poll,
+                followSymlinks: preserveSymlinks,
+                ignored,
+            });
+            // Setup abort support
+            options.signal?.addEventListener('abort', () => void watcher?.close());
+            // Watch the entire project root if 'NG_BUILD_WATCH_ROOT' environment variable is set
+            if (environment_options_1.shouldWatchRoot) {
+                if (!preserveSymlinks) {
+                    // Ignore all node modules directories to avoid excessive file watchers.
+                    // Package changes are handled below by watching manifest and lock files.
+                    // NOTE: this is not enable when preserveSymlinks is true as this would break `npm link` usages.
+                    ignored.push('**/node_modules/**');
+                    watcher.add(packageWatchFiles
+                        .map((file) => node_path_1.default.join(workspaceRoot, file))
+                        .filter((file) => (0, node_fs_1.existsSync)(file)));
+                }
+                watcher.add(projectRoot);
+            }
+            // Watch locations provided by the initial build result
+            watcher.add(result.watchFiles);
         }
-        // Watch locations provided by the initial build result
-        watcher.add(result.watchFiles);
+        // Output the first build results after setting up the watcher to ensure that any code executed
+        // higher in the iterator call stack will trigger the watcher. This is particularly relevant for
+        // unit tests which execute the builder and modify the file system programmatically.
+        const outputResults = [...emitOutputResults(result, outputOptions)];
+        if (!watch) {
+            await result.dispose();
+            // Set to true to prevent double-disposal of the result context in the finally block on generator exit
+            watchLoopStarted = true;
+        }
+        yield* outputResults;
+        // Finish if watch mode is not enabled
+        if (!watcher) {
+            return;
+        }
+        watchLoopStarted = true;
     }
-    // Output the first build results after setting up the watcher to ensure that any code executed
-    // higher in the iterator call stack will trigger the watcher. This is particularly relevant for
-    // unit tests which execute the builder and modify the file system programmatically.
-    yield* emitOutputResults(result, outputOptions);
-    // Finish if watch mode is not enabled
-    if (!watcher) {
-        return;
+    finally {
+        if (!watchLoopStarted && result) {
+            await result.dispose();
+        }
     }
     // Used to force a full result on next rebuild if there were initial errors.
     // This ensures at least one full result is emitted.
@@ -207,7 +223,7 @@ function* emitOutputResults({ outputFiles, assetFiles, errors, warnings, externa
         };
         for (const file of assetFiles) {
             result.files[file.destination] = {
-                type: bundler_context_1.BuildOutputFileType.Browser,
+                type: bundler_files_1.BuildOutputFileType.Browser,
                 inputPath: file.source,
                 origin: 'disk',
             };
@@ -291,7 +307,7 @@ function* emitOutputResults({ outputFiles, assetFiles, errors, warnings, externa
         }
         hasCssUpdates ||= destination.endsWith('.css');
         incrementalResult.files[destination] = {
-            type: bundler_context_1.BuildOutputFileType.Browser,
+            type: bundler_files_1.BuildOutputFileType.Browser,
             inputPath: source,
             origin: 'disk',
         };
@@ -310,7 +326,7 @@ function* emitOutputResults({ outputFiles, assetFiles, errors, warnings, externa
         type,
     })), ...Array.from(removedAssetFiles.values(), (file) => ({
         path: file,
-        type: bundler_context_1.BuildOutputFileType.Browser,
+        type: bundler_files_1.BuildOutputFileType.Browser,
     })));
     yield incrementalResult;
     // If there are template updates and the incremental update was background only, a component
@@ -344,10 +360,11 @@ function isCssFilePath(filePath) {
 function canBackgroundUpdate(file) {
     // Files in the output root are not served and do not affect the
     // application available with the development server.
-    if (file.type === bundler_context_1.BuildOutputFileType.Root) {
+    if (file.type === bundler_files_1.BuildOutputFileType.Root) {
         return true;
     }
     // Updates to non-JS files must signal an update with the dev server
     // except the service worker configuration which is special cased.
     return /(?:\.m?js|\.map)$/.test(file.path) || file.path === 'ngsw.json';
 }
+//# sourceMappingURL=build-action.js.map

@@ -30,5 +30,7 @@ export declare enum ExtendedTemplateDiagnosticName {
     UNUSED_LET_DECLARATION = "unusedLetDeclaration",
     UNINVOKED_TRACK_FUNCTION = "uninvokedTrackFunction",
     UNUSED_STANDALONE_IMPORTS = "unusedStandaloneImports",
-    UNPARENTHESIZED_NULLISH_COALESCING = "unparenthesizedNullishCoalescing"
+    UNPARENTHESIZED_NULLISH_COALESCING = "unparenthesizedNullishCoalescing",
+    UNINVOKED_FUNCTION_IN_TEXT_INTERPOLATION = "uninvokedFunctionInTextInterpolation",
+    DEFER_TRIGGER_MISCONFIGURATION = "deferTriggerMisconfiguration"
 }

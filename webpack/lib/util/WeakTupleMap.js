@@ -6,35 +6,49 @@
 "use strict";
 
 /**
+ * Strong-key child map used for tuple elements that cannot be stored in a
+ * `WeakMap`.
  * @template {EXPECTED_ANY[]} T
  * @template V
  * @typedef {Map<EXPECTED_ANY, WeakTupleMap<T, V>>} M
  */
 
 /**
+ * Weak-key child map used for tuple elements that are objects and can be held
+ * without preventing garbage collection.
  * @template {EXPECTED_ANY[]} T
  * @template V
  * @typedef {WeakMap<EXPECTED_OBJECT, WeakTupleMap<T, V>>} W
  */
 
 /**
+ * Reports whether a tuple element can be stored in a `WeakMap`.
  * @param {EXPECTED_ANY} thing thing
  * @returns {boolean} true if is weak
  */
-const isWeakKey = thing => typeof thing === "object" && thing !== null;
+const isWeakKey = (thing) => typeof thing === "object" && thing !== null;
 
 /**
+ * Extracts the element type from a tuple-like array.
  * @template {unknown[]} T
- * @typedef {T extends readonly (infer ElementType)[] ? ElementType : never} ArrayElement
+ * @typedef {T extends ReadonlyArray<infer ElementType> ? ElementType : never} ArrayElement
  */
 
 /**
+ * Stores values by tuple keys while using `WeakMap` for object elements so the
+ * cache can release entries when those objects are collected.
  * @template {EXPECTED_ANY[]} K
  * @template V
  */
 class WeakTupleMap {
+	/**
+	 * Initializes an empty tuple trie node with optional value and child maps.
+	 */
 	constructor() {
-		/** @private */
+		/**
+		 * @private
+		 * @type {number}
+		 */
 		this.f = 0;
 		/**
 		 * @private
@@ -54,6 +68,7 @@ class WeakTupleMap {
 	}
 
 	/**
+	 * Stores a value at the node identified by the provided tuple key.
 	 * @param {[...K, V]} args tuple
 	 * @returns {void}
 	 */
@@ -67,6 +82,7 @@ class WeakTupleMap {
 	}
 
 	/**
+	 * Checks whether the exact tuple key has a stored value.
 	 * @param {K} args tuple
 	 * @returns {boolean} true, if the tuple is in the Set
 	 */
@@ -81,6 +97,7 @@ class WeakTupleMap {
 	}
 
 	/**
+	 * Returns the value stored for the exact tuple key, if any.
 	 * @param {K} args tuple
 	 * @returns {V | undefined} the value
 	 */
@@ -95,6 +112,8 @@ class WeakTupleMap {
 	}
 
 	/**
+	 * Returns an existing value for the tuple or computes, stores, and returns a
+	 * new one when the tuple is missing.
 	 * @param {[...K, (...args: K) => V]} args tuple
 	 * @returns {V} the value
 	 */
@@ -112,6 +131,30 @@ class WeakTupleMap {
 	}
 
 	/**
+	 * Memoizes `compute(thisArg, ...args)` under the tuple key `[compute,
+	 * ...args]`, computing it on a miss. Equivalent to `provide(compute, ...args,
+	 * () => compute(thisArg, ...args))` but without allocating that closure (or an
+	 * extra rest array) on every call — `ModuleGraph#cached` runs this on hot
+	 * paths where most calls hit the cache and the closure would be pure waste.
+	 * @param {(thisArg: EXPECTED_ANY, ...args: K) => V} compute computer, also the first key element
+	 * @param {EXPECTED_ANY} thisArg first argument passed to `compute`
+	 * @param {K} args remaining key elements, also passed to `compute`
+	 * @returns {V} the value
+	 */
+	cachedProvide(compute, thisArg, args) {
+		/** @type {WeakTupleMap<K, V>} */
+		let node = this._get(/** @type {ArrayElement<K>} */ (compute));
+		for (let i = 0; i < args.length; i++) {
+			node = node._get(/** @type {ArrayElement<K>} */ (args[i]));
+		}
+		if (node._hasValue()) return /** @type {V} */ (node._getValue());
+		const newValue = compute(thisArg, ...args);
+		node._setValue(newValue);
+		return newValue;
+	}
+
+	/**
+	 * Removes the value stored for the tuple key without pruning the trie.
 	 * @param {K} args tuple
 	 * @returns {void}
 	 */
@@ -126,6 +169,7 @@ class WeakTupleMap {
 	}
 
 	/**
+	 * Clears the stored value and all strong and weak child maps from this node.
 	 * @returns {void}
 	 */
 	clear() {
@@ -135,15 +179,24 @@ class WeakTupleMap {
 		this.m = undefined;
 	}
 
+	/**
+	 * Returns the value stored directly on this trie node.
+	 * @returns {V | undefined} stored value
+	 */
 	_getValue() {
 		return this.v;
 	}
 
+	/**
+	 * Reports whether this trie node currently stores a value.
+	 * @returns {boolean} true when a value is present
+	 */
 	_hasValue() {
 		return (this.f & 1) === 1;
 	}
 
 	/**
+	 * Stores a value directly on this trie node.
 	 * @param {V} v value
 	 * @private
 	 */
@@ -152,12 +205,16 @@ class WeakTupleMap {
 		this.v = v;
 	}
 
+	/**
+	 * Removes the value stored directly on this trie node.
+	 */
 	_deleteValue() {
 		this.f &= 6;
 		this.v = undefined;
 	}
 
 	/**
+	 * Returns the child node for a tuple element without creating one.
 	 * @param {ArrayElement<K>} thing thing
 	 * @returns {WeakTupleMap<K, V> | undefined} thing
 	 * @private
@@ -176,6 +233,8 @@ class WeakTupleMap {
 	}
 
 	/**
+	 * Returns the child node for a tuple element, creating and storing it when
+	 * necessary.
 	 * @private
 	 * @param {ArrayElement<K>} thing thing
 	 * @returns {WeakTupleMap<K, V>} value

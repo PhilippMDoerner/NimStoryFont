@@ -6,9 +6,9 @@ import {
   output,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { Image } from 'src/app/_models/image';
-import { Item } from 'src/app/_models/item';
-import { RoutingService } from 'src/app/_services/routing.service';
+import { Image } from '../../../_models/image';
+import { Item } from '../../../_models/item';
+import { RoutingService } from '../../../_services/routing.service';
 import { ArticleContextMenuComponent } from '../../molecules/article-context-menu/article-context-menu.component';
 import { ArticleFooterComponent } from '../../molecules/article-footer/article-footer.component';
 import { EditableTextComponent } from '../../organisms/editable-text/editable-text.component';
@@ -30,34 +30,34 @@ import { PageContainerComponent } from '../../organisms/page-container/page-cont
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ItemComponent {
-  item = input.required<Item>();
-  itemServerModel = input.required<Item | undefined>();
-  serverUrl = input.required<string>();
-  canUpdate = input(false);
-  canCreate = input(false);
-  canDelete = input(false);
-  imageServerModel = input.required<Image | undefined>();
+  readonly item = input.required<Item>();
+  readonly itemServerModel = input.required<Item | undefined>();
+  readonly serverUrl = input.required<string>();
+  readonly canUpdate = input(false);
+  readonly canCreate = input(false);
+  readonly canDelete = input(false);
+  readonly imageServerModel = input.required<Image | undefined>();
 
   readonly itemDelete = output<Item>();
   readonly createImage = output<Image>();
   readonly deleteImage = output<Image>();
   readonly updateImage = output<Image>();
-  itemUpdate = output<Item>();
+  readonly itemUpdate = output<Item>();
 
-  campaignName = computed(() => this.item().campaign_details?.name);
-  hasOwner = computed(() => this.item().owner_details != null);
-  overviewUrl = computed(() =>
+  readonly campaignName = computed(() => this.item().campaign_details?.name);
+  readonly hasOwner = computed(() => this.item().owner_details != null);
+  readonly overviewUrl = computed(() =>
     this.routingService.getRoutePath('item-overview', {
       campaign: this.campaignName(),
     }),
   );
-  updateUrl = computed(() =>
+  readonly updateUrl = computed(() =>
     this.routingService.getRoutePath('item-update', {
       campaign: this.campaignName(),
       name: this.item().name,
     }),
   );
-  ownerUrl = computed(() => {
+  readonly ownerUrl = computed(() => {
     if (!this.hasOwner()) return undefined;
 
     return this.routingService.getRoutePath('character', {

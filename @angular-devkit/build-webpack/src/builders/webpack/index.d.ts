@@ -7,7 +7,7 @@
  */
 import { Builder, BuilderContext, BuilderOutput } from '@angular-devkit/architect';
 import { Observable } from 'rxjs';
-import webpack from 'webpack';
+import type webpack from 'webpack';
 import { EmittedFiles } from '../../utils';
 import { Schema as RealWebpackBuilderSchema } from './schema';
 export type WebpackBuilderSchema = RealWebpackBuilderSchema;
@@ -15,13 +15,17 @@ export interface WebpackLoggingCallback {
     (stats: webpack.Stats, config: webpack.Configuration): void;
 }
 export interface WebpackFactory {
-    (config: webpack.Configuration): Observable<webpack.Compiler> | webpack.Compiler;
+    (config: webpack.Configuration): Observable<webpack.Compiler | null> | webpack.Compiler | null;
 }
 export type BuildResult = BuilderOutput & {
     emittedFiles?: EmittedFiles[];
     webpackStats?: webpack.StatsCompilation;
     outputPath: string;
 };
+/**
+ * @deprecated Part of Angular's Webpack support deprecation. Use `@angular/build` APIs instead.
+ * Deprecated since v22.
+ */
 export declare function runWebpack(config: webpack.Configuration, context: BuilderContext, options?: {
     logging?: WebpackLoggingCallback;
     webpackFactory?: WebpackFactory;

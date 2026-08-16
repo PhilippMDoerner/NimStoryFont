@@ -181,4 +181,3 @@ export class ParserFeedbackSimulator {
         this.handler.onEndTag(token);
     }
 }
-//# sourceMappingURL=parser-feedback-simulator.js.map

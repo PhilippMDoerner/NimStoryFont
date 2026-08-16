@@ -10,11 +10,12 @@ const makeSerializable = require("../util/makeSerializable");
 const NullDependency = require("./NullDependency");
 
 /** @typedef {import("webpack-sources").ReplaceSource} ReplaceSource */
+/** @typedef {import("./LocalModule")} LocalModule */
 /** @typedef {import("../Dependency")} Dependency */
 /** @typedef {import("../DependencyTemplate").DependencyTemplateContext} DependencyTemplateContext */
 /** @typedef {import("../javascript/JavascriptParser").Range} Range */
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext} ObjectDeserializerContext */
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext} ObjectSerializerContext */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext<[Range, Range | null, Range | null, Range | null, string | null, LocalModule | null]>} ObjectDeserializerContext */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext<[Range, Range | null, Range | null, Range | null, string | null, LocalModule | null]>} ObjectSerializerContext */
 
 /** @type {Record<string, { definition: string, content: string, requests: string[] }>} */
 const DEFINITIONS = {
@@ -107,6 +108,7 @@ const DEFINITIONS = {
 
 class AMDDefineDependency extends NullDependency {
 	/**
+	 * Creates an instance of AMDDefineDependency.
 	 * @param {Range} range range
 	 * @param {Range | null} arrayRange array range
 	 * @param {Range | null} functionRange function range
@@ -119,7 +121,9 @@ class AMDDefineDependency extends NullDependency {
 		this.arrayRange = arrayRange;
 		this.functionRange = functionRange;
 		this.objectRange = objectRange;
+		/** @type {string | null} */
 		this.namedModule = namedModule;
+		/** @type {LocalModule | null} */
 		this.localModule = null;
 	}
 
@@ -128,31 +132,37 @@ class AMDDefineDependency extends NullDependency {
 	}
 
 	/**
+	 * Serializes this instance into the provided serializer context.
 	 * @param {ObjectSerializerContext} context context
 	 */
 	serialize(context) {
-		const { write } = context;
-		write(this.range);
-		write(this.arrayRange);
-		write(this.functionRange);
-		write(this.objectRange);
-		write(this.namedModule);
-		write(this.localModule);
+		context
+			.write(this.range)
+			.write(this.arrayRange)
+			.write(this.functionRange)
+			.write(this.objectRange)
+			.write(this.namedModule)
+			.write(this.localModule);
 		super.serialize(context);
 	}
 
 	/**
+	 * Restores this instance from the provided deserializer context.
 	 * @param {ObjectDeserializerContext} context context
 	 */
 	deserialize(context) {
-		const { read } = context;
-		this.range = read();
-		this.arrayRange = read();
-		this.functionRange = read();
-		this.objectRange = read();
-		this.namedModule = read();
-		this.localModule = read();
-		super.deserialize(context);
+		this.range = context.read();
+		const c1 = context.rest;
+		this.arrayRange = c1.read();
+		const c2 = c1.rest;
+		this.functionRange = c2.read();
+		const c3 = c2.rest;
+		this.objectRange = c3.read();
+		const c4 = c3.rest;
+		this.namedModule = c4.read();
+		const c5 = c4.rest;
+		this.localModule = c5.read();
+		super.deserialize(c5.rest);
 	}
 }
 
@@ -165,6 +175,7 @@ AMDDefineDependency.Template = class AMDDefineDependencyTemplate extends (
 	NullDependency.Template
 ) {
 	/**
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Dependency} dependency the dependency for which the template should be applied
 	 * @param {ReplaceSource} source the current replace source which can be modified
 	 * @param {DependencyTemplateContext} templateContext the context object
@@ -181,8 +192,9 @@ AMDDefineDependency.Template = class AMDDefineDependencyTemplate extends (
 	}
 
 	/**
+	 * Returns variable name.
 	 * @param {AMDDefineDependency} dependency dependency
-	 * @returns {string} variable name
+	 * @returns {string | false | null} variable name
 	 */
 	localModuleVar(dependency) {
 		return (
@@ -193,6 +205,7 @@ AMDDefineDependency.Template = class AMDDefineDependencyTemplate extends (
 	}
 
 	/**
+	 * Returns branch.
 	 * @param {AMDDefineDependency} dependency dependency
 	 * @returns {string} branch
 	 */
@@ -205,6 +218,7 @@ AMDDefineDependency.Template = class AMDDefineDependencyTemplate extends (
 	}
 
 	/**
+	 * Processes the provided dependency.
 	 * @param {AMDDefineDependency} dependency dependency
 	 * @param {ReplaceSource} source source
 	 * @param {string} definition definition

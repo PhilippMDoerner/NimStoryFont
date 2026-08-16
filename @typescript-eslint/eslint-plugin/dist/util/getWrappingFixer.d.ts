@@ -16,13 +16,13 @@ interface WrappingFixerParams {
      * Receives multiple arguments if there are multiple innerNodes.
      * E.g. ``code => `${code} != null` ``
      */
-    wrap: (...code: string[]) => string;
+    wrap?: (...code: string[]) => string;
 }
 /**
- * Wraps node with some code. Adds parenthesis as necessary.
+ * Wraps node with some code. Adds parentheses as necessary.
  * @returns Fixer which adds the specified code and parens if necessary.
  */
-export declare function getWrappingFixer(params: WrappingFixerParams): TSESLint.ReportFixFunction;
+export declare function getWrappingFixer(params: WrappingFixerParams): (fixer: TSESLint.RuleFixer) => TSESLint.RuleFix;
 /**
  * If the node to be moved and the destination node require parentheses, include parentheses in the node to be moved.
  * @param sourceCode Source code of current file
@@ -36,8 +36,11 @@ export declare function getMovedNodeCode(params: {
     sourceCode: Readonly<TSESLint.SourceCode>;
 }): string;
 /**
- * Check if a node will always have the same precedence if it's parent changes.
+ * Check if a node will always have the same precedence if its parent changes.
  */
 export declare function isStrongPrecedenceNode(innerNode: TSESTree.Node): boolean;
+/**
+ * Check if a node's parent could have different precedence if the node changes.
+ */
+export declare function isWeakPrecedenceParent(node: TSESTree.Node): boolean;
 export {};
-//# sourceMappingURL=getWrappingFixer.d.ts.map

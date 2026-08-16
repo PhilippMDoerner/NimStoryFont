@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.JsonDecoder = exports.readKey = void 0;
-const decodeUtf8_1 = require("@jsonjoy.com/util/lib/buffers/utf8/decodeUtf8");
-const Reader_1 = require("@jsonjoy.com/util/lib/buffers/Reader");
+const decodeUtf8_1 = require("@jsonjoy.com/buffers/lib/utf8/decodeUtf8");
+const Reader_1 = require("@jsonjoy.com/buffers/lib/Reader");
 const fromBase64Bin_1 = require("@jsonjoy.com/base64/lib/fromBase64Bin");
 const util_1 = require("./util");
 const REGEX_REPLACE_ESCAPED_CHARS = /\\(b|f|n|r|t|"|\/|\\)/g;
@@ -353,7 +353,7 @@ class JsonDecoder {
         }
         const c9 = c;
         c = uint8[x++];
-        if (!c || ((c < 45 || c > 57) && c !== 69 && c !== 101)) {
+        if (!c || ((c < 45 || c > 57) && c !== 43 && c !== 69 && c !== 101)) {
             reader.x = x - 1;
             const num = +fromCharCode(c1, c2, c3, c4, c5, c6, c7, c8, c9);
             if (num !== num)
@@ -362,7 +362,7 @@ class JsonDecoder {
         }
         const c10 = c;
         c = uint8[x++];
-        if (!c || ((c < 45 || c > 57) && c !== 69 && c !== 101)) {
+        if (!c || ((c < 45 || c > 57) && c !== 43 && c !== 69 && c !== 101)) {
             reader.x = x - 1;
             const num = +fromCharCode(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10);
             if (num !== num)
@@ -371,7 +371,7 @@ class JsonDecoder {
         }
         const c11 = c;
         c = uint8[x++];
-        if (!c || ((c < 45 || c > 57) && c !== 69 && c !== 101)) {
+        if (!c || ((c < 45 || c > 57) && c !== 43 && c !== 69 && c !== 101)) {
             reader.x = x - 1;
             const num = +fromCharCode(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11);
             if (num !== num)
@@ -380,7 +380,7 @@ class JsonDecoder {
         }
         const c12 = c;
         c = uint8[x++];
-        if (!c || ((c < 45 || c > 57) && c !== 69 && c !== 101)) {
+        if (!c || ((c < 45 || c > 57) && c !== 43 && c !== 69 && c !== 101)) {
             reader.x = x - 1;
             const num = +fromCharCode(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12);
             if (num !== num)
@@ -389,7 +389,7 @@ class JsonDecoder {
         }
         const c13 = c;
         c = uint8[x++];
-        if (!c || ((c < 45 || c > 57) && c !== 69 && c !== 101)) {
+        if (!c || ((c < 45 || c > 57) && c !== 43 && c !== 69 && c !== 101)) {
             reader.x = x - 1;
             const num = +fromCharCode(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13);
             if (num !== num)
@@ -398,7 +398,7 @@ class JsonDecoder {
         }
         const c14 = c;
         c = uint8[x++];
-        if (!c || ((c < 45 || c > 57) && c !== 69 && c !== 101)) {
+        if (!c || ((c < 45 || c > 57) && c !== 43 && c !== 69 && c !== 101)) {
             reader.x = x - 1;
             const num = +fromCharCode(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14);
             if (num !== num)
@@ -407,7 +407,7 @@ class JsonDecoder {
         }
         const c15 = c;
         c = uint8[x++];
-        if (!c || ((c < 45 || c > 57) && c !== 69 && c !== 101)) {
+        if (!c || ((c < 45 || c > 57) && c !== 43 && c !== 69 && c !== 101)) {
             reader.x = x - 1;
             const num = +fromCharCode(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15);
             if (num !== num)
@@ -416,7 +416,7 @@ class JsonDecoder {
         }
         const c16 = c;
         c = uint8[x++];
-        if (!c || ((c < 45 || c > 57) && c !== 69 && c !== 101)) {
+        if (!c || ((c < 45 || c > 57) && c !== 43 && c !== 69 && c !== 101)) {
             reader.x = x - 1;
             const num = +fromCharCode(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16);
             if (num !== num)
@@ -425,7 +425,7 @@ class JsonDecoder {
         }
         const c17 = c;
         c = uint8[x++];
-        if (!c || ((c < 45 || c > 57) && c !== 69 && c !== 101)) {
+        if (!c || ((c < 45 || c > 57) && c !== 43 && c !== 69 && c !== 101)) {
             reader.x = x - 1;
             const num = +fromCharCode(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17);
             if (num !== num)
@@ -434,7 +434,7 @@ class JsonDecoder {
         }
         const c18 = c;
         c = uint8[x++];
-        if (!c || ((c < 45 || c > 57) && c !== 69 && c !== 101)) {
+        if (!c || ((c < 45 || c > 57) && c !== 43 && c !== 69 && c !== 101)) {
             reader.x = x - 1;
             const num = +fromCharCode(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18);
             if (num !== num)
@@ -443,7 +443,7 @@ class JsonDecoder {
         }
         const c19 = c;
         c = uint8[x++];
-        if (!c || ((c < 45 || c > 57) && c !== 69 && c !== 101)) {
+        if (!c || ((c < 45 || c > 57) && c !== 43 && c !== 69 && c !== 101)) {
             reader.x = x - 1;
             const num = +fromCharCode(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19);
             if (num !== num)
@@ -452,7 +452,7 @@ class JsonDecoder {
         }
         const c20 = c;
         c = uint8[x++];
-        if (!c || ((c < 45 || c > 57) && c !== 69 && c !== 101)) {
+        if (!c || ((c < 45 || c > 57) && c !== 43 && c !== 69 && c !== 101)) {
             reader.x = x - 1;
             const num = +fromCharCode(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20);
             if (num !== num)
@@ -461,7 +461,7 @@ class JsonDecoder {
         }
         const c21 = c;
         c = uint8[x++];
-        if (!c || ((c < 45 || c > 57) && c !== 69 && c !== 101)) {
+        if (!c || ((c < 45 || c > 57) && c !== 43 && c !== 69 && c !== 101)) {
             reader.x = x - 1;
             const num = +fromCharCode(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20, c21);
             if (num !== num)
@@ -470,7 +470,7 @@ class JsonDecoder {
         }
         const c22 = c;
         c = uint8[x++];
-        if (!c || ((c < 45 || c > 57) && c !== 69 && c !== 101)) {
+        if (!c || ((c < 45 || c > 57) && c !== 43 && c !== 69 && c !== 101)) {
             reader.x = x - 1;
             const num = +fromCharCode(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20, c21, c22);
             if (num !== num)
@@ -479,7 +479,7 @@ class JsonDecoder {
         }
         const c23 = c;
         c = uint8[x++];
-        if (!c || ((c < 45 || c > 57) && c !== 69 && c !== 101)) {
+        if (!c || ((c < 45 || c > 57) && c !== 43 && c !== 69 && c !== 101)) {
             reader.x = x - 1;
             const num = +fromCharCode(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20, c21, c22, c23);
             if (num !== num)
@@ -488,9 +488,9 @@ class JsonDecoder {
         }
         const c24 = c;
         c = uint8[x++];
-        if (!c || ((c < 45 || c > 57) && c !== 69 && c !== 101)) {
+        if (!c || ((c < 45 || c > 57) && c !== 43 && c !== 69 && c !== 101)) {
             reader.x = x - 1;
-            const num = +fromCharCode(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20, c21, c22, c24);
+            const num = +fromCharCode(c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20, c21, c22, c23, c24);
             if (num !== num)
                 throw new Error('Invalid JSON');
             return num;

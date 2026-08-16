@@ -6,12 +6,8 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.dev/license
  */
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 const node_path_1 = require("node:path");
-const yargs_1 = __importDefault(require("yargs"));
 const command_module_1 = require("../../command-builder/command-module");
 const command_1 = require("../../command-builder/utilities/command");
 const color_1 = require("../../utilities/color");
@@ -22,7 +18,8 @@ class CompletionCommandModule extends command_module_1.CommandModule {
     describe = 'Set up Angular CLI autocompletion for your terminal.';
     longDescriptionPath = (0, node_path_1.join)(__dirname, 'long-description.md');
     builder(localYargs) {
-        return (0, command_1.addCommandModuleToYargs)(localYargs, CompletionScriptCommandModule, this.context);
+        (0, command_1.addCommandModuleToYargs)(CompletionScriptCommandModule, this.context);
+        return localYargs;
     }
     async run() {
         let rcFile;
@@ -58,6 +55,7 @@ class CompletionScriptCommandModule extends command_module_1.CommandModule {
         return localYargs;
     }
     run() {
-        yargs_1.default.showCompletionScript();
+        this.context.yargsInstance.showCompletionScript();
     }
 }
+//# sourceMappingURL=cli.js.map

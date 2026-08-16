@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UbjsonDecoder = void 0;
-const Reader_1 = require("@jsonjoy.com/util/lib/buffers/Reader");
+const Reader_1 = require("@jsonjoy.com/buffers/lib/Reader");
 const JsonPackExtension_1 = require("../JsonPackExtension");
 class UbjsonDecoder {
     constructor() {

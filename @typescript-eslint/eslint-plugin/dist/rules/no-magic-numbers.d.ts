@@ -23,6 +23,7 @@ declare const _default: import("@typescript-eslint/utils/ts-eslint").RuleModule<
     ignoreNumericLiteralTypes?: boolean;
     ignoreReadonlyClassProperties?: boolean;
     ignoreTypeIndexes?: boolean;
-}], import("../../rules").ESLintPluginDocs, import("@typescript-eslint/utils/ts-eslint").RuleListener>;
+}], import("../../rules").ESLintPluginDocs, import("@typescript-eslint/utils/ts-eslint").RuleListener> & {
+    name: string;
+};
 export default _default;
-//# sourceMappingURL=no-magic-numbers.d.ts.map

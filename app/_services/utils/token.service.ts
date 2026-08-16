@@ -1,27 +1,27 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { Login } from 'src/app/_models/login';
+import { environment } from '../../../environments/environment';
+import { log } from '../../../utils/logging';
+import { Login } from '../../_models/login';
 import {
   AuthData,
   CampaignMemberships,
   CampaignRole,
   CampaignRoles,
-} from 'src/app/_models/token';
-import { environment } from 'src/environments/environment';
-import { log } from 'src/utils/logging';
+} from '../../_models/token';
 
 @Injectable({
   providedIn: 'root',
 })
 export class TokenService {
-  static USER_DATA_KEY = 'user_data';
+  static readonly USER_DATA_KEY = 'user_data';
 
-  apiUrl = environment.apiUrl;
+  readonly apiUrl = environment.apiUrl;
 
-  private jwtTokenUrl = `${this.apiUrl}/token`;
-  public refreshTokenUrl = `${this.jwtTokenUrl}/refresh`;
-  private ID_IDENTIFIER_PREFIX = 'id_';
+  private readonly jwtTokenUrl = `${this.apiUrl}/token`;
+  public readonly refreshTokenUrl = `${this.jwtTokenUrl}/refresh`;
+  private readonly ID_IDENTIFIER_PREFIX = 'id_';
 
   constructor(private http: HttpClient) {}
 

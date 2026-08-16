@@ -1,0 +1,24 @@
+import { __decorate } from "tslib";
+import { AsnProp, AsnPropTypes } from "@peculiar/asn1-schema";
+import { AlgorithmIdentifier } from "./algorithm_identifier.js";
+import { TBSCertList } from "./tbs_cert_list.js";
+export class CertificateList {
+    tbsCertList = new TBSCertList();
+    tbsCertListRaw;
+    signatureAlgorithm = new AlgorithmIdentifier();
+    signature = new ArrayBuffer(0);
+    constructor(params = {}) {
+        Object.assign(this, params);
+    }
+}
+__decorate([
+    AsnProp({
+        type: TBSCertList, raw: true,
+    })
+], CertificateList.prototype, "tbsCertList", void 0);
+__decorate([
+    AsnProp({ type: AlgorithmIdentifier })
+], CertificateList.prototype, "signatureAlgorithm", void 0);
+__decorate([
+    AsnProp({ type: AsnPropTypes.BitString })
+], CertificateList.prototype, "signature", void 0);

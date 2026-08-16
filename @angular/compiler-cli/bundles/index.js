@@ -4,16 +4,8 @@
     
 import {
   DEFAULT_ERROR_CODE,
-  DecoratorType,
-  DocsExtractor,
   EmitFlags,
-  EntryType,
-  MemberTags,
-  MemberType,
-  NgCompiler,
-  NgCompilerHost,
   NgtscProgram,
-  PatchedProgramIncrementalBuildStrategy,
   SOURCE,
   UNKNOWN_ERROR_CODE,
   calcProjectFileAndBasePath,
@@ -22,37 +14,69 @@ import {
   defaultGatherDiagnostics,
   exitCodeFromResult,
   formatDiagnostics,
-  freshCompilationTicket,
-  incrementalFromStateTicket,
-  isDocEntryWithSourceInfo,
   isTsDiagnostic,
   performCompilation,
   readConfiguration
-} from "./chunk-2L4O4UIG.js";
+} from "./chunk-JTB6ADF4.js";
 import {
   ConsoleLogger,
   LogLevel
-} from "./chunk-H5Y7P5GQ.js";
+} from "./chunk-SEJGUMO2.js";
 import {
-  GLOBAL_DEFS_FOR_TERSER,
-  GLOBAL_DEFS_FOR_TERSER_WITH_AOT,
-  constructorParametersDownlevelTransform
-} from "./chunk-QZKYZIEQ.js";
+  DecoratorType,
+  DocsExtractor,
+  EntryType,
+  MemberTags,
+  MemberType,
+  NgCompiler,
+  NgCompilerHost,
+  PatchedProgramIncrementalBuildStrategy,
+  TrackedIncrementalBuildStrategy,
+  freshCompilationTicket,
+  incrementalFromCompilerTicket,
+  incrementalFromStateTicket,
+  isDocEntryWithSourceInfo,
+  resourceChangeTicket
+} from "./chunk-VG44FWYM.js";
 import {
-  angularJitApplicationTransform,
-  getDownlevelDecoratorsTransform,
-  getInitializerApiJitTransform
-} from "./chunk-EBPHWYDC.js";
+  AbsoluteSourceSpan,
+  IdentifierKind
+} from "./chunk-NRQWINXV.js";
 import {
   ActivePerfRecorder,
-  ErrorCode,
-  OptimizeFor,
+  InliningMode,
   PerfPhase,
   TsCreateProgramDriver,
+  angularJitApplicationTransform,
+  getAngularDecorators,
+  getDownlevelDecoratorsTransform,
+  getInitializerApiJitTransform,
+  isShim
+} from "./chunk-COHPTPZ2.js";
+import {
+  CompletionKind,
+  Environment,
+  ErrorCode,
+  ExpressionIdentifier,
+  ImportManager,
+  MetaKind,
+  OptimizeFor,
+  PotentialImportKind,
+  PotentialImportMode,
+  Reference,
+  RegistryDomSchemaChecker,
+  SymbolBuilder,
+  SymbolKind,
+  findFirstMatchingNode,
+  getRootDirs,
+  hasExpressionIdentifier,
+  isExternalResource,
+  isFatalDiagnosticError,
   isLocalCompilationDiagnostics,
+  isNamedClassDeclaration,
   ngErrorCode
-} from "./chunk-NPUFVONQ.js";
-import "./chunk-M3WWDK6S.js";
+} from "./chunk-SOEVA7UL.js";
+import "./chunk-ZUYMYKXC.js";
 import {
   InvalidFileSystem,
   LogicalFileSystem,
@@ -74,17 +98,30 @@ import {
   resolve,
   setFileSystem,
   toRelativeImport
-} from "./chunk-3AHGFMNS.js";
+} from "./chunk-UTWH365F.js";
 import {
   NodeJSFileSystem
-} from "./chunk-U5SKOFKE.js";
-import "./chunk-KPQ72R34.js";
+} from "./chunk-KWAGEHJJ.js";
+import "./chunk-IEBNHER4.js";
 
-// bazel-out/darwin_arm64-fastbuild/bin/packages/compiler-cli/src/version.js
+// packages/compiler-cli/src/version.js
 import { Version } from "@angular/compiler";
-var VERSION = new Version("20.0.3");
+var VERSION = new Version("22.1.1");
 
-// bazel-out/darwin_arm64-fastbuild/bin/packages/compiler-cli/src/ngtsc/tsc_plugin.js
+// packages/compiler-cli/private/tooling.js
+var GLOBAL_DEFS_FOR_TERSER = {
+  ngDevMode: false,
+  ngI18nClosureMode: false
+};
+var GLOBAL_DEFS_FOR_TERSER_WITH_AOT = {
+  ...GLOBAL_DEFS_FOR_TERSER,
+  ngJitMode: false
+};
+var constructorParametersDownlevelTransform = (program, isCore = false) => {
+  return angularJitApplicationTransform(program, isCore);
+};
+
+// packages/compiler-cli/src/ngtsc/tsc_plugin.js
 var NgTscPlugin = class {
   ngOptions;
   name = "ngtsc";
@@ -103,7 +140,13 @@ var NgTscPlugin = class {
   }
   wrapHost(host, inputFiles, options) {
     this.options = { ...this.ngOptions, ...options };
-    this.host = NgCompilerHost.wrap(host, inputFiles, this.options, null);
+    this.host = NgCompilerHost.wrap(
+      host,
+      inputFiles,
+      this.options,
+      /* oldProgram */
+      null
+    );
     return this.host;
   }
   setupCompilation(program, oldProgram) {
@@ -129,7 +172,9 @@ var NgTscPlugin = class {
         strategy,
         programDriver,
         perfRecorder,
+        /* enableTemplateTypeChecker */
         false,
+        /* usePoisonedData */
         false
       );
     } else {
@@ -160,30 +205,47 @@ var NgTscPlugin = class {
   }
 };
 
-// bazel-out/darwin_arm64-fastbuild/bin/packages/compiler-cli/index.js
+// packages/compiler-cli/index.ts
 setFileSystem(new NodeJSFileSystem());
 export {
+  AbsoluteSourceSpan,
+  CompletionKind,
   ConsoleLogger,
   DEFAULT_ERROR_CODE,
   DecoratorType,
   DocsExtractor,
   EmitFlags,
   EntryType,
+  Environment,
   ErrorCode,
+  ExpressionIdentifier,
   GLOBAL_DEFS_FOR_TERSER,
   GLOBAL_DEFS_FOR_TERSER_WITH_AOT,
+  IdentifierKind,
+  ImportManager,
+  InliningMode,
   InvalidFileSystem,
   LogLevel,
   LogicalFileSystem,
   LogicalProjectPath,
   MemberTags,
   MemberType,
+  MetaKind,
+  NgCompiler,
   NgTscPlugin,
   NgtscCompilerHost,
   NgtscProgram,
   NodeJSFileSystem,
   OptimizeFor,
+  PerfPhase,
+  PotentialImportKind,
+  PotentialImportMode,
+  Reference,
+  RegistryDomSchemaChecker,
   SOURCE,
+  SymbolBuilder,
+  SymbolKind,
+  TrackedIncrementalBuildStrategy,
   UNKNOWN_ERROR_CODE,
   VERSION,
   absoluteFrom,
@@ -198,16 +260,26 @@ export {
   defaultGatherDiagnostics,
   dirname,
   exitCodeFromResult,
+  findFirstMatchingNode,
   formatDiagnostics,
+  freshCompilationTicket,
+  getAngularDecorators,
   getDownlevelDecoratorsTransform,
   getFileSystem,
   getInitializerApiJitTransform,
+  getRootDirs,
   getSourceFileOrError,
+  hasExpressionIdentifier,
+  incrementalFromCompilerTicket,
   isDocEntryWithSourceInfo,
+  isExternalResource,
+  isFatalDiagnosticError,
   isLocalCompilationDiagnostics,
   isLocalRelativePath,
+  isNamedClassDeclaration,
   isRoot,
   isRooted,
+  isShim,
   isTsDiagnostic,
   join,
   ngErrorCode,
@@ -216,6 +288,7 @@ export {
   relative,
   relativeFrom,
   resolve,
+  resourceChangeTicket,
   setFileSystem,
   toRelativeImport
 };

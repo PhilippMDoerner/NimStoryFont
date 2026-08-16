@@ -14,10 +14,10 @@ import { AstFactory, ImportGenerator, ImportRequest } from '../../src/ngtsc/tran
  * must be achieved by property access on an `ng` namespace identifier, which is passed in via the
  * constructor.
  */
-export declare class LinkerImportGenerator<TStatement, TExpression> implements ImportGenerator<null, TExpression> {
+export declare class LinkerImportGenerator<TStatement, TExpression, TType> implements ImportGenerator<null, TExpression> {
     private factory;
     private ngImport;
-    constructor(factory: AstFactory<TStatement, TExpression>, ngImport: TExpression);
+    constructor(factory: AstFactory<TStatement, TExpression, TType>, ngImport: TExpression);
     addImport(request: ImportRequest<null>): TExpression;
     private assertModuleName;
 }

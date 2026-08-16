@@ -5,19 +5,27 @@
 
 "use strict";
 
+const { InlinedUsedName } = require("../optimize/InlineExports");
+const {
+	getDependencyUsedByExportsCondition
+} = require("../optimize/InnerGraph");
 const makeSerializable = require("../util/makeSerializable");
+const { ExportPresenceModes } = require("./HarmonyImportDependency");
 const HarmonyImportSpecifierDependency = require("./HarmonyImportSpecifierDependency");
+const { ImportPhase } = require("./ImportPhase");
 
 /** @typedef {import("webpack-sources").ReplaceSource} ReplaceSource */
-/** @typedef {import("../ChunkGraph")} ChunkGraph */
 /** @typedef {import("../Dependency")} Dependency */
+/** @typedef {import("../Dependency").GetConditionFn} GetConditionFn */
 /** @typedef {import("../DependencyTemplate").DependencyTemplateContext} DependencyTemplateContext */
 /** @typedef {import("../Module").BuildMeta} BuildMeta */
+/** @typedef {import("../ModuleGraph")} ModuleGraph */
 /** @typedef {import("../ModuleGraphConnection")} ModuleGraphConnection */
 /** @typedef {import("../javascript/JavascriptParser").ImportAttributes} ImportAttributes */
 /** @typedef {import("../javascript/JavascriptParser").Range} Range */
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext} ObjectDeserializerContext */
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext} ObjectSerializerContext */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext<string[]>} ObjectDeserializerContext */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext<string[]>} ObjectSerializerContext */
+/** @typedef {import("./HarmonyImportDependency").Ids} Ids */
 
 /**
  * Dependency for static evaluating import specifier. e.g.
@@ -28,16 +36,28 @@ const HarmonyImportSpecifierDependency = require("./HarmonyImportSpecifierDepend
  */
 class HarmonyEvaluatedImportSpecifierDependency extends HarmonyImportSpecifierDependency {
 	/**
+	 * Creates an instance of HarmonyEvaluatedImportSpecifierDependency.
 	 * @param {string} request the request string
 	 * @param {number} sourceOrder source order
-	 * @param {string[]} ids ids
+	 * @param {Ids} ids ids
 	 * @param {string} name name
 	 * @param {Range} range location in source code
-	 * @param {ImportAttributes} attributes import assertions
+	 * @param {ImportAttributes | undefined} attributes import assertions
 	 * @param {string} operator operator
 	 */
 	constructor(request, sourceOrder, ids, name, range, attributes, operator) {
-		super(request, sourceOrder, ids, name, range, false, attributes, []);
+		super(
+			request,
+			sourceOrder,
+			ids,
+			name,
+			range,
+			ExportPresenceModes.NONE,
+			ImportPhase.Evaluation,
+			attributes,
+			[]
+		);
+		/** @type {string} */
 		this.operator = operator;
 	}
 
@@ -46,6 +66,18 @@ class HarmonyEvaluatedImportSpecifierDependency extends HarmonyImportSpecifierDe
 	}
 
 	/**
+	 * Returns function to determine if the connection is active.
+	 * @param {ModuleGraph} moduleGraph module graph
+	 * @returns {null | false | GetConditionFn} function to determine if the connection is active
+	 */
+	getCondition(moduleGraph) {
+		// Existence check is independent of inlining; skip the base class's
+		// inline-sensitivity, which would wrongly deactivate the connection.
+		return getDependencyUsedByExportsCondition(this, moduleGraph);
+	}
+
+	/**
+	 * Serializes this instance into the provided serializer context.
 	 * @param {ObjectSerializerContext} context context
 	 */
 	serialize(context) {
@@ -55,6 +87,7 @@ class HarmonyEvaluatedImportSpecifierDependency extends HarmonyImportSpecifierDe
 	}
 
 	/**
+	 * Restores this instance from the provided deserializer context.
 	 * @param {ObjectDeserializerContext} context context
 	 */
 	deserialize(context) {
@@ -73,6 +106,7 @@ HarmonyEvaluatedImportSpecifierDependency.Template = class HarmonyEvaluatedImpor
 	HarmonyImportSpecifierDependency.Template
 ) {
 	/**
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Dependency} dependency the dependency for which the template should be applied
 	 * @param {ReplaceSource} source the current replace source which can be modified
 	 * @param {DependencyTemplateContext} templateContext the context object
@@ -92,6 +126,7 @@ HarmonyEvaluatedImportSpecifierDependency.Template = class HarmonyEvaluatedImpor
 		);
 		const ids = dep.getIds(moduleGraph);
 
+		/** @type {boolean | undefined | null} */
 		let value;
 
 		const exportsType =
@@ -132,11 +167,20 @@ HarmonyEvaluatedImportSpecifierDependency.Template = class HarmonyEvaluatedImpor
 		} else {
 			const usedName = exportsInfo.getUsedName(ids, runtime);
 
+			if (usedName instanceof InlinedUsedName) {
+				// Inlined exports only work with ESM export dependency
+				// which only existed in modules with `namespace` exportsType.
+				throw new Error(
+					"Evaluated import specifier dependency has inlined export name: This should not happen"
+				);
+			}
+
 			const code = this._getCodeForIds(
 				dep,
 				source,
 				templateContext,
-				ids.slice(0, -1)
+				ids.slice(0, -1),
+				connection
 			);
 			source.replace(
 				dep.range[0],

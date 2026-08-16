@@ -25,3 +25,4 @@ function writeErrorToLogFile(error) {
     (0, node_fs_1.appendFileSync)(logPath, '[error] ' + (error.stack || error) + '\n\n');
     return logPath;
 }
+//# sourceMappingURL=log-file.js.map

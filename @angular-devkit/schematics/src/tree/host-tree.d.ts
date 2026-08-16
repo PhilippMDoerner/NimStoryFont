@@ -21,8 +21,10 @@ export declare class HostDirEntry implements DirEntry {
     visit(visitor: FileVisitor): void;
     private getSubfilesRecursively;
 }
+export interface HostTree {
+}
 export declare class HostTree implements Tree {
-    [TreeSymbol]: () => this;
+    [TreeSymbol]: () => HostTree;
     protected _backend: virtualFs.ReadonlyHost<{}>;
     private readonly _id;
     private _record;

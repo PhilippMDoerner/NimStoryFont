@@ -2,8 +2,8 @@
  * All input types of builders that perform operations on one or multiple sub-builders.
  */
 export type Schema = {
-    builders?: Builder[];
-    targets?: Target[];
+    builders?: [Builder, ...Builder[]];
+    targets?: [Target, ...Target[]];
     [property: string]: any;
 };
 export type Builder = {

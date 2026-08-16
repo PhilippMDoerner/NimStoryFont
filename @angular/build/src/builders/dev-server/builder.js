@@ -11,7 +11,7 @@ exports.execute = execute;
 const check_port_1 = require("../../utils/check-port");
 const internal_1 = require("./internal");
 const options_1 = require("./options");
-const vite_server_1 = require("./vite-server");
+const vite_1 = require("./vite");
 /**
  * A Builder that executes a development server based on the provided browser target option.
  *
@@ -33,7 +33,7 @@ async function* execute(options, context, extensions) {
         return;
     }
     const { builderName, normalizedOptions } = await initialize(options, projectName, context);
-    yield* (0, vite_server_1.serveWithVite)(normalizedOptions, builderName, (options, context, plugins) => (0, internal_1.buildApplicationInternal)(options, context, { codePlugins: plugins }), context, { indexHtml: extensions?.indexHtmlTransformer }, extensions);
+    yield* (0, vite_1.serveWithVite)(normalizedOptions, builderName, (options, context, plugins) => (0, internal_1.buildApplicationInternal)(options, context, { codePlugins: plugins }), context, { indexHtml: extensions?.indexHtmlTransformer }, extensions);
 }
 async function initialize(initialOptions, projectName, context) {
     // Purge old build disk cache.
@@ -58,3 +58,4 @@ websocket connection issues.
         normalizedOptions,
     };
 }
+//# sourceMappingURL=builder.js.map

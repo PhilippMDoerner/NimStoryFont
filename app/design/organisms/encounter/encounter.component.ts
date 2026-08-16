@@ -1,4 +1,4 @@
-import { AsyncPipe, NgTemplateOutlet } from '@angular/common';
+import { NgTemplateOutlet } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -14,42 +14,32 @@ import {
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { NgbTooltipModule } from '@ng-bootstrap/ng-bootstrap';
 import { FormlyFieldConfig } from '@ngx-formly/core';
-import {
-  EMPTY,
-  interval,
-  map,
-  of,
-  startWith,
-  switchMap,
-  take,
-  timer,
-} from 'rxjs';
-import { HeadingDirective } from 'src/app/_directives/heading.directive';
-import { CharacterEncounter } from 'src/app/_models/character';
+import { interval, of, take } from 'rxjs';
+import { withViewTransition } from '../../../../utils/animation';
+import { componentId } from '../../../../utils/DOM';
+import { filterNil } from '../../../../utils/rxjs-operators';
+import { RequestState } from '../../../../utils/store/factory-types';
+import { HeadingDirective } from '../../../_directives/heading.directive';
+import { CharacterEncounter } from '../../../_models/character';
 import {
   Encounter,
   EncounterConnection,
   EncounterConnectionRaw,
   EncounterRaw,
-} from 'src/app/_models/encounter';
-import { FormState } from 'src/app/_models/form';
-import { OverviewItem } from 'src/app/_models/overview';
-import { FormlyService } from 'src/app/_services/formly/formly-service.service';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { SeparatorComponent } from 'src/app/design/atoms/separator/separator.component';
+} from '../../../_models/encounter';
+import { FormState } from '../../../_models/form';
+import { OverviewItem } from '../../../_models/overview';
+import { FormlyService } from '../../../_services/formly/formly-service.service';
+import { RoutingService } from '../../../_services/routing.service';
+import { SeparatorComponent } from '../../../design/atoms/separator/separator.component';
 import {
   BadgeListComponent,
   BadgeListEntry,
   CompareFormComponent,
   FormComponent,
-} from 'src/app/design/molecules';
-import { withViewTransition } from 'src/utils/animation';
-import { componentId } from 'src/utils/DOM';
-import { filterNil } from 'src/utils/rxjs-operators';
-import { RequestState } from 'src/utils/store/factory-types';
+} from '../../../design/molecules';
 import { HeadingLevel } from '../../atoms/_models/heading';
 import { formatSearchTerm } from '../../atoms/_models/typeahead';
-import { SuccessAnimationComponent } from '../../atoms/success-animation/success-animation.component';
 import {
   DEFAULT_DELETE_MODAL_DATA,
   MenuItem,
@@ -75,29 +65,27 @@ const UPDATE_MARKER_TIMEOUT_MS = 3000;
     CompareFormComponent,
     NgbTooltipModule,
     EditorComponent,
-    AsyncPipe,
-    SuccessAnimationComponent,
     ContextMenuComponent,
     HeadingDirective,
   ],
 })
 export class EncounterComponent implements OnInit {
-  destroyRef = inject(DestroyRef);
+  readonly destroyRef = inject(DestroyRef);
 
-  characters = input.required<OverviewItem[]>();
-  locations = input.required<OverviewItem[]>();
-  updateState = input<RequestState>();
-  encounter = input<Encounter | CharacterEncounter>();
-  serverModel = input<Encounter>();
-  canUpdate = input(false);
-  canCreate = input(false);
-  canDelete = input(false);
-  initialCardState = input<FormState>('DISPLAY');
-  isInFocus = input.required<boolean>();
-  headingId = input.required<string>();
-  ariaLevel = input.required<HeadingLevel>();
+  readonly characters = input.required<OverviewItem[]>();
+  readonly locations = input.required<OverviewItem[]>();
+  readonly updateState = input<RequestState>();
+  readonly encounter = input<Encounter | CharacterEncounter>();
+  readonly serverModel = input<Encounter>();
+  readonly canUpdate = input(false);
+  readonly canCreate = input(false);
+  readonly canDelete = input(false);
+  readonly initialCardState = input<FormState>('DISPLAY');
+  readonly isInFocus = input.required<boolean>();
+  readonly headingId = input.required<string>();
+  readonly ariaLevel = input.required<HeadingLevel>();
 
-  component = inject(ElementRef);
+  readonly component = inject(ElementRef);
 
   readonly connectionDelete = output<EncounterConnection>();
   readonly connectionCreate = output<EncounterConnectionRaw>();
@@ -106,15 +94,19 @@ export class EncounterComponent implements OnInit {
   readonly encounterCreate = output<EncounterRaw>();
   readonly encounterCreateCancel = output<void>();
 
-  userModel = signal<Encounter | Partial<EncounterRaw>>({});
-  cardState = signal<FormState>('DISPLAY');
-  textFieldState = signal<TextFieldState>('DISPLAY');
-  badgeEntries = computed<BadgeListEntry<EncounterConnection>[]>(() => {
-    const encounterConnections = this.encounter()?.encounterConnections ?? [];
-    return this.parseConnection(encounterConnections);
-  });
-  campaignName = computed(() => this.encounter()?.campaign_details?.name);
-  contextMenuItems = computed<MenuItem[]>(() => {
+  readonly userModel = signal<Encounter | Partial<EncounterRaw>>({});
+  readonly cardState = signal<FormState>('DISPLAY');
+  readonly textFieldState = signal<TextFieldState>('DISPLAY');
+  readonly badgeEntries = computed<BadgeListEntry<EncounterConnection>[]>(
+    () => {
+      const encounterConnections = this.encounter()?.encounterConnections ?? [];
+      return this.parseConnection(encounterConnections);
+    },
+  );
+  readonly campaignName = computed(
+    () => this.encounter()?.campaign_details?.name,
+  );
+  readonly contextMenuItems = computed<MenuItem[]>(() => {
     const menuItems: MenuItem[] = [];
     if (this.canUpdate()) {
       const isEditingMetadata =
@@ -160,21 +152,8 @@ export class EncounterComponent implements OnInit {
     return menuItems;
   });
 
-  showUpdateSuccessMarker$ = toObservable(this.updateState).pipe(
-    switchMap((state) => {
-      const hasUpdatedSuccessfully = state === 'success';
-      if (hasUpdatedSuccessfully) {
-        return timer(UPDATE_MARKER_TIMEOUT_MS).pipe(
-          map(() => false),
-          startWith(state === 'success'),
-        );
-      } else {
-        return EMPTY;
-      }
-    }),
-  );
-  locations$ = toObservable(this.locations).pipe(filterNil());
-  formlyFields = computed<FormlyFieldConfig[]>(() => [
+  readonly locations$ = toObservable(this.locations).pipe(filterNil());
+  readonly formlyFields = computed<FormlyFieldConfig[]>(() => [
     this.formlyService.buildInputConfig({
       key: 'title',
       inputKind: 'STRING',
@@ -192,7 +171,7 @@ export class EncounterComponent implements OnInit {
       optionValueProp: 'pk',
     }),
   ]);
-  editorId = componentId();
+  readonly editorId = componentId();
 
   constructor(
     private routingService: RoutingService,

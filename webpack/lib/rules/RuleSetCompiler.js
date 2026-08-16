@@ -7,17 +7,22 @@
 
 const { SyncHook } = require("tapable");
 
+/** @typedef {import("enhanced-resolve").ResolveRequest} ResolveRequest */
 /** @typedef {import("../../declarations/WebpackOptions").Falsy} Falsy */
+/** @typedef {import("../../declarations/WebpackOptions").RuleSetUseItem} RuleSetUseItem */
 /** @typedef {import("../../declarations/WebpackOptions").RuleSetLoaderOptions} RuleSetLoaderOptions */
 /** @typedef {import("../../declarations/WebpackOptions").RuleSetRule} RuleSetRule */
+/** @typedef {import("../../declarations/WebpackOptions").RuleSetConditionAbsolute} RuleSetConditionAbsolute */
 
 /** @typedef {(Falsy | RuleSetRule)[]} RuleSetRules */
 
 /**
+ * Defines the rule condition function type used by this module.
  * @typedef {(value: EffectData[keyof EffectData]) => boolean} RuleConditionFunction
  */
 
 /**
+ * Defines the rule condition type used by this module.
  * @typedef {object} RuleCondition
  * @property {string | string[]} property
  * @property {boolean} matchWhenEmpty
@@ -25,28 +30,32 @@ const { SyncHook } = require("tapable");
  */
 
 /**
+ * Defines the condition type used by this module.
  * @typedef {object} Condition
  * @property {boolean} matchWhenEmpty
  * @property {RuleConditionFunction} fn
  */
 
 /**
+ * Defines the effect data type used by this module.
  * @typedef {object} EffectData
  * @property {string=} resource
  * @property {string=} realResource
  * @property {string=} resourceQuery
  * @property {string=} resourceFragment
  * @property {string=} scheme
- * @property {ImportAttributes=} assertions
+ * @property {ImportAttributes=} attributes
  * @property {string=} mimetype
  * @property {string} dependency
- * @property {Record<string, EXPECTED_ANY>=} descriptionData
+ * @property {ResolveRequest["descriptionFileData"]=} descriptionData
  * @property {string=} compiler
  * @property {string} issuer
  * @property {string} issuerLayer
+ * @property {string=} phase
  */
 
 /**
+ * Defines the compiled rule type used by this module.
  * @typedef {object} CompiledRule
  * @property {RuleCondition[]} conditions
  * @property {(Effect | ((effectData: EffectData) => Effect[]))[]} effects
@@ -54,35 +63,55 @@ const { SyncHook } = require("tapable");
  * @property {CompiledRule[]=} oneOf
  */
 
+/** @typedef {"use" | "use-pre" | "use-post"} EffectUseType */
+
 /**
- * @typedef {object} Effect
- * @property {string} type
- * @property {TODO} value
+ * Defines the effect use type used by this module.
+ * @typedef {object} EffectUse
+ * @property {EffectUseType} type
+ * @property {{ loader: string, options?: string | null | Record<string, EXPECTED_ANY>, ident?: string }} value
  */
+
+/**
+ * Defines the effect basic type used by this module.
+ * @typedef {object} EffectBasic
+ * @property {string} type
+ * @property {EXPECTED_ANY} value
+ */
+
+/** @typedef {EffectUse | EffectBasic} Effect */
 
 /** @typedef {Map<string, RuleSetLoaderOptions>} References */
 
 /**
+ * Defines the rule set type used by this module.
  * @typedef {object} RuleSet
  * @property {References} references map of references in the rule set (may grow over time)
  * @property {(effectData: EffectData) => Effect[]} exec execute the rule set
  */
 
 /**
+ * Defines the keys of types type used by this module.
  * @template T
  * @template {T[keyof T]} V
- * @typedef {({ [P in keyof Required<T>]: Required<T>[P] extends V ? P : never })[keyof T]} KeysOfTypes
+ * @typedef {({ [key in keyof Required<T>]: Required<T>[key] extends V ? key : never })[keyof T]} KeysOfTypes
  */
+
+/** @typedef {Set<string>} UnhandledProperties */
+
+/** @typedef {(data: EffectData) => (RuleSetUseItem | (Falsy | RuleSetUseItem)[])} RuleSetUseFn */
+/** @typedef {(value: string) => boolean} RuleSetConditionFn */
 
 /** @typedef {{ apply: (ruleSetCompiler: RuleSetCompiler) => void }} RuleSetPlugin */
 
 class RuleSetCompiler {
 	/**
+	 * Creates an instance of RuleSetCompiler.
 	 * @param {RuleSetPlugin[]} plugins plugins
 	 */
 	constructor(plugins) {
 		this.hooks = Object.freeze({
-			/** @type {SyncHook<[string, RuleSetRule, Set<string>, CompiledRule, References]>} */
+			/** @type {SyncHook<[string, RuleSetRule, UnhandledProperties, CompiledRule, References]>} */
 			rule: new SyncHook([
 				"path",
 				"rule",
@@ -99,14 +128,17 @@ class RuleSetCompiler {
 	}
 
 	/**
+	 * Returns compiled RuleSet.
 	 * @param {RuleSetRules} ruleSet raw user provided rules
 	 * @returns {RuleSet} compiled RuleSet
 	 */
 	compile(ruleSet) {
+		/** @type {References} */
 		const refs = new Map();
 		const rules = this.compileRules("ruleSet", ruleSet, refs);
 
 		/**
+		 * Returns true, if the rule has matched.
 		 * @param {EffectData} data data passed in
 		 * @param {CompiledRule} rule the compiled rule
 		 * @param {Effect[]} effects an array where effects are pushed to
@@ -116,7 +148,7 @@ class RuleSetCompiler {
 			for (const condition of rule.conditions) {
 				const p = condition.property;
 				if (Array.isArray(p)) {
-					/** @type {EffectData | EffectData[keyof EffectData] | undefined} */
+					/** @type {EXPECTED_ANY} */
 					let current = data;
 					for (const subProperty of p) {
 						if (
@@ -172,7 +204,7 @@ class RuleSetCompiler {
 
 		return {
 			references: refs,
-			exec: data => {
+			exec: (data) => {
 				/** @type {Effect[]} */
 				const effects = [];
 				for (const rule of rules) {
@@ -184,6 +216,7 @@ class RuleSetCompiler {
 	}
 
 	/**
+	 * Returns rules.
 	 * @param {string} path current path
 	 * @param {RuleSetRules} rules the raw rules provided by user
 	 * @param {References} refs references
@@ -202,15 +235,17 @@ class RuleSetCompiler {
 	}
 
 	/**
+	 * Returns normalized and compiled rule for processing.
 	 * @param {string} path current path
 	 * @param {RuleSetRule} rule the raw rule provided by user
 	 * @param {References} refs references
 	 * @returns {CompiledRule} normalized and compiled rule for processing
 	 */
 	compileRule(path, rule, refs) {
+		/** @type {UnhandledProperties} */
 		const unhandledProperties = new Set(
 			Object.keys(rule).filter(
-				key => rule[/** @type {keyof RuleSetRule} */ (key)] !== undefined
+				(key) => rule[/** @type {keyof RuleSetRule} */ (key)] !== undefined
 			)
 		);
 
@@ -227,16 +262,18 @@ class RuleSetCompiler {
 		if (unhandledProperties.has("rules")) {
 			unhandledProperties.delete("rules");
 			const rules = rule.rules;
-			if (!Array.isArray(rules))
+			if (!Array.isArray(rules)) {
 				throw this.error(path, rules, "Rule.rules must be an array of rules");
+			}
 			compiledRule.rules = this.compileRules(`${path}.rules`, rules, refs);
 		}
 
 		if (unhandledProperties.has("oneOf")) {
 			unhandledProperties.delete("oneOf");
 			const oneOf = rule.oneOf;
-			if (!Array.isArray(oneOf))
+			if (!Array.isArray(oneOf)) {
 				throw this.error(path, oneOf, "Rule.oneOf must be an array of rules");
+			}
 			compiledRule.oneOf = this.compileRules(`${path}.oneOf`, oneOf, refs);
 		}
 
@@ -244,7 +281,7 @@ class RuleSetCompiler {
 			throw this.error(
 				path,
 				rule,
-				`Properties ${Array.from(unhandledProperties).join(", ")} are unknown`
+				`Properties ${[...unhandledProperties].join(", ")} are unknown`
 			);
 		}
 
@@ -252,6 +289,7 @@ class RuleSetCompiler {
 	}
 
 	/**
+	 * Returns compiled condition.
 	 * @param {string} path current path
 	 * @param {RuleSetLoaderOptions} condition user provided condition value
 	 * @returns {Condition} compiled condition
@@ -260,7 +298,7 @@ class RuleSetCompiler {
 		if (condition === "") {
 			return {
 				matchWhenEmpty: true,
-				fn: str => str === ""
+				fn: (str) => str === ""
 			};
 		}
 		if (!condition) {
@@ -273,7 +311,7 @@ class RuleSetCompiler {
 		if (typeof condition === "string") {
 			return {
 				matchWhenEmpty: condition.length === 0,
-				fn: str => typeof str === "string" && str.startsWith(condition)
+				fn: (str) => typeof str === "string" && str.startsWith(condition)
 			};
 		}
 		if (typeof condition === "function") {
@@ -293,7 +331,7 @@ class RuleSetCompiler {
 		if (condition instanceof RegExp) {
 			return {
 				matchWhenEmpty: condition.test(""),
-				fn: v => typeof v === "string" && condition.test(v)
+				fn: (v) => typeof v === "string" && condition.test(v)
 			};
 		}
 		if (Array.isArray(condition)) {
@@ -311,6 +349,7 @@ class RuleSetCompiler {
 			);
 		}
 
+		/** @type {Condition[]} */
 		const conditions = [];
 		for (const key of Object.keys(condition)) {
 			const value = condition[key];
@@ -349,7 +388,7 @@ class RuleSetCompiler {
 						const fn = matcher.fn;
 						conditions.push({
 							matchWhenEmpty: !matcher.matchWhenEmpty,
-							fn: /** @type {RuleConditionFunction} */ (v => !fn(v))
+							fn: /** @type {RuleConditionFunction} */ ((v) => !fn(v))
 						});
 					}
 					break;
@@ -372,6 +411,7 @@ class RuleSetCompiler {
 	}
 
 	/**
+	 * Combine conditions or.
 	 * @param {Condition[]} conditions some conditions
 	 * @returns {Condition} merged condition
 	 */
@@ -385,12 +425,13 @@ class RuleSetCompiler {
 			return conditions[0];
 		}
 		return {
-			matchWhenEmpty: conditions.some(c => c.matchWhenEmpty),
-			fn: v => conditions.some(c => c.fn(v))
+			matchWhenEmpty: conditions.some((c) => c.matchWhenEmpty),
+			fn: (v) => conditions.some((c) => c.fn(v))
 		};
 	}
 
 	/**
+	 * Combine conditions and.
 	 * @param {Condition[]} conditions some conditions
 	 * @returns {Condition} merged condition
 	 */
@@ -404,12 +445,13 @@ class RuleSetCompiler {
 			return conditions[0];
 		}
 		return {
-			matchWhenEmpty: conditions.every(c => c.matchWhenEmpty),
-			fn: v => conditions.every(c => c.fn(v))
+			matchWhenEmpty: conditions.every((c) => c.matchWhenEmpty),
+			fn: (v) => conditions.every((c) => c.fn(v))
 		};
 	}
 
 	/**
+	 * Returns an error object.
 	 * @param {string} path current path
 	 * @param {EXPECTED_ANY} value value at the error location
 	 * @param {string} message message explaining the problem
@@ -420,6 +462,119 @@ class RuleSetCompiler {
 			`Compiling RuleSet failed: ${message} (at ${path}: ${value})`
 		);
 	}
+
+	/**
+	 * Best-effort detection of a user-registered loader (or explicit module type)
+	 * for a resource, without building the whole rule set. Used to resolve the
+	 * `experiments.css`/`experiments.html`/`experiments.asyncWebAssembly` "auto"
+	 * defaults: when the user already handles these files the built-in module type
+	 * stays off, so enabling it by default is non-breaking.
+	 *
+	 * `include`/`exclude` are treated leniently — a matching `test`/`resource`/
+	 * `include` with a loader counts even when another condition would narrow it —
+	 * so a loader scoped to e.g. `include: /src/` still keeps the built-in type off
+	 * and those files are not double-processed. `enforce: "pre"`/`"post"` loaders
+	 * are ignored: they don't establish the module type (e.g. a stylelint pre-loader
+	 * must not suppress the built-in css type). A `test` regexp that references the
+	 * extension (e.g. `/source\.css$/`) also counts even if the sample path itself
+	 * doesn't match, so a loader scoped to specific filenames is still detected.
+	 * @param {import("../../declarations/WebpackOptions").RuleSetRules | undefined} rules user `module.rules`
+	 * @param {string} resource sample resource path (e.g. `"/file.css"`)
+	 * @param {boolean=} inherited whether an enclosing rule already matched the resource
+	 * @returns {boolean} whether a rule assigns a loader or module type to the resource
+	 */
+	static hasRuleForResource(rules, resource, inherited = false) {
+		if (!rules) return false;
+		// `\.css` for `/file.css`, `\.wasm` for `/file.wasm`, …
+		const extProbe = `\\.${resource.slice(resource.lastIndexOf(".") + 1)}`;
+		for (const rule of rules) {
+			if (!rule || typeof rule !== "object") continue;
+			const matched =
+				inherited ||
+				matchesResource(rule.test, resource, extProbe) ||
+				matchesResource(rule.resource, resource, extProbe) ||
+				matchesResource(rule.include, resource, extProbe);
+			const establishesType =
+				rule.type !== undefined ||
+				((rule.use !== undefined || rule.loader !== undefined) &&
+					rule.enforce === undefined);
+			if (matched && establishesType) return true;
+			if (
+				rule.oneOf &&
+				RuleSetCompiler.hasRuleForResource(rule.oneOf, resource, matched)
+			) {
+				return true;
+			}
+			if (
+				rule.rules &&
+				RuleSetCompiler.hasRuleForResource(rule.rules, resource, matched)
+			) {
+				return true;
+			}
+		}
+		return false;
+	}
 }
+
+// Bare compiler reused to match single conditions via `compileCondition`
+// (no plugins needed); created lazily on first use.
+/** @type {RuleSetCompiler | undefined} */
+let conditionCompiler;
+
+/**
+ * Matches a single rule condition against a sample string, reusing the ruleset
+ * condition logic (string/regexp/function/array/and/or/not).
+ * @param {RuleSetConditionAbsolute | undefined} condition condition
+ * @param {string} resource sample resource path
+ * @returns {boolean} whether the condition matches
+ */
+const matchRuleSetCondition = (condition, resource) => {
+	if (condition === undefined) return false;
+	if (conditionCompiler === undefined) {
+		conditionCompiler = new RuleSetCompiler([]);
+	}
+	try {
+		return conditionCompiler
+			.compileCondition("ruleSet", condition)
+			.fn(resource);
+	} catch (_err) {
+		return false;
+	}
+};
+
+/**
+ * Whether any regexp in the condition references the extension probe (e.g.
+ * `\.css`), i.e. the rule clearly targets that extension even if the generic
+ * sample path doesn't match its (possibly filename-scoped) pattern.
+ * @param {EXPECTED_ANY} condition condition
+ * @param {string} extProbe escaped extension probe (e.g. `"\\.css"`)
+ * @returns {boolean} whether a regexp in the condition targets the extension
+ */
+const conditionReferencesExtension = (condition, extProbe) => {
+	if (condition instanceof RegExp) return condition.source.includes(extProbe);
+	if (Array.isArray(condition)) {
+		return condition.some((c) => conditionReferencesExtension(c, extProbe));
+	}
+	if (condition && typeof condition === "object") {
+		return (
+			conditionReferencesExtension(condition.and, extProbe) ||
+			conditionReferencesExtension(condition.or, extProbe)
+		);
+	}
+	return false;
+};
+
+/**
+ * A condition counts as targeting the resource if it matches the sample path or
+ * references the extension via a regexp.
+ * @param {RuleSetConditionAbsolute | undefined} condition condition
+ * @param {string} resource sample resource path
+ * @param {string} extProbe escaped extension probe (e.g. `"\\.css"`)
+ * @returns {boolean} whether the condition targets the resource's extension
+ */
+const matchesResource = (condition, resource, extProbe) =>
+	condition !== undefined &&
+	(matchRuleSetCondition(condition, resource) ||
+		conditionReferencesExtension(condition, extProbe));
 
 module.exports = RuleSetCompiler;

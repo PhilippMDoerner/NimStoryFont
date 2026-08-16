@@ -40,6 +40,7 @@ const symbols_1 = require("./symbols");
 const common_1 = require("./common");
 common_1.commonState.isWorkerThread = true;
 common_1.commonState.workerData = node_worker_threads_1.workerData;
+/* c8 ignore next*/
 function noop() { }
 const handlerCache = new Map();
 let useAtomics = process.env.PISCINA_DISABLE_ATOMICS !== '1';
@@ -83,6 +84,7 @@ async function getHandler(filename, name) {
     }
     // Limit the handler cache size. This should not usually be an issue and is
     // only provided for pathological cases.
+    /* c8 ignore next */
     if (handlerCache.size > 1000) {
         const [[key]] = handlerCache;
         handlerCache.delete(key);
@@ -137,6 +139,7 @@ function atomicsWaitLoop(port, sharedBuffer) {
         // @ts-expect-error - for some reason not supported by TS
         const { async, value } = Atomics.waitAsync(sharedBuffer, symbols_1.kRequestCountField, lastSeenRequestCount);
         // We do not check for result
+        /* c8 ignore start */
         return async === true && value.then(() => {
             lastSeenRequestCount = Atomics.load(sharedBuffer, symbols_1.kRequestCountField);
             // We have to read messages *after* updating lastSeenRequestCount in order
@@ -146,6 +149,7 @@ function atomicsWaitLoop(port, sharedBuffer) {
                 onMessage(port, sharedBuffer, entry.message);
             }
         });
+        /* c8 ignore stop */
     }
     while (currentTasks === 0) {
         // Check whether there are new messages by testing whether the current
@@ -225,6 +229,6 @@ async function onMessage(port, sharedBuffer, message) {
     }
 }
 function throwInNextTick(error) {
-    process.nextTick((e) => { throw e; }, error);
+    queueMicrotask(() => { throw error; });
 }
 //# sourceMappingURL=worker.js.map

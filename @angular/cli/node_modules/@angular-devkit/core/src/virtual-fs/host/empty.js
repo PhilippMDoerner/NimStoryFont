@@ -35,3 +35,4 @@ class Empty {
     }
 }
 exports.Empty = Empty;
+//# sourceMappingURL=empty.js.map

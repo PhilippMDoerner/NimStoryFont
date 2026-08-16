@@ -9,6 +9,7 @@ export type Options = [
     }
 ];
 export type MessageIds = 'noEmptyInterface' | 'noEmptyInterfaceWithSuper' | 'noEmptyObject' | 'replaceEmptyInterface' | 'replaceEmptyInterfaceWithSuper' | 'replaceEmptyObjectType';
-declare const _default: TSESLint.RuleModule<MessageIds, Options, import("../../rules").ESLintPluginDocs, TSESLint.RuleListener>;
+declare const _default: TSESLint.RuleModule<MessageIds, Options, import("../../rules").ESLintPluginDocs, TSESLint.RuleListener> & {
+    name: string;
+};
 export default _default;
-//# sourceMappingURL=no-empty-object-type.d.ts.map

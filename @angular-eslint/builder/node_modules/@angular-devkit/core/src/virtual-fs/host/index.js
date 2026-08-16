@@ -58,3 +58,4 @@ __exportStar(require("./safe"), exports);
 __exportStar(require("./scoped"), exports);
 __exportStar(require("./sync"), exports);
 __exportStar(require("./resolver"), exports);
+//# sourceMappingURL=index.js.map

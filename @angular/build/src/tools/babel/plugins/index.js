@@ -19,3 +19,4 @@ var elide_angular_metadata_1 = require("./elide-angular-metadata");
 Object.defineProperty(exports, "elideAngularMetadata", { enumerable: true, get: function () { return __importDefault(elide_angular_metadata_1).default; } });
 var pure_toplevel_functions_1 = require("./pure-toplevel-functions");
 Object.defineProperty(exports, "markTopLevelPure", { enumerable: true, get: function () { return __importDefault(pure_toplevel_functions_1).default; } });
+//# sourceMappingURL=index.js.map

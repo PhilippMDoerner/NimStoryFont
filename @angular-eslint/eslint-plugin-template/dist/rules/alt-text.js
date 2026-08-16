@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RULE_NAME = void 0;
+exports.RULE_DOCS_EXTENSION = exports.RULE_NAME = void 0;
 const utils_1 = require("@angular-eslint/utils");
 const create_eslint_rule_1 = require("../utils/create-eslint-rule");
 const get_attribute_value_1 = require("../utils/get-attribute-value");
@@ -21,7 +21,7 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
     create(context) {
         const parserServices = (0, utils_1.getTemplateParserServices)(context);
         return {
-            'Element[name=/^(img|area|object|input)$/]'(node) {
+            'Element[name=/^(img|area|object|input)$/i]'(node) {
                 const isValid = isValidNode(node);
                 if (!isValid) {
                     const loc = parserServices.convertElementSourceSpanToLoc(context, node);
@@ -38,13 +38,14 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
     },
 });
 function isValidNode(node) {
-    if (node.name === 'img') {
+    const tagName = node.name.toLowerCase();
+    if (tagName === 'img') {
         return isValidImgNode(node);
     }
-    else if (node.name === 'object') {
+    else if (tagName === 'object') {
         return isValidObjectNode(node);
     }
-    else if (node.name === 'area') {
+    else if (tagName === 'area') {
         return isValidAreaNode(node);
     }
     else {
@@ -130,3 +131,6 @@ function isAriaLabel(name) {
 function isAlt(name) {
     return name === 'alt';
 }
+exports.RULE_DOCS_EXTENSION = {
+    rationale: 'Images, area elements, and input buttons must have alternative text for accessibility. Screen readers used by blind and visually impaired users rely on alt text to describe images. Without alt text, these users miss important content and context. Decorative images should have an empty alt attribute (alt="") to signal they can be safely ignored by screen readers. Meaningful images require descriptive alt text that conveys the image\'s content and purpose. This is a WCAG Level A requirement, meaning it\'s a basic accessibility standard.',
+};

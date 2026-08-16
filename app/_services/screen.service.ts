@@ -1,5 +1,6 @@
 import { DOCUMENT } from '@angular/common';
 import { inject, Injectable } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { debounceTime, EMPTY, fromEvent, map, startWith } from 'rxjs';
 import { MOBILE_WIDTH } from '../app.constants';
 
@@ -7,8 +8,8 @@ import { MOBILE_WIDTH } from '../app.constants';
   providedIn: 'root',
 })
 export class ScreenService {
-  private document = inject(DOCUMENT);
-  private resizeEvents$ = this.document.defaultView
+  private readonly document = inject(DOCUMENT);
+  private readonly resizeEvents$ = this.document.defaultView
     ? fromEvent<Event>(this.document.defaultView, 'resize', {
         passive: true,
       }).pipe(
@@ -18,17 +19,17 @@ export class ScreenService {
       )
     : EMPTY;
 
-  public windowWidth$ = this.resizeEvents$.pipe(map((doc) => doc?.innerWidth));
-  public windowHeight$ = this.resizeEvents$.pipe(
+  public readonly windowWidth$ = this.resizeEvents$.pipe(
+    map((doc) => doc?.innerWidth),
+  );
+  public readonly windowHeight$ = this.resizeEvents$.pipe(
     map((doc) => doc?.innerHeight),
   );
+  public readonly windowWidth = toSignal(this.windowWidth$);
+  public readonly windowHeight = toSignal(this.windowHeight$);
 
-  public isMobile() {
-    const windowWidth = this.document.defaultView?.innerWidth;
-    return windowWidth ? windowWidth <= MOBILE_WIDTH : false;
-  }
-
-  public isMobile$ = this.windowWidth$.pipe(
-    map((width) => width && width <= MOBILE_WIDTH),
+  public readonly isMobile$ = this.windowWidth$.pipe(
+    map((width) => !!width && width <= MOBILE_WIDTH),
   );
+  public readonly isMobile = toSignal(this.isMobile$, { initialValue: true });
 }

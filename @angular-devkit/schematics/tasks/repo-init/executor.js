@@ -54,7 +54,6 @@ function default_1(factoryOptions = {}) {
             const errorStream = ignoreErrorStream ? 'ignore' : process.stderr;
             const spawnOptions = {
                 stdio: [process.stdin, outputStream, errorStream],
-                shell: true,
                 cwd: path.join(rootDirectory, options.workingDirectory || ''),
                 env: {
                     ...process.env,
@@ -95,10 +94,11 @@ function default_1(factoryOptions = {}) {
             await execute(['add', '.']);
             if (options.commit) {
                 const message = options.message || 'initial commit';
-                await execute(['commit', `-m "${message}"`]);
+                await execute(['commit', '-m', message]);
             }
             context.logger.info('Successfully initialized git.');
         }
         catch { }
     };
 }
+//# sourceMappingURL=executor.js.map

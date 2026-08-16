@@ -1,7 +1,9 @@
 import { ESLintUtils } from '@typescript-eslint/utils';
 export * from './astUtils';
+export * from './baseTypeUtils';
 export * from './collectUnusedVariables';
 export * from './createRule';
+export * from './getBaseTypesOfClassMember';
 export * from './getFixOrSuggest';
 export * from './getFunctionHeadLoc';
 export * from './getOperatorPrecedence';
@@ -13,6 +15,7 @@ export * from './getWrappingFixer';
 export * from './hasOverloadSignatures';
 export * from './isArrayMethodCallWithPredicate';
 export * from './isAssignee';
+export * from './isConditionalTest';
 export * from './isNodeEqual';
 export * from './isNullLiteral';
 export * from './isStartOfExpressionStatement';
@@ -28,11 +31,11 @@ export * from './getValueOfLiteralType';
 export * from './isHigherPrecedenceThanAwait';
 export * from './skipChainExpression';
 export * from './truthinessUtils';
+export * from './walkStatements';
 export * from '@typescript-eslint/type-utils';
 export declare const applyDefault: typeof ESLintUtils.applyDefault, deepMerge: typeof ESLintUtils.deepMerge, getParserServices: typeof ESLintUtils.getParserServices, isObjectNotArray: typeof ESLintUtils.isObjectNotArray, nullThrows: typeof ESLintUtils.nullThrows, NullThrowsReasons: {
-    readonly MissingParent: "Expected node to have a parent.";
+    readonly MissingParent: 'Expected node to have a parent.';
     readonly MissingToken: (token: string, thing: string) => string;
 };
 export type InferMessageIdsTypeFromRule<T> = ESLintUtils.InferMessageIdsTypeFromRule<T>;
 export type InferOptionsTypeFromRule<T> = ESLintUtils.InferOptionsTypeFromRule<T>;
-//# sourceMappingURL=index.d.ts.map

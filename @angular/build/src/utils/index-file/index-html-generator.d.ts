@@ -35,6 +35,12 @@ export interface IndexHtmlGeneratorOptions {
     imageDomains?: string[];
     generateDedicatedSSRContent?: boolean;
     autoCsp?: AutoCspOptions;
+    /**
+     * Integrity metadata for module URLs not directly referenced in the index
+     * (typically lazy-loaded chunks). Forwarded to {@link augmentIndexHtml} so
+     * a `<script type="importmap">` integrity block can be emitted.
+     */
+    chunksIntegrity?: ReadonlyMap<string, string>;
 }
 export type IndexHtmlTransform = (content: string) => Promise<string>;
 export interface IndexHtmlPluginTransformResult {

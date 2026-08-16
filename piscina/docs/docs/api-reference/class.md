@@ -59,12 +59,12 @@ This class extends [`EventEmitter`](https://nodejs.org/api/events.html) from Nod
     returning control to the main thread (avoid having open handles within a thread). If still want to have the possibility
     of having open handles or handle asynchrnous tasks, you can set the environment variable `PISCINA_ENABLE_ASYNC_ATOMICS` to `1` or setting `options.atomics` to `async`.
 
-**    :::info
+    :::info
     **Note**: The `async` mode comes with performance penalties and can lead to undesired behaviour if open handles are not tracked correctly.
     Workers should be designed to wait for all operations to finish before returning control to the main thread, if any background operations are still running
     `async` can be of help (e.g. for cache warming, etc).
     :::
-**
+
   - `resourceLimits`: (`object`) See [Node.js new Worker options](https://nodejs.org/api/worker_threads.html#worker_threads_new_worker_filename_options)
     - `maxOldGenerationSizeMb`: (`number`) The maximum size of each worker threads
       main heap in MB.
@@ -105,13 +105,17 @@ This class extends [`EventEmitter`](https://nodejs.org/api/events.html) from Nod
   - `workerHistogram`: (`boolean`) By default `false`. It will hint the Worker pool to record statistics for each individual Worker
   - `loadBalancer`: ([`PiscinaLoadBalancer`](#piscinaloadbalancer)) By default, Piscina uses a least-busy algorithm. The `loadBalancer`
     option can be used to provide an alternative implementation. See [Custom Load Balancers](../advanced-topics/loadbalancer.mdx) for additional detail.
-  - `workerHistogram`: (`boolean`) By default `false`. It will hint the Worker pool to record statistics for each individual Worker
-  - `loadBalancer`: ([`PiscinaLoadBalancer`](#piscinaloadbalancer)) By default, Piscina uses a least-busy algorithm. The `loadBalancer`
-    option can be used to provide an alternative implementation. See [Custom Load Balancers](../advanced-topics/loadbalancer.mdx) for additional detail.
 
 :::caution
-Use caution when setting resource limits. Setting limits that are too low may
-result in the `Piscina` worker threads being unusable.
+  Use caution when setting resource limits. Setting limits that are too low may
+  result in the `Piscina` worker threads being unusable.
+:::
+
+:::info
+  **Note on Explicit Resource Management**: Piscina does has support for `Symbol.dispose` and `Symbol.asyncDispose` for explicit resource management for its usage with the `using` keyword.
+  This is only avaiable on Node.js 24 and higher.
+
+  For more information, see the [Explicit Resource Management](https://github.com/tc39/proposal-explicit-resource-management).
 :::
 
 ## `PiscinaHistogram`
@@ -156,7 +160,7 @@ console.log(pool.histogram.runTime);
 console.log(pool.histogram.waitTime);
 ```
 
-### Interface: `PiscinaLoadBalancer`
+### Interface: `PiscinaHistogram`
 
 - `runTime`: (`PiscinaHistogramSummary`) Run Time Histogram Summary. Time taken to execute a task.
 - `waitTime`: (`PiscinaHistogramSummary`) Wait Time Histogram Summary. Time between a task being submitted and the task starting to run.
@@ -169,6 +173,7 @@ type PiscinaHistogram = {
   waitTime: PiscinaHistogramSummary;
   resetRunTime(): void; // Reset Run Time Histogram
   resetWaitTime(): void; // Reset Wait Time Histogram
+}
 ```
 
 ### Interface: `PiscinaHistogramSummary`

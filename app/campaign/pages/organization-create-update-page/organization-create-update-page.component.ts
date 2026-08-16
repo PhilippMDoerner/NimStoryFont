@@ -8,15 +8,15 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { FormlyFieldConfig } from '@ngx-formly/core';
 import { combineLatest, filter, of, skip, switchMap, take } from 'rxjs';
-import { Organization, OrganizationRaw } from 'src/app/_models/organization';
-import { OverviewItem } from 'src/app/_models/overview';
-import { FormlyService } from 'src/app/_services/formly/formly-service.service';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { formatSearchTerm } from 'src/app/design/atoms/_models/typeahead';
-import { CreateUpdateState } from 'src/app/design/templates/_models/create-update-states';
-import { CreateUpdateComponent } from 'src/app/design/templates/create-update/create-update.component';
-import { GlobalStore } from 'src/app/global.store';
-import { filterNil } from 'src/utils/rxjs-operators';
+import { filterNil } from '../../../../utils/rxjs-operators';
+import { Organization, OrganizationRaw } from '../../../_models/organization';
+import { OverviewItem } from '../../../_models/overview';
+import { FormlyService } from '../../../_services/formly/formly-service.service';
+import { RoutingService } from '../../../_services/routing.service';
+import { formatSearchTerm } from '../../../design/atoms/_models/typeahead';
+import { CreateUpdateState } from '../../../design/templates/_models/create-update-states';
+import { CreateUpdateComponent } from '../../../design/templates/create-update/create-update.component';
+import { GlobalStore } from '../../../global.store';
 import { OrganizationCreateUpdatePageStore } from './organization-create-update-page.store';
 
 @Component({
@@ -27,25 +27,27 @@ import { OrganizationCreateUpdatePageStore } from './organization-create-update-
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class OrganizationCreateUpdatePageComponent {
-  globalStore = inject(GlobalStore);
-  store = inject(OrganizationCreateUpdatePageStore);
+  readonly globalStore = inject(GlobalStore);
+  readonly store = inject(OrganizationCreateUpdatePageStore);
 
-  private route = inject(ActivatedRoute);
-  private routeUrlSegments = toSignal(this.route.url);
-  private routingService = inject(RoutingService);
-  private formlyService = inject(FormlyService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly routeUrlSegments = toSignal(this.route.url);
+  private readonly routingService = inject(RoutingService);
+  private readonly formlyService = inject(FormlyService);
 
-  campaignCharacters$ = toObservable(this.store.campaignCharacters).pipe(
+  readonly campaignCharacters$ = toObservable(
+    this.store.campaignCharacters,
+  ).pipe(filterNil());
+  readonly campaignLocations$ = toObservable(this.store.campaignLocations).pipe(
     filterNil(),
   );
-  campaignLocations$ = toObservable(this.store.campaignLocations).pipe(
-    filterNil(),
+  readonly organizationUpdateState$ = toObservable(
+    this.store.organizationUpdateState,
   );
-  organizationUpdateState$ = toObservable(this.store.organizationUpdateState);
-  organizationCreateState$ = toObservable(this.store.createState);
-  organization$ = toObservable(this.store.organization);
+  readonly organizationCreateState$ = toObservable(this.store.createState);
+  readonly organization$ = toObservable(this.store.organization);
 
-  state = computed<CreateUpdateState>(() => {
+  readonly state = computed<CreateUpdateState>(() => {
     const pathSegments = this.routeUrlSegments()?.map(
       (segment) => segment.path,
     );
@@ -62,7 +64,7 @@ export class OrganizationCreateUpdatePageComponent {
     }
   });
 
-  userModel = computed(() => {
+  readonly userModel = computed(() => {
     switch (this.state()) {
       case 'CREATE':
         return {
@@ -74,7 +76,7 @@ export class OrganizationCreateUpdatePageComponent {
     }
   });
 
-  heading = computed(() => {
+  readonly heading = computed(() => {
     switch (this.state()) {
       case 'CREATE':
         return 'Adding a new Organization';
@@ -84,7 +86,7 @@ export class OrganizationCreateUpdatePageComponent {
     }
   });
 
-  formlyFields = computed<FormlyFieldConfig[]>(() => [
+  readonly formlyFields = computed<FormlyFieldConfig[]>(() => [
     this.formlyService.buildInputConfig({ key: 'name', inputKind: 'NAME' }),
     this.formlyService.buildTypeaheadConfig<OrganizationRaw, OverviewItem>({
       key: 'leader',

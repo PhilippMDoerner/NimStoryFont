@@ -7,7 +7,7 @@ import {
   output,
   viewChild,
 } from '@angular/core';
-import { componentId } from 'src/utils/DOM';
+import { componentId } from '../../../../utils/DOM';
 
 @Component({
   selector: 'app-input',
@@ -20,19 +20,19 @@ import { componentId } from 'src/utils/DOM';
   },
 })
 export class InputComponent {
-  value = input<string>('');
-  label = input.required<string>();
-  labelId = input<string>();
-  ariaControls = input<string>();
-  disabled = input<boolean>(false);
-  autofocus = input<boolean>(false);
-  type = input<'text' | 'number' | 'search'>('text');
+  readonly value = input<string>('');
+  readonly label = input.required<string>();
+  readonly labelId = input<string>();
+  readonly ariaControls = input<string>();
+  readonly disabled = input<boolean>(false);
+  readonly autofocus = input<boolean>(false);
+  readonly type = input<'text' | 'number' | 'search'>('text');
 
-  changed = output<string>();
+  readonly changed = output<string>();
 
-  input = viewChild.required<ElementRef<HTMLInputElement>>('input');
-  _value = linkedSignal(() => this.value());
-  searchId = componentId();
+  readonly input = viewChild.required<ElementRef<HTMLInputElement>>('input');
+  readonly _value = linkedSignal(() => this.value());
+  readonly searchId = componentId();
 
   focus() {
     this.input().nativeElement.focus();

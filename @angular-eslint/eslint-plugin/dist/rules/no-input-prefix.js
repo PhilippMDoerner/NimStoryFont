@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RULE_NAME = void 0;
+exports.RULE_DOCS_EXTENSION = exports.RULE_NAME = void 0;
 const utils_1 = require("@angular-eslint/utils");
 const utils_2 = require("@typescript-eslint/utils");
 const create_eslint_rule_1 = require("../utils/create-eslint-rule");
@@ -113,3 +113,6 @@ function isDisallowedPrefix(prefix, propertyName, aliasName = '') {
     const prefixPattern = new RegExp(`^${prefix}(([^a-z])|(?=$))`);
     return prefixPattern.test(propertyName) || prefixPattern.test(aliasName);
 }
+exports.RULE_DOCS_EXTENSION = {
+    rationale: "In HTML and Angular templates, attributes don't use prefixes like 'is' or 'has', so input properties shouldn't either. For example, prefer '@Input() disabled' over '@Input() isDisabled', so it's used in templates as '[disabled]=\"true\"' rather than '[isDisabled]=\"true\"'. This creates a more natural, HTML-like API for your components and follows Angular's style guide. The component class can still use prefixed names internally, but the input binding name (the public API) should follow HTML conventions.",
+};

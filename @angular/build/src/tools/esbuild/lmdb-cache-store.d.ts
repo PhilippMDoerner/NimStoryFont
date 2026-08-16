@@ -5,8 +5,8 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.dev/license
  */
-import { Cache, CacheStore } from './cache';
-export declare class LmbdCacheStore implements CacheStore<unknown> {
+import { Cache, PersistentCacheStore } from './cache';
+export declare class LmdbCacheStore implements PersistentCacheStore<unknown> {
     #private;
     readonly cachePath: string;
     constructor(cachePath: string);

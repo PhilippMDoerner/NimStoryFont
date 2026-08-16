@@ -5,7 +5,7 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.dev/license
  */
-import type { CommandContext } from '../command-builder/command-module';
+import type { CommandContext } from '../command-builder/definitions';
 /**
  * This is the ultimate safelist for checking if a package name is safe to report to analytics.
  */

@@ -1,5 +1,5 @@
-import { Icon } from 'src/app/design/atoms/_models/icon';
-import { capitalize } from 'src/utils/string';
+import { capitalize } from '../../utils/string';
+import { Icon } from '../design/atoms/_models/icon';
 
 export interface NodeLinkTypeRaw {
   name: string;

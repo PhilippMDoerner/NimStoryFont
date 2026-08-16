@@ -1,6 +1,6 @@
 import { MsgPackDecoderFast } from './MsgPackDecoderFast';
-import type { Path } from '../json-pointer';
-import type { Reader } from '@jsonjoy.com/util/lib/buffers/Reader';
+import type { Path } from '@jsonjoy.com/json-pointer';
+import type { Reader } from '@jsonjoy.com/buffers/lib/Reader';
 export declare class MsgPackDecoder extends MsgPackDecoderFast<Reader> {
     skipAny(): number;
     protected skipArr(size: number): number;

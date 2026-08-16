@@ -101,8 +101,17 @@ function normalizeStringifyOptions(optionsOrReplacer, space) {
     };
 }
 
+function resolveStringifyMode(mode = 'json') {
+    if (mode === 'json' || mode === 'jsonl') {
+        return mode;
+    }
+
+    throw new TypeError('Invalid options: `mode` should be "json" or "jsonl"');
+}
+
 exports.isIterable = isIterable;
 exports.normalizeReplacer = normalizeReplacer;
 exports.normalizeSpace = normalizeSpace;
 exports.normalizeStringifyOptions = normalizeStringifyOptions;
 exports.replaceValue = replaceValue;
+exports.resolveStringifyMode = resolveStringifyMode;

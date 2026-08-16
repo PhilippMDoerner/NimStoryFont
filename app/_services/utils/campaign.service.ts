@@ -5,16 +5,16 @@ import { Observable, shareReplay } from 'rxjs';
 import {
   convertMultiFileModelToFormData,
   convertSingleFileModelToFormData,
-} from 'src/app/_functions/formDataConverter';
+} from '../../_functions/formDataConverter';
 import {
   Campaign,
   CampaignOverview,
   CampaignRaw,
   WikiStatistics,
-} from 'src/app/_models/campaign';
-import { EmptySearchResponse } from 'src/app/_models/emptySearchResponse';
-import { OverviewItem } from 'src/app/_models/overview';
-import { User } from 'src/app/_models/user';
+} from '../../_models/campaign';
+import { EmptySearchResponse } from '../../_models/emptySearchResponse';
+import { OverviewItem } from '../../_models/overview';
+import { User } from '../../_models/user';
 import { BaseService } from '../base.service';
 
 @Injectable({

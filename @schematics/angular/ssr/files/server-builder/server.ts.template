@@ -1,5 +1,3 @@
-import 'zone.js/node';
-
 import { APP_BASE_HREF } from '@angular/common';
 import { CommonEngine } from '@angular/ssr/node';
 import express from 'express';
@@ -15,7 +13,9 @@ export function app(): express.Express {
     ? join(distFolder, 'index.original.html')
     : join(distFolder, 'index.html');
 
-  const commonEngine = new CommonEngine();
+  const commonEngine = new CommonEngine({
+    allowedHosts: [/* Configure your hosts here */]
+  });
 
   server.set('view engine', 'html');
   server.set('views', distFolder);

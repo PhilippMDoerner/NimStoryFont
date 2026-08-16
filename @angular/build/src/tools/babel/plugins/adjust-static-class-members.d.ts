@@ -5,7 +5,7 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.dev/license
  */
-import { PluginObj } from '@babel/core';
+import { PluginObject } from '@babel/core';
 /**
  * Provides one or more keywords that if found within the content of a source file indicate
  * that this plugin should be used with a source file.
@@ -22,4 +22,4 @@ export declare function getKeywords(): Iterable<string>;
  *
  * @returns A babel plugin object instance.
  */
-export default function (): PluginObj;
+export default function (): PluginObject;

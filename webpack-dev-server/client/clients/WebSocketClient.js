@@ -5,9 +5,15 @@ function _createClass(e, r, t) { return r && _defineProperties(e.prototype, r), 
 function _toPropertyKey(t) { var i = _toPrimitive(t, "string"); return "symbol" == _typeof(i) ? i : i + ""; }
 function _toPrimitive(t, r) { if ("object" != _typeof(t) || !t) return t; var e = t[Symbol.toPrimitive]; if (void 0 !== e) { var i = e.call(t, r || "default"); if ("object" != _typeof(i)) return i; throw new TypeError("@@toPrimitive must return a primitive value."); } return ("string" === r ? String : Number)(t); }
 import { log } from "../utils/log.js";
+
+/** @typedef {import("../index").EXPECTED_ANY} EXPECTED_ANY */
+
+/**
+ * @implements {CommunicationClient}
+ */
 var WebSocketClient = /*#__PURE__*/function () {
   /**
-   * @param {string} url
+   * @param {string} url url to connect
    */
   function WebSocketClient(url) {
     _classCallCheck(this, WebSocketClient);
@@ -18,32 +24,32 @@ var WebSocketClient = /*#__PURE__*/function () {
   }
 
   /**
-   * @param {(...args: any[]) => void} f
+   * @param {(...args: EXPECTED_ANY[]) => void} fn function
    */
   return _createClass(WebSocketClient, [{
     key: "onOpen",
-    value: function onOpen(f) {
-      this.client.onopen = f;
+    value: function onOpen(fn) {
+      this.client.onopen = fn;
     }
 
     /**
-     * @param {(...args: any[]) => void} f
+     * @param {(...args: EXPECTED_ANY[]) => void} fn function
      */
   }, {
     key: "onClose",
-    value: function onClose(f) {
-      this.client.onclose = f;
+    value: function onClose(fn) {
+      this.client.onclose = fn;
     }
 
     // call f with the message string as the first argument
     /**
-     * @param {(...args: any[]) => void} f
+     * @param {(...args: EXPECTED_ANY[]) => void} fn function
      */
   }, {
     key: "onMessage",
-    value: function onMessage(f) {
-      this.client.onmessage = function (e) {
-        f(e.data);
+    value: function onMessage(fn) {
+      this.client.onmessage = function (err) {
+        fn(err.data);
       };
     }
   }]);

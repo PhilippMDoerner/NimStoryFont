@@ -6,78 +6,69 @@
 "use strict";
 
 const { SyncHook } = require("tapable");
-const isValidExternalsType = require("../../schemas/plugins/container/ExternalsType.check.js");
-const Compilation = require("../Compilation");
+const isValidExternalsType = require("../../schemas/plugins/container/ExternalsType.check");
 const SharePlugin = require("../sharing/SharePlugin");
-const createSchemaValidation = require("../util/create-schema-validation");
+const createHooksRegistry = require("../util/createHooksRegistry");
 const ContainerPlugin = require("./ContainerPlugin");
 const ContainerReferencePlugin = require("./ContainerReferencePlugin");
 const HoistContainerReferences = require("./HoistContainerReferencesPlugin");
 
 /** @typedef {import("../../declarations/plugins/container/ModuleFederationPlugin").ExternalsType} ExternalsType */
 /** @typedef {import("../../declarations/plugins/container/ModuleFederationPlugin").ModuleFederationPluginOptions} ModuleFederationPluginOptions */
-/** @typedef {import("../../declarations/plugins/container/ModuleFederationPlugin").Shared} Shared */
 /** @typedef {import("../Compiler")} Compiler */
 /** @typedef {import("../Dependency")} Dependency */
 
+const createCompilationHooks = () => ({
+	/**
+	 * @type {SyncHook<Dependency>}
+	 * @since 5.96.0
+	 */
+	addContainerEntryDependency: new SyncHook(["dependency"]),
+	/**
+	 * @type {SyncHook<Dependency>}
+	 * @since 5.96.0
+	 */
+	addFederationRuntimeDependency: new SyncHook(["dependency"])
+});
+
 /**
- * @typedef {object} CompilationHooks
- * @property {SyncHook<Dependency>} addContainerEntryDependency
- * @property {SyncHook<Dependency>} addFederationRuntimeDependency
+ * @typedef {ReturnType<typeof createCompilationHooks>} CompilationHooks
  */
 
-const validate = createSchemaValidation(
-	require("../../schemas/plugins/container/ModuleFederationPlugin.check.js"),
-	() => require("../../schemas/plugins/container/ModuleFederationPlugin.json"),
-	{
-		name: "Module Federation Plugin",
-		baseDataPath: "options"
-	}
-);
-
-/** @type {WeakMap<Compilation, CompilationHooks>} */
-const compilationHooksMap = new WeakMap();
 const PLUGIN_NAME = "ModuleFederationPlugin";
 
 class ModuleFederationPlugin {
 	/**
+	 * Creates an instance of ModuleFederationPlugin.
 	 * @param {ModuleFederationPluginOptions} options options
 	 */
 	constructor(options) {
-		validate(options);
-
-		this._options = options;
+		/** @type {ModuleFederationPluginOptions} */
+		this.options = options;
 	}
 
 	/**
-	 * Get the compilation hooks associated with this plugin.
-	 * @param {Compilation} compilation The compilation instance.
-	 * @returns {CompilationHooks} The hooks for the compilation.
-	 */
-	static getCompilationHooks(compilation) {
-		if (!(compilation instanceof Compilation)) {
-			throw new TypeError(
-				"The 'compilation' argument must be an instance of Compilation"
-			);
-		}
-		let hooks = compilationHooksMap.get(compilation);
-		if (!hooks) {
-			hooks = {
-				addContainerEntryDependency: new SyncHook(["dependency"]),
-				addFederationRuntimeDependency: new SyncHook(["dependency"])
-			};
-			compilationHooksMap.set(compilation, hooks);
-		}
-		return hooks;
-	}
-
-	/**
-	 * Apply the plugin
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Compiler} compiler the compiler instance
 	 * @returns {void}
 	 */
 	apply(compiler) {
-		const { _options: options } = this;
+		compiler.hooks.validate.tap(PLUGIN_NAME, () => {
+			compiler.validate(
+				() =>
+					require("../../schemas/plugins/container/ModuleFederationPlugin.json"),
+				this.options,
+				{
+					name: "Module Federation Plugin",
+					baseDataPath: "options"
+				},
+				(options) =>
+					require("../../schemas/plugins/container/ModuleFederationPlugin.check")(
+						options
+					)
+			);
+		});
+		const { options } = this;
 		const library = options.library || { type: "var", name: options.name };
 		const remoteType =
 			options.remoteType ||
@@ -128,5 +119,9 @@ class ModuleFederationPlugin {
 		});
 	}
 }
+
+ModuleFederationPlugin.getCompilationHooks = createHooksRegistry(
+	createCompilationHooks
+);
 
 module.exports = ModuleFederationPlugin;

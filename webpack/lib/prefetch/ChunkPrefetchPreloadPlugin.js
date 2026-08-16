@@ -11,19 +11,23 @@ const ChunkPrefetchStartupRuntimeModule = require("./ChunkPrefetchStartupRuntime
 const ChunkPrefetchTriggerRuntimeModule = require("./ChunkPrefetchTriggerRuntimeModule");
 const ChunkPreloadTriggerRuntimeModule = require("./ChunkPreloadTriggerRuntimeModule");
 
-/** @typedef {import("../Chunk")} Chunk */
-/** @typedef {import("../ChunkGroup").RawChunkGroupOptions} RawChunkGroupOptions */
 /** @typedef {import("../Compiler")} Compiler */
 
 const PLUGIN_NAME = "ChunkPrefetchPreloadPlugin";
 
+/**
+ * Adds runtime support for chunk prefetch and preload relationships discovered
+ * in the chunk graph.
+ */
 class ChunkPrefetchPreloadPlugin {
 	/**
+	 * Registers compilation hooks that emit the runtime modules responsible for
+	 * scheduling chunk prefetch and preload requests.
 	 * @param {Compiler} compiler the compiler
 	 * @returns {void}
 	 */
 	apply(compiler) {
-		compiler.hooks.compilation.tap(PLUGIN_NAME, compilation => {
+		compiler.hooks.compilation.tap(PLUGIN_NAME, (compilation) => {
 			compilation.hooks.additionalChunkRuntimeRequirements.tap(
 				PLUGIN_NAME,
 				(chunk, set, { chunkGraph }) => {
@@ -60,6 +64,21 @@ class ChunkPrefetchPreloadPlugin {
 						compilation.addRuntimeModule(
 							chunk,
 							new ChunkPreloadTriggerRuntimeModule(chunkMap.preload)
+						);
+					}
+					if (chunkMap.cssPreload) {
+						// CSS-only preload (`parser.javascript.dynamicImportCssPreload`):
+						// reuse `preloadChunk` — with no JS `preload` order the JS
+						// handler is never registered, so only the CSS `.s` handler
+						// fires (`<link rel="preload" as="style">`).
+						set.add(RuntimeGlobals.preloadChunk);
+						set.add(RuntimeGlobals.preloadChunkHandlers);
+						compilation.addRuntimeModule(
+							chunk,
+							new ChunkPreloadTriggerRuntimeModule(
+								chunkMap.cssPreload,
+								"cssPreload"
+							)
 						);
 					}
 				}

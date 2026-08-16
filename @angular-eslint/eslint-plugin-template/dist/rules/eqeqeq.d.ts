@@ -4,6 +4,11 @@ export type Options = [{
 }];
 export type MessageIds = 'eqeqeq' | 'suggestStrictEquality';
 export declare const RULE_NAME = "eqeqeq";
-declare const _default: TSESLint.RuleModule<MessageIds, Options, import("../utils/create-eslint-rule").RuleDocs, TSESLint.RuleListener>;
+declare const _default: TSESLint.RuleModule<MessageIds, Options, import("../utils/create-eslint-rule").RuleDocs, TSESLint.RuleListener> & {
+    name: string;
+};
 export default _default;
+export declare const RULE_DOCS_EXTENSION: {
+    rationale: string;
+};
 //# sourceMappingURL=eqeqeq.d.ts.map

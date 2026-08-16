@@ -54,3 +54,4 @@ class ResolverHost {
     }
 }
 exports.ResolverHost = ResolverHost;
+//# sourceMappingURL=resolver.js.map

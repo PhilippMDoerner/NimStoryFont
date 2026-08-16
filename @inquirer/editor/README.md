@@ -4,16 +4,6 @@ Prompt that'll open the user preferred editor with default content and allow for
 
 The editor launched is the one [defined by the user's `EDITOR` environment variable](https://dev.to/jonasbn/til-integrate-visual-studio-code-with-shell--cli-2l1l).
 
-# Special Thanks
-
-<div align="center" markdown="1">
-
-[![Graphite](https://github.com/user-attachments/assets/53db40ca-2254-481a-a094-6597f8716e29)](https://graphite.dev/?utm_source=npmjs&utm_medium=repo&utm_campaign=inquirerjs)<br>
-
-### [Graphite is the AI developer productivity platform helping teams on GitHub ship higher quality software, faster](https://graphite.dev/?utm_source=npmjs&utm_medium=repo&utm_campaign=inquirerjs)
-
-</div>
-
 # Installation
 
 <table>
@@ -72,15 +62,15 @@ const answer = await editor({
 
 ## Options
 
-| Property        | Type                                                                           | Required               | Description                                                                                                                                                                                                                            |
-| --------------- | ------------------------------------------------------------------------------ | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| message         | `string`                                                                       | yes                    | The question to ask                                                                                                                                                                                                                    |
-| default         | `string`                                                                       | no                     | Default value which will automatically be present in the editor                                                                                                                                                                        |
-| validate        | `string => boolean \| string \| Promise<boolean \| string>`                    | no                     | On submit, validate the content. When returning a string, it'll be used as the error message displayed to the user. Note: returning a rejected promise, we'll assume a code error happened and crash.                                  |
-| postfix         | `string`                                                                       | no (default to `.txt`) | The postfix of the file being edited. Adding this will add color highlighting to the file content in most editors.                                                                                                                     |
-| file            | [`IFileOptions`](https://github.com/mrkmg/node-external-editor#config-options) | no                     | Exposes the [`external-editor` package options](https://github.com/mrkmg/node-external-editor#config-options) to configure the temporary file.                                                                                         |
-| waitForUseInput | `boolean`                                                                      | no (default to `true`) | Open the editor automatically without waiting for the user to press enter. Note that this mean the user will not see the question! So make sure you have a default value that provide guidance if it's unclear what input is expected. |
-| theme           | [See Theming](#Theming)                                                        | no                     | Customize look of the prompt.                                                                                                                                                                                                          |
+| Property         | Type                                                                           | Required               | Description                                                                                                                                                                                                                            |
+| ---------------- | ------------------------------------------------------------------------------ | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| message          | `string`                                                                       | yes                    | The question to ask                                                                                                                                                                                                                    |
+| default          | `string`                                                                       | no                     | Default value which will automatically be present in the editor                                                                                                                                                                        |
+| validate         | `string => boolean \| string \| Promise<boolean \| string>`                    | no                     | On submit, validate the content. When returning a string, it'll be used as the error message displayed to the user. Note: returning a rejected promise, we'll assume a code error happened and crash.                                  |
+| postfix          | `string`                                                                       | no (default to `.txt`) | The postfix of the file being edited. Adding this will add color highlighting to the file content in most editors.                                                                                                                     |
+| file             | [`IFileOptions`](https://github.com/mrkmg/node-external-editor#config-options) | no                     | Exposes the [`external-editor` package options](https://github.com/mrkmg/node-external-editor#config-options) to configure the temporary file.                                                                                         |
+| waitForUserInput | `boolean`                                                                      | no (default to `true`) | Open the editor automatically without waiting for the user to press enter. Note that this mean the user will not see the question! So make sure you have a default value that provide guidance if it's unclear what input is expected. |
+| theme            | [See Theming](#Theming)                                                        | no                     | Customize look of the prompt.                                                                                                                                                                                                          |
 
 ## Theming
 

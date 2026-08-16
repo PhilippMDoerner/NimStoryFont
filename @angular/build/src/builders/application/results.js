@@ -15,3 +15,4 @@ var ResultKind;
     ResultKind[ResultKind["Incremental"] = 2] = "Incremental";
     ResultKind[ResultKind["ComponentUpdate"] = 3] = "ComponentUpdate";
 })(ResultKind || (exports.ResultKind = ResultKind = {}));
+//# sourceMappingURL=results.js.map

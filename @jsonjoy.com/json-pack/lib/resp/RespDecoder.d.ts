@@ -1,4 +1,4 @@
-import type { IReader, IReaderResettable } from '@jsonjoy.com/util/lib/buffers';
+import type { IReader, IReaderResettable } from '@jsonjoy.com/buffers/lib';
 import type { BinaryJsonDecoder, PackValue } from '../types';
 export declare class RespDecoder<R extends IReader & IReaderResettable = IReader & IReaderResettable> implements BinaryJsonDecoder {
     reader: R;
@@ -7,6 +7,7 @@ export declare class RespDecoder<R extends IReader & IReaderResettable = IReader
     read(uint8: Uint8Array): PackValue;
     decode(uint8: Uint8Array): unknown;
     val(): unknown;
+    readAny(): unknown;
     protected readLength(): number;
     readCmd(): [cmd: string, ...args: Uint8Array[]];
     readBool(): boolean;

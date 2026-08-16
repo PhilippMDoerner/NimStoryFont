@@ -7,8 +7,8 @@ import {
   output,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { Quest } from 'src/app/_models/quest';
-import { RoutingService } from 'src/app/_services/routing.service';
+import { Quest } from '../../../_models/quest';
+import { RoutingService } from '../../../_services/routing.service';
 import { ArticleContextMenuComponent } from '../../molecules/article-context-menu/article-context-menu.component';
 import { ArticleFooterComponent } from '../../molecules/article-footer/article-footer.component';
 import { EditableTextComponent } from '../../organisms/editable-text/editable-text.component';
@@ -29,27 +29,27 @@ import { PageContainerComponent } from '../../organisms/page-container/page-cont
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class QuestComponent {
-  quest = input.required<Quest>();
-  questServerModel = input.required<Quest | undefined>();
-  canUpdate = input.required<boolean>();
-  canDelete = input.required<boolean>();
+  readonly quest = input.required<Quest>();
+  readonly questServerModel = input.required<Quest | undefined>();
+  readonly canUpdate = input.required<boolean>();
+  readonly canDelete = input.required<boolean>();
 
   readonly questDelete = output<Quest>();
-  questUpdate = output<Quest>();
+  readonly questUpdate = output<Quest>();
 
-  campaignName = computed(() => this.quest().campaign_details?.name);
-  questGiverUrl = computed(() =>
+  readonly campaignName = computed(() => this.quest().campaign_details?.name);
+  readonly questGiverUrl = computed(() =>
     this.routingService.getRoutePath('character', {
       campaign: this.campaignName(),
       name: this.quest().giver_details?.name,
     }),
   );
-  overviewUrl = computed(() =>
+  readonly overviewUrl = computed(() =>
     this.routingService.getRoutePath('quest-overview', {
       campaign: this.campaignName(),
     }),
   );
-  updateUrl = computed(() =>
+  readonly updateUrl = computed(() =>
     this.routingService.getRoutePath('quest-update', {
       campaign: this.campaignName(),
       name: this.quest().name,

@@ -18,5 +18,6 @@ export type Schema = {
  */
 export declare enum Type {
     Browserslist = "browserslist",
-    Karma = "karma"
+    Karma = "karma",
+    Vitest = "vitest"
 }

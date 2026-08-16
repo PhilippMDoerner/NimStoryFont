@@ -13,9 +13,9 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PageBackgroundComponent {
-  defaultImageUrl = 'assets/default_images/background_default.webp';
+  readonly defaultImageUrl = 'assets/default_images/background_default.webp';
 
-  imageUrl = input<string>();
+  readonly imageUrl = input<string>();
 
-  currentImageUrl = computed(() => this.imageUrl() ?? this.defaultImageUrl);
+  readonly currentImageUrl = computed(() => this.imageUrl() ?? this.defaultImageUrl);
 }

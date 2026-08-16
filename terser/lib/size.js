@@ -35,6 +35,7 @@ import {
     AST_Hole,
     AST_If,
     AST_Import,
+    AST_DynamicImport,
     AST_ImportMeta,
     AST_Infinity,
     AST_LabeledStatement,
@@ -78,8 +79,9 @@ import {
     AST_Finally,
     AST_Unary,
     AST_Undefined,
+    AST_Using,
     AST_Var,
-    AST_VarDef,
+    AST_VarDefLike,
     AST_While,
     AST_With,
     AST_Yield,
@@ -242,7 +244,12 @@ AST_Const.prototype._size = function () {
     return 6 + list_overhead(this.definitions);
 };
 
-AST_VarDef.prototype._size = function () {
+AST_Using.prototype._size = function () {
+    const await_size = this.await ? 6 : 0;
+    return await_size + 6 + list_overhead(this.definitions);
+};
+
+AST_VarDefLike.prototype._size = function () {
     return this.value ? 1 : 0;
 };
 
@@ -269,6 +276,11 @@ AST_Import.prototype._size = function () {
 };
 
 AST_ImportMeta.prototype._size = () => 11;
+
+AST_DynamicImport.prototype._size = function () {
+    // `import.` + phase + `()` + arg overhead
+    return 9 + this.phase.length + list_overhead(this.args);
+};
 
 AST_Export.prototype._size = function () {
     let size = 7 + (this.is_default ? 8 : 0);

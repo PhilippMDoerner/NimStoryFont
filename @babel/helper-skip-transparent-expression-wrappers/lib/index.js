@@ -1,12 +1,5 @@
-"use strict";
+import * as _t from '@babel/types';
 
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.isTransparentExprWrapper = isTransparentExprWrapper;
-exports.skipTransparentExprWrapperNodes = skipTransparentExprWrapperNodes;
-exports.skipTransparentExprWrappers = skipTransparentExprWrappers;
-var _t = require("@babel/types");
 const {
   isParenthesizedExpression,
   isTSAsExpression,
@@ -31,4 +24,5 @@ function skipTransparentExprWrapperNodes(node) {
   return node;
 }
 
+export { isTransparentExprWrapper, skipTransparentExprWrapperNodes, skipTransparentExprWrappers };
 //# sourceMappingURL=index.js.map

@@ -1,7 +1,11 @@
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
 }) : (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     o[k2] = m[k];
@@ -70,7 +74,7 @@ exports.ForkTsCheckerWebpackPlugin = ForkTsCheckerWebpackPlugin;
 /**
  * Current version of the plugin
  */
-ForkTsCheckerWebpackPlugin.version = '8.0.0'; // will be replaced by the @semantic-release/exec
+ForkTsCheckerWebpackPlugin.version = '9.1.0'; // will be replaced by the @semantic-release/exec
 /**
  * Default pools for the plugin concurrency limit
  */

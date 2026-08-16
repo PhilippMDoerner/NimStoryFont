@@ -10,3 +10,4 @@ var State;
     State["Stopped"] = "stopped";
     State["Waiting"] = "waiting";
 })(State || (exports.State = State = {}));
+//# sourceMappingURL=progress-schema.js.map

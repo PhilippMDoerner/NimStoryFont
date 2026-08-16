@@ -8,10 +8,10 @@ import {
 } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { filter, Observable, take } from 'rxjs';
-import { Item } from 'src/app/_models/item';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { ItemComponent } from 'src/app/design/templates/item/item.component';
-import { GlobalStore } from 'src/app/global.store';
+import { Item } from '../../../_models/item';
+import { RoutingService } from '../../../_services/routing.service';
+import { ItemComponent } from '../../../design/templates/item/item.component';
+import { GlobalStore } from '../../../global.store';
 import { ItemPageStore } from './item-page.store';
 
 @Component({
@@ -22,13 +22,13 @@ import { ItemPageStore } from './item-page.store';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ItemPageComponent {
-  serverUrl = '';
-  globalStore = inject(GlobalStore);
-  store = inject(ItemPageStore);
-  routingService = inject(RoutingService);
+  readonly serverUrl = '';
+  readonly globalStore = inject(GlobalStore);
+  readonly store = inject(ItemPageStore);
+  readonly routingService = inject(RoutingService);
 
-  itemDeleteState$ = toObservable(this.store.itemDeleteState);
-  item$ = toObservable(this.store.item);
+  readonly itemDeleteState$ = toObservable(this.store.itemDeleteState);
+  readonly item$ = toObservable(this.store.item);
 
   private readonly isPageLoading: Observable<boolean> | Signal<boolean> =
     computed(() => this.store.item() == null);

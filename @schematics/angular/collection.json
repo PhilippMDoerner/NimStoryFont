@@ -23,12 +23,6 @@
       "schema": "./application/schema.json",
       "description": "Create an Angular application."
     },
-    "private-e2e": {
-      "factory": "./e2e",
-      "schema": "./e2e/schema.json",
-      "description": "PRIVATE API - Do not use.",
-      "hidden": true
-    },
     "class": {
       "aliases": ["cl"],
       "factory": "./class",
@@ -131,6 +125,31 @@
       "factory": "./config",
       "schema": "./config/schema.json",
       "description": "Generates a configuration file."
+    },
+    "ai-config": {
+      "factory": "./ai-config",
+      "schema": "./ai-config/schema.json",
+      "description": "Generates an AI tool configuration file."
+    },
+    "tailwind": {
+      "factory": "./tailwind",
+      "schema": "./tailwind/schema.json",
+      "hidden": true,
+      "private": true,
+      "description": "[INTERNAL] Adds tailwind to a project. Intended for use for ng new/add."
+    },
+    "refactor-jasmine-vitest": {
+      "factory": "./refactor/jasmine-vitest",
+      "schema": "./refactor/jasmine-vitest/schema.json",
+      "description": "[EXPERIMENTAL] Refactors Jasmine tests to use Vitest APIs.",
+      "hidden": true
+    },
+    "vitest-browser": {
+      "factory": "./vitest-browser",
+      "schema": "./vitest-browser/schema.json",
+      "hidden": true,
+      "private": true,
+      "description": "[INTERNAL] Adds a Vitest browser provider to a project. Intended for use for ng add."
     }
   }
 }

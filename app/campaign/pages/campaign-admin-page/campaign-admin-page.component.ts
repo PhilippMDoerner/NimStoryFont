@@ -5,8 +5,8 @@ import {
   inject,
   Signal,
 } from '@angular/core';
-import { CampaignAdminComponent } from 'src/app/design/templates/campaign-admin/campaign-admin.component';
-import { GlobalStore } from 'src/app/global.store';
+import { CampaignAdminComponent } from '../../../design/templates/campaign-admin/campaign-admin.component';
+import { GlobalStore } from '../../../global.store';
 import { CampaignAdminPageStore } from './campaign-admin-page.store';
 
 @Component({
@@ -20,8 +20,8 @@ import { CampaignAdminPageStore } from './campaign-admin-page.store';
 export class CampaignAdminPageComponent {
   readonly store = inject(CampaignAdminPageStore);
   readonly globalStore = inject(GlobalStore);
-  campaign = this.store.campaign;
-  serverUrl = '';
+  readonly campaign = this.store.campaign;
+  readonly serverUrl = '';
   private readonly isPageLoading: Signal<boolean> = computed(
     () =>
       this.store.campaign() == null ||

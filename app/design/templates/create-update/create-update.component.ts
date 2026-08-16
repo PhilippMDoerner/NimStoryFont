@@ -6,7 +6,7 @@ import {
   output,
 } from '@angular/core';
 import { FormlyFieldConfig } from '@ngx-formly/core';
-import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
+import { HotkeyDirective } from '../../../_directives/hotkey.directive';
 import { ButtonComponent } from '../../atoms/button/button.component';
 import { CompareFormComponent } from '../../molecules/compare-form/compare-form.component';
 import { FormComponent } from '../../molecules/form/form.component';
@@ -28,15 +28,15 @@ import { CreateUpdateState } from '../_models/create-update-states';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CreateUpdateComponent<Full, Raw> {
-  heading = input.required<string>();
-  state = input.required<CreateUpdateState>();
-  userModel = input<Full | Partial<Raw>>();
-  formlyFields = input.required<FormlyFieldConfig[]>();
-  serverModel = input.required<Full | undefined>();
+  readonly heading = input.required<string>();
+  readonly state = input.required<CreateUpdateState>();
+  readonly userModel = input<Full | Partial<Raw>>();
+  readonly formlyFields = input.required<FormlyFieldConfig[]>();
+  readonly serverModel = input.required<Full | undefined>();
 
-  create = output<NonNullable<Partial<Raw>>>();
-  update = output<NonNullable<Full>>();
-  cancelled = output<void>();
+  readonly create = output<NonNullable<Partial<Raw>>>();
+  readonly update = output<NonNullable<Full>>();
+  readonly cancelled = output<void>();
 
   onSubmit(submittedData: Partial<Raw> | Full): void {
     if (submittedData == null) return;

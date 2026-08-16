@@ -6,8 +6,8 @@ import {
   Signal,
 } from '@angular/core';
 import { Observable } from 'rxjs';
-import { MarkerComponent } from 'src/app/design//templates/marker/marker.component';
-import { GlobalStore } from 'src/app/global.store';
+import { MarkerComponent } from '../../../design/templates/marker/marker.component';
+import { GlobalStore } from '../../../global.store';
 import { MarkerPageStore } from './marker-page.store';
 
 @Component({
@@ -18,7 +18,7 @@ import { MarkerPageStore } from './marker-page.store';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MarkerPageComponent {
-  store = inject(MarkerPageStore);
+  readonly store = inject(MarkerPageStore);
   private readonly isPageLoading: Observable<boolean> | Signal<boolean> =
     computed(() => this.store.marker() == null);
 

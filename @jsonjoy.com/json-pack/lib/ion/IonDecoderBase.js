@@ -2,8 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.IonDecoderBase = void 0;
 const tslib_1 = require("tslib");
-const Reader_1 = require("@jsonjoy.com/util/lib/buffers/Reader");
-const sharedCachedUtf8Decoder_1 = tslib_1.__importDefault(require("@jsonjoy.com/util/lib/buffers/utf8/sharedCachedUtf8Decoder"));
+const Reader_1 = require("@jsonjoy.com/buffers/lib/Reader");
+const sharedCachedUtf8Decoder_1 = tslib_1.__importDefault(require("@jsonjoy.com/buffers/lib/utf8/sharedCachedUtf8Decoder"));
 const Import_1 = require("./Import");
 class IonDecoderBase {
     constructor(reader) {

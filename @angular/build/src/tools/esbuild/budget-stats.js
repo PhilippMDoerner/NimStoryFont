@@ -8,7 +8,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.generateBudgetStats = generateBudgetStats;
-const bundler_context_1 = require("./bundler-context");
+const bundler_files_1 = require("./bundler-files");
 const utils_1 = require("./utils");
 /**
  * Generates a bundle budget calculator compatible stats object that provides
@@ -28,7 +28,7 @@ function generateBudgetStats(metafile, outputFiles, initialFiles) {
             continue;
         }
         // Exclude server bundles
-        if (type === bundler_context_1.BuildOutputFileType.ServerApplication || type === bundler_context_1.BuildOutputFileType.ServerRoot) {
+        if (type === bundler_files_1.BuildOutputFileType.ServerApplication || type === bundler_files_1.BuildOutputFileType.ServerRoot) {
             continue;
         }
         const initialRecord = initialFiles.get(file);
@@ -64,3 +64,4 @@ function generateBudgetStats(metafile, outputFiles, initialFiles) {
     }
     return stats;
 }
+//# sourceMappingURL=budget-stats.js.map

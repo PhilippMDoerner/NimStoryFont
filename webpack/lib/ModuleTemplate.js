@@ -11,16 +11,16 @@ const memoize = require("./util/memoize");
 /** @typedef {import("tapable").Tap} Tap */
 /** @typedef {import("webpack-sources").Source} Source */
 /** @typedef {import("./Chunk")} Chunk */
-/** @typedef {import("./ChunkGraph")} ChunkGraph */
 /** @typedef {import("./Compilation")} Compilation */
 /** @typedef {import("./DependencyTemplates")} DependencyTemplates */
 /** @typedef {import("./Module")} Module */
-/** @typedef {import("./ModuleGraph")} ModuleGraph */
 /** @typedef {import("./RuntimeTemplate")} RuntimeTemplate */
 /** @typedef {import("./javascript/JavascriptModulesPlugin").ChunkRenderContext} ChunkRenderContext */
+/** @typedef {import("./javascript/JavascriptModulesPlugin").ModuleRenderContext}  ModuleRenderContext */
 /** @typedef {import("./util/Hash")} Hash */
 
 /**
+ * Defines the if set type used by this module.
  * @template T
  * @typedef {import("tapable").IfSet<T>} IfSet
  */
@@ -32,19 +32,23 @@ const getJavascriptModulesPlugin = memoize(() =>
 // TODO webpack 6: remove this class
 class ModuleTemplate {
 	/**
+	 * Creates an instance of ModuleTemplate.
 	 * @param {RuntimeTemplate} runtimeTemplate the runtime template
 	 * @param {Compilation} compilation the compilation
 	 */
 	constructor(runtimeTemplate, compilation) {
+		/** @type {RuntimeTemplate} */
 		this._runtimeTemplate = runtimeTemplate;
+		/** @type {string} */
 		this.type = "javascript";
 		this.hooks = Object.freeze({
 			content: {
 				tap: util.deprecate(
 					/**
+					 * Handles the callback logic for this hook.
 					 * @template AdditionalOptions
 					 * @param {string | Tap & IfSet<AdditionalOptions>} options options
-					 * @param {(source: Source, module: Module, chunkRenderContext: ChunkRenderContext, dependencyTemplates: DependencyTemplates) => Source} fn fn
+					 * @param {(source: Source, module: Module, moduleRenderContext: ModuleRenderContext, dependencyTemplates: DependencyTemplates) => Source} fn fn
 					 */
 					(options, fn) => {
 						getJavascriptModulesPlugin()
@@ -67,9 +71,10 @@ class ModuleTemplate {
 			module: {
 				tap: util.deprecate(
 					/**
+					 * Handles the callback logic for this hook.
 					 * @template AdditionalOptions
 					 * @param {string | Tap & IfSet<AdditionalOptions>} options options
-					 * @param {(source: Source, module: Module, chunkRenderContext: ChunkRenderContext, dependencyTemplates: DependencyTemplates) => Source} fn fn
+					 * @param {(source: Source, module: Module, moduleRenderContext: ModuleRenderContext, dependencyTemplates: DependencyTemplates) => Source} fn fn
 					 */
 					(options, fn) => {
 						getJavascriptModulesPlugin()
@@ -92,6 +97,7 @@ class ModuleTemplate {
 			render: {
 				tap: util.deprecate(
 					/**
+					 * Handles the callback logic for this hook.
 					 * @template AdditionalOptions
 					 * @param {string | Tap & IfSet<AdditionalOptions>} options options
 					 * @param {(source: Source, module: Module, chunkRenderContext: ChunkRenderContext, dependencyTemplates: DependencyTemplates) => Source} fn fn
@@ -117,6 +123,7 @@ class ModuleTemplate {
 			package: {
 				tap: util.deprecate(
 					/**
+					 * Handles the callback logic for this hook.
 					 * @template AdditionalOptions
 					 * @param {string | Tap & IfSet<AdditionalOptions>} options options
 					 * @param {(source: Source, module: Module, chunkRenderContext: ChunkRenderContext, dependencyTemplates: DependencyTemplates) => Source} fn fn
@@ -142,6 +149,7 @@ class ModuleTemplate {
 			hash: {
 				tap: util.deprecate(
 					/**
+					 * Handles the callback logic for this hook.
 					 * @template AdditionalOptions
 					 * @param {string | Tap & IfSet<AdditionalOptions>} options options
 					 * @param {(hash: Hash) => void} fn fn
@@ -160,10 +168,11 @@ class ModuleTemplate {
 Object.defineProperty(ModuleTemplate.prototype, "runtimeTemplate", {
 	get: util.deprecate(
 		/**
+		 * Returns output options.
 		 * @this {ModuleTemplate}
 		 * @returns {RuntimeTemplate} output options
 		 */
-		function () {
+		function runtimeTemplate() {
 			return this._runtimeTemplate;
 		},
 		"ModuleTemplate.runtimeTemplate is deprecated (use Compilation.runtimeTemplate instead)",

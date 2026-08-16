@@ -1,3 +1,4 @@
+import type { TSESTree } from '@typescript-eslint/types';
 import type * as ts from 'typescript';
 /**
  * Describes specific types or values declared in local files.
@@ -48,83 +49,84 @@ export type TypeOrValueSpecifier = string | FileSpecifier | LibSpecifier | Packa
 export declare const typeOrValueSpecifiersSchema: {
     readonly items: {
         readonly oneOf: [{
-            readonly type: "string";
+            readonly type: 'string';
         }, {
             readonly additionalProperties: false;
             readonly properties: {
                 readonly from: {
                     readonly enum: ["file"];
-                    readonly type: "string";
+                    readonly type: 'string';
                 };
                 readonly name: {
                     readonly oneOf: [{
-                        readonly type: "string";
+                        readonly type: 'string';
                     }, {
                         readonly items: {
-                            readonly type: "string";
+                            readonly type: 'string';
                         };
                         readonly minItems: 1;
-                        readonly type: "array";
+                        readonly type: 'array';
                         readonly uniqueItems: true;
                     }];
                 };
                 readonly path: {
-                    readonly type: "string";
+                    readonly type: 'string';
                 };
             };
             readonly required: ["from", "name"];
-            readonly type: "object";
+            readonly type: 'object';
         }, {
             readonly additionalProperties: false;
             readonly properties: {
                 readonly from: {
                     readonly enum: ["lib"];
-                    readonly type: "string";
+                    readonly type: 'string';
                 };
                 readonly name: {
                     readonly oneOf: [{
-                        readonly type: "string";
+                        readonly type: 'string';
                     }, {
                         readonly items: {
-                            readonly type: "string";
+                            readonly type: 'string';
                         };
                         readonly minItems: 1;
-                        readonly type: "array";
+                        readonly type: 'array';
                         readonly uniqueItems: true;
                     }];
                 };
             };
             readonly required: ["from", "name"];
-            readonly type: "object";
+            readonly type: 'object';
         }, {
             readonly additionalProperties: false;
             readonly properties: {
                 readonly from: {
                     readonly enum: ["package"];
-                    readonly type: "string";
+                    readonly type: 'string';
                 };
                 readonly name: {
                     readonly oneOf: [{
-                        readonly type: "string";
+                        readonly type: 'string';
                     }, {
                         readonly items: {
-                            readonly type: "string";
+                            readonly type: 'string';
                         };
                         readonly minItems: 1;
-                        readonly type: "array";
+                        readonly type: 'array';
                         readonly uniqueItems: true;
                     }];
                 };
                 readonly package: {
-                    readonly type: "string";
+                    readonly type: 'string';
                 };
             };
             readonly required: ["from", "name", "package"];
-            readonly type: "object";
+            readonly type: 'object';
         }];
     };
-    readonly type: "array";
+    readonly type: 'array';
 };
 export declare function typeMatchesSpecifier(type: ts.Type, specifier: TypeOrValueSpecifier, program: ts.Program): boolean;
 export declare const typeMatchesSomeSpecifier: (type: ts.Type, specifiers: TypeOrValueSpecifier[] | undefined, program: ts.Program) => boolean;
-//# sourceMappingURL=TypeOrValueSpecifier.d.ts.map
+export declare function valueMatchesSpecifier(node: TSESTree.Node, specifier: TypeOrValueSpecifier, program: ts.Program, type: ts.Type): boolean;
+export declare const valueMatchesSomeSpecifier: (node: TSESTree.Node, specifiers: TypeOrValueSpecifier[] | undefined, program: ts.Program, type: ts.Type) => boolean;

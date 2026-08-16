@@ -85,3 +85,4 @@ function getTypesOfSchema(schema) {
     }
     return potentials;
 }
+//# sourceMappingURL=utility.js.map

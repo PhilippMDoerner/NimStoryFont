@@ -51,29 +51,6 @@ const templateParser = {
     parseForESLint: templateParserBase.parseForESLint,
 };
 exports.templateParser = templateParser;
-/*
-we could build a plugin object here without the `configs` key - but if we do
-that then we create a situation in which
-```
-require('angular-eslint').tsPlugin !== require('@angular-eslint/eslint-plugin')
-```
-
-This is bad because it means that 3rd party configs would be required to use
-`angular-eslint` or else they would break a user's config if the user either
-used `angular.configs.recommended` et al or
-```
-{
-  plugins: {
-    '@angular-eslint': angular.tsPlugin,
-  },
-}
-```
-
-This might be something we could consider okay (eg 3rd party flat configs must
-use our new package); however legacy configs consumed via `@eslint/eslintrc`
-would never be able to satisfy this constraint and thus users would be blocked
-from using them.
-*/
 const tsPlugin = eslint_plugin_1.default;
 exports.tsPlugin = tsPlugin;
 const templatePlugin = eslint_plugin_template_1.default;

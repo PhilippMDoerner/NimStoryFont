@@ -25,6 +25,7 @@ export declare enum Builders {
     BrowserEsbuild = "@angular-devkit/build-angular:browser-esbuild",
     Karma = "@angular-devkit/build-angular:karma",
     BuildKarma = "@angular/build:karma",
+    BuildUnitTest = "@angular/build:unit-test",
     TsLint = "@angular-devkit/build-angular:tslint",
     NgPackagr = "@angular-devkit/build-angular:ng-packagr",
     BuildNgPackagr = "@angular/build:ng-packagr",
@@ -32,7 +33,6 @@ export declare enum Builders {
     BuildDevServer = "@angular/build:dev-server",
     ExtractI18n = "@angular-devkit/build-angular:extract-i18n",
     BuildExtractI18n = "@angular/build:extract-i18n",
-    Protractor = "@angular-devkit/build-angular:private-protractor",
     BuildApplication = "@angular/build:application"
 }
 export interface FileReplacements {
@@ -105,7 +105,6 @@ export interface ExtractI18nOptions {
     browserTarget: string;
 }
 export interface E2EOptions {
-    protractorConfig: string;
     devServerTarget: string;
 }
 export interface BuilderTarget<TBuilder extends Builders, TOptions> {
@@ -123,7 +122,6 @@ export type AppShellBuilderTarget = BuilderTarget<Builders.AppShell, AppShellBui
 export type TestBuilderTarget = BuilderTarget<Builders.Karma, TestBuilderOptions>;
 export type ServeBuilderTarget = BuilderTarget<Builders.DevServer, ServeBuilderOptions>;
 export type ExtractI18nBuilderTarget = BuilderTarget<Builders.ExtractI18n, ExtractI18nOptions>;
-export type E2EBuilderTarget = BuilderTarget<Builders.Protractor, E2EOptions>;
 interface WorkspaceCLISchema {
     warnings?: Record<string, boolean>;
     schematicCollections?: string[];
@@ -158,7 +156,6 @@ export interface WorkspaceTargets<TProjectType extends ProjectType = ProjectType
     server?: ServerBuilderTarget;
     test?: TestBuilderTarget;
     serve?: ServeBuilderTarget;
-    e2e?: E2EBuilderTarget;
     'app-shell'?: AppShellBuilderTarget;
     'extract-i18n'?: ExtractI18nBuilderTarget;
     [key: string]: any;

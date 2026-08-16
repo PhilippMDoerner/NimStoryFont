@@ -24,3 +24,4 @@ class NoopCompilation extends angular_compilation_1.AngularCompilation {
     }
 }
 exports.NoopCompilation = NoopCompilation;
+//# sourceMappingURL=noop-compilation.js.map

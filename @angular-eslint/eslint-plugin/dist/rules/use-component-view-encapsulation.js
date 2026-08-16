@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RULE_NAME = void 0;
+exports.RULE_DOCS_EXTENSION = exports.RULE_NAME = void 0;
 const utils_1 = require("@angular-eslint/utils");
 const create_eslint_rule_1 = require("../utils/create-eslint-rule");
 exports.RULE_NAME = 'use-component-view-encapsulation';
@@ -44,3 +44,6 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
         };
     },
 });
+exports.RULE_DOCS_EXTENSION = {
+    rationale: "Setting encapsulation to ViewEncapsulation.None disables Angular's view encapsulation, making the component's styles global and affecting the entire application. This breaks component isolation and can cause unexpected styling conflicts throughout your app. When multiple components use ViewEncapsulation.None, their styles can interfere with each other in unpredictable ways, making it extremely difficult to reason about styling. A style intended for one component might accidentally affect completely unrelated components. This defeats one of Angular's key benefits: component style isolation. ViewEncapsulation.None is occasionally necessary for specific edge cases (like styling dynamically inserted content), but it should be avoided in normal component development. Use the default Emulated encapsulation, or ShadowDom for native Shadow DOM, to keep component styles properly isolated.",
+};

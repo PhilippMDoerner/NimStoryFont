@@ -27,6 +27,7 @@ export type Options = [
     }
 ];
 export type MessageIds = 'addMissingCases' | 'dangerousDefaultCase' | 'switchIsNotExhaustive';
-declare const _default: TSESLint.RuleModule<MessageIds, Options, import("../../rules").ESLintPluginDocs, TSESLint.RuleListener>;
+declare const _default: TSESLint.RuleModule<MessageIds, Options, import("../../rules").ESLintPluginDocs, TSESLint.RuleListener> & {
+    name: string;
+};
 export default _default;
-//# sourceMappingURL=switch-exhaustiveness-check.d.ts.map

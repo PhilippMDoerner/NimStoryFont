@@ -1,51 +1,21 @@
-import { StoryId } from 'storybook/internal/csf';
+import { Is as StandardSchemaV1, Os as ServiceId, i as Status, l as StatusTypeId } from "./chunk-Cp-ouEY1.js";
+import { t as StorybookError } from "./chunk-CMHAf_uD.js";
 
-type StatusValue = 'status-value:pending' | 'status-value:success' | 'status-value:error' | 'status-value:warning' | 'status-value:unknown';
-type StatusTypeId = string;
-interface Status {
-    value: StatusValue;
-    typeId: StatusTypeId;
-    storyId: StoryId;
-    title: string;
-    description: string;
-    data?: any;
-    sidebarContextMenu?: boolean;
-}
-
-declare abstract class StorybookError extends Error {
-    /** Category of the error. Used to classify the type of error, e.g., 'PREVIEW_API'. */
-    readonly category: string;
-    /** Code representing the error. Used to uniquely identify the error, e.g., 1. */
-    readonly code: number;
-    /**
-     * Data associated with the error. Used to provide additional information in the error message or
-     * to be passed to telemetry.
-     */
-    readonly data: {};
-    /**
-     * Specifies the documentation for the error.
-     *
-     * - If `true`, links to a documentation page on the Storybook website (make sure it exists before
-     *   enabling) – This is not implemented yet.
-     * - If a string, uses the provided URL for documentation (external or FAQ links).
-     * - If `false` (default), no documentation link is added.
-     */
-    readonly documentation: boolean | string | string[];
-    /** Flag used to easily determine if the error originates from Storybook. */
-    readonly fromStorybook: true;
-    get fullErrorCode(): `SB_${string}_${string}`;
-    /** Overrides the default `Error.name` property in the format: SB_<CATEGORY>_<CODE>. */
-    get name(): string;
-    constructor(props: {
-        category: string;
-        code: number;
-        message: string;
-        documentation?: boolean | string | string[];
-    });
-    /** Generates the error message along with additional documentation link (if applicable). */
-    static getFullMessage({ documentation, code, category, message, }: ConstructorParameters<typeof StorybookError>[0]): string;
-}
-
+//#region code/core/.dts-emit/code/core/src/shared/open-service/errors.d.ts
+/** Identifies which operation surface produced a validation failure. */
+type OperationKind = 'query' | 'command';
+/**
+ * Describes the operation and validation phase associated with a schema failure.
+ */
+type ValidationMeta = {
+  kind: OperationKind;
+  serviceId: ServiceId;
+  name: string;
+  phase: 'input' | 'output';
+  issues: ReadonlyArray<StandardSchemaV1.Issue>;
+};
+//#endregion
+//#region code/core/.dts-emit/code/core/src/server-errors.d.ts
 /**
  * If you can't find a suitable category for your error, create one based on the package name/file
  * path of which the error is thrown. For instance: If it's from `@storybook/node-logger`, then
@@ -53,253 +23,423 @@ declare abstract class StorybookError extends Error {
  * then use a combination like CLI_INIT
  */
 declare enum Category {
-    CLI = "CLI",
-    CLI_INIT = "CLI_INIT",
-    CLI_AUTOMIGRATE = "CLI_AUTOMIGRATE",
-    CLI_UPGRADE = "CLI_UPGRADE",
-    CLI_ADD = "CLI_ADD",
-    CODEMOD = "CODEMOD",
-    CORE_SERVER = "CORE-SERVER",
-    CSF_PLUGIN = "CSF-PLUGIN",
-    CSF_TOOLS = "CSF-TOOLS",
-    CORE_COMMON = "CORE-COMMON",
-    NODE_LOGGER = "NODE-LOGGER",
-    TELEMETRY = "TELEMETRY",
-    BUILDER_MANAGER = "BUILDER-MANAGER",
-    BUILDER_VITE = "BUILDER-VITE",
-    BUILDER_WEBPACK5 = "BUILDER-WEBPACK5",
-    SOURCE_LOADER = "SOURCE-LOADER",
-    POSTINSTALL = "POSTINSTALL",
-    DOCS_TOOLS = "DOCS-TOOLS",
-    CORE_WEBPACK = "CORE-WEBPACK",
-    FRAMEWORK_ANGULAR = "FRAMEWORK_ANGULAR",
-    FRAMEWORK_EMBER = "FRAMEWORK_EMBER",
-    FRAMEWORK_HTML_VITE = "FRAMEWORK_HTML-VITE",
-    FRAMEWORK_HTML_WEBPACK5 = "FRAMEWORK_HTML-WEBPACK5",
-    FRAMEWORK_NEXTJS = "FRAMEWORK_NEXTJS",
-    FRAMEWORK_PREACT_VITE = "FRAMEWORK_PREACT-VITE",
-    FRAMEWORK_PREACT_WEBPACK5 = "FRAMEWORK_PREACT-WEBPACK5",
-    FRAMEWORK_REACT_VITE = "FRAMEWORK_REACT-VITE",
-    FRAMEWORK_REACT_WEBPACK5 = "FRAMEWORK_REACT-WEBPACK5",
-    FRAMEWORK_SERVER_WEBPACK5 = "FRAMEWORK_SERVER-WEBPACK5",
-    FRAMEWORK_SVELTE_VITE = "FRAMEWORK_SVELTE-VITE",
-    FRAMEWORK_SVELTEKIT = "FRAMEWORK_SVELTEKIT",
-    FRAMEWORK_VUE_VITE = "FRAMEWORK_VUE-VITE",
-    FRAMEWORK_VUE_WEBPACK5 = "FRAMEWORK_VUE-WEBPACK5",
-    FRAMEWORK_VUE3_VITE = "FRAMEWORK_VUE3-VITE",
-    FRAMEWORK_VUE3_WEBPACK5 = "FRAMEWORK_VUE3-WEBPACK5",
-    FRAMEWORK_WEB_COMPONENTS_VITE = "FRAMEWORK_WEB-COMPONENTS-VITE",
-    FRAMEWORK_WEB_COMPONENTS_WEBPACK5 = "FRAMEWORK_WEB-COMPONENTS-WEBPACK5"
+  CLI = "CLI",
+  CLI_INIT = "CLI_INIT",
+  CLI_AUTOMIGRATE = "CLI_AUTOMIGRATE",
+  CLI_UPGRADE = "CLI_UPGRADE",
+  CLI_ADD = "CLI_ADD",
+  CODEMOD = "CODEMOD",
+  CORE_SERVER = "CORE-SERVER",
+  CSF_PLUGIN = "CSF-PLUGIN",
+  CSF_TOOLS = "CSF-TOOLS",
+  CORE_COMMON = "CORE-COMMON",
+  NODE_LOGGER = "NODE-LOGGER",
+  TELEMETRY = "TELEMETRY",
+  BUILDER_MANAGER = "BUILDER-MANAGER",
+  BUILDER_VITE = "BUILDER-VITE",
+  BUILDER_WEBPACK5 = "BUILDER-WEBPACK5",
+  SOURCE_LOADER = "SOURCE-LOADER",
+  POSTINSTALL = "POSTINSTALL",
+  DOCS_TOOLS = "DOCS-TOOLS",
+  CORE_WEBPACK = "CORE-WEBPACK",
+  FRAMEWORK_ANGULAR = "FRAMEWORK_ANGULAR",
+  FRAMEWORK_EMBER = "FRAMEWORK_EMBER",
+  FRAMEWORK_HTML_VITE = "FRAMEWORK_HTML-VITE",
+  FRAMEWORK_HTML_WEBPACK5 = "FRAMEWORK_HTML-WEBPACK5",
+  FRAMEWORK_NEXTJS = "FRAMEWORK_NEXTJS",
+  FRAMEWORK_PREACT_VITE = "FRAMEWORK_PREACT-VITE",
+  FRAMEWORK_PREACT_WEBPACK5 = "FRAMEWORK_PREACT-WEBPACK5",
+  FRAMEWORK_REACT_VITE = "FRAMEWORK_REACT-VITE",
+  FRAMEWORK_REACT_WEBPACK5 = "FRAMEWORK_REACT-WEBPACK5",
+  FRAMEWORK_SERVER_WEBPACK5 = "FRAMEWORK_SERVER-WEBPACK5",
+  FRAMEWORK_SVELTE_VITE = "FRAMEWORK_SVELTE-VITE",
+  FRAMEWORK_SVELTEKIT = "FRAMEWORK_SVELTEKIT",
+  FRAMEWORK_VUE_VITE = "FRAMEWORK_VUE-VITE",
+  FRAMEWORK_VUE_WEBPACK5 = "FRAMEWORK_VUE-WEBPACK5",
+  FRAMEWORK_VUE3_VITE = "FRAMEWORK_VUE3-VITE",
+  FRAMEWORK_VUE3_WEBPACK5 = "FRAMEWORK_VUE3-WEBPACK5",
+  FRAMEWORK_WEB_COMPONENTS_VITE = "FRAMEWORK_WEB-COMPONENTS-VITE",
+  FRAMEWORK_WEB_COMPONENTS_WEBPACK5 = "FRAMEWORK_WEB-COMPONENTS-WEBPACK5"
 }
 declare class NxProjectDetectedError extends StorybookError {
-    constructor();
+  constructor();
 }
 declare class MissingFrameworkFieldError extends StorybookError {
-    constructor();
+  constructor();
 }
 declare class InvalidFrameworkNameError extends StorybookError {
-    data: {
-        frameworkName: string;
-    };
-    constructor(data: {
-        frameworkName: string;
-    });
+  data: {
+    frameworkName: string;
+  };
+  constructor(data: {
+    frameworkName: string;
+  });
 }
 declare class CouldNotEvaluateFrameworkError extends StorybookError {
-    data: {
-        frameworkName: string;
-    };
-    constructor(data: {
-        frameworkName: string;
-    });
+  data: {
+    frameworkName: string;
+  };
+  constructor(data: {
+    frameworkName: string;
+  });
 }
 declare class ConflictingStaticDirConfigError extends StorybookError {
-    constructor();
+  constructor();
 }
 declare class InvalidStoriesEntryError extends StorybookError {
-    constructor();
+  constructor();
+}
+declare class OpenServiceValidationError extends StorybookError {
+  data: ValidationMeta;
+  constructor(data: ValidationMeta);
+}
+declare class OpenServiceDuplicateRegistrationError extends StorybookError {
+  data: {
+    serviceId: ServiceId;
+  };
+  constructor(data: {
+    serviceId: ServiceId;
+  });
+}
+declare class OpenServiceMissingServiceError extends StorybookError {
+  data: {
+    serviceId: ServiceId;
+  };
+  constructor(data: {
+    serviceId: ServiceId;
+  });
+}
+declare class OpenServiceUnimplementedOperationError extends StorybookError {
+  data: {
+    serviceId: ServiceId;
+    name: string;
+    kind: 'query' | 'command';
+  };
+  constructor(data: {
+    serviceId: ServiceId;
+    name: string;
+    kind: 'query' | 'command';
+  });
+}
+declare class OpenServiceInvalidStaticPathError extends StorybookError {
+  data: {
+    serviceId: ServiceId;
+    name: string;
+    path: string;
+  };
+  constructor(data: {
+    serviceId: ServiceId;
+    name: string;
+    path: string;
+  });
+}
+declare class OpenServiceAsyncSchemaError extends StorybookError {
+  data: {
+    serviceId: ServiceId;
+    name: string;
+    kind: 'query' | 'command';
+    phase: 'input' | 'output';
+  };
+  constructor(data: {
+    serviceId: ServiceId;
+    name: string;
+    kind: 'query' | 'command';
+    phase: 'input' | 'output';
+  });
+}
+declare class OpenServiceLoadedDrainExceededError extends StorybookError {
+  data: {
+    serviceId: ServiceId;
+    name: string;
+    iterations: number;
+  };
+  constructor(data: {
+    serviceId: ServiceId;
+    name: string;
+    iterations: number;
+  });
+}
+declare class OpenServiceDocgenMissingComponentError extends StorybookError {
+  data: {
+    id: string;
+  };
+  constructor(data: {
+    id: string;
+  });
+}
+declare class OpenServiceMissingChannelError extends StorybookError {
+  data: {
+    serviceId?: ServiceId;
+  };
+  constructor(data?: {
+    serviceId?: ServiceId;
+  });
+}
+declare class OpenServiceRemoteCommandDisconnectedError extends StorybookError {
+  data: {
+    serviceId: ServiceId;
+  };
+  constructor(data: {
+    serviceId: ServiceId;
+  });
+}
+declare class OpenServiceRemoteCommandUnhandledError extends StorybookError {
+  data: {
+    serviceId: ServiceId;
+    commandName: string;
+  };
+  constructor(data: {
+    serviceId: ServiceId;
+    commandName: string;
+  });
 }
 declare class WebpackMissingStatsError extends StorybookError {
-    constructor();
+  constructor();
 }
 declare class WebpackInvocationError extends StorybookError {
-    data: {
-        error: Error;
-    };
-    constructor(data: {
-        error: Error;
-    });
+  data: {
+    error: Error;
+  };
+  constructor(data: {
+    error: Error;
+  });
 }
 declare class WebpackCompilationError extends StorybookError {
-    data: {
-        errors: {
-            message: string;
-            stack?: string;
-            name?: string;
-        }[];
-    };
-    constructor(data: {
-        errors: {
-            message: string;
-            stack?: string;
-            name?: string;
-        }[];
-    });
+  data: {
+    errors: {
+      message: string;
+      stack?: string;
+      name?: string;
+    }[];
+  };
+  constructor(data: {
+    errors: {
+      message: string;
+      stack?: string;
+      name?: string;
+    }[];
+  });
 }
 declare class MissingAngularJsonError extends StorybookError {
-    data: {
-        path: string;
-    };
-    constructor(data: {
-        path: string;
-    });
+  data: {
+    path: string;
+  };
+  constructor(data: {
+    path: string;
+  });
 }
 declare class AngularLegacyBuildOptionsError extends StorybookError {
-    constructor();
+  constructor();
 }
 declare class CriticalPresetLoadError extends StorybookError {
-    data: {
-        error: Error;
-        presetName: string;
-    };
-    constructor(data: {
-        error: Error;
-        presetName: string;
-    });
+  data: {
+    error: Error;
+    presetName: string;
+  };
+  constructor(data: {
+    error: Error;
+    presetName: string;
+  });
 }
 declare class MissingBuilderError extends StorybookError {
-    constructor();
+  constructor();
 }
 declare class GoogleFontsDownloadError extends StorybookError {
-    data: {
-        fontFamily: string;
-        url: string;
-    };
-    constructor(data: {
-        fontFamily: string;
-        url: string;
-    });
+  data: {
+    fontFamily: string;
+    url: string;
+  };
+  constructor(data: {
+    fontFamily: string;
+    url: string;
+  });
 }
 declare class GoogleFontsLoadingError extends StorybookError {
-    data: {
-        error: unknown | Error;
-        url: string;
-    };
-    constructor(data: {
-        error: unknown | Error;
-        url: string;
-    });
+  data: {
+    error: unknown | Error;
+    url: string;
+  };
+  constructor(data: {
+    error: unknown | Error;
+    url: string;
+  });
 }
 declare class SvelteViteWithSvelteKitError extends StorybookError {
-    constructor();
+  constructor();
 }
 declare class NoMatchingExportError extends StorybookError {
-    data: {
-        error: unknown | Error;
-    };
-    constructor(data: {
-        error: unknown | Error;
-    });
-}
-declare class MainFileESMOnlyImportError extends StorybookError {
-    data: {
-        location: string;
-        line: string | undefined;
-        num: number | undefined;
-    };
-    constructor(data: {
-        location: string;
-        line: string | undefined;
-        num: number | undefined;
-    });
+  data: {
+    error: unknown | Error;
+  };
+  constructor(data: {
+    error: unknown | Error;
+  });
 }
 declare class MainFileMissingError extends StorybookError {
-    data: {
-        location: string;
-        source?: 'storybook' | 'vitest';
-    };
-    constructor(data: {
-        location: string;
-        source?: 'storybook' | 'vitest';
-    });
+  data: {
+    location: string;
+    source?: 'storybook' | 'vitest';
+  };
+  constructor(data: {
+    location: string;
+    source?: 'storybook' | 'vitest';
+  });
 }
 declare class MainFileEvaluationError extends StorybookError {
-    data: {
-        location: string;
-        error: Error;
-    };
-    constructor(data: {
-        location: string;
-        error: Error;
-    });
+  data: {
+    location: string;
+    error: Error;
+  };
+  constructor(data: {
+    location: string;
+    error: Error;
+  });
 }
 declare class StatusTypeIdMismatchError extends StorybookError {
-    data: {
-        status: Status;
-        typeId: StatusTypeId;
-    };
-    constructor(data: {
-        status: Status;
-        typeId: StatusTypeId;
-    });
+  data: {
+    status: Status;
+    typeId: StatusTypeId;
+  };
+  constructor(data: {
+    status: Status;
+    typeId: StatusTypeId;
+  });
+}
+declare class NoFreePortError extends StorybookError {
+  data: {
+    requestedPort?: number;
+  };
+  constructor(data: {
+    requestedPort?: number;
+  });
 }
 declare class GenerateNewProjectOnInitError extends StorybookError {
-    data: {
-        error: unknown | Error;
-        packageManager: string;
-        projectType: string;
-    };
-    constructor(data: {
-        error: unknown | Error;
-        packageManager: string;
-        projectType: string;
-    });
+  data: {
+    error: unknown | Error;
+    packageManager: string;
+    projectType: string;
+  };
+  constructor(data: {
+    error: unknown | Error;
+    packageManager: string;
+    projectType: string;
+  });
+}
+type MinimumReleaseAgeHandledErrorData = {
+  message: string;
+  cause?: unknown;
+} | {
+  packageManagerName: string;
+  minimumReleaseAgeConfigName: string;
+  minimumReleaseAgeConfigDocs: string;
+  minimumReleaseAgeExclusionsConfigName?: string;
+  minimumReleaseAgeExclusionsConfigDocs?: string;
+  failedPackage?: string | null;
+  cause?: unknown;
+};
+declare class MinimumReleaseAgeHandledError extends StorybookError {
+  data: MinimumReleaseAgeHandledErrorData;
+  constructor(data: MinimumReleaseAgeHandledErrorData);
+}
+declare class AddonVitestPostinstallPrerequisiteCheckError extends StorybookError {
+  data: {
+    reasons: string[];
+  };
+  constructor(data: {
+    reasons: string[];
+  });
+}
+declare class AddonVitestPostinstallFailedAddonA11yError extends StorybookError {
+  data: {
+    error: unknown | Error;
+  };
+  constructor(data: {
+    error: unknown | Error;
+  });
+}
+declare class AddonVitestPostinstallWorkspaceUpdateError extends StorybookError {
+  data: {
+    filePath: string;
+  };
+  constructor(data: {
+    filePath: string;
+  });
+}
+declare class AddonVitestPostinstallConfigUpdateError extends StorybookError {
+  data: {
+    filePath: string;
+  };
+  constructor(data: {
+    filePath: string;
+  });
+}
+declare class AddonVitestPostinstallError extends StorybookError {
+  data: {
+    errors: StorybookError[];
+  };
+  constructor(data: {
+    errors: StorybookError[];
+  });
 }
 declare class UpgradeStorybookToLowerVersionError extends StorybookError {
-    data: {
-        beforeVersion: string;
-        currentVersion: string;
-    };
-    constructor(data: {
-        beforeVersion: string;
-        currentVersion: string;
-    });
+  data: {
+    beforeVersion: string;
+    currentVersion: string;
+  };
+  constructor(data: {
+    beforeVersion: string;
+    currentVersion: string;
+  });
 }
 declare class UpgradeStorybookUnknownCurrentVersionError extends StorybookError {
-    constructor();
+  constructor();
 }
 declare class NoStatsForViteDevError extends StorybookError {
-    constructor();
+  constructor();
+}
+declare class ViteModuleGraphSubscriptionError extends StorybookError {
+  constructor();
 }
 declare class FindPackageVersionsError extends StorybookError {
-    data: {
-        error: Error | unknown;
-        packageName: string;
-        packageManager: string;
-    };
-    constructor(data: {
-        error: Error | unknown;
-        packageName: string;
-        packageManager: string;
-    });
+  data: {
+    error: Error | unknown;
+    packageName: string;
+    packageManager: string;
+  };
+  constructor(data: {
+    error: Error | unknown;
+    packageName: string;
+    packageManager: string;
+  });
 }
 declare class IncompatiblePostCssConfigError extends StorybookError {
-    data: {
-        error: Error;
-    };
-    constructor(data: {
-        error: Error;
-    });
+  data: {
+    error: Error;
+  };
+  constructor(data: {
+    error: Error;
+  });
 }
 declare class SavingGlobalSettingsFileError extends StorybookError {
-    data: {
-        filePath: string;
-        error: Error | unknown;
-    };
-    constructor(data: {
-        filePath: string;
-        error: Error | unknown;
-    });
+  data: {
+    filePath: string;
+    error: Error | unknown;
+  };
+  constructor(data: {
+    filePath: string;
+    error: Error | unknown;
+  });
 }
-
-export { AngularLegacyBuildOptionsError, Category, ConflictingStaticDirConfigError, CouldNotEvaluateFrameworkError, CriticalPresetLoadError, FindPackageVersionsError, GenerateNewProjectOnInitError, GoogleFontsDownloadError, GoogleFontsLoadingError, IncompatiblePostCssConfigError, InvalidFrameworkNameError, InvalidStoriesEntryError, MainFileESMOnlyImportError, MainFileEvaluationError, MainFileMissingError, MissingAngularJsonError, MissingBuilderError, MissingFrameworkFieldError, NoMatchingExportError, NoStatsForViteDevError, NxProjectDetectedError, SavingGlobalSettingsFileError, StatusTypeIdMismatchError, SvelteViteWithSvelteKitError, UpgradeStorybookToLowerVersionError, UpgradeStorybookUnknownCurrentVersionError, WebpackCompilationError, WebpackInvocationError, WebpackMissingStatsError };
+declare class CommonJsConfigNotSupportedError extends StorybookError {
+  constructor();
+}
+declare class AutomigrateError extends StorybookError {
+  data: {
+    errors: Array<Error | unknown>;
+  };
+  constructor(data: {
+    errors: Array<Error | unknown>;
+  });
+}
+//#endregion
+export { AddonVitestPostinstallConfigUpdateError, AddonVitestPostinstallError, AddonVitestPostinstallFailedAddonA11yError, AddonVitestPostinstallPrerequisiteCheckError, AddonVitestPostinstallWorkspaceUpdateError, AngularLegacyBuildOptionsError, AutomigrateError, Category, CommonJsConfigNotSupportedError, ConflictingStaticDirConfigError, CouldNotEvaluateFrameworkError, CriticalPresetLoadError, FindPackageVersionsError, GenerateNewProjectOnInitError, GoogleFontsDownloadError, GoogleFontsLoadingError, IncompatiblePostCssConfigError, InvalidFrameworkNameError, InvalidStoriesEntryError, MainFileEvaluationError, MainFileMissingError, MinimumReleaseAgeHandledError, MissingAngularJsonError, MissingBuilderError, MissingFrameworkFieldError, NoFreePortError, NoMatchingExportError, NoStatsForViteDevError, NxProjectDetectedError, OpenServiceAsyncSchemaError, OpenServiceDocgenMissingComponentError, OpenServiceDuplicateRegistrationError, OpenServiceInvalidStaticPathError, OpenServiceLoadedDrainExceededError, OpenServiceMissingChannelError, OpenServiceMissingServiceError, OpenServiceRemoteCommandDisconnectedError, OpenServiceRemoteCommandUnhandledError, OpenServiceUnimplementedOperationError, OpenServiceValidationError, SavingGlobalSettingsFileError, StatusTypeIdMismatchError, StorybookError, SvelteViteWithSvelteKitError, UpgradeStorybookToLowerVersionError, UpgradeStorybookUnknownCurrentVersionError, ViteModuleGraphSubscriptionError, WebpackCompilationError, WebpackInvocationError, WebpackMissingStatsError };

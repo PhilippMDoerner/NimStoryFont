@@ -6,51 +6,69 @@
 "use strict";
 
 const Dependency = require("../Dependency");
+const InitFragment = require("../InitFragment");
 const Template = require("../Template");
+const {
+	InlinedUsedName,
+	isExportInlined,
+	isInlineExportsEnabled
+} = require("../optimize/InlineExports");
 const {
 	getDependencyUsedByExportsCondition
 } = require("../optimize/InnerGraph");
 const { getTrimmedIdsAndRange } = require("../util/chainedImports");
 const makeSerializable = require("../util/makeSerializable");
-const propertyAccess = require("../util/propertyAccess");
+const memoize = require("../util/memoize");
+const { propertyAccess } = require("../util/property");
+const traverseDestructuringAssignmentProperties = require("../util/traverseDestructuringAssignmentProperties");
 const HarmonyImportDependency = require("./HarmonyImportDependency");
+const { ImportPhaseUtils } = require("./ImportPhase");
 
 /** @typedef {import("webpack-sources").ReplaceSource} ReplaceSource */
-/** @typedef {import("../ChunkGraph")} ChunkGraph */
-/** @typedef {import("../Dependency").ExportsSpec} ExportsSpec */
 /** @typedef {import("../Dependency").GetConditionFn} GetConditionFn */
-/** @typedef {import("../Dependency").ReferencedExport} ReferencedExport */
-/** @typedef {import("../Dependency").UpdateHashContext} UpdateHashContext */
+/** @typedef {import("../Dependency").RawReferencedExports} RawReferencedExports */
+/** @typedef {import("../Dependency").ReferencedExports} ReferencedExports */
 /** @typedef {import("../DependencyTemplate").DependencyTemplateContext} DependencyTemplateContext */
 /** @typedef {import("../Module")} Module */
 /** @typedef {import("../Module").BuildMeta} BuildMeta */
 /** @typedef {import("../ModuleGraph")} ModuleGraph */
 /** @typedef {import("../ModuleGraphConnection")} ModuleGraphConnection */
 /** @typedef {import("../ModuleGraphConnection").ConnectionState} ConnectionState */
-/** @typedef {import("../WebpackError")} WebpackError */
-/** @typedef {import("../javascript/JavascriptParser").DestructuringAssignmentProperty} DestructuringAssignmentProperty */
+/** @typedef {import("../errors/WebpackError")} WebpackError */
+/** @typedef {import("../javascript/JavascriptParser").DestructuringAssignmentProperties} DestructuringAssignmentProperties */
 /** @typedef {import("../javascript/JavascriptParser").ImportAttributes} ImportAttributes */
 /** @typedef {import("../javascript/JavascriptParser").Range} Range */
+/** @typedef {import("../optimize/InnerGraph").UsedByExports} UsedByExports */
 /** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext} ObjectDeserializerContext */
 /** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext} ObjectSerializerContext */
-/** @typedef {import("../util/Hash")} Hash */
 /** @typedef {import("../util/runtime").RuntimeSpec} RuntimeSpec */
+/** @typedef {import("../util/chainedImports").IdRanges} IdRanges */
 /** @typedef {import("./HarmonyImportDependency").ExportPresenceMode} ExportPresenceMode */
+/** @typedef {HarmonyImportDependency.Ids} Ids */
+/** @typedef {import("./ImportPhase").ImportPhaseType} ImportPhaseType */
+/** @typedef {import("./HarmonyImportGuard").DependencyGuard} DependencyGuard */
+/** @typedef {import("../javascript/JavascriptModule").JavascriptModuleBuildMeta} JavascriptModuleBuildMeta */
 
-const idsSymbol = Symbol("HarmonyImportSpecifierDependency.ids");
+const getHarmonyImportGuard = memoize(() => require("./HarmonyImportGuard"));
+
+const idsSymbol = /** @type {symbol} */ (
+	Symbol("HarmonyImportSpecifierDependency.ids")
+);
 
 const { ExportPresenceModes } = HarmonyImportDependency;
 
 class HarmonyImportSpecifierDependency extends HarmonyImportDependency {
 	/**
+	 * Creates an instance of HarmonyImportSpecifierDependency.
 	 * @param {string} request request
 	 * @param {number} sourceOrder source order
-	 * @param {string[]} ids ids
+	 * @param {Ids} ids ids
 	 * @param {string} name name
 	 * @param {Range} range range
 	 * @param {ExportPresenceMode} exportPresenceMode export presence mode
+	 * @param {ImportPhaseType} phase import phase
 	 * @param {ImportAttributes | undefined} attributes import attributes
-	 * @param {Range[] | undefined} idRanges ranges for members of ids; the two arrays are right-aligned
+	 * @param {IdRanges | undefined} idRanges ranges for members of ids; the two arrays are right-aligned
 	 */
 	constructor(
 		request,
@@ -59,37 +77,61 @@ class HarmonyImportSpecifierDependency extends HarmonyImportDependency {
 		name,
 		range,
 		exportPresenceMode,
+		phase,
 		attributes,
 		idRanges // TODO webpack 6 make this non-optional. It must always be set to properly trim ids.
 	) {
-		super(request, sourceOrder, attributes);
+		super(request, sourceOrder, phase, attributes);
+		/** @type {Ids} */
 		this.ids = ids;
+		/** @type {string} */
 		this.name = name;
 		this.range = range;
+		/** @type {IdRanges | undefined} */
 		this.idRanges = idRanges;
+		/** @type {ExportPresenceMode} */
 		this.exportPresenceMode = exportPresenceMode;
+		/** @type {undefined | boolean} */
 		this.namespaceObjectAsContext = false;
+		/** @type {undefined | boolean} */
 		this.call = undefined;
+		/** @type {undefined | boolean} */
 		this.directImport = undefined;
+		/** @type {undefined | boolean | string} */
 		this.shorthand = undefined;
+		/** @type {undefined | boolean} */
 		this.asiSafe = undefined;
-		/** @type {Set<string> | boolean | undefined} */
+		/** @type {UsedByExports | undefined} */
 		this.usedByExports = undefined;
-		/** @type {Set<DestructuringAssignmentProperty> | undefined} */
+		/** @type {DestructuringAssignmentProperties | undefined} */
 		this.referencedPropertiesInDestructuring = undefined;
+		/** @type {DependencyGuard[] | undefined} */
+		this.branchGuards = undefined;
 	}
 
 	// TODO webpack 6 remove
+	/**
+	 * Returns id.
+	 * @deprecated
+	 */
 	get id() {
 		throw new Error("id was renamed to ids and type changed to string[]");
 	}
 
 	// TODO webpack 6 remove
+	/**
+	 * Returns id.
+	 * @deprecated
+	 */
 	getId() {
 		throw new Error("id was renamed to ids and type changed to string[]");
 	}
 
 	// TODO webpack 6 remove
+	/**
+	 * Updates id.
+	 * @deprecated
+	 */
 	setId() {
 		throw new Error("id was renamed to ids and type changed to string[]");
 	}
@@ -99,8 +141,17 @@ class HarmonyImportSpecifierDependency extends HarmonyImportDependency {
 	}
 
 	/**
+	 * Returns the export name this dependency requests from its target module (lazy barrel optimization).
+	 * @returns {string | true | null} export name, true for all exports, null for none
+	 */
+	getForwardId() {
+		return this.ids.length > 0 ? this.ids[0] : true;
+	}
+
+	/**
+	 * Returns the imported ids.
 	 * @param {ModuleGraph} moduleGraph the module graph
-	 * @returns {string[]} the imported ids
+	 * @returns {Ids} the imported ids
 	 */
 	getIds(moduleGraph) {
 		const meta = moduleGraph.getMetaIfExisting(this);
@@ -110,8 +161,9 @@ class HarmonyImportSpecifierDependency extends HarmonyImportDependency {
 	}
 
 	/**
+	 * Updates ids using the provided module graph.
 	 * @param {ModuleGraph} moduleGraph the module graph
-	 * @param {string[]} ids the imported ids
+	 * @param {Ids} ids the imported ids
 	 * @returns {void}
 	 */
 	setIds(moduleGraph, ids) {
@@ -119,18 +171,50 @@ class HarmonyImportSpecifierDependency extends HarmonyImportDependency {
 	}
 
 	/**
+	 * Returns function to determine if the connection is active.
 	 * @param {ModuleGraph} moduleGraph module graph
 	 * @returns {null | false | GetConditionFn} function to determine if the connection is active
 	 */
 	getCondition(moduleGraph) {
-		return getDependencyUsedByExportsCondition(
+		const usedByExportsCondition = getDependencyUsedByExportsCondition(
 			this,
-			this.usedByExports,
 			moduleGraph
 		);
+		if (usedByExportsCondition === false) return false;
+		// Keep the connection unconditional (fast path) when nothing can deactivate it
+		if (
+			usedByExportsCondition === null &&
+			this.branchGuards === undefined &&
+			!isInlineExportsEnabled(moduleGraph)
+		) {
+			return null;
+		}
+		const dep = this;
+		return (connection, runtime) => {
+			if (usedByExportsCondition !== null) {
+				const result = usedByExportsCondition(connection, runtime);
+				if (result === false) return false;
+			}
+			const ids = dep.getIds(moduleGraph);
+			if (
+				ids.length > 0 &&
+				isExportInlined(moduleGraph, connection.module, ids, runtime)
+			) {
+				return false;
+			}
+			const guards = dep.branchGuards;
+			if (
+				guards !== undefined &&
+				getHarmonyImportGuard().isDeadByGuards(guards, moduleGraph, runtime)
+			) {
+				return false;
+			}
+			return true;
+		};
 	}
 
 	/**
+	 * Gets module evaluation side effects state.
 	 * @param {ModuleGraph} moduleGraph the module graph
 	 * @returns {ConnectionState} how this dependency connects the module to referencing modules
 	 */
@@ -142,11 +226,20 @@ class HarmonyImportSpecifierDependency extends HarmonyImportDependency {
 	 * Returns list of exports referenced by this dependency
 	 * @param {ModuleGraph} moduleGraph module graph
 	 * @param {RuntimeSpec} runtime the runtime for which the module is analysed
-	 * @returns {(string[] | ReferencedExport)[]} referenced exports
+	 * @returns {ReferencedExports} referenced exports
 	 */
 	getReferencedExports(moduleGraph, runtime) {
 		let ids = this.getIds(moduleGraph);
-		if (ids.length === 0) return this._getReferencedExportsInDestructuring();
+		if (ids.length === 0) {
+			const refs = this._getReferencedExportsInDestructuring();
+			// The whole namespace object is used as a value (no destructuring): it
+			// can be rendered as a decoupled namespace object, keeping the module's
+			// exports mangleable. Deferred imports keep their special namespace.
+			return refs === Dependency.EXPORTS_OBJECT_REFERENCED &&
+				!ImportPhaseUtils.isDefer(this.phase)
+				? Dependency.EXPORTS_OBJECT_REFERENCED_MANGLEABLE
+				: refs;
+		}
 		let namespaceObjectAsContext = this.namespaceObjectAsContext;
 		if (ids[0] === "default") {
 			const selfModule =
@@ -164,8 +257,9 @@ class HarmonyImportSpecifierDependency extends HarmonyImportDependency {
 			) {
 				case "default-only":
 				case "default-with-named":
-					if (ids.length === 1)
+					if (ids.length === 1) {
 						return this._getReferencedExportsInDestructuring();
+					}
 					ids = ids.slice(1);
 					namespaceObjectAsContext = true;
 					break;
@@ -187,30 +281,52 @@ class HarmonyImportSpecifierDependency extends HarmonyImportDependency {
 	}
 
 	/**
-	 * @param {string[]=} ids ids
-	 * @returns {string[][]} referenced exports
+	 * Get referenced exports in destructuring.
+	 * @param {Ids=} ids ids
+	 * @returns {ReferencedExports} referenced exports
 	 */
 	_getReferencedExportsInDestructuring(ids) {
 		if (this.referencedPropertiesInDestructuring) {
-			/** @type {string[][]} */
+			/** @type {RawReferencedExports} */
+			const refsInDestructuring = [];
+			traverseDestructuringAssignmentProperties(
+				this.referencedPropertiesInDestructuring,
+				(stack) => refsInDestructuring.push(stack.map((p) => p.id))
+			);
+			/** @type {ReferencedExports} */
 			const refs = [];
-			for (const { id } of this.referencedPropertiesInDestructuring) {
-				refs.push(ids ? ids.concat([id]) : [id]);
+			for (const idsInDestructuring of refsInDestructuring) {
+				// Destructuring consumer can't accept an inlined literal
+				refs.push({
+					name: ids ? [...ids, ...idsInDestructuring] : idsInDestructuring,
+					canInline: false
+				});
 			}
 			return refs;
 		}
-		return ids ? [ids] : Dependency.EXPORTS_OBJECT_REFERENCED;
+		return ids
+			? [
+					{
+						name: ids,
+						canMangle: true,
+						// Need access the export value to trigger side effects for deferred module
+						canInline: !ImportPhaseUtils.isDefer(this.phase)
+					}
+				]
+			: Dependency.EXPORTS_OBJECT_REFERENCED;
 	}
 
 	/**
+	 * Get effective export presence level.
 	 * @param {ModuleGraph} moduleGraph module graph
 	 * @returns {ExportPresenceMode} effective mode
 	 */
 	_getEffectiveExportPresenceLevel(moduleGraph) {
-		if (this.exportPresenceMode !== ExportPresenceModes.AUTO)
+		if (this.exportPresenceMode !== ExportPresenceModes.AUTO) {
 			return this.exportPresenceMode;
+		}
 		const buildMeta =
-			/** @type {BuildMeta} */
+			/** @type {JavascriptModuleBuildMeta} */
 			(
 				/** @type {Module} */
 				(moduleGraph.getParentModule(this)).buildMeta
@@ -221,7 +337,7 @@ class HarmonyImportSpecifierDependency extends HarmonyImportDependency {
 	}
 
 	/**
-	 * Returns warnings
+	 * Returns warnings.
 	 * @param {ModuleGraph} moduleGraph module graph
 	 * @returns {WebpackError[] | null | undefined} warnings
 	 */
@@ -234,7 +350,7 @@ class HarmonyImportSpecifierDependency extends HarmonyImportDependency {
 	}
 
 	/**
-	 * Returns errors
+	 * Returns errors.
 	 * @param {ModuleGraph} moduleGraph module graph
 	 * @returns {WebpackError[] | null | undefined} errors
 	 */
@@ -247,6 +363,7 @@ class HarmonyImportSpecifierDependency extends HarmonyImportDependency {
 	}
 
 	/**
+	 * Returns errors.
 	 * @param {ModuleGraph} moduleGraph module graph
 	 * @returns {WebpackError[] | undefined} errors
 	 */
@@ -268,6 +385,7 @@ class HarmonyImportSpecifierDependency extends HarmonyImportDependency {
 	}
 
 	/**
+	 * Serializes this instance into the provided serializer context.
 	 * @param {ObjectSerializerContext} context context
 	 */
 	serialize(context) {
@@ -284,10 +402,12 @@ class HarmonyImportSpecifierDependency extends HarmonyImportDependency {
 		write(this.asiSafe);
 		write(this.usedByExports);
 		write(this.referencedPropertiesInDestructuring);
+		write(this.branchGuards);
 		super.serialize(context);
 	}
 
 	/**
+	 * Restores this instance from the provided deserializer context.
 	 * @param {ObjectDeserializerContext} context context
 	 */
 	deserialize(context) {
@@ -304,6 +424,7 @@ class HarmonyImportSpecifierDependency extends HarmonyImportDependency {
 		this.asiSafe = read();
 		this.usedByExports = read();
 		this.referencedPropertiesInDestructuring = read();
+		this.branchGuards = read();
 		super.deserialize(context);
 	}
 }
@@ -317,6 +438,7 @@ HarmonyImportSpecifierDependency.Template = class HarmonyImportSpecifierDependen
 	HarmonyImportDependency.Template
 ) {
 	/**
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Dependency} dependency the dependency for which the template should be applied
 	 * @param {ReplaceSource} source the current replace source which can be modified
 	 * @param {DependencyTemplateContext} templateContext the context object
@@ -324,12 +446,27 @@ HarmonyImportSpecifierDependency.Template = class HarmonyImportSpecifierDependen
 	 */
 	apply(dependency, source, templateContext) {
 		const dep = /** @type {HarmonyImportSpecifierDependency} */ (dependency);
-		const { moduleGraph, runtime } = templateContext;
+		const { moduleGraph, runtime, initFragments } = templateContext;
 		const connection = moduleGraph.getConnection(dep);
-		// Skip rendering depending when dependency is conditional
-		if (connection && !connection.isTargetActive(runtime)) return;
-
 		const ids = dep.getIds(moduleGraph);
+
+		if (
+			connection &&
+			!connection.isTargetActive(runtime) &&
+			!isExportInlined(moduleGraph, connection.module, ids, runtime)
+		) {
+			initFragments.push(
+				new InitFragment(
+					`/* unused harmony import specifier */ var ${dep.name};\n`,
+					InitFragment.STAGE_HARMONY_IMPORTS,
+					0,
+					`unused import specifier ${dep.name}`
+				)
+			);
+
+			return;
+		}
+
 		const {
 			trimmedRange: [trimmedRangeStart, trimmedRangeEnd],
 			trimmedIds
@@ -339,7 +476,8 @@ HarmonyImportSpecifierDependency.Template = class HarmonyImportSpecifierDependen
 			dep,
 			source,
 			templateContext,
-			trimmedIds
+			trimmedIds,
+			connection
 		);
 		if (dep.shorthand) {
 			source.insert(trimmedRangeEnd, `: ${exportExpr}`);
@@ -371,17 +509,38 @@ HarmonyImportSpecifierDependency.Template = class HarmonyImportSpecifierDependen
 				}
 			}
 
-			for (const {
-				id,
-				shorthand,
-				range
-			} of dep.referencedPropertiesInDestructuring) {
-				const concatedIds = prefixedIds.concat([id]);
-				const module = /** @type {Module} */ (moduleGraph.getModule(dep));
-				const used = moduleGraph
-					.getExportsInfo(module)
-					.getUsedName(concatedIds, runtime);
-				if (!used) return;
+			/** @type {{ ids: Ids, range: Range, shorthand: boolean | string }[]} */
+			const replacementsInDestructuring = [];
+			traverseDestructuringAssignmentProperties(
+				dep.referencedPropertiesInDestructuring,
+				undefined,
+				(stack) => {
+					const property = stack[stack.length - 1];
+					replacementsInDestructuring.push({
+						ids: stack.map((p) => p.id),
+						range: property.range,
+						shorthand: property.shorthand
+					});
+				}
+			);
+			// loop-invariant: resolve the imported module's exports info once
+			const destructuredExportsInfo = moduleGraph.getExportsInfo(
+				/** @type {Module} */ (moduleGraph.getModule(dep))
+			);
+			for (const { ids, shorthand, range } of replacementsInDestructuring) {
+				/** @type {Ids} */
+				const concatedIds = [...prefixedIds, ...ids];
+				const used = destructuredExportsInfo.getUsedName(concatedIds, runtime);
+				if (!used) {
+					return;
+				} else if (used instanceof InlinedUsedName) {
+					throw new Error(
+						`Should not inline for destructuring name ${concatedIds.join(".")}`
+					);
+				}
+				// Destructuring can't consume an inlined literal — should be unreachable
+				// because the consumer-side canInline=false suppresses inlining there.
+				if (!Array.isArray(used)) continue;
 				const newName = used[used.length - 1];
 				const name = concatedIds[concatedIds.length - 1];
 				if (newName === name) continue;
@@ -389,10 +548,8 @@ HarmonyImportSpecifierDependency.Template = class HarmonyImportSpecifierDependen
 				const comment = `${Template.toNormalComment(name)} `;
 				const key = comment + JSON.stringify(newName);
 				source.replace(
-					/** @type {Range} */
-					(range)[0],
-					/** @type {Range} */
-					(range)[1] - 1,
+					range[0],
+					range[1] - 1,
 					shorthand ? `${key}: ${name}` : `${key}`
 				);
 			}
@@ -400,17 +557,20 @@ HarmonyImportSpecifierDependency.Template = class HarmonyImportSpecifierDependen
 	}
 
 	/**
+	 * Returns generated code.
 	 * @param {HarmonyImportSpecifierDependency} dep dependency
 	 * @param {ReplaceSource} source source
 	 * @param {DependencyTemplateContext} templateContext context
-	 * @param {string[]} ids ids
+	 * @param {Ids} ids ids
+	 * @param {ModuleGraphConnection | undefined} connection the resolved connection for dep
 	 * @returns {string} generated code
 	 */
-	_getCodeForIds(dep, source, templateContext, ids) {
+	_getCodeForIds(dep, source, templateContext, ids, connection) {
 		const { moduleGraph, module, runtime, concatenationScope } =
 			templateContext;
-		const connection = moduleGraph.getConnection(dep);
+		/** @type {string} */
 		let exportExpr;
+
 		if (
 			connection &&
 			concatenationScope &&
@@ -420,13 +580,21 @@ HarmonyImportSpecifierDependency.Template = class HarmonyImportSpecifierDependen
 				exportExpr = concatenationScope.createModuleReference(
 					connection.module,
 					{
-						asiSafe: dep.asiSafe
+						asiSafe: dep.asiSafe,
+						deferredImport: ImportPhaseUtils.isDefer(dep.phase),
+						// A bare namespace value that isn't destructured may escape, so
+						// allow a decoupled namespace object that keeps the original names.
+						// Deferred imports keep their special namespace object.
+						mangleableNamespace:
+							!dep.referencedPropertiesInDestructuring &&
+							!ImportPhaseUtils.isDefer(dep.phase)
 					}
 				);
 			} else if (dep.namespaceObjectAsContext && ids.length === 1) {
 				exportExpr =
 					concatenationScope.createModuleReference(connection.module, {
-						asiSafe: dep.asiSafe
+						asiSafe: dep.asiSafe,
+						deferredImport: ImportPhaseUtils.isDefer(dep.phase)
 					}) + propertyAccess(ids);
 			} else {
 				exportExpr = concatenationScope.createModuleReference(
@@ -435,7 +603,8 @@ HarmonyImportSpecifierDependency.Template = class HarmonyImportSpecifierDependen
 						ids,
 						call: dep.call,
 						directImport: dep.directImport,
-						asiSafe: dep.asiSafe
+						asiSafe: dep.asiSafe,
+						deferredImport: ImportPhaseUtils.isDefer(dep.phase)
 					}
 				);
 			}
@@ -448,6 +617,7 @@ HarmonyImportSpecifierDependency.Template = class HarmonyImportSpecifierDependen
 			exportExpr = runtimeTemplate.exportFromImport({
 				moduleGraph,
 				module: /** @type {Module} */ (moduleGraph.getModule(dep)),
+				chunkGraph: templateContext.chunkGraph,
 				request: dep.request,
 				exportName: ids,
 				originModule: module,
@@ -458,7 +628,15 @@ HarmonyImportSpecifierDependency.Template = class HarmonyImportSpecifierDependen
 				importVar: dep.getImportVar(moduleGraph),
 				initFragments,
 				runtime,
-				runtimeRequirements
+				runtimeRequirements,
+				dependency: dep,
+				// A bare namespace value that isn't destructured may escape, so allow a
+				// decoupled namespace object that keeps the original export names.
+				// Deferred imports keep their special namespace object.
+				mangleableNamespace:
+					ids.length === 0 &&
+					!dep.referencedPropertiesInDestructuring &&
+					!ImportPhaseUtils.isDefer(dep.phase)
 			});
 		}
 		return exportExpr;
@@ -466,3 +644,4 @@ HarmonyImportSpecifierDependency.Template = class HarmonyImportSpecifierDependen
 };
 
 module.exports = HarmonyImportSpecifierDependency;
+module.exports.idsSymbol = idsSymbol;

@@ -5,14 +5,14 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.getUserCodeFrame = getUserCodeFrame;
 // We try to load node dependencies
-let chalk = null;
+let picocolors = null;
 let readFileSync = null;
 let codeFrameColumns = null;
 try {
   const nodeRequire = module && module.require;
   readFileSync = nodeRequire.call(module, 'fs').readFileSync;
   codeFrameColumns = nodeRequire.call(module, '@babel/code-frame').codeFrameColumns;
-  chalk = nodeRequire.call(module, 'chalk');
+  picocolors = nodeRequire.call(module, 'picocolors');
 } catch {
   // We're in a browser environment
 }
@@ -39,7 +39,7 @@ function getCodeFrame(frame) {
     highlightCode: true,
     linesBelow: 0
   });
-  return `${chalk.dim(frameLocation)}\n${codeFrame}\n`;
+  return `${picocolors.dim(frameLocation)}\n${codeFrame}\n`;
 }
 function getUserCodeFrame() {
   // If we couldn't load dependencies, we can't generate the user trace

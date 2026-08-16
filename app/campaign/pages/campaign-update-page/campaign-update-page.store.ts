@@ -3,12 +3,12 @@ import { inject } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { patchState, signalStore, withMethods, withState } from '@ngrx/signals';
 import { map, shareReplay, switchMap, take } from 'rxjs';
-import { Campaign, CampaignRaw } from 'src/app/_models/campaign';
-import { OverviewItem } from 'src/app/_models/overview';
-import { MapService } from 'src/app/_services/article/map.service';
-import { CampaignService } from 'src/app/_services/utils/campaign.service';
-import { GlobalStore } from 'src/app/global.store';
-import { filterNil, mapVoid } from 'src/utils/rxjs-operators';
+import { filterNil, mapVoid } from '../../../../utils/rxjs-operators';
+import { Campaign, CampaignRaw } from '../../../_models/campaign';
+import { OverviewItem } from '../../../_models/overview';
+import { MapService } from '../../../_services/article/map.service';
+import { CampaignService } from '../../../_services/utils/campaign.service';
+import { GlobalStore } from '../../../global.store';
 
 export type CampaignUpdateModel = CampaignRaw &
   Record<'pk', number> &

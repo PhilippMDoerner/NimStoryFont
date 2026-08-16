@@ -28,11 +28,14 @@ export declare function initialize(request: InitRequest): Promise<{
         isolatedModules: boolean | undefined;
         sourceMap: boolean | undefined;
         inlineSourceMap: boolean | undefined;
+        _useTypeScriptTranspilation: boolean | undefined;
     };
+    componentResourcesDependencies: ReadonlyMap<string, readonly string[]> | undefined;
 }>;
 export declare function diagnose(modes: DiagnosticModes): Promise<{
     errors?: PartialMessage[];
     warnings?: PartialMessage[];
+    timings?: Record<string, number[]>;
 }>;
 export declare function emit(): Promise<import("./angular-compilation").EmitFileResult[]>;
 export declare function update(files: Set<string>): void;

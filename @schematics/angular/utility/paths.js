@@ -15,3 +15,4 @@ function relativePathToWorkspaceRoot(projectRoot) {
     }
     return (0, posix_1.relative)((0, posix_1.join)('/', projectRoot), '/') || '.';
 }
+//# sourceMappingURL=paths.js.map

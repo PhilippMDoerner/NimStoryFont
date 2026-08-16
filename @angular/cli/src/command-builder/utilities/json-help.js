@@ -6,37 +6,36 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.dev/license
  */
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.jsonHelpUsage = jsonHelpUsage;
-const yargs_1 = __importDefault(require("yargs"));
 const yargsDefaultCommandRegExp = /^\$0|\*/;
-function jsonHelpUsage() {
+function jsonHelpUsage(localYargs) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const localYargs = yargs_1.default;
-    const { deprecatedOptions, alias: aliases, array, string, boolean, number, choices, demandedOptions, default: defaultVal, hiddenOptions = [], } = localYargs.getOptions();
-    const internalMethods = localYargs.getInternalMethods();
+    const localYargsInstance = localYargs;
+    const { deprecatedOptions, alias: aliases, array, string, boolean, number, choices, demandedOptions, default: defaultVal, hiddenOptions = [], } = localYargsInstance.getOptions();
+    const internalMethods = localYargsInstance.getInternalMethods();
     const usageInstance = internalMethods.getUsageInstance();
     const context = internalMethods.getContext();
     const descriptions = usageInstance.getDescriptions();
-    const groups = localYargs.getGroups();
+    const groups = localYargsInstance.getGroups();
     const positional = groups[usageInstance.getPositionalGroupName()];
+    const seen = new Set();
     const hidden = new Set(hiddenOptions);
     const normalizeOptions = [];
     const allAliases = new Set([...Object.values(aliases).flat()]);
+    // Reverted order of https://github.com/yargs/yargs/blob/971e351705f0fbc5566c6ed1dfd707fa65e11c0d/lib/usage.ts#L419-L424
     for (const [names, type] of [
+        [number, 'number'],
         [array, 'array'],
         [string, 'string'],
         [boolean, 'boolean'],
-        [number, 'number'],
     ]) {
         for (const name of names) {
-            if (allAliases.has(name) || hidden.has(name)) {
+            if (allAliases.has(name) || hidden.has(name) || seen.has(name)) {
                 // Ignore hidden, aliases and already visited option.
                 continue;
             }
+            seen.add(name);
             const positionalIndex = positional?.indexOf(name) ?? -1;
             const alias = aliases[name];
             normalizeOptions.push({
@@ -68,7 +67,7 @@ function jsonHelpUsage() {
     const otherSubcommands = subcommands.filter((s) => !s.default);
     const output = {
         name: [...context.commands].pop(),
-        command: `${command?.replace(yargsDefaultCommandRegExp, localYargs['$0'])}${defaultSubCommand}`,
+        command: `${command?.replace(yargsDefaultCommandRegExp, localYargsInstance['$0'])}${defaultSubCommand}`,
         ...parseDescription(rawDescription),
         options: normalizeOptions.sort((a, b) => a.name.localeCompare(b.name)),
         subcommands: otherSubcommands.length ? otherSubcommands : undefined,
@@ -90,3 +89,4 @@ function parseDescription(rawDescription) {
         };
     }
 }
+//# sourceMappingURL=json-help.js.map

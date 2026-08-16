@@ -9,16 +9,16 @@ type ViewType = 'viewport' | 'element';
   selector: '[visibility]',
 })
 export class VisibilityDirective {
-  observedElements = input.required<HTMLElement[]>();
-  threshold = input<number | number[]>(0.5);
-  relativeTo = input<ViewType>('viewport');
-  rootMargin = input<string>('0px');
+  readonly observedElements = input.required<HTMLElement[]>();
+  readonly threshold = input<number | number[]>(0.5);
+  readonly relativeTo = input<ViewType>('viewport');
+  readonly rootMargin = input<string>('0px');
 
-  intersected = output<IntersectionObserverEntry>();
+  readonly intersected = output<IntersectionObserverEntry>();
 
-  private element = inject(ElementRef<HTMLElement>);
+  private readonly element = inject(ElementRef<HTMLElement>);
 
-  private observerConfig$: Observable<IntersectionObserverInit> = combineLatest(
+  private readonly observerConfig$: Observable<IntersectionObserverInit> = combineLatest(
     {
       threshold: toObservable(this.threshold),
       relativeTo: toObservable(this.relativeTo),

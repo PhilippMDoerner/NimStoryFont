@@ -1,2 +1,2 @@
-import { Logger, Options } from './types';
+import type { Logger, Options } from './types.js';
 export declare function getLogger(options: Options): Logger;

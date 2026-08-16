@@ -51,3 +51,4 @@ async function findNonce(html) {
     await transformedContent();
     return nonce;
 }
+//# sourceMappingURL=nonce.js.map

@@ -9,6 +9,7 @@ var ruleset_1 = tslib_1.__importDefault(require("./ruleset"));
 var anonymous_1 = tslib_1.__importDefault(require("./anonymous"));
 var utils = tslib_1.__importStar(require("../utils"));
 var less_error_1 = tslib_1.__importDefault(require("../less-error"));
+var expression_1 = tslib_1.__importDefault(require("./expression"));
 //
 // CSS @import node
 //
@@ -143,6 +144,20 @@ Import.prototype = Object.assign(new node_1.default(), {
                 return [];
             }
         }
+        if (this.features) {
+            var featureValue = this.features.value;
+            if (Array.isArray(featureValue) && featureValue.length >= 1) {
+                var expr = featureValue[0];
+                if (expr.type === 'Expression' && Array.isArray(expr.value) && expr.value.length >= 2) {
+                    featureValue = expr.value;
+                    var isLayer = featureValue[0].type === 'Keyword' && featureValue[0].value === 'layer'
+                        && featureValue[1].type === 'Paren';
+                    if (isLayer) {
+                        this.css = false;
+                    }
+                }
+            }
+        }
         if (this.options.inline) {
             var contents = new anonymous_1.default(this.root, 0, {
                 filename: this.importedFilename,
@@ -150,19 +165,58 @@ Import.prototype = Object.assign(new node_1.default(), {
             }, true, true);
             return this.features ? new media_1.default([contents], this.features.value) : [contents];
         }
-        else if (this.css) {
+        else if (this.css || this.layerCss) {
             var newImport = new Import(this.evalPath(context), features, this.options, this._index);
+            if (this.layerCss) {
+                newImport.css = this.layerCss;
+                newImport.path._fileInfo = this._fileInfo;
+            }
             if (!newImport.css && this.error) {
                 throw this.error;
             }
             return newImport;
         }
         else if (this.root) {
+            if (this.features) {
+                var featureValue = this.features.value;
+                if (Array.isArray(featureValue) && featureValue.length === 1) {
+                    var expr = featureValue[0];
+                    if (expr.type === 'Expression' && Array.isArray(expr.value) && expr.value.length >= 2) {
+                        featureValue = expr.value;
+                        var isLayer = featureValue[0].type === 'Keyword' && featureValue[0].value === 'layer'
+                            && featureValue[1].type === 'Paren';
+                        if (isLayer) {
+                            this.layerCss = true;
+                            featureValue[0] = new expression_1.default(featureValue.slice(0, 2));
+                            featureValue.splice(1, 1);
+                            featureValue[0].noSpacing = true;
+                            return this;
+                        }
+                    }
+                }
+            }
             ruleset = new ruleset_1.default(null, utils.copyArray(this.root.rules));
             ruleset.evalImports(context);
             return this.features ? new media_1.default(ruleset.rules, this.features.value) : ruleset.rules;
         }
         else {
+            if (this.features) {
+                var featureValue = this.features.value;
+                if (Array.isArray(featureValue) && featureValue.length >= 1) {
+                    featureValue = featureValue[0].value;
+                    if (Array.isArray(featureValue) && featureValue.length >= 2) {
+                        var isLayer = featureValue[0].type === 'Keyword' && featureValue[0].value === 'layer'
+                            && featureValue[1].type === 'Paren';
+                        if (isLayer) {
+                            this.css = true;
+                            featureValue[0] = new expression_1.default(featureValue.slice(0, 2));
+                            featureValue.splice(1, 1);
+                            featureValue[0].noSpacing = true;
+                            return this;
+                        }
+                    }
+                }
+            }
             return [];
         }
     }

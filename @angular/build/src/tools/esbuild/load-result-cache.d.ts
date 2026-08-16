@@ -18,4 +18,5 @@ export declare class MemoryLoadResultCache implements LoadResultCache {
     put(path: string, result: OnLoadResult): Promise<void>;
     invalidate(path: string): boolean;
     get watchFiles(): string[];
+    clear(): void;
 }

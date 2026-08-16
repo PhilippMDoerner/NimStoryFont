@@ -67,7 +67,7 @@ function isNullableType(type) {
  * or a union made up solely of array types.
  */
 function isTypeArrayTypeOrUnionOfArrayTypes(type, checker) {
-    for (const t of tsutils.unionTypeParts(type)) {
+    for (const t of tsutils.unionConstituents(type)) {
         if (!checker.isArrayType(t)) {
             return false;
         }
@@ -143,7 +143,7 @@ function typeIsOrHasBaseType(type, parentType) {
     }
     for (const baseType of typeAndBaseTypes) {
         const baseSymbol = baseType.getSymbol();
-        if (baseSymbol && baseSymbol.name === parentSymbol.name) {
+        if (baseSymbol?.name === parentSymbol.name) {
             return true;
         }
     }

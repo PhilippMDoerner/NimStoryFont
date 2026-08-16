@@ -61,13 +61,26 @@ exports.default = (0, util_1.createRule)({
                         additionalProperties: false,
                         description: 'Changes to required accessibility modifiers for specific kinds of class members.',
                         properties: {
-                            accessors: { $ref: '#/items/0/$defs/accessibilityLevel' },
-                            constructors: { $ref: '#/items/0/$defs/accessibilityLevel' },
-                            methods: { $ref: '#/items/0/$defs/accessibilityLevel' },
+                            accessors: {
+                                $ref: '#/items/0/$defs/accessibilityLevel',
+                                description: 'Which member accessibility modifier requirements to apply for accessors.',
+                            },
+                            constructors: {
+                                $ref: '#/items/0/$defs/accessibilityLevel',
+                                description: 'Which member accessibility modifier requirements to apply for constructors.',
+                            },
+                            methods: {
+                                $ref: '#/items/0/$defs/accessibilityLevel',
+                                description: 'Which member accessibility modifier requirements to apply for methods.',
+                            },
                             parameterProperties: {
                                 $ref: '#/items/0/$defs/accessibilityLevel',
+                                description: 'Which member accessibility modifier requirements to apply for parameterProperties.',
                             },
-                            properties: { $ref: '#/items/0/$defs/accessibilityLevel' },
+                            properties: {
+                                $ref: '#/items/0/$defs/accessibilityLevel',
+                                description: 'Which member accessibility modifier requirements to apply for properties.',
+                            },
                         },
                     },
                 },
@@ -150,13 +163,13 @@ exports.default = (0, util_1.createRule)({
                 if (token.type === utils_1.AST_TOKEN_TYPES.Keyword &&
                     token.value === 'public') {
                     keywordRange = structuredClone(token.range);
-                    const commensAfterPublicKeyword = context.sourceCode.getCommentsAfter(token);
-                    if (commensAfterPublicKeyword.length) {
+                    const commentsAfterPublicKeyword = context.sourceCode.getCommentsAfter(token);
+                    if (commentsAfterPublicKeyword.length) {
                         // public /* Hi there! */ static foo()
                         // ^^^^^^^
                         rangeToRemove = [
                             token.range[0],
-                            commensAfterPublicKeyword[0].range[0],
+                            commentsAfterPublicKeyword[0].range[0],
                         ];
                         break;
                     }
@@ -242,15 +255,9 @@ exports.default = (0, util_1.createRule)({
          */
         function checkParameterPropertyAccessibilityModifier(node) {
             const nodeType = 'parameter property';
-            // HAS to be an identifier or assignment or TSC will throw
-            if (node.parameter.type !== utils_1.AST_NODE_TYPES.Identifier &&
-                node.parameter.type !== utils_1.AST_NODE_TYPES.AssignmentPattern) {
-                return;
-            }
             const nodeName = node.parameter.type === utils_1.AST_NODE_TYPES.Identifier
                 ? node.parameter.name
-                : // has to be an Identifier or TSC will throw an error
-                    node.parameter.left.name;
+                : node.parameter.left.name;
             switch (paramPropCheck) {
                 case 'explicit': {
                     if (!node.accessibility) {

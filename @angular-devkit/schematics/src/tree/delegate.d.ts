@@ -8,8 +8,10 @@
 import { JsonValue } from '@angular-devkit/core';
 import { Action } from './action';
 import { DirEntry, FileEntry, FileVisitor, MergeStrategy, Tree, TreeSymbol, UpdateRecorder } from './interface';
+export interface DelegateTree {
+}
 export declare class DelegateTree implements Tree {
-    [TreeSymbol]: () => this;
+    [TreeSymbol]: () => DelegateTree;
     protected _other: Tree;
     constructor(_other: Tree);
     branch(): Tree;

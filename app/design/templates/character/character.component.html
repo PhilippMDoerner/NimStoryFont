@@ -31,10 +31,10 @@
       <div class="col-12 character__subheading">
         <!-- Organization -->
         <span class="fs-5">
+          {{ character().race }}
           @if (character().gender !== "Other") {
             {{ character().gender }}
           }
-          {{ character().race }}
         </span>
 
         <!-- Current Location -->
@@ -132,7 +132,9 @@
       [ariaLevel]="2"
       [placeholder]="'Add a description for ' + character().name"
       [text]="character().description"
-      [serverModel]="characterServerModel()?.description"
+      [serverModel]="
+        $safeNavigationMigration(characterServerModel()?.description)
+      "
       [canUpdate]="canUpdate()"
       (update)="onDescriptionUpdate($event)"
     ></app-editable-text>

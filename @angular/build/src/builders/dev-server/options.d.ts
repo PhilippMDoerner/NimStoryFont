@@ -25,6 +25,9 @@ export declare function normalizeOptions(context: BuilderContext, projectName: s
     poll: number | undefined;
     open: boolean | undefined;
     verbose: boolean | undefined;
+    define: {
+        [key: string]: string;
+    } | undefined;
     watch: boolean | undefined;
     liveReload: boolean;
     hmr: boolean;

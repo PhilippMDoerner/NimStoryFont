@@ -5,11 +5,11 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.dev/license
  */
-import { AbsoluteSourceSpan, ParseSourceSpan } from '@angular/compiler';
+import { AbsoluteSourceSpan, ParseSourceSpan, TcbTypeParameter, TypeCheckId } from '@angular/compiler';
 import ts from 'typescript';
 import { ClassDeclaration, ReflectionHost } from '../../../../src/ngtsc/reflection';
 import { Reference } from '../../imports';
-import { FullSourceMapping, SourceLocation, TypeCheckId, SourceMapping } from '../api';
+import { FullSourceMapping, SourceLocation, SourceMapping } from '../api';
 import { ReferenceEmitEnvironment } from './reference_emit_environment';
 /**
  * Adapter interface which allows the directive type-checking diagnostics code to interpret offsets
@@ -75,6 +75,7 @@ export declare function findSourceLocation(node: ts.Node, sourceFile: ts.SourceF
  * import graph changes whenever e.g. a signal input is introduced in user code.
  */
 export declare function ensureTypeCheckFilePreparationImports(env: ReferenceEmitEnvironment): void;
-export declare function checkIfGenericTypeBoundsCanBeEmitted(node: ClassDeclaration<ts.ClassDeclaration>, reflector: ReflectionHost, env: ReferenceEmitEnvironment): boolean;
+export declare function checkIfGenericTypeBoundsCanBeEmitted(node: ClassDeclaration<ts.ClassDeclaration>, reflector: ReflectionHost, canReferenceType: (ref: Reference) => boolean): boolean;
 export declare function findNodeInFile<T extends ts.Node>(file: ts.SourceFile, predicate: (node: ts.Node) => node is T): T | null;
 export declare function findNodeInFile(file: ts.SourceFile, predicate: (node: ts.Node) => boolean): ts.Node | null;
+export declare function generateTcbTypeParameters(typeParameters: ReadonlyArray<ts.TypeParameterDeclaration>, sourceFile: ts.SourceFile): TcbTypeParameter[];

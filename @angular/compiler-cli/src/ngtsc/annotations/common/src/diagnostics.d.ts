@@ -1,10 +1,10 @@
 /**
- * @license
- * Copyright Google LLC All Rights Reserved.
- *
- * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.dev/license
- */
+* @license
+* Copyright Google LLC All Rights Reserved.
+*
+* Use of this source code is governed by an MIT-style license that can be
+* found in the LICENSE file at https://angular.dev/license
+*/
 import ts from 'typescript';
 import { FatalDiagnosticError } from '../../../diagnostics';
 import { Reference } from '../../../imports';
@@ -56,7 +56,7 @@ export declare function findInheritedCtor(node: ClassDeclaration, injectableRegi
  * from external files. This is a common scenario for errors in local compilation mode,
  * and so this helper can be used to quickly generate the relevant errors.
  *
- * @param nodeToHighlight Node to be highlighted in teh error message.
+ * @param nodeToHighlight Node to be highlighted in the error message.
  * Will default to value.node if not provided.
  */
 export declare function assertLocalCompilationUnresolvedConst(compilationMode: CompilationMode, value: ResolvedValue, nodeToHighlight: ts.Node | null, errorMessage: string): void;

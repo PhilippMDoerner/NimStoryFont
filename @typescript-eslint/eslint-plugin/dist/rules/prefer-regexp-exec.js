@@ -100,9 +100,13 @@ exports.default = (0, util_1.createRule)({
                 node.callee.type === utils_1.AST_NODE_TYPES.Identifier &&
                 node.callee.name === 'RegExp') {
                 const flags = node.arguments.at(1);
-                return !(flags?.type === utils_1.AST_NODE_TYPES.Literal &&
-                    typeof flags.value === 'string' &&
-                    flags.value.includes('g'));
+                if (!flags) {
+                    return true;
+                }
+                const flagsValue = (0, util_1.getStaticValue)(flags, globalScope);
+                return (!!flagsValue &&
+                    (typeof flagsValue.value !== 'string' ||
+                        !flagsValue.value.includes('g')));
             }
             return false;
         }
@@ -147,7 +151,7 @@ exports.default = (0, util_1.createRule)({
                     });
                 }
                 const argumentType = services.getTypeAtLocation(argumentNode);
-                const argumentTypes = collectArgumentTypes(tsutils.unionTypeParts(argumentType));
+                const argumentTypes = collectArgumentTypes(tsutils.unionConstituents(argumentType));
                 switch (argumentTypes) {
                     case ArgumentType.RegExp:
                         return context.report({

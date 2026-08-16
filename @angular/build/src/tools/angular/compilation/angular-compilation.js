@@ -41,7 +41,6 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AngularCompilation = exports.DiagnosticModes = void 0;
-const load_esm_1 = require("../../../utils/load-esm");
 const diagnostics_1 = require("../../esbuild/angular/diagnostics");
 const profiling_1 = require("../../esbuild/profiling");
 var DiagnosticModes;
@@ -56,10 +55,7 @@ class AngularCompilation {
     static #angularCompilerCliModule;
     static #typescriptModule;
     static async loadCompilerCli() {
-        // This uses a wrapped dynamic import to load `@angular/compiler-cli` which is ESM.
-        // Once TypeScript provides support for retaining dynamic imports this workaround can be dropped.
-        AngularCompilation.#angularCompilerCliModule ??=
-            await (0, load_esm_1.loadEsmModule)('@angular/compiler-cli');
+        AngularCompilation.#angularCompilerCliModule ??= await Promise.resolve().then(() => __importStar(require('@angular/compiler-cli')));
         return AngularCompilation.#angularCompilerCliModule;
     }
     static async loadTypescript() {
@@ -105,3 +101,4 @@ class AngularCompilation {
     }
 }
 exports.AngularCompilation = AngularCompilation;
+//# sourceMappingURL=angular-compilation.js.map

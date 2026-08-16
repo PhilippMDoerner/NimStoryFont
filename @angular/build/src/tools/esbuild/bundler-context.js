@@ -10,21 +10,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.BundlerContext = exports.BuildOutputFileType = void 0;
+exports.BundlerContext = void 0;
 const esbuild_1 = require("esbuild");
 const node_assert_1 = __importDefault(require("node:assert"));
-const node_module_1 = require("node:module");
 const node_path_1 = require("node:path");
+const manifest_1 = require("../../utils/server-rendering/manifest");
+const bundler_files_1 = require("./bundler-files");
 const load_result_cache_1 = require("./load-result-cache");
-const utils_1 = require("./utils");
-var BuildOutputFileType;
-(function (BuildOutputFileType) {
-    BuildOutputFileType[BuildOutputFileType["Browser"] = 0] = "Browser";
-    BuildOutputFileType[BuildOutputFileType["Media"] = 1] = "Media";
-    BuildOutputFileType[BuildOutputFileType["ServerApplication"] = 2] = "ServerApplication";
-    BuildOutputFileType[BuildOutputFileType["ServerRoot"] = 3] = "ServerRoot";
-    BuildOutputFileType[BuildOutputFileType["Root"] = 4] = "Root";
-})(BuildOutputFileType || (exports.BuildOutputFileType = BuildOutputFileType = {}));
 /**
  * Determines if an unknown value is an esbuild BuildFailure error object thrown by esbuild.
  * @param value A potential esbuild BuildFailure error object.
@@ -36,17 +28,21 @@ function isEsBuildFailure(value) {
 class BundlerContext {
     workspaceRoot;
     incremental;
+    alwaysUseContext;
     initialFilter;
     #esbuildContext;
     #esbuildOptions;
     #esbuildResult;
+    #activeBundlePromise;
+    #disposed = false;
     #optionsFactory;
     #shouldCacheResult;
     #loadCache;
     watchFiles = new Set();
-    constructor(workspaceRoot, incremental, options, initialFilter) {
+    constructor(workspaceRoot, incremental, options, alwaysUseContext = false, initialFilter) {
         this.workspaceRoot = workspaceRoot;
         this.incremental = incremental;
+        this.alwaysUseContext = alwaysUseContext;
         this.initialFilter = initialFilter;
         // To cache the results an option factory is needed to capture the full set of dependencies
         this.#shouldCacheResult = incremental && typeof options === 'function';
@@ -135,7 +131,16 @@ class BundlerContext {
         if (!force && this.#esbuildResult) {
             return this.#esbuildResult;
         }
-        const result = await this.#performBundle();
+        if (!force && this.#activeBundlePromise) {
+            return this.#activeBundlePromise;
+        }
+        const bundlePromise = this.#performBundle().finally(() => {
+            if (this.#activeBundlePromise === bundlePromise) {
+                this.#activeBundlePromise = undefined;
+            }
+        });
+        this.#activeBundlePromise = bundlePromise;
+        const result = await bundlePromise;
         if (this.#shouldCacheResult) {
             this.#esbuildResult = result;
         }
@@ -159,15 +164,26 @@ class BundlerContext {
                 // Rebuild using the existing incremental build context
                 result = await this.#esbuildContext.rebuild();
             }
-            else if (this.incremental) {
-                // Create an incremental build context and perform the first build.
+            else if (this.incremental || this.alwaysUseContext) {
+                // Create a build context and perform the build.
                 // Context creation does not perform a build.
-                this.#esbuildContext = await (0, esbuild_1.context)(this.#esbuildOptions);
+                const esbuildContext = await (0, esbuild_1.context)(this.#esbuildOptions);
+                if (this.#disposed) {
+                    await esbuildContext.dispose();
+                    throw new Error('BundlerContext was disposed during build.');
+                }
+                this.#esbuildContext = esbuildContext;
                 result = await this.#esbuildContext.rebuild();
             }
             else {
                 // For non-incremental builds, perform a single build
+                if (this.#disposed) {
+                    throw new Error('BundlerContext was disposed during build.');
+                }
                 result = await (0, esbuild_1.build)(this.#esbuildOptions);
+                if (this.#disposed) {
+                    throw new Error('BundlerContext was disposed during build.');
+                }
             }
         }
         catch (failure) {
@@ -280,7 +296,7 @@ class BundlerContext {
         for (const { imports } of Object.values(result.metafile.outputs)) {
             for (const { external, kind, path } of imports) {
                 if (!external ||
-                    utils_1.SERVER_GENERATED_EXTERNALS.has(path) ||
+                    manifest_1.SERVER_GENERATED_EXTERNALS.has(path) ||
                     isInternalAngularFile(path) ||
                     (kind !== 'import-statement' && kind !== 'dynamic-import' && kind !== 'require-call')) {
                     continue;
@@ -293,21 +309,21 @@ class BundlerContext {
             let fileType;
             // All files that are not JS, CSS, WASM, or sourcemaps for them are considered media
             if (!/\.([cm]?js|css|wasm)(\.map)?$/i.test(file.path)) {
-                fileType = BuildOutputFileType.Media;
+                fileType = bundler_files_1.BuildOutputFileType.Media;
             }
             else if (isPlatformServer) {
                 fileType = isSsrEntryBundle
-                    ? BuildOutputFileType.ServerRoot
-                    : BuildOutputFileType.ServerApplication;
+                    ? bundler_files_1.BuildOutputFileType.ServerRoot
+                    : bundler_files_1.BuildOutputFileType.ServerApplication;
             }
             else {
-                fileType = BuildOutputFileType.Browser;
+                fileType = bundler_files_1.BuildOutputFileType.Browser;
             }
-            return (0, utils_1.convertOutputFile)(file, fileType);
+            return (0, bundler_files_1.convertOutputFile)(file, fileType);
         });
         let externalConfiguration = this.#esbuildOptions.external;
         if (isPlatformServer && externalConfiguration) {
-            externalConfiguration = externalConfiguration.filter((dep) => !utils_1.SERVER_GENERATED_EXTERNALS.has(dep));
+            externalConfiguration = externalConfiguration.filter((dep) => !manifest_1.SERVER_GENERATED_EXTERNALS.has(dep));
             if (!externalConfiguration.length) {
                 externalConfiguration = undefined;
             }
@@ -368,9 +384,11 @@ class BundlerContext {
      * @returns A promise that resolves when disposal is complete.
      */
     async dispose() {
+        this.#disposed = true;
         try {
             this.#esbuildOptions = undefined;
             this.#esbuildResult = undefined;
+            this.#activeBundlePromise = undefined;
             this.#loadCache = undefined;
             await this.#esbuildContext?.dispose();
         }
@@ -388,11 +406,10 @@ function isInternalBundlerFile(file) {
     if (file[0] === '<' && file.at(-1) === '>') {
         return true;
     }
-    const DISABLED_BUILTIN = '(disabled):';
-    // Disabled node builtins such as "/some/path/(disabled):fs"
-    const disabledIndex = file.indexOf(DISABLED_BUILTIN);
-    if (disabledIndex >= 0) {
-        return node_module_1.builtinModules.includes(file.slice(disabledIndex + DISABLED_BUILTIN.length));
+    // Any (disabled): path is a virtual esbuild entry that doesn't exist on disk
+    if (file.includes('(disabled):')) {
+        return true;
     }
     return false;
 }
+//# sourceMappingURL=bundler-context.js.map

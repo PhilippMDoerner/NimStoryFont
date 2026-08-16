@@ -74,33 +74,19 @@ async function loadProxyConfiguration(root, proxyConfig) {
             }
             break;
         }
-        case '.mjs':
-            // Load the ESM configuration file using the TypeScript dynamic import workaround.
-            // Once TypeScript provides support for keeping the dynamic import this workaround can be
-            // changed to a direct dynamic import.
-            proxyConfiguration = await (0, load_esm_1.loadEsmModule)((0, node_url_1.pathToFileURL)(proxyPath));
-            break;
-        case '.cjs':
-            proxyConfiguration = require(proxyPath);
-            break;
-        default:
-            // The file could be either CommonJS or ESM.
-            // CommonJS is tried first then ESM if loading fails.
+        default: {
             try {
-                proxyConfiguration = require(proxyPath);
-                break;
+                proxyConfiguration = await Promise.resolve(`${proxyPath}`).then(s => __importStar(require(s)));
             }
             catch (e) {
                 (0, error_1.assertIsError)(e);
-                if (e.code === 'ERR_REQUIRE_ESM' || e.code === 'ERR_REQUIRE_ASYNC_MODULE') {
-                    // Load the ESM configuration file using the TypeScript dynamic import workaround.
-                    // Once TypeScript provides support for keeping the dynamic import this workaround can be
-                    // changed to a direct dynamic import.
-                    proxyConfiguration = await (0, load_esm_1.loadEsmModule)((0, node_url_1.pathToFileURL)(proxyPath));
-                    break;
+                if (e.code !== 'ERR_REQUIRE_ASYNC_MODULE') {
+                    throw e;
                 }
-                throw e;
+                proxyConfiguration = await (0, load_esm_1.loadEsmModule)((0, node_url_1.pathToFileURL)(proxyPath));
             }
+            break;
+        }
     }
     if ('default' in proxyConfiguration) {
         proxyConfiguration = proxyConfiguration.default;
@@ -197,3 +183,4 @@ function getJsonErrorLineColumn(offset, content) {
     }
     return { line, column: offset - position + 1 };
 }
+//# sourceMappingURL=load-proxy-config.js.map

@@ -38,8 +38,8 @@ export declare class UnknownTaskDependencyException extends BaseException {
 export declare class CollectionImpl<CollectionT extends object, SchematicT extends object> implements Collection<CollectionT, SchematicT> {
     private _description;
     private _engine;
-    readonly baseDescriptions?: Array<CollectionDescription<CollectionT>> | undefined;
-    constructor(_description: CollectionDescription<CollectionT>, _engine: SchematicEngine<CollectionT, SchematicT>, baseDescriptions?: Array<CollectionDescription<CollectionT>> | undefined);
+    readonly baseDescriptions?: CollectionDescription<CollectionT>[] | undefined;
+    constructor(_description: CollectionDescription<CollectionT>, _engine: SchematicEngine<CollectionT, SchematicT>, baseDescriptions?: CollectionDescription<CollectionT>[] | undefined);
     get description(): CollectionDescription<CollectionT>;
     get name(): string;
     createSchematic(name: string, allowPrivate?: boolean): Schematic<CollectionT, SchematicT>;

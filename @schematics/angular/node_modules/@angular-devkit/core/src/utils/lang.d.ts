@@ -7,5 +7,7 @@
  */
 /**
  * Determine if the argument is shaped like a Promise
+ *
+ * @deprecated Use `typeof obj?.then === 'function'` instead.
  */
 export declare function isPromise(obj: any): obj is Promise<any>;

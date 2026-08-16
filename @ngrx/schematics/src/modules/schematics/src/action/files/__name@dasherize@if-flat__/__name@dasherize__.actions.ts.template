@@ -1,0 +1,10 @@
+import { createActionGroup, emptyProps, props } from '@ngrx/store';
+
+export const <%= classify(name) %>Actions = createActionGroup({
+  source: '<%= classify(name) %>',
+  events: {
+    '<%= classify(prefix) %> <%= classify(name) %>s': emptyProps(),
+    <% if (api) { %>'<%= classify(prefix) %> <%= classify(name) %>s Success': props<{ data: unknown }>(),<% } %>
+    <% if (api) { %>'<%= classify(prefix) %> <%= classify(name) %>s Failure': props<{ error: unknown }>(),<% } %>
+  }
+});

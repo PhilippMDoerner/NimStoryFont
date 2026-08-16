@@ -9,15 +9,16 @@ const Dependency = require("../Dependency");
 const makeSerializable = require("../util/makeSerializable");
 const ModuleDependency = require("./ModuleDependency");
 
-/** @typedef {import("../Dependency").ReferencedExport} ReferencedExport */
+/** @typedef {import("../Dependency").ReferencedExports} ReferencedExports */
 /** @typedef {import("../Dependency").TRANSITIVE} TRANSITIVE */
 /** @typedef {import("../ModuleGraph")} ModuleGraph */
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext} ObjectDeserializerContext */
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext} ObjectSerializerContext */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext<[string, string, string]>} ObjectDeserializerContext */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext<[string, string, string]>} ObjectSerializerContext */
 /** @typedef {import("../util/runtime").RuntimeSpec} RuntimeSpec */
 
 class WebAssemblyExportImportedDependency extends ModuleDependency {
 	/**
+	 * Creates an instance of WebAssemblyExportImportedDependency.
 	 * @param {string} exportName export name
 	 * @param {string} request request
 	 * @param {string} name name
@@ -34,6 +35,7 @@ class WebAssemblyExportImportedDependency extends ModuleDependency {
 	}
 
 	/**
+	 * Could affect referencing module.
 	 * @returns {boolean | TRANSITIVE} true, when changes to the referenced module could affect the referencing module; TRANSITIVE, when changes to the referenced module could affect referencing modules of the referencing module
 	 */
 	couldAffectReferencingModule() {
@@ -44,10 +46,11 @@ class WebAssemblyExportImportedDependency extends ModuleDependency {
 	 * Returns list of exports referenced by this dependency
 	 * @param {ModuleGraph} moduleGraph module graph
 	 * @param {RuntimeSpec} runtime the runtime for which the module is analysed
-	 * @returns {(string[] | ReferencedExport)[]} referenced exports
+	 * @returns {ReferencedExports} referenced exports
 	 */
 	getReferencedExports(moduleGraph, runtime) {
-		return [[this.name]];
+		// re-exporting wasm glue needs the real binding, never an inlined literal
+		return [{ name: [this.name], canInline: false }];
 	}
 
 	get type() {
@@ -59,29 +62,25 @@ class WebAssemblyExportImportedDependency extends ModuleDependency {
 	}
 
 	/**
+	 * Serializes this instance into the provided serializer context.
 	 * @param {ObjectSerializerContext} context context
 	 */
 	serialize(context) {
-		const { write } = context;
-
-		write(this.exportName);
-		write(this.name);
-		write(this.valueType);
-
+		context.write(this.exportName).write(this.name).write(this.valueType);
 		super.serialize(context);
 	}
 
 	/**
+	 * Restores this instance from the provided deserializer context.
 	 * @param {ObjectDeserializerContext} context context
 	 */
 	deserialize(context) {
-		const { read } = context;
-
-		this.exportName = read();
-		this.name = read();
-		this.valueType = read();
-
-		super.deserialize(context);
+		this.exportName = context.read();
+		const c1 = context.rest;
+		this.name = c1.read();
+		const c2 = c1.rest;
+		this.valueType = c2.read();
+		super.deserialize(c2.rest);
 	}
 }
 

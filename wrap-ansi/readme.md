@@ -1,20 +1,18 @@
-# wrap-ansi [![Build Status](https://travis-ci.org/chalk/wrap-ansi.svg?branch=master)](https://travis-ci.org/chalk/wrap-ansi) [![Coverage Status](https://coveralls.io/repos/github/chalk/wrap-ansi/badge.svg?branch=master)](https://coveralls.io/github/chalk/wrap-ansi?branch=master)
+# wrap-ansi
 
 > Wordwrap a string with [ANSI escape codes](https://en.wikipedia.org/wiki/ANSI_escape_code#Colors_and_Styles)
 
-
 ## Install
 
+```sh
+npm install wrap-ansi
 ```
-$ npm install wrap-ansi
-```
-
 
 ## Usage
 
 ```js
-const chalk = require('chalk');
-const wrapAnsi = require('wrap-ansi');
+import chalk from 'chalk';
+import wrapAnsi from 'wrap-ansi';
 
 const input = 'The quick brown ' + chalk.red('fox jumped over ') +
 	'the lazy ' + chalk.green('dog and then ran away with the unicorn.');
@@ -23,7 +21,6 @@ console.log(wrapAnsi(input, 20));
 ```
 
 <img width="331" src="screenshot.png">
-
 
 ## API
 
@@ -35,13 +32,17 @@ Wrap words to the specified column width.
 
 Type: `string`
 
-String with ANSI escape codes. Like one styled by [`chalk`](https://github.com/chalk/chalk). Newline characters will be normalized to `\n`.
+A string with ANSI escape codes, like one styled by [`chalk`](https://github.com/chalk/chalk).
+
+Newline characters will be normalized to `\n`.
+
+Tab characters are expanded to spaces using 8-column tab stops before wrapping.
 
 #### columns
 
 Type: `number`
 
-Number of columns to wrap the text to.
+The number of columns to wrap the text to.
 
 #### options
 
@@ -49,25 +50,24 @@ Type: `object`
 
 ##### hard
 
-Type: `boolean`<br>
+Type: `boolean`\
 Default: `false`
 
 By default the wrap is soft, meaning long words may extend past the column width. Setting this to `true` will make it hard wrap at the column width.
 
 ##### wordWrap
 
-Type: `boolean`<br>
+Type: `boolean`\
 Default: `true`
 
 By default, an attempt is made to split words at spaces, ensuring that they don't extend past the configured columns. If wordWrap is `false`, each column will instead be completely filled splitting words as necessary.
 
 ##### trim
 
-Type: `boolean`<br>
+Type: `boolean`\
 Default: `true`
 
 Whitespace on all lines is removed by default. Set this option to `false` if you don't want to trim.
-
 
 ## Related
 
@@ -75,23 +75,3 @@ Whitespace on all lines is removed by default. Set this option to `false` if you
 - [cli-truncate](https://github.com/sindresorhus/cli-truncate) - Truncate a string to a specific width in the terminal
 - [chalk](https://github.com/chalk/chalk) - Terminal string styling done right
 - [jsesc](https://github.com/mathiasbynens/jsesc) - Generate ASCII-only output from Unicode strings. Useful for creating test fixtures.
-
-
-## Maintainers
-
-- [Sindre Sorhus](https://github.com/sindresorhus)
-- [Josh Junon](https://github.com/qix-)
-- [Benjamin Coe](https://github.com/bcoe)
-
-
----
-
-<div align="center">
-	<b>
-		<a href="https://tidelift.com/subscription/pkg/npm-wrap_ansi?utm_source=npm-wrap-ansi&utm_medium=referral&utm_campaign=readme">Get professional support for this package with a Tidelift subscription</a>
-	</b>
-	<br>
-	<sub>
-		Tidelift helps make open source sustainable for maintainers while giving companies<br>assurances about security, maintenance, and licensing for their dependencies.
-	</sub>
-</div>

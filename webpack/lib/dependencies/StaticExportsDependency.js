@@ -8,23 +8,24 @@
 const makeSerializable = require("../util/makeSerializable");
 const NullDependency = require("./NullDependency");
 
-/** @typedef {import("../ChunkGraph")} ChunkGraph */
-/** @typedef {import("../Dependency").ExportSpec} ExportSpec */
 /** @typedef {import("../Dependency").ExportsSpec} ExportsSpec */
-/** @typedef {import("../Dependency").UpdateHashContext} UpdateHashContext */
 /** @typedef {import("../ModuleGraph")} ModuleGraph */
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext} ObjectDeserializerContext */
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext} ObjectSerializerContext */
-/** @typedef {import("../util/Hash")} Hash */
+/** @typedef {string[] | true} Exports */
+
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext<[Exports, boolean]>} ObjectDeserializerContext */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext<[Exports, boolean]>} ObjectSerializerContext */
 
 class StaticExportsDependency extends NullDependency {
 	/**
-	 * @param {string[] | true} exports export names
+	 * Creates an instance of StaticExportsDependency.
+	 * @param {Exports} exports export names
 	 * @param {boolean} canMangle true, if mangling exports names is allowed
 	 */
 	constructor(exports, canMangle) {
 		super();
+		/** @type {Exports} */
 		this.exports = exports;
+		/** @type {boolean} */
 		this.canMangle = canMangle;
 	}
 
@@ -46,23 +47,23 @@ class StaticExportsDependency extends NullDependency {
 	}
 
 	/**
+	 * Serializes this instance into the provided serializer context.
 	 * @param {ObjectSerializerContext} context context
 	 */
 	serialize(context) {
-		const { write } = context;
-		write(this.exports);
-		write(this.canMangle);
+		context.write(this.exports).write(this.canMangle);
 		super.serialize(context);
 	}
 
 	/**
+	 * Restores this instance from the provided deserializer context.
 	 * @param {ObjectDeserializerContext} context context
 	 */
 	deserialize(context) {
-		const { read } = context;
-		this.exports = read();
-		this.canMangle = read();
-		super.deserialize(context);
+		this.exports = context.read();
+		const c1 = context.rest;
+		this.canMangle = c1.read();
+		super.deserialize(c1.rest);
 	}
 }
 

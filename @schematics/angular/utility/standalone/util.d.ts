@@ -6,7 +6,7 @@
  * found in the LICENSE file at https://angular.dev/license
  */
 import { Tree } from '@angular-devkit/schematics';
-import ts from '../../third_party/github.com/Microsoft/TypeScript/lib/typescript';
+import ts from 'typescript';
 import { Change } from '../change';
 /**
  * Finds the main file of a project.

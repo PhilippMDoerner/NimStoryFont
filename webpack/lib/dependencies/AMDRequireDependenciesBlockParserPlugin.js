@@ -6,7 +6,7 @@
 "use strict";
 
 const RuntimeGlobals = require("../RuntimeGlobals");
-const UnsupportedFeatureWarning = require("../UnsupportedFeatureWarning");
+const UnsupportedFeatureWarning = require("../errors/UnsupportedFeatureWarning");
 const AMDRequireArrayDependency = require("./AMDRequireArrayDependency");
 const AMDRequireContextDependency = require("./AMDRequireContextDependency");
 const AMDRequireDependenciesBlock = require("./AMDRequireDependenciesBlock");
@@ -25,21 +25,27 @@ const getFunctionExpression = require("./getFunctionExpression");
 /** @typedef {import("estree").SourceLocation} SourceLocation */
 /** @typedef {import("estree").SpreadElement} SpreadElement */
 /** @typedef {import("../../declarations/WebpackOptions").JavascriptParserOptions} JavascriptParserOptions */
+/** @typedef {import("../Dependency")} Dependency */
 /** @typedef {import("../Dependency").DependencyLocation} DependencyLocation */
-/** @typedef {import("../Module").BuildInfo} BuildInfo */
 /** @typedef {import("../javascript/BasicEvaluatedExpression")} BasicEvaluatedExpression */
 /** @typedef {import("../javascript/JavascriptParser")} JavascriptParser */
 /** @typedef {import("../javascript/JavascriptParser").Range} Range */
+/** @typedef {import("./LocalModule")} LocalModule */
+
+const PLUGIN_NAME = "AMDRequireDependenciesBlockParserPlugin";
 
 class AMDRequireDependenciesBlockParserPlugin {
 	/**
+	 * Creates an instance of AMDRequireDependenciesBlockParserPlugin.
 	 * @param {JavascriptParserOptions} options parserOptions
 	 */
 	constructor(options) {
+		/** @type {JavascriptParserOptions} */
 		this.options = options;
 	}
 
 	/**
+	 * Process function argument.
 	 * @param {JavascriptParser} parser the parser
 	 * @param {Expression | SpreadElement} expression expression
 	 * @returns {boolean} need bind this
@@ -48,9 +54,10 @@ class AMDRequireDependenciesBlockParserPlugin {
 		let bindThis = true;
 		const fnData = getFunctionExpression(expression);
 		if (fnData) {
-			parser.inScope(
+			parser.inFunctionScope(
+				true,
 				fnData.fn.params.filter(
-					i =>
+					(i) =>
 						!["require", "module", "exports"].includes(
 							/** @type {Identifier} */ (i).name
 						)
@@ -74,19 +81,18 @@ class AMDRequireDependenciesBlockParserPlugin {
 	}
 
 	/**
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {JavascriptParser} parser the parser
 	 * @returns {void}
 	 */
 	apply(parser) {
 		parser.hooks.call
 			.for("require")
-			.tap(
-				"AMDRequireDependenciesBlockParserPlugin",
-				this.processCallRequire.bind(this, parser)
-			);
+			.tap(PLUGIN_NAME, this.processCallRequire.bind(this, parser));
 	}
 
 	/**
+	 * Processes the provided parser.
 	 * @param {JavascriptParser} parser the parser
 	 * @param {CallExpression} expr call expression
 	 * @param {BasicEvaluatedExpression} param param
@@ -104,8 +110,10 @@ class AMDRequireDependenciesBlockParserPlugin {
 		} else if (param.isConstArray()) {
 			/** @type {(string | LocalModuleDependency | AMDRequireItemDependency)[]} */
 			const deps = [];
-			for (const request of /** @type {EXPECTED_ANY[]} */ (param.array)) {
+			for (const request of /** @type {string[]} */ (param.array)) {
+				/** @type {string | LocalModuleDependency | AMDRequireItemDependency} */
 				let dep;
+				/** @type {undefined | null | LocalModule} */
 				let localModule;
 				if (request === "require") {
 					dep = RuntimeGlobals.require;
@@ -114,11 +122,11 @@ class AMDRequireDependenciesBlockParserPlugin {
 				} else if ((localModule = getLocalModule(parser.state, request))) {
 					localModule.flagUsed();
 					dep = new LocalModuleDependency(localModule, undefined, false);
-					dep.loc = /** @type {DependencyLocation} */ (expr.loc);
+					dep.loc = parser.getLocation(expr);
 					parser.state.module.addPresentationalDependency(dep);
 				} else {
 					dep = this.newRequireItemDependency(request);
-					dep.loc = /** @type {DependencyLocation} */ (expr.loc);
+					dep.loc = parser.getLocation(expr);
 					dep.optional = Boolean(parser.scope.inTry);
 					parser.state.current.addDependency(dep);
 				}
@@ -126,9 +134,10 @@ class AMDRequireDependenciesBlockParserPlugin {
 			}
 			const dep = this.newRequireArrayDependency(
 				deps,
-				/** @type {Range} */ (param.range)
+				/** @type {Range} */
+				(param.range)
 			);
-			dep.loc = /** @type {DependencyLocation} */ (expr.loc);
+			dep.loc = parser.getLocation(expr);
 			dep.optional = Boolean(parser.scope.inTry);
 			parser.state.module.addPresentationalDependency(dep);
 			return true;
@@ -136,6 +145,7 @@ class AMDRequireDependenciesBlockParserPlugin {
 	}
 
 	/**
+	 * Processes the provided parser.
 	 * @param {JavascriptParser} parser the parser
 	 * @param {CallExpression} expr call expression
 	 * @param {BasicEvaluatedExpression} param param
@@ -153,60 +163,59 @@ class AMDRequireDependenciesBlockParserPlugin {
 			}
 			return true;
 		} else if (param.isString()) {
+			/** @type {Dependency} */
 			let dep;
+			/** @type {LocalModule | null | undefined} */
 			let localModule;
 			if (param.string === "require") {
 				dep = new ConstDependency(
 					RuntimeGlobals.require,
-					/** @type {TODO} */
-					(param.string),
+					/** @type {Range} */
+					(param.range),
 					[RuntimeGlobals.require]
 				);
 			} else if (param.string === "module") {
 				dep = new ConstDependency(
-					/** @type {string} */
-					(
-						/** @type {BuildInfo} */
-						(parser.state.module.buildInfo).moduleArgument
-					),
-					/** @type {Range} */ (param.range),
+					parser.state.module.moduleArgument,
+					/** @type {Range} */
+					(param.range),
 					[RuntimeGlobals.module]
 				);
 			} else if (param.string === "exports") {
 				dep = new ConstDependency(
-					/** @type {string} */
-					(
-						/** @type {BuildInfo} */
-						(parser.state.module.buildInfo).exportsArgument
-					),
-					/** @type {Range} */ (param.range),
+					parser.state.module.exportsArgument,
+					/** @type {Range} */
+					(param.range),
 					[RuntimeGlobals.exports]
 				);
 			} else if (
 				(localModule = getLocalModule(
 					parser.state,
-					/** @type {string} */ (param.string)
+					/** @type {string} */
+					(param.string)
 				))
 			) {
 				localModule.flagUsed();
 				dep = new LocalModuleDependency(localModule, param.range, false);
 			} else {
 				dep = this.newRequireItemDependency(
-					/** @type {string} */ (param.string),
+					/** @type {string} */
+					(param.string),
 					param.range
 				);
-				dep.loc = /** @type {DependencyLocation} */ (expr.loc);
+				dep.loc = parser.getLocation(expr);
 				dep.optional = Boolean(parser.scope.inTry);
 				parser.state.current.addDependency(dep);
 				return true;
 			}
-			dep.loc = /** @type {DependencyLocation} */ (expr.loc);
+			dep.loc = parser.getLocation(expr);
 			parser.state.module.addPresentationalDependency(dep);
 			return true;
 		}
 	}
 
 	/**
+	 * Processes the provided parser.
 	 * @param {JavascriptParser} parser the parser
 	 * @param {CallExpression} expr call expression
 	 * @param {BasicEvaluatedExpression} param param
@@ -226,13 +235,14 @@ class AMDRequireDependenciesBlockParserPlugin {
 			parser
 		);
 		if (!dep) return;
-		dep.loc = /** @type {DependencyLocation} */ (expr.loc);
+		dep.loc = parser.getLocation(expr);
 		dep.optional = Boolean(parser.scope.inTry);
 		parser.state.current.addDependency(dep);
 		return true;
 	}
 
 	/**
+	 * Process array for request string.
 	 * @param {BasicEvaluatedExpression} param param
 	 * @returns {string | undefined} result
 	 */
@@ -240,7 +250,7 @@ class AMDRequireDependenciesBlockParserPlugin {
 		if (param.isArray()) {
 			const result =
 				/** @type {BasicEvaluatedExpression[]} */
-				(param.items).map(item => this.processItemForRequestString(item));
+				(param.items).map((item) => this.processItemForRequestString(item));
 			if (result.every(Boolean)) return result.join(" ");
 		} else if (param.isConstArray()) {
 			return /** @type {string[]} */ (param.array).join(" ");
@@ -248,6 +258,7 @@ class AMDRequireDependenciesBlockParserPlugin {
 	}
 
 	/**
+	 * Process item for request string.
 	 * @param {BasicEvaluatedExpression} param param
 	 * @returns {string | undefined} result
 	 */
@@ -255,7 +266,7 @@ class AMDRequireDependenciesBlockParserPlugin {
 		if (param.isConditional()) {
 			const result =
 				/** @type {BasicEvaluatedExpression[]} */
-				(param.options).map(item => this.processItemForRequestString(item));
+				(param.options).map((item) => this.processItemForRequestString(item));
 			if (result.every(Boolean)) return result.join("|");
 		} else if (param.isString()) {
 			return param.string;
@@ -263,6 +274,7 @@ class AMDRequireDependenciesBlockParserPlugin {
 	}
 
 	/**
+	 * Process call require.
 	 * @param {JavascriptParser} parser the parser
 	 * @param {CallExpression} expr call expression
 	 * @returns {boolean | undefined} result
@@ -284,7 +296,7 @@ class AMDRequireDependenciesBlockParserPlugin {
 				/** @type {Expression} */ (expr.arguments[0])
 			);
 			depBlock = this.newRequireDependenciesBlock(
-				/** @type {DependencyLocation} */ (expr.loc),
+				parser.getLocation(expr),
 				this.processArrayForRequestString(param)
 			);
 			dep = this.newRequireDependency(
@@ -297,50 +309,55 @@ class AMDRequireDependenciesBlockParserPlugin {
 					? /** @type {Range} */ (expr.arguments[2].range)
 					: null
 			);
-			dep.loc = /** @type {DependencyLocation} */ (expr.loc);
+			dep.loc = parser.getLocation(expr);
 			depBlock.addDependency(dep);
 
-			parser.state.current = /** @type {TODO} */ (depBlock);
+			parser.state.current = /** @type {EXPECTED_ANY} */ (depBlock);
 		}
 
 		if (expr.arguments.length === 1) {
-			parser.inScope([], () => {
+			parser.inFunctionScope(true, [], () => {
 				result = this.processArray(
 					parser,
 					expr,
-					/** @type {BasicEvaluatedExpression} */ (param)
+					/** @type {BasicEvaluatedExpression} */
+					(param)
 				);
 			});
 			parser.state.current = old;
 			if (!result) return;
 			parser.state.current.addBlock(
-				/** @type {AMDRequireDependenciesBlock} */ (depBlock)
+				/** @type {AMDRequireDependenciesBlock} */
+				(depBlock)
 			);
 			return true;
 		}
 
 		if (expr.arguments.length === 2 || expr.arguments.length === 3) {
 			try {
-				parser.inScope([], () => {
+				parser.inFunctionScope(true, [], () => {
 					result = this.processArray(
 						parser,
 						expr,
-						/** @type {BasicEvaluatedExpression} */ (param)
+						/** @type {BasicEvaluatedExpression} */
+						(param)
 					);
 				});
 				if (!result) {
 					const dep = new UnsupportedDependency(
 						"unsupported",
-						/** @type {Range} */ (expr.range)
+						/** @type {Range} */
+						(expr.range)
 					);
 					old.addPresentationalDependency(dep);
 					if (parser.state.module) {
+						const loc = /** @type {SourceLocation} */ (
+							parser.getLocation(expr)
+						);
 						parser.state.module.addError(
 							new UnsupportedFeatureWarning(
-								`Cannot statically analyse 'require(…, …)' in line ${
-									/** @type {SourceLocation} */ (expr.loc).start.line
-								}`,
-								/** @type {DependencyLocation} */ (expr.loc)
+								`Cannot statically analyse 'require(…, …)' in line ${loc.start.line}`,
+								loc
 							)
 						);
 					}
@@ -368,6 +385,7 @@ class AMDRequireDependenciesBlockParserPlugin {
 	}
 
 	/**
+	 * New require dependencies block.
 	 * @param {DependencyLocation} loc location
 	 * @param {string=} request request
 	 * @returns {AMDRequireDependenciesBlock} AMDRequireDependenciesBlock
@@ -377,6 +395,7 @@ class AMDRequireDependenciesBlockParserPlugin {
 	}
 
 	/**
+	 * New require dependency.
 	 * @param {Range} outerRange outer range
 	 * @param {Range} arrayRange array range
 	 * @param {Range | null} functionRange function range
@@ -398,6 +417,7 @@ class AMDRequireDependenciesBlockParserPlugin {
 	}
 
 	/**
+	 * New require item dependency.
 	 * @param {string} request request
 	 * @param {Range=} range range
 	 * @returns {AMDRequireItemDependency} AMDRequireItemDependency
@@ -407,6 +427,7 @@ class AMDRequireDependenciesBlockParserPlugin {
 	}
 
 	/**
+	 * New require array dependency.
 	 * @param {(string | LocalModuleDependency | AMDRequireItemDependency)[]} depsArray deps array
 	 * @param {Range} range range
 	 * @returns {AMDRequireArrayDependency} AMDRequireArrayDependency
@@ -415,4 +436,5 @@ class AMDRequireDependenciesBlockParserPlugin {
 		return new AMDRequireArrayDependency(depsArray, range);
 	}
 }
+
 module.exports = AMDRequireDependenciesBlockParserPlugin;

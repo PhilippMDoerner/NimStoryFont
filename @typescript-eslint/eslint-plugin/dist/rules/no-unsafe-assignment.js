@@ -64,6 +64,7 @@ exports.default = (0, util_1.createRule)({
             unsafeArrayPatternFromTuple: 'Unsafe array destructuring of a tuple element with an {{sender}} value.',
             unsafeArraySpread: 'Unsafe spread of an {{sender}} value in an array.',
             unsafeAssignment: 'Unsafe assignment of type {{sender}} to a variable of type {{receiver}}.',
+            unsafeObjectPattern: 'Unsafe object destructuring of a property with an {{sender}} value.',
         },
         schema: [],
     },
@@ -168,7 +169,8 @@ exports.default = (0, util_1.createRule)({
                 }
                 else if (receiverProperty.key.type === utils_1.AST_NODE_TYPES.TemplateLiteral &&
                     receiverProperty.key.quasis.length === 1) {
-                    key = String(receiverProperty.key.quasis[0].value.cooked);
+                    const cooked = (0, util_1.nullThrows)(receiverProperty.key.quasis[0].value.cooked, 'cooked can only be null inside a TaggedTemplateExpression, which is not possible here');
+                    key = cooked;
                 }
                 else {
                     // can't figure out the name, so skip it
@@ -182,7 +184,7 @@ exports.default = (0, util_1.createRule)({
                 if ((0, util_1.isTypeAnyType)(senderType)) {
                     context.report({
                         node: receiverProperty.value,
-                        messageId: 'unsafeArrayPatternFromTuple',
+                        messageId: 'unsafeObjectPattern',
                         data: createData(senderType),
                     });
                     didReport = true;

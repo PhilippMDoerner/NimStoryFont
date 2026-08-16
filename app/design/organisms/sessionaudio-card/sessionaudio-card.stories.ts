@@ -1,7 +1,7 @@
 import { RouterTestingModule } from '@angular/router/testing';
 import { Meta, StoryFn, moduleMetadata } from '@storybook/angular';
-import { OverviewItem } from 'src/app/_models/overview';
-import { FORMLY_MODULE } from 'src/app/_modules/formly_constants';
+import { OverviewItem } from '../../../_models/overview';
+import { FORMLY_MODULE } from '../../../_modules/formly_constants';
 import { SessionaudioCardComponent } from './sessionaudio-card.component';
 
 const dummySessionAudio: OverviewItem = {

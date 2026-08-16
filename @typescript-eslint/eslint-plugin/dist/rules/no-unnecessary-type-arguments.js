@@ -106,6 +106,11 @@ exports.default = (0, util_1.createRule)({
         }
         return {
             TSTypeParameterInstantiation(node) {
+                // TypeScript does not apply default type parameters in instantiation
+                // expressions, so explicit type args here are always meaningful.
+                if (node.parent.type === utils_1.AST_NODE_TYPES.TSInstantiationExpression) {
+                    return;
+                }
                 const expression = services.esTreeNodeToTSNodeMap.get(node);
                 const typeParameters = getTypeParametersFromNode(node, expression, checker);
                 if (typeParameters) {
@@ -141,8 +146,8 @@ function getTypeParametersFromType(node, type, checker) {
     if (!declarations) {
         return undefined;
     }
-    const sortedDeclaraions = sortDeclarationsByTypeValueContext(node, declarations);
-    return (0, util_1.findFirstResult)(sortedDeclaraions, decl => {
+    const sortedDeclarations = sortDeclarationsByTypeValueContext(node, declarations);
+    return (0, util_1.findFirstResult)(sortedDeclarations, decl => {
         if (ts.isTypeAliasDeclaration(decl) ||
             ts.isInterfaceDeclaration(decl) ||
             ts.isClassLike(decl)) {

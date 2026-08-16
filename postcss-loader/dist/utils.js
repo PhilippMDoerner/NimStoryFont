@@ -12,11 +12,11 @@ exports.normalizeSourceMap = normalizeSourceMap;
 exports.normalizeSourceMapAfterPostcss = normalizeSourceMapAfterPostcss;
 exports.reportError = reportError;
 exports.warningFactory = warningFactory;
-var _path = _interopRequireDefault(require("path"));
-var _url = _interopRequireDefault(require("url"));
-var _module = _interopRequireDefault(require("module"));
+var _nodeModule = _interopRequireDefault(require("node:module"));
+var _nodePath = _interopRequireDefault(require("node:path"));
+var _nodeUrl = _interopRequireDefault(require("node:url"));
 var _cosmiconfig = require("cosmiconfig");
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+function _interopRequireDefault(e) { return e && e.__esModule ? e : { default: e }; }
 const parentModule = module;
 const stat = (inputFileSystem, filePath) => new Promise((resolve, reject) => {
   inputFileSystem.stat(filePath, (err, stats) => {
@@ -31,23 +31,19 @@ function exec(code, loaderContext) {
     resource,
     context
   } = loaderContext;
-  const module = new _module.default(resource, parentModule);
-
-  // eslint-disable-next-line no-underscore-dangle
-  module.paths = _module.default._nodeModulePaths(context);
+  const module = new _nodeModule.default(resource, parentModule);
+  module.paths = _nodeModule.default._nodeModulePaths(context);
   module.filename = resource;
-
-  // eslint-disable-next-line no-underscore-dangle
   module._compile(code, resource);
   return module.exports;
 }
 let tsLoader;
 async function loadConfig(loaderContext, config, postcssOptions) {
-  const searchPath = typeof config === "string" ? _path.default.resolve(config) : _path.default.dirname(loaderContext.resourcePath);
+  const searchPath = typeof config === "string" ? _nodePath.default.resolve(config) : _nodePath.default.dirname(loaderContext.resourcePath);
   let stats;
   try {
     stats = await stat(loaderContext.fs, searchPath);
-  } catch (errorIgnore) {
+  } catch {
     throw new Error(`No PostCSS config found in: ${searchPath}`);
   }
   const moduleName = "postcss";
@@ -64,11 +60,11 @@ async function loadConfig(loaderContext, config, postcssOptions) {
         try {
           // eslint-disable-next-line no-new-func
           importESM = new Function("id", "return import(id);");
-        } catch (e) {
+        } catch {
           importESM = null;
         }
-        if (error.code === "ERR_REQUIRE_ESM" && _url.default.pathToFileURL && importESM) {
-          const urlForConfig = _url.default.pathToFileURL(args[0]);
+        if (error.code === "ERR_REQUIRE_ESM" && _nodeUrl.default.pathToFileURL && importESM) {
+          const urlForConfig = _nodeUrl.default.pathToFileURL(args[0]);
           result = await importESM(urlForConfig);
         } else {
           throw error;
@@ -86,11 +82,11 @@ async function loadConfig(loaderContext, config, postcssOptions) {
       try {
         // eslint-disable-next-line no-new-func
         importESM = new Function("id", "return import(id);");
-      } catch (e) {
+      } catch {
         importESM = null;
       }
-      if (_url.default.pathToFileURL && importESM) {
-        const urlForConfig = _url.default.pathToFileURL(args[0]);
+      if (_nodeUrl.default.pathToFileURL && importESM) {
+        const urlForConfig = _nodeUrl.default.pathToFileURL(args[0]);
         result = await importESM(urlForConfig);
       } else {
         throw new Error("ESM is not supported");
@@ -105,9 +101,13 @@ async function loadConfig(loaderContext, config, postcssOptions) {
     const opts = {
       interopDefault: true
     };
-    // eslint-disable-next-line global-require, import/no-extraneous-dependencies
-    const jiti = require("jiti")(__filename, opts);
-    tsLoader = filepath => jiti(filepath);
+    const {
+      createJiti
+    } = require("jiti");
+    const jiti = createJiti(__filename, opts);
+    tsLoader = filepath => jiti.import(filepath, {
+      default: true
+    });
   }
   loaders[".cts"] = tsLoader;
   loaders[".mts"] = tsLoader;
@@ -117,16 +117,7 @@ async function loadConfig(loaderContext, config, postcssOptions) {
     searchPlaces,
     loaders
   });
-  let result;
-  try {
-    if (stats.isFile()) {
-      result = await explorer.load(searchPath);
-    } else {
-      result = await explorer.search(searchPath);
-    }
-  } catch (error) {
-    throw error;
-  }
+  const result = await (stats.isFile() ? explorer.load(searchPath) : explorer.search(searchPath));
   if (!result) {
     return {};
   }
@@ -154,7 +145,6 @@ async function loadConfig(loaderContext, config, postcssOptions) {
 }
 function loadPlugin(plugin, options, file) {
   try {
-    // eslint-disable-next-line global-require, import/no-dynamic-require
     let loadedPlugin = require(plugin);
     if (loadedPlugin.default) {
       loadedPlugin = loadedPlugin.default;
@@ -164,7 +154,9 @@ function loadPlugin(plugin, options, file) {
     }
     return loadedPlugin(options);
   } catch (error) {
-    throw new Error(`Loading PostCSS "${plugin}" plugin failed: ${error.message}\n\n(@${file})`);
+    throw new Error(`Loading PostCSS "${plugin}" plugin failed: ${error.message}\n\n(@${file})`, {
+      cause: error
+    });
   }
 }
 function pluginFactory() {
@@ -208,22 +200,21 @@ function pluginFactory() {
 async function tryRequireThenImport(module) {
   let exports;
   try {
-    // eslint-disable-next-line import/no-dynamic-require, global-require
     exports = require(module);
     return exports;
-  } catch (requireError) {
+  } catch (err) {
     let importESM;
     try {
       // eslint-disable-next-line no-new-func
       importESM = new Function("id", "return import(id);");
-    } catch (e) {
+    } catch {
       importESM = null;
     }
-    if (requireError.code === "ERR_REQUIRE_ESM" && importESM) {
+    if (err.code === "ERR_REQUIRE_ESM" && importESM) {
       exports = await importESM(module);
       return exports.default;
     }
-    throw requireError;
+    throw err;
   }
 }
 async function getPostcssOptions(loaderContext, loadedConfig = {}, postcssOptions = {}) {
@@ -251,21 +242,21 @@ async function getPostcssOptions(loaderContext, loadedConfig = {}, postcssOption
   }
   const processOptionsFromConfig = {
     ...loadedConfig.config
-  } || {};
+  };
   if (processOptionsFromConfig.from) {
-    processOptionsFromConfig.from = _path.default.resolve(_path.default.dirname(loadedConfig.filepath), processOptionsFromConfig.from);
+    processOptionsFromConfig.from = _nodePath.default.resolve(_nodePath.default.dirname(loadedConfig.filepath), processOptionsFromConfig.from);
   }
   if (processOptionsFromConfig.to) {
-    processOptionsFromConfig.to = _path.default.resolve(_path.default.dirname(loadedConfig.filepath), processOptionsFromConfig.to);
+    processOptionsFromConfig.to = _nodePath.default.resolve(_nodePath.default.dirname(loadedConfig.filepath), processOptionsFromConfig.to);
   }
   const processOptionsFromOptions = {
     ...normalizedPostcssOptions
   };
   if (processOptionsFromOptions.from) {
-    processOptionsFromOptions.from = _path.default.resolve(loaderContext.rootContext, processOptionsFromOptions.from);
+    processOptionsFromOptions.from = _nodePath.default.resolve(loaderContext.rootContext, processOptionsFromOptions.from);
   }
   if (processOptionsFromOptions.to) {
-    processOptionsFromOptions.to = _path.default.resolve(loaderContext.rootContext, processOptionsFromOptions.to);
+    processOptionsFromOptions.to = _nodePath.default.resolve(loaderContext.rootContext, processOptionsFromOptions.to);
   }
 
   // No need `plugins` and `config` for processOptions
@@ -307,7 +298,7 @@ async function getPostcssOptions(loaderContext, loadedConfig = {}, postcssOption
     }
   }
   if (processOptions.map === true) {
-    // https://github.com/postcss/postcss/blob/master/docs/source-maps.md
+    // https://github.com/postcss/postcss/blob/main/docs/source-maps.md
     processOptions.map = {
       inline: true
     };
@@ -350,8 +341,8 @@ function normalizeSourceMap(map, resourceContext) {
 
       // Do no touch `scheme-relative` and `absolute` URLs
       if (sourceType === "path-relative" || sourceType === "path-absolute") {
-        const absoluteSource = sourceType === "path-relative" && sourceRoot ? _path.default.resolve(sourceRoot, _path.default.normalize(source)) : _path.default.normalize(source);
-        return _path.default.relative(resourceContext, absoluteSource);
+        const absoluteSource = sourceType === "path-relative" && sourceRoot ? _nodePath.default.resolve(sourceRoot, _nodePath.default.normalize(source)) : _nodePath.default.normalize(source);
+        return _nodePath.default.relative(resourceContext, absoluteSource);
       }
       return source;
     });
@@ -363,13 +354,9 @@ function normalizeSourceMapAfterPostcss(map, resourceContext) {
 
   // result.map.file is an optional property that provides the output filename.
   // Since we don't know the final filename in the webpack build chain yet, it makes no sense to have it.
-  // eslint-disable-next-line no-param-reassign
+
   delete newMap.file;
-
-  // eslint-disable-next-line no-param-reassign
   newMap.sourceRoot = "";
-
-  // eslint-disable-next-line no-param-reassign
   newMap.sources = newMap.sources.map(source => {
     if (source.indexOf("<") === 0) {
       return source;
@@ -378,7 +365,7 @@ function normalizeSourceMapAfterPostcss(map, resourceContext) {
 
     // Do no touch `scheme-relative`, `path-absolute` and `absolute` types
     if (sourceType === "path-relative") {
-      return _path.default.resolve(resourceContext, source);
+      return _nodePath.default.resolve(resourceContext, source);
     }
     return source;
   });
@@ -388,13 +375,13 @@ function findPackageJSONDir(cwd, statSync) {
   let dir = cwd;
   for (;;) {
     try {
-      if (statSync(_path.default.join(dir, "package.json")).isFile()) {
+      if (statSync(_nodePath.default.join(dir, "package.json")).isFile()) {
         break;
       }
-    } catch (error) {
+    } catch {
       // Nothing
     }
-    const parent = _path.default.dirname(dir);
+    const parent = _nodePath.default.dirname(dir);
     if (dir === parent) {
       dir = null;
       break;
@@ -407,13 +394,29 @@ function getPostcssImplementation(loaderContext, implementation) {
   let resolvedImplementation = implementation;
   if (!implementation || typeof implementation === "string") {
     const postcssImplPkg = implementation || "postcss";
-
-    // eslint-disable-next-line import/no-dynamic-require, global-require
     resolvedImplementation = require(postcssImplPkg);
   }
-
-  // eslint-disable-next-line consistent-return
   return resolvedImplementation;
+}
+function syntaxErrorFactory(error) {
+  let message = "\nSyntaxError\n\n";
+  if (typeof error.line !== "undefined") {
+    message += `(${error.line}:${error.column}) `;
+  }
+  if (typeof error.plugin !== "undefined") {
+    message += `from "${error.plugin}" plugin: `;
+  }
+  message += error.file ? `${error.file} ` : "<css input> ";
+  message += `${error.reason}`;
+  const code = error.showSourceCode();
+  if (code) {
+    message += `\n\n${code}\n`;
+  }
+  const obj = new Error(message, {
+    cause: error
+  });
+  obj.stack = null;
+  return obj;
 }
 function reportError(loaderContext, callback, error) {
   if (error.file) {
@@ -439,26 +442,6 @@ function warningFactory(warning) {
   }
   const obj = new Error(message, {
     cause: warning
-  });
-  obj.stack = null;
-  return obj;
-}
-function syntaxErrorFactory(error) {
-  let message = "\nSyntaxError\n\n";
-  if (typeof error.line !== "undefined") {
-    message += `(${error.line}:${error.column}) `;
-  }
-  if (typeof error.plugin !== "undefined") {
-    message += `from "${error.plugin}" plugin: `;
-  }
-  message += error.file ? `${error.file} ` : "<css input> ";
-  message += `${error.reason}`;
-  const code = error.showSourceCode();
-  if (code) {
-    message += `\n\n${code}\n`;
-  }
-  const obj = new Error(message, {
-    cause: error
   });
   obj.stack = null;
   return obj;

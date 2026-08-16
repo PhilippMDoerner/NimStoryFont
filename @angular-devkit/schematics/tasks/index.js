@@ -14,3 +14,4 @@ var init_task_1 = require("./repo-init/init-task");
 Object.defineProperty(exports, "RepositoryInitializerTask", { enumerable: true, get: function () { return init_task_1.RepositoryInitializerTask; } });
 var task_1 = require("./run-schematic/task");
 Object.defineProperty(exports, "RunSchematicTask", { enumerable: true, get: function () { return task_1.RunSchematicTask; } });
+//# sourceMappingURL=index.js.map

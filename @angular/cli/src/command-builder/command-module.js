@@ -6,22 +6,6 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.dev/license
  */
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
 var __runInitializers = (this && this.__runInitializers) || function (thisArg, initializers, value) {
     var useValue = arguments.length > 2;
     for (var i = 0; i < initializers.length; i++) {
@@ -56,48 +40,21 @@ var __esDecorate = (this && this.__esDecorate) || function (ctor, descriptorIn, 
     if (target) Object.defineProperty(target, contextIn.name, descriptor);
     done = true;
 };
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CommandModuleError = exports.CommandModule = exports.CommandScope = void 0;
 const core_1 = require("@angular-devkit/core");
 const node_fs_1 = require("node:fs");
-const path = __importStar(require("node:path"));
-const yargs_1 = __importDefault(require("yargs"));
+const node_path_1 = require("node:path");
 const helpers_1 = require("yargs/helpers");
 const analytics_1 = require("../analytics/analytics");
 const analytics_collector_1 = require("../analytics/analytics-collector");
 const analytics_parameters_1 = require("../analytics/analytics-parameters");
+const package_managers_1 = require("../package-managers");
 const completion_1 = require("../utilities/completion");
 const memoize_1 = require("../utilities/memoize");
+const definitions_1 = require("./definitions");
+Object.defineProperty(exports, "CommandScope", { enumerable: true, get: function () { return definitions_1.CommandScope; } });
 const json_schema_1 = require("./utilities/json-schema");
-var CommandScope;
-(function (CommandScope) {
-    /** Command can only run inside an Angular workspace. */
-    CommandScope[CommandScope["In"] = 0] = "In";
-    /** Command can only run outside an Angular workspace. */
-    CommandScope[CommandScope["Out"] = 1] = "Out";
-    /** Command can run inside and outside an Angular workspace. */
-    CommandScope[CommandScope["Both"] = 2] = "Both";
-})(CommandScope || (exports.CommandScope = CommandScope = {}));
 let CommandModule = (() => {
     let _instanceExtraInitializers = [];
     let _getAnalytics_decorators;
@@ -110,7 +67,7 @@ let CommandModule = (() => {
         }
         context = __runInitializers(this, _instanceExtraInitializers);
         shouldReportAnalytics = true;
-        scope = CommandScope.Both;
+        scope = definitions_1.CommandScope.Both;
         optionsWithAnalytics = new Map();
         constructor(context) {
             this.context = context;
@@ -128,9 +85,7 @@ let CommandModule = (() => {
                     describe: this.describe,
                     ...(this.longDescriptionPath
                         ? {
-                            longDescriptionRelativePath: path
-                                .relative(path.join(__dirname, '../../../../'), this.longDescriptionPath)
-                                .replace(/\\/g, path.posix.sep),
+                            longDescriptionRelativePath: (0, node_path_1.relative)((0, node_path_1.join)(__dirname, '../../../../'), this.longDescriptionPath).replace(/\\/g, node_path_1.posix.sep),
                             longDescription: (0, node_fs_1.readFileSync)(this.longDescriptionPath, 'utf8').replace(/\r\n/g, '\n'),
                         }
                         : {}),
@@ -141,13 +96,14 @@ let CommandModule = (() => {
         }
         async handler(args) {
             const { _, $0, ...options } = args;
+            const { logger } = this.context;
             // Camelize options as yargs will return the object in kebab-case when camel casing is disabled.
             const camelCasedOptions = {};
             for (const [key, value] of Object.entries(options)) {
                 camelCasedOptions[helpers_1.Parser.camelCase(key)] = value;
             }
             // Set up autocompletion if appropriate.
-            const autocompletionExitCode = await (0, completion_1.considerSettingUpAutocompletion)(this.commandName, this.context.logger);
+            const autocompletionExitCode = await (0, completion_1.considerSettingUpAutocompletion)(this.commandName, logger);
             if (autocompletionExitCode !== undefined) {
                 process.exitCode = autocompletionExitCode;
                 return;
@@ -165,7 +121,12 @@ let CommandModule = (() => {
             }
             catch (e) {
                 if (e instanceof core_1.schema.SchemaValidationException) {
-                    this.context.logger.fatal(`Error: ${e.message}`);
+                    logger.fatal(`Error: ${e.message}`);
+                    exitCode = 1;
+                }
+                else if (e instanceof package_managers_1.PackageManagerError) {
+                    const output = e.stderr || e.stdout;
+                    logger.fatal(`Error: Package installation failed: ${e.message}${output ? `\nOutput: ${output}` : ''}`);
                     exitCode = 1;
                 }
                 else {
@@ -186,7 +147,20 @@ let CommandModule = (() => {
             const userId = await (0, analytics_1.getAnalyticsUserId)(this.context, 
             // Don't prompt on `ng update`, 'ng version' or `ng analytics`.
             ['version', 'update', 'analytics'].includes(this.commandName));
-            return userId ? new analytics_collector_1.AnalyticsCollector(this.context, userId) : undefined;
+            if (!userId) {
+                return undefined;
+            }
+            let version;
+            try {
+                version = await this.context.packageManager.getVersion();
+            }
+            catch {
+                // Ignore errors if the package manager is not available.
+            }
+            return new analytics_collector_1.AnalyticsCollector(this.context.logger, userId, {
+                name: this.context.packageManager.name,
+                version,
+            });
         }
         /**
          * Adds schema options to a command also this keeps track of options that are required for analytics.
@@ -222,17 +196,23 @@ let CommandModule = (() => {
                 ...Object.values(analytics_parameters_1.EventCustomMetric),
             ]);
             for (const [name, ua] of this.optionsWithAnalytics) {
+                if (!validEventCustomDimensionAndMetrics.has(ua)) {
+                    continue;
+                }
                 const value = options[name];
-                if ((typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') &&
-                    validEventCustomDimensionAndMetrics.has(ua)) {
+                if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
                     parameters[ua] = value;
+                }
+                else if (Array.isArray(value)) {
+                    // GA doesn't allow array as values.
+                    parameters[ua] = value.sort().join(', ');
                 }
             }
             return parameters;
         }
         reportCommandRunAnalytics(analytics) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const internalMethods = yargs_1.default.getInternalMethods();
+            const internalMethods = this.context.yargsInstance.getInternalMethods();
             // $0 generate component [name] -> generate_component
             // $0 add <collection> -> add
             const fullCommand = internalMethods.getUsageInstance().getUsage()[0][0]
@@ -277,3 +257,4 @@ exports.CommandModule = CommandModule;
 class CommandModuleError extends Error {
 }
 exports.CommandModuleError = CommandModuleError;
+//# sourceMappingURL=command-module.js.map

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RULE_NAME = void 0;
+exports.RULE_DOCS_EXTENSION = exports.RULE_NAME = void 0;
 const utils_1 = require("@angular-eslint/utils");
 const create_eslint_rule_1 = require("../utils/create-eslint-rule");
 exports.RULE_NAME = 'no-output-native';
@@ -42,3 +42,6 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
         };
     },
 });
+exports.RULE_DOCS_EXTENSION = {
+    rationale: `Naming an @Output() the same as a native DOM event (like 'click', 'change', or 'blur') creates ambiguous and confusing template bindings. For example, if a component has '@Output() click', the template '(click)="handler()"' could be binding to either the component's custom output OR the native DOM click event, depending on the context. This ambiguity leads to bugs and makes code harder to understand. Instead, use descriptive names that clearly indicate these are custom component events, such as 'userSelected' or 'itemDeleted' instead of generic names like 'click' or 'select'.`,
+};

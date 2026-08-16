@@ -130,7 +130,7 @@ class MsgPackDecoder extends MsgPackDecoderFast_1.MsgPackDecoderFast {
                 arr.push(this.primitive());
             return arr;
         }
-        return this.val();
+        return this.readAny();
     }
     primitive() {
         const reader = this.reader;
@@ -142,7 +142,7 @@ class MsgPackDecoder extends MsgPackDecoderFast_1.MsgPackDecoderFast {
             const buf = reader.buf(length);
             return new _1.JsonPackValue(buf);
         }
-        return this.val();
+        return this.readAny();
     }
     skip(length) {
         this.reader.x += length;

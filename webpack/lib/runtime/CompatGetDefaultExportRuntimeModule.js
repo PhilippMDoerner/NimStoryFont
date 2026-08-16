@@ -16,6 +16,7 @@ class CompatGetDefaultExportRuntimeModule extends HelperRuntimeModule {
 	}
 
 	/**
+	 * Generates runtime code for this runtime module.
 	 * @returns {string | null} runtime code
 	 */
 	generate() {
@@ -25,7 +26,7 @@ class CompatGetDefaultExportRuntimeModule extends HelperRuntimeModule {
 		return Template.asString([
 			"// getDefaultExport function for compatibility with non-harmony modules",
 			`${fn} = ${runtimeTemplate.basicFunction("module", [
-				"var getter = module && module.__esModule ?",
+				`${runtimeTemplate.renderConst()} getter = module && module.__esModule ?`,
 				Template.indent([
 					`${runtimeTemplate.returningFunction("module['default']")} :`,
 					`${runtimeTemplate.returningFunction("module")};`

@@ -11,7 +11,6 @@ const { filterRuntime, runtimeToString } = require("../util/runtime");
 const NullDependency = require("./NullDependency");
 
 /** @typedef {import("webpack-sources").ReplaceSource} ReplaceSource */
-/** @typedef {import("../ChunkGraph")} ChunkGraph */
 /** @typedef {import("../Dependency")} Dependency */
 /** @typedef {import("../Dependency").RuntimeSpec} RuntimeSpec */
 /** @typedef {import("../Dependency").UpdateHashContext} UpdateHashContext */
@@ -20,12 +19,13 @@ const NullDependency = require("./NullDependency");
 /** @typedef {import("../ModuleGraph")} ModuleGraph */
 /** @typedef {import("../ModuleGraphConnection").ConnectionState} ConnectionState */
 /** @typedef {import("../javascript/JavascriptParser").Range} Range */
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext} ObjectDeserializerContext */
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext} ObjectSerializerContext */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext<[Range, Set<string> | false]>} ObjectDeserializerContext */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext<[Range, Set<string> | false]>} ObjectSerializerContext */
 /** @typedef {import("../util/Hash")} Hash */
 
 class PureExpressionDependency extends NullDependency {
 	/**
+	 * Creates an instance of PureExpressionDependency.
 	 * @param {Range} range the source range
 	 */
 	constructor(range) {
@@ -36,6 +36,7 @@ class PureExpressionDependency extends NullDependency {
 	}
 
 	/**
+	 * Get runtime condition.
 	 * @param {ModuleGraph} moduleGraph module graph
 	 * @param {RuntimeSpec} runtime current runtimes
 	 * @returns {boolean | RuntimeSpec} runtime condition
@@ -47,7 +48,7 @@ class PureExpressionDependency extends NullDependency {
 				/** @type {Module} */
 				(moduleGraph.getParentModule(this));
 			const exportsInfo = moduleGraph.getExportsInfo(selfModule);
-			const runtimeCondition = filterRuntime(runtime, runtime => {
+			const runtimeCondition = filterRuntime(runtime, (runtime) => {
 				for (const exportName of usedByExports) {
 					if (exportsInfo.getUsed(exportName, runtime) !== UsageState.Unused) {
 						return true;
@@ -61,7 +62,7 @@ class PureExpressionDependency extends NullDependency {
 	}
 
 	/**
-	 * Update the hash
+	 * Updates the hash with the data contributed by this instance.
 	 * @param {Hash} hash hash to be updated
 	 * @param {UpdateHashContext} context context
 	 * @returns {void}
@@ -86,6 +87,7 @@ class PureExpressionDependency extends NullDependency {
 	}
 
 	/**
+	 * Gets module evaluation side effects state.
 	 * @param {ModuleGraph} moduleGraph the module graph
 	 * @returns {ConnectionState} how this dependency connects the module to referencing modules
 	 */
@@ -94,23 +96,23 @@ class PureExpressionDependency extends NullDependency {
 	}
 
 	/**
+	 * Serializes this instance into the provided serializer context.
 	 * @param {ObjectSerializerContext} context context
 	 */
 	serialize(context) {
-		const { write } = context;
-		write(this.range);
-		write(this.usedByExports);
+		context.write(this.range).write(this.usedByExports);
 		super.serialize(context);
 	}
 
 	/**
+	 * Restores this instance from the provided deserializer context.
 	 * @param {ObjectDeserializerContext} context context
 	 */
 	deserialize(context) {
-		const { read } = context;
-		this.range = read();
-		this.usedByExports = read();
-		super.deserialize(context);
+		this.range = context.read();
+		const c1 = context.rest;
+		this.usedByExports = c1.read();
+		super.deserialize(c1.rest);
 	}
 }
 
@@ -123,6 +125,7 @@ PureExpressionDependency.Template = class PureExpressionDependencyTemplate exten
 	NullDependency.Template
 ) {
 	/**
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Dependency} dependency the dependency for which the template should be applied
 	 * @param {ReplaceSource} source the current replace source which can be modified
 	 * @param {DependencyTemplateContext} templateContext the context object

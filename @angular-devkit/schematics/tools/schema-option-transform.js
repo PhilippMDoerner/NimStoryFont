@@ -22,7 +22,7 @@ exports.InvalidInputOptions = InvalidInputOptions;
 function validateOptionsWithSchema(registry) {
     return (schematic, options, context) => {
         // Prevent a schematic from changing the options object by making a copy of it.
-        options = (0, core_1.deepCopy)(options);
+        options = structuredClone(options);
         const withPrompts = context ? context.interactive : true;
         if (schematic.schema && schematic.schemaJson) {
             // Make a deep copy of options.
@@ -36,3 +36,4 @@ function validateOptionsWithSchema(registry) {
         return (0, rxjs_1.of)(options);
     };
 }
+//# sourceMappingURL=schema-option-transform.js.map

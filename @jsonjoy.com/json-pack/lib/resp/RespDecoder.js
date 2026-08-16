@@ -1,9 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RespDecoder = void 0;
-const Reader_1 = require("@jsonjoy.com/util/lib/buffers/Reader");
+const Reader_1 = require("@jsonjoy.com/buffers/lib/Reader");
 const extensions_1 = require("./extensions");
-const isUtf8_1 = require("@jsonjoy.com/util/lib/buffers/utf8/isUtf8");
+const isUtf8_1 = require("@jsonjoy.com/buffers/lib/utf8/isUtf8");
 class RespDecoder {
     constructor(reader = new Reader_1.Reader()) {
         this.reader = reader;
@@ -11,13 +11,16 @@ class RespDecoder {
     }
     read(uint8) {
         this.reader.reset(uint8);
-        return this.val();
+        return this.readAny();
     }
     decode(uint8) {
         this.reader.reset(uint8);
-        return this.val();
+        return this.readAny();
     }
     val() {
+        return this.readAny();
+    }
+    readAny() {
         const reader = this.reader;
         const type = reader.u8();
         switch (type) {
@@ -236,22 +239,22 @@ class RespDecoder {
         const length = this.readLength();
         const arr = [];
         for (let i = 0; i < length; i++)
-            arr.push(this.val());
+            arr.push(this.readAny());
         return arr;
     }
     readSet() {
         const length = this.readLength();
         const set = new Set();
         for (let i = 0; i < length; i++)
-            set.add(this.val());
+            set.add(this.readAny());
         return set;
     }
     readObj() {
         const length = this.readLength();
         const obj = {};
         for (let i = 0; i < length; i++) {
-            const key = this.val() + '';
-            obj[key] = this.val();
+            const key = this.readAny() + '';
+            obj[key] = this.readAny();
         }
         return obj;
     }

@@ -4,6 +4,7 @@ export type Options = [
         checkNever: boolean;
     }
 ];
-declare const _default: TSESLint.RuleModule<"meaninglessVoidOperator" | "removeVoid", Options, import("../../rules").ESLintPluginDocs, TSESLint.RuleListener>;
+declare const _default: TSESLint.RuleModule<"meaninglessVoidOperator" | "removeVoid", Options, import("../../rules").ESLintPluginDocs, TSESLint.RuleListener> & {
+    name: string;
+};
 export default _default;
-//# sourceMappingURL=no-meaningless-void-operator.d.ts.map

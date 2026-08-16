@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RULE_NAME = void 0;
+exports.RULE_DOCS_EXTENSION = exports.RULE_NAME = void 0;
 const utils_1 = require("@angular-eslint/utils");
 const create_eslint_rule_1 = require("../utils/create-eslint-rule");
 exports.RULE_NAME = 'contextual-decorator';
@@ -9,7 +9,7 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
     meta: {
         type: 'suggestion',
         docs: {
-            description: 'Ensures that classes use contextual decorators in its body',
+            description: 'Ensures that classes use contextual decorators in their body',
         },
         schema: [],
         messages: {
@@ -56,3 +56,6 @@ function validateDecorator(context, decorator, classDecoratorName) {
         data: { classDecoratorName },
     });
 }
+exports.RULE_DOCS_EXTENSION = {
+    rationale: `Angular decorators like @Input(), @Output(), @ViewChild(), and @HostBinding() are only meaningful in specific class types. For example, @Input() and @Output() only work in @Component or @Directive classes because they define the component/directive's API. Using these decorators in @Injectable() classes or @Pipe() classes will not work as expected, as Angular does not process these decorators in those contexts. This rule prevents bugs by ensuring decorators are only used where Angular will recognize and process them.`,
+};

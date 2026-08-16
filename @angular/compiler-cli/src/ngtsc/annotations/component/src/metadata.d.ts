@@ -5,11 +5,12 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.dev/license
  */
-import { AnimationTriggerNames, DeclarationListEmitMode, DeferBlockDepsEmitMode, R3ClassDebugInfo, R3ClassMetadata, R3ComponentMetadata, R3DeferPerBlockDependency, R3DeferPerComponentDependency, R3TemplateDependencyMetadata, SchemaMetadata, TmplAstDeferredBlock } from '@angular/compiler';
+import { LegacyAnimationTriggerNames, DeclarationListEmitMode, DeferBlockDepsEmitMode, R3ClassDebugInfo, R3ClassMetadata, R3ComponentMetadata, R3DeferPerBlockDependency, R3DeferPerComponentDependency, R3TemplateDependencyMetadata, SchemaMetadata, TmplAstDeferredBlock, ClassPropertyMapping } from '@angular/compiler';
 import ts from 'typescript';
 import { Reference } from '../../../imports';
-import { ClassPropertyMapping, DirectiveResources, DirectiveTypeCheckMeta, HostDirectiveMeta, InputMapping } from '../../../metadata';
-import { ClassDeclaration } from '../../../reflection';
+import { DirectiveResources, DirectiveTypeCheckMeta, ForeignComponentMeta, HostDirectiveMeta, InputMapping } from '../../../metadata';
+export { ForeignComponentMeta } from '../../../metadata';
+import { ClassDeclaration, Import } from '../../../reflection';
 import { SubsetOfKeys } from '../../../util/src/typescript';
 import { ParsedTemplateWithSource, StyleUrlMeta } from './resources';
 import { HostBindingNodes } from '../../directive';
@@ -19,7 +20,7 @@ import { HostBindingNodes } from '../../directive';
  * The `keyof R3ComponentMetadata &` condition ensures that only fields of `R3ComponentMetadata` can
  * be included here.
  */
-export type ComponentMetadataResolvedFields = SubsetOfKeys<R3ComponentMetadata<R3TemplateDependencyMetadata>, 'declarations' | 'declarationListEmitMode' | 'defer'>;
+export type ComponentMetadataResolvedFields = SubsetOfKeys<R3ComponentMetadata<R3TemplateDependencyMetadata>, 'declarations' | 'declarationListEmitMode' | 'defer' | 'hasDirectiveDependencies'>;
 export interface ComponentAnalysisData {
     /**
      * `meta` includes those fields of `R3ComponentMetadata` which are calculated at `analyze` time
@@ -54,9 +55,10 @@ export interface ComponentAnalysisData {
      */
     inlineStyles: string[] | null;
     isPoisoned: boolean;
-    animationTriggerNames: AnimationTriggerNames | null;
+    legacyAnimationTriggerNames: LegacyAnimationTriggerNames | null;
     rawImports: ts.Expression | null;
     resolvedImports: Reference<ClassDeclaration>[] | null;
+    foreignImports: ForeignComponentMeta[] | null;
     rawDeferredImports: ts.Expression | null;
     resolvedDeferredImports: Reference<ClassDeclaration>[] | null;
     /**
@@ -71,16 +73,24 @@ export interface ComponentAnalysisData {
     rawHostDirectives: ts.Expression | null;
     /** Raw nodes representing the host bindings of the directive. */
     hostBindingNodes: HostBindingNodes;
+    /** Whether selectorless is enabled for the specific component. */
+    selectorlessEnabled: boolean;
+    /**
+     * Names of the symbols within the source file that are referenced directly inside the template.
+     * Used to reduce the amount of lookups when determining which dependencies to expose.
+     */
+    localReferencedSymbols: Set<string> | null;
 }
 export interface ComponentResolutionData {
     declarations: R3TemplateDependencyMetadata[];
     declarationListEmitMode: DeclarationListEmitMode;
     /**
      * Map of all types that can be defer loaded (ts.ClassDeclaration) ->
-     * corresponding import declaration (ts.ImportDeclaration) within
-     * the current source file.
+     * corresponding import information (reflection `Import`) within
+     * the current source file. The `Import` preserves the exported name
+     * as seen by the importing module so aliasing is handled correctly.
      */
-    deferrableDeclToImportDecl: Map<ClassDeclaration, ts.ImportDeclaration>;
+    deferrableDeclToImportDecl: Map<ClassDeclaration, Import>;
     /**
      * Map of `@defer` blocks -> their corresponding dependencies.
      * Required to compile the defer resolver function in `PerBlock` mode.
@@ -97,6 +107,8 @@ export interface ComponentResolutionData {
      * defer resolver function in `PerComponent` mode.
      */
     deferPerComponentDependencies: R3DeferPerComponentDependency[];
+    /** Whether the component is standalone and has any directly-imported directive dependencies. */
+    hasDirectiveDependencies: boolean;
 }
 /**
  * Describes a dependency used within a `@defer` block.

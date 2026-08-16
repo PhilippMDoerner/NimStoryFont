@@ -1,0 +1,56 @@
+@import './variables.less';
+@import './functions.less';
+@import './input.less';
+@import './select-box.less';
+
+.@{namespace}-creator {
+  padding: 24px;
+  &__input {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+  &__control {
+    margin-top: 16px;
+    text-align: right;
+  }
+  &__checkbox {
+    .setCssVar(check-color, #212121);
+    .setCssVar(checked-color, #506eec);
+
+    display: flex;
+    align-items: center;
+    margin-top: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    user-select: none;
+    input {
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border: 1px solid .getCssVar(check-color) [];
+      border-radius: 5px;
+      background-color: transparent;
+      display: inline-block;
+      position: relative;
+      margin-right: 10px;
+      cursor: pointer;
+      &:before {
+        content: '';
+        background-color: .getCssVar(checked-color) [];
+        display: block;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0);
+        width: 10px;
+        height: 10px;
+        border-radius: 3px;
+        transition: all 0.2s ease-in-out;
+      }
+      &:checked:before {
+        transform: translate(-50%, -50%) scale(1);
+      }
+    }
+  }
+}

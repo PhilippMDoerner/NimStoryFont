@@ -4,16 +4,6 @@ Simple interactive command line prompt to display a raw list of choices (single 
 
 ![rawlist prompt](https://cdn.rawgit.com/SBoudrias/Inquirer.js/28ae8337ba51d93e359ef4f7ee24e79b69898962/assets/screenshots/rawlist.svg)
 
-# Special Thanks
-
-<div align="center" markdown="1">
-
-[![Graphite](https://github.com/user-attachments/assets/53db40ca-2254-481a-a094-6597f8716e29)](https://graphite.dev/?utm_source=npmjs&utm_medium=repo&utm_campaign=inquirerjs)<br>
-
-### [Graphite is the AI developer productivity platform helping teams on GitHub ship higher quality software, faster](https://graphite.dev/?utm_source=npmjs&utm_medium=repo&utm_campaign=inquirerjs)
-
-</div>
-
 # Installation
 
 <table>
@@ -82,6 +72,7 @@ const answer = await rawlist({
 | message  | `string`                | yes      | The question to ask                                                                                                               |
 | choices  | `Choice[]`              | yes      | List of the available choices.                                                                                                    |
 | loop     | `boolean`               | no       | Defaults to `true`. When set to `false`, the cursor will be constrained to the top and bottom of the choice list without looping. |
+| default  | `Value`                 | no       | The value of the choice to preselect. If the value is not found, no choice is preselected.                                        |
 | theme    | [See Theming](#Theming) | no       | Customize look of the prompt.                                                                                                     |
 
 `Separator` objects can be used in the `choices` array to render non-selectable lines in the choice list. By default it'll render a line, but you can provide the text as argument (`new Separator('-- Dependencies --')`). This option is often used to add labels to groups within long list of options.
@@ -96,6 +87,7 @@ type Choice<Value> = {
   name?: string;
   short?: string;
   key?: string;
+  description?: string;
 };
 ```
 
@@ -105,8 +97,15 @@ Here's each property:
 - `name`: This is the string displayed in the choice list.
 - `short`: Once the prompt is done (press enter), we'll use `short` if defined to render next to the question. By default we'll use `name`.
 - `key`: The key of the choice. Displayed as `key) name`.
+- `description`: Option description which appears below the list when the choice is selected.
 
 `choices` can also be an array of string, in which case the string will be used both as the `value` and the `name`.
+
+## Keybindings
+
+Set `INQUIRER_KEYBINDINGS=vim`, `INQUIRER_KEYBINDINGS=emacs`, or `INQUIRER_KEYBINDINGS=vim,emacs` to enable alternative navigation keybindings globally.
+
+You can override the environment setting per prompt with `theme.keybindings`.
 
 ## Theming
 
@@ -124,7 +123,9 @@ type Theme = {
     message: (text: string, status: 'idle' | 'done' | 'loading') => string;
     error: (text: string) => string;
     highlight: (text: string) => string;
+    description: (text: string) => string;
   };
+  keybindings: readonly ('emacs' | 'vim')[];
 };
 ```
 

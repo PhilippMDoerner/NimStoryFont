@@ -1,40 +1,45 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.typescript = exports.core = exports.previewAnnotations = exports.addons = void 0;
-const node_path_1 = require("node:path");
-const getAbsolutePath = (input) => (0, node_path_1.dirname)(require.resolve((0, node_path_1.join)(input, 'package.json')));
-exports.addons = [
-    require.resolve('./server/framework-preset-angular-cli'),
-    require.resolve('./server/framework-preset-angular-ivy'),
-];
-const previewAnnotations = async (entries = [], options) => {
-    const annotations = [...entries, require.resolve('./client/config.mjs')];
-    if (options.enableProdMode) {
-        annotations.unshift(require.resolve('./client/preview-prod.mjs'));
-    }
-    const docsConfig = await options.presets.apply('docs', {}, options);
-    const docsEnabled = Object.keys(docsConfig).length > 0;
-    if (docsEnabled) {
-        annotations.push(require.resolve('./client/docs/config.mjs'));
-    }
-    return annotations;
+import CJS_COMPAT_NODE_URL_m3cx8917gnb from 'node:url';
+import CJS_COMPAT_NODE_PATH_m3cx8917gnb from 'node:path';
+import CJS_COMPAT_NODE_MODULE_m3cx8917gnb from "node:module";
+
+var __filename = CJS_COMPAT_NODE_URL_m3cx8917gnb.fileURLToPath(import.meta.url);
+var __dirname = CJS_COMPAT_NODE_PATH_m3cx8917gnb.dirname(__filename);
+var require = CJS_COMPAT_NODE_MODULE_m3cx8917gnb.createRequire(import.meta.url);
+
+// ------------------------------------------------------------
+// end of CJS compatibility banner, injected by Storybook's esbuild configuration
+// ------------------------------------------------------------
+
+// src/preset.ts
+import { fileURLToPath } from "node:url";
+var addons = [
+  fileURLToPath(import.meta.resolve("@storybook/angular/server/framework-preset-angular-cli")),
+  fileURLToPath(import.meta.resolve("@storybook/angular/server/framework-preset-angular-ivy"))
+], previewAnnotations = async (entries = [], options) => {
+  let config = fileURLToPath(import.meta.resolve("@storybook/angular/client/config")), annotations = [...entries, config];
+  if (options.enableProdMode) {
+    let previewProdPath = fileURLToPath(
+      import.meta.resolve("@storybook/angular/client/preview-prod")
+    );
+    annotations.unshift(previewProdPath);
+  }
+  let docsConfig = await options.presets.apply("docs", {}, options);
+  if (Object.keys(docsConfig).length > 0) {
+    let docsConfigPath = fileURLToPath(
+      import.meta.resolve("@storybook/angular/client/docs/config")
+    );
+    annotations.push(docsConfigPath);
+  }
+  return annotations;
+}, core = {
+  builder: import.meta.resolve("@storybook/builder-webpack5")
+}, typescript = async (config) => ({
+  ...config,
+  skipCompiler: !0
+});
+export {
+  addons,
+  core,
+  previewAnnotations,
+  typescript
 };
-exports.previewAnnotations = previewAnnotations;
-const core = async (config, options) => {
-    const framework = await options.presets.apply('framework');
-    return {
-        ...config,
-        builder: {
-            name: getAbsolutePath('@storybook/builder-webpack5'),
-            options: typeof framework === 'string' ? {} : framework.options.builder || {},
-        },
-    };
-};
-exports.core = core;
-const typescript = async (config) => {
-    return {
-        ...config,
-        skipCompiler: true,
-    };
-};
-exports.typescript = typescript;

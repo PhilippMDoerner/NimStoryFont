@@ -1,2 +1,1 @@
-import decodeUtf8 from './v16';
-export { decodeUtf8 };
+export * from '@jsonjoy.com/buffers/lib/utf8/decodeUtf8';

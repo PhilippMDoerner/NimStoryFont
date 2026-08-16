@@ -1,0 +1,12 @@
+<div [style.height.px]="heightPx()">
+  <ng-content></ng-content>
+</div>
+
+<span
+  class="handle"
+  cdkDrag
+  cdkDragLockAxis="y"
+  (cdkDragMoved)="resizeContainer($event)"
+>
+  <app-icon class="handle__icon" [icon]="'grip-lines'" />
+</span>

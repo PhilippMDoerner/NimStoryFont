@@ -7,6 +7,7 @@
 
 const asyncLib = require("neo-async");
 const Queue = require("./util/Queue");
+const createHash = require("./util/createHash");
 
 /** @typedef {import("./Compiler")} Compiler */
 /** @typedef {import("./DependenciesBlock")} DependenciesBlock */
@@ -14,23 +15,46 @@ const Queue = require("./util/Queue");
 /** @typedef {import("./Dependency").ExportSpec} ExportSpec */
 /** @typedef {import("./Dependency").ExportsSpec} ExportsSpec */
 /** @typedef {import("./ExportsInfo")} ExportsInfo */
+/** @typedef {import("./ExportsInfo").ExportInfoName} ExportInfoName */
 /** @typedef {import("./ExportsInfo").RestoreProvidedData} RestoreProvidedData */
+/** @typedef {import("../declarations/WebpackOptions").HashFunction} HashFunction */
+/** @typedef {import("./LazyBarrel")} LazyBarrelController */
 /** @typedef {import("./Module")} Module */
 /** @typedef {import("./Module").BuildInfo} BuildInfo */
 
 const PLUGIN_NAME = "FlagDependencyExportsPlugin";
 const PLUGIN_LOGGER_NAME = `webpack.${PLUGIN_NAME}`;
 
+/** @typedef {{ etag: string, data: RestoreProvidedData }} MemCacheEntry */
+
+/**
+ * @param {Module} module the module
+ * @param {LazyBarrelController} lazyBarrelController the compilation's lazy barrel controller
+ * @param {HashFunction} hashFunction hash function for long keys
+ * @returns {string} the hash
+ */
+const getLazyRequestsHash = (module, lazyBarrelController, hashFunction) => {
+	const lazyKeys = lazyBarrelController.getLazyRequests(module);
+	if (!lazyKeys) return "";
+	const joined = [...lazyKeys].join("|");
+	if (joined.length < 100) return joined;
+	const hash = createHash(hashFunction);
+	hash.update(joined);
+	return /** @type {string} */ (hash.digest("hex"));
+};
+
 class FlagDependencyExportsPlugin {
 	/**
-	 * Apply the plugin
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Compiler} compiler the compiler instance
 	 * @returns {void}
 	 */
 	apply(compiler) {
-		compiler.hooks.compilation.tap(PLUGIN_NAME, compilation => {
+		compiler.hooks.compilation.tap(PLUGIN_NAME, (compilation) => {
 			const moduleGraph = compilation.moduleGraph;
 			const cache = compilation.getCache(PLUGIN_NAME);
+			const lazyBarrelController = compilation._lazyBarrelController;
+			const hashFunction = compilation.outputOptions.hashFunction;
 			compilation.hooks.finishModules.tapAsync(
 				PLUGIN_NAME,
 				(modules, callback) => {
@@ -50,7 +74,9 @@ class FlagDependencyExportsPlugin {
 					// Step 1: Try to restore cached provided export info from cache
 					logger.time("restore cached provided exports");
 					asyncLib.each(
-						modules,
+						/** @type {import("neo-async").IterableCollection<Module>} */ (
+							/** @type {unknown} */ (modules)
+						),
 						(module, callback) => {
 							const exportsInfo = moduleGraph.getExportsInfo(module);
 							// If the module doesn't have an exportsType, it's a module
@@ -77,16 +103,28 @@ class FlagDependencyExportsPlugin {
 								return callback();
 							}
 							const memCache = moduleMemCaches && moduleMemCaches.get(module);
-							const memCacheValue = memCache && memCache.get(this);
-							if (memCacheValue !== undefined) {
+							/** @type {MemCacheEntry | undefined} */
+							const memCacheEntry = memCache && memCache.get(this);
+							const hash = getLazyRequestsHash(
+								module,
+								lazyBarrelController,
+								hashFunction
+							);
+							// validated by the still-lazy request keys: reference-change
+							// detection cannot invalidate the mem cache when the un-lazied
+							// connections are unsafe-cached (they are skipped when comparing
+							// references)
+							if (memCacheEntry !== undefined && memCacheEntry.etag === hash) {
 								statRestoredFromMemCache++;
-								exportsInfo.restoreProvided(memCacheValue);
+								exportsInfo.restoreProvided(memCacheEntry.data);
 								return callback();
 							}
+							const buildHash = /** @type {string} */ (
+								/** @type {BuildInfo} */ (module.buildInfo).hash
+							);
 							cache.get(
 								module.identifier(),
-								/** @type {BuildInfo} */
-								(module.buildInfo).hash,
+								hash ? `${buildHash}|${hash}` : buildHash,
 								(err, result) => {
 									if (err) return callback(err);
 
@@ -103,7 +141,7 @@ class FlagDependencyExportsPlugin {
 								}
 							);
 						},
-						err => {
+						(err) => {
 							logger.timeEnd("restore cached provided exports");
 							if (err) return callback(err);
 
@@ -126,10 +164,11 @@ class FlagDependencyExportsPlugin {
 							let changed = false;
 
 							/**
+							 * Process dependencies block.
 							 * @param {DependenciesBlock} depBlock the dependencies block
 							 * @returns {void}
 							 */
-							const processDependenciesBlock = depBlock => {
+							const processDependenciesBlock = (depBlock) => {
 								for (const dep of depBlock.dependencies) {
 									processDependency(dep);
 								}
@@ -139,16 +178,18 @@ class FlagDependencyExportsPlugin {
 							};
 
 							/**
+							 * Process dependency.
 							 * @param {Dependency} dep the dependency
 							 * @returns {void}
 							 */
-							const processDependency = dep => {
+							const processDependency = (dep) => {
 								const exportDesc = dep.getExports(moduleGraph);
 								if (!exportDesc) return;
 								exportsSpecsFromDependencies.set(dep, exportDesc);
 							};
 
 							/**
+							 * Process exports spec.
 							 * @param {Dependency} dep dependency
 							 * @param {ExportsSpec} exportDesc info
 							 * @returns {void}
@@ -160,6 +201,7 @@ class FlagDependencyExportsPlugin {
 								const globalPriority = exportDesc.priority;
 								const globalTerminalBinding =
 									exportDesc.terminalBinding || false;
+								const globalPure = exportDesc.isPure || false;
 								const exportDeps = exportDesc.dependencies;
 								if (exportDesc.hideExports) {
 									for (const name of exportDesc.hideExports) {
@@ -188,32 +230,51 @@ class FlagDependencyExportsPlugin {
 									 */
 									const mergeExports = (exportsInfo, exports) => {
 										for (const exportNameOrSpec of exports) {
+											/** @type {ExportInfoName} */
 											let name;
 											let canMangle = globalCanMangle;
 											let terminalBinding = globalTerminalBinding;
+											let pure = globalPure;
+											/** @type {ExportSpec["exports"]} */
 											let exports;
 											let from = globalFrom;
+											/** @type {ExportSpec["export"]} */
 											let fromExport;
 											let priority = globalPriority;
 											let hidden = false;
+											/** @type {ExportSpec["inlined"]} */
+											let inlined;
 											if (typeof exportNameOrSpec === "string") {
 												name = exportNameOrSpec;
 											} else {
 												name = exportNameOrSpec.name;
-												if (exportNameOrSpec.canMangle !== undefined)
+												if (exportNameOrSpec.canMangle !== undefined) {
 													canMangle = exportNameOrSpec.canMangle;
-												if (exportNameOrSpec.export !== undefined)
+												}
+												if (exportNameOrSpec.export !== undefined) {
 													fromExport = exportNameOrSpec.export;
-												if (exportNameOrSpec.exports !== undefined)
+												}
+												if (exportNameOrSpec.exports !== undefined) {
 													exports = exportNameOrSpec.exports;
-												if (exportNameOrSpec.from !== undefined)
+												}
+												if (exportNameOrSpec.from !== undefined) {
 													from = exportNameOrSpec.from;
-												if (exportNameOrSpec.priority !== undefined)
+												}
+												if (exportNameOrSpec.priority !== undefined) {
 													priority = exportNameOrSpec.priority;
-												if (exportNameOrSpec.terminalBinding !== undefined)
+												}
+												if (exportNameOrSpec.terminalBinding !== undefined) {
 													terminalBinding = exportNameOrSpec.terminalBinding;
-												if (exportNameOrSpec.hidden !== undefined)
+												}
+												if (exportNameOrSpec.isPure !== undefined) {
+													pure = exportNameOrSpec.isPure;
+												}
+												if (exportNameOrSpec.hidden !== undefined) {
 													hidden = exportNameOrSpec.hidden;
+												}
+												if (exportNameOrSpec.inlined !== undefined) {
+													inlined = exportNameOrSpec.inlined;
+												}
 											}
 											const exportInfo = exportsInfo.getExportInfo(name);
 
@@ -233,8 +294,21 @@ class FlagDependencyExportsPlugin {
 												changed = true;
 											}
 
+											if (
+												inlined !== undefined &&
+												exportInfo.canInlineProvide === undefined
+											) {
+												exportInfo.canInlineProvide = inlined;
+												changed = true;
+											}
+
 											if (terminalBinding && !exportInfo.terminalBinding) {
 												exportInfo.terminalBinding = true;
+												changed = true;
+											}
+
+											if (pure && exportInfo.pureProvide !== true) {
+												exportInfo.pureProvide = true;
 												changed = true;
 											}
 
@@ -263,6 +337,7 @@ class FlagDependencyExportsPlugin {
 
 											// Recalculate target exportsInfo
 											const target = exportInfo.getTarget(moduleGraph);
+											/** @type {undefined | ExportsInfo} */
 											let targetExportsInfo;
 											if (target) {
 												const targetModuleExportsInfo =
@@ -381,18 +456,30 @@ class FlagDependencyExportsPlugin {
 										.getRestoreProvidedData();
 									const memCache =
 										moduleMemCaches && moduleMemCaches.get(module);
+									const hash = getLazyRequestsHash(
+										module,
+										lazyBarrelController,
+										hashFunction
+									);
 									if (memCache) {
-										memCache.set(this, cachedData);
+										/** @type {MemCacheEntry} */
+										const entry = {
+											etag: hash,
+											data: cachedData
+										};
+										memCache.set(this, entry);
 									}
+									const buildHash = /** @type {string} */ (
+										/** @type {BuildInfo} */ (module.buildInfo).hash
+									);
 									cache.store(
 										module.identifier(),
-										/** @type {BuildInfo} */
-										(module.buildInfo).hash,
+										hash ? `${buildHash}|${hash}` : buildHash,
 										cachedData,
 										callback
 									);
 								},
-								err => {
+								(err) => {
 									logger.timeEnd("store provided exports into cache");
 									callback(err);
 								}
@@ -404,13 +491,13 @@ class FlagDependencyExportsPlugin {
 
 			/** @type {WeakMap<Module, RestoreProvidedData>} */
 			const providedExportsCache = new WeakMap();
-			compilation.hooks.rebuildModule.tap(PLUGIN_NAME, module => {
+			compilation.hooks.rebuildModule.tap(PLUGIN_NAME, (module) => {
 				providedExportsCache.set(
 					module,
 					moduleGraph.getExportsInfo(module).getRestoreProvidedData()
 				);
 			});
-			compilation.hooks.finishRebuildingModule.tap(PLUGIN_NAME, module => {
+			compilation.hooks.finishRebuildingModule.tap(PLUGIN_NAME, (module) => {
 				moduleGraph.getExportsInfo(module).restoreProvided(
 					/** @type {RestoreProvidedData} */
 					(providedExportsCache.get(module))

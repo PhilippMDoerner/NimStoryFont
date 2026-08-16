@@ -11,7 +11,19 @@ exports.default = (0, architect_1.createBuilder)(async (options, context) => {
         // We want these paths to always be resolved relative to the workspace
         // root to be able to run the lint executor from any subfolder.
         process.chdir(systemRoot);
-        const projectName = context.target?.project ?? '<???>';
+        // Resolve all relevant project metadata from the context
+        let projectName = '<???>';
+        let projectMetadata;
+        let projectRoot = '';
+        try {
+            projectMetadata = await context.getProjectMetadata(context.target?.project ?? '');
+            projectRoot = projectMetadata?.root ?? '';
+            projectName =
+                projectMetadata?.name ?? context.target?.project ?? '<???>';
+        }
+        catch {
+            /* empty */
+        }
         const printInfo = options.format && !options.silent;
         if (printInfo) {
             console.info(`\nLinting ${JSON.stringify(projectName)}...`);
@@ -22,20 +34,11 @@ exports.default = (0, architect_1.createBuilder)(async (options, context) => {
         options.cacheLocation = options.cacheLocation
             ? (0, path_1.join)(options.cacheLocation, projectName)
             : null;
-        /**
-         * Until ESLint v9 is released and the new so called flat config is the default
-         * we only want to support it if the user has explicitly opted into it by converting
-         * their root ESLint config to use a supported flat config file name.
-         */
-        const useFlatConfig = eslint_utils_1.supportedFlatConfigNames.some((name) => (0, fs_1.existsSync)((0, path_1.join)(systemRoot, name)));
-        const { eslint, ESLint } = await (0, eslint_utils_1.resolveAndInstantiateESLint)(eslintConfigPath, options, useFlatConfig);
-        const version = ESLint?.version?.split('.');
-        if (!version ||
-            version.length < 2 ||
-            Number(version[0]) < 7 ||
-            (Number(version[0]) === 7 && Number(version[1]) < 6)) {
-            throw new Error('ESLint must be version 7.6 or higher.');
-        }
+        options.applySuppressions = options.applySuppressions ?? false;
+        options.suppressionsLocation = options.suppressionsLocation
+            ? (0, path_1.resolve)(systemRoot, options.suppressionsLocation)
+            : null;
+        const { eslint, ESLint } = await (0, eslint_utils_1.resolveAndInstantiateESLint)(eslintConfigPath, options);
         let lintResults = [];
         try {
             lintResults = await eslint.lintFiles(options.lintFilePatterns);
@@ -44,16 +47,14 @@ exports.default = (0, architect_1.createBuilder)(async (options, context) => {
             if (err instanceof Error &&
                 err.message.includes('You must therefore provide a value for the "parserOptions.project" property for @typescript-eslint/parser')) {
                 let eslintConfigPathForError = `for ${projectName}`;
-                const projectMetadata = await context.getProjectMetadata(projectName);
-                if (projectMetadata?.root) {
-                    const { root } = projectMetadata;
+                if (projectRoot) {
                     eslintConfigPathForError =
-                        resolveESLintConfigPath(root) ?? '';
+                        resolveESLintConfigPath(projectRoot) ?? '';
                 }
                 console.error(`
-Error: You have attempted to use a lint rule which requires the full TypeScript type-checker to be available, but you do not have \`parserOptions.project\` configured to point at your project tsconfig.json files in the relevant TypeScript file "overrides" block of your project ESLint config ${eslintConfigPath || eslintConfigPathForError}
+Error: You have attempted to use a lint rule which requires the full TypeScript type-checker to be available, but you have not configured type information for the TypeScript files in your project ESLint config ${eslintConfigPath || eslintConfigPathForError}
 
-For full guidance on how to resolve this issue, please see https://github.com/angular-eslint/angular-eslint/blob/main/docs/RULES_REQUIRING_TYPE_INFORMATION.md
+The simplest way to enable type information is to set \`languageOptions.parserOptions.projectService\` to \`true\` for your TypeScript files. For full guidance on how to resolve this issue, please see https://github.com/angular-eslint/angular-eslint/blob/main/docs/RULES_REQUIRING_TYPE_INFORMATION.md
 `);
                 return {
                     success: false,
@@ -67,7 +68,7 @@ For full guidance on how to resolve this issue, please see https://github.com/an
                 .filter((pattern) => !!pattern)
                 .map((pattern) => `- '${pattern}'`);
             if (ignoredPatterns.length) {
-                throw new Error(`All files matching the following patterns are ignored:\n${ignoredPatterns.join('\n')}\n\nPlease check your '.eslintignore' file.`);
+                throw new Error(`All files matching the following patterns are ignored:\n${ignoredPatterns.join('\n')}\n\nPlease check the 'ignores' configuration in your ESLint flat config.`);
             }
             throw new Error('Invalid lint configuration. Nothing to lint. Please check your lint target pattern(s).');
         }
@@ -78,25 +79,24 @@ For full guidance on how to resolve this issue, please see https://github.com/an
         let totalWarnings = 0;
         const reportOnlyErrors = options.quiet;
         const maxWarnings = options.maxWarnings;
-        /**
-         * Depending on user configuration we may not want to report on all the
-         * results, so we need to adjust them before formatting.
-         */
-        const finalLintResults = lintResults
-            .map((result) => {
+        // Calculate totals for all results
+        for (const result of lintResults) {
             totalErrors += result.errorCount;
             totalWarnings += result.warningCount;
-            if (result.errorCount || (result.warningCount && !reportOnlyErrors)) {
-                if (reportOnlyErrors) {
-                    // Collect only errors (Linter.Severity === 2)
-                    result.messages = result.messages.filter(({ severity }) => severity === 2);
-                }
-                return result;
-            }
-            return null;
-        })
-            // Filter out the null values
-            .filter(Boolean);
+        }
+        /**
+         * Pass all lint results to the formatter, including files with no issues.
+         * This ensures formatters like "ratchet" that need complete file information work correctly.
+         * If quiet mode is enabled, we still filter messages but preserve all file results.
+         */
+        let finalLintResults = lintResults;
+        if (reportOnlyErrors) {
+            // In quiet mode, filter messages but keep all file results
+            finalLintResults = lintResults.map((result) => ({
+                ...result,
+                messages: result.messages.filter(({ severity }) => severity === 2),
+            }));
+        }
         const hasWarningsToPrint = totalWarnings > 0 && !reportOnlyErrors;
         const hasErrorsToPrint = totalErrors > 0;
         /**
@@ -110,7 +110,19 @@ For full guidance on how to resolve this issue, please see https://github.com/an
          */
         const formattedResults = await formatter.format(finalLintResults);
         if (options.outputFile) {
-            const pathToOutputFile = (0, path_1.join)(systemRoot, options.outputFile);
+            // Interpolate placeholders in outputFile path
+            let interpolatedOutputFile = options.outputFile;
+            if (interpolatedOutputFile.includes('{projectName}')) {
+                interpolatedOutputFile = interpolatedOutputFile.replace(/{projectName}/g, projectName);
+            }
+            if (interpolatedOutputFile.includes('{projectRoot}')) {
+                interpolatedOutputFile = interpolatedOutputFile.replace(/{projectRoot}/g, projectRoot);
+            }
+            // Clean up any resulting double slashes or leading slashes from empty replacements
+            interpolatedOutputFile = interpolatedOutputFile
+                .replace(/\/+/g, '/')
+                .replace(/^\//, '');
+            const pathToOutputFile = (0, path_1.join)(systemRoot, interpolatedOutputFile);
             (0, fs_1.mkdirSync)((0, path_1.dirname)(pathToOutputFile), { recursive: true });
             (0, fs_1.writeFileSync)(pathToOutputFile, formattedResults);
         }
@@ -148,21 +160,11 @@ For full guidance on how to resolve this issue, please see https://github.com/an
     }
 });
 function resolveESLintConfigPath(projectRoot) {
-    const rcPath = (0, path_1.join)(projectRoot, '.eslintrc.json');
-    if ((0, fs_1.existsSync)(rcPath)) {
-        return rcPath;
-    }
-    const jsPath = (0, path_1.join)(projectRoot, 'eslint.config.js');
-    if ((0, fs_1.existsSync)(jsPath)) {
-        return jsPath;
-    }
-    const mjsPath = (0, path_1.join)(projectRoot, 'eslint.config.mjs');
-    if ((0, fs_1.existsSync)(mjsPath)) {
-        return mjsPath;
-    }
-    const cjsPath = (0, path_1.join)(projectRoot, 'eslint.config.cjs');
-    if ((0, fs_1.existsSync)(cjsPath)) {
-        return cjsPath;
+    for (const name of eslint_utils_1.defaultFlatConfigNames) {
+        const candidate = (0, path_1.join)(projectRoot, name);
+        if ((0, fs_1.existsSync)(candidate)) {
+            return candidate;
+        }
     }
     return null;
 }

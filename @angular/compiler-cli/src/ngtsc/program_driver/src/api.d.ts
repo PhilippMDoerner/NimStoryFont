@@ -26,7 +26,19 @@ export declare const NgOriginalFile: unique symbol;
 export interface MaybeSourceFileWithOriginalFile extends ts.SourceFile {
     [NgOriginalFile]?: ts.SourceFile;
 }
+/**
+ * How a type-checking context should handle operations which would require inlining.
+ */
+export declare enum InliningMode {
+    InlineOps = 0,
+    Error = 1,
+    CopySourceToTcb = 2
+}
 export interface ProgramDriver {
+    /**
+     * How this strategy handles operations that require inlining.
+     */
+    readonly inliningMode: InliningMode;
     /**
      * Whether this strategy supports modifying user files (inline modifications) in addition to
      * modifying type-checking shims.

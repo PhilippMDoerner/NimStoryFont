@@ -42,6 +42,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.BUILD_TIMEOUT = void 0;
 exports.buildWebpackBrowser = buildWebpackBrowser;
+/* eslint-disable max-lines-per-function */
 const private_1 = require("@angular/build/private");
 const architect_1 = require("@angular-devkit/architect");
 const build_webpack_1 = require("@angular-devkit/build-webpack");
@@ -54,7 +55,6 @@ const async_chunks_1 = require("../../tools/webpack/utils/async-chunks");
 const helpers_1 = require("../../tools/webpack/utils/helpers");
 const stats_1 = require("../../tools/webpack/utils/stats");
 const utils_1 = require("../../utils");
-const color_1 = require("../../utils/color");
 const copy_assets_1 = require("../../utils/copy-assets");
 const error_1 = require("../../utils/error");
 const i18n_inlining_1 = require("../../utils/i18n-inlining");
@@ -88,12 +88,13 @@ async function initialize(options, context, webpackConfigurationTransform) {
 /**
  * @experimental Direct usage of this function is considered experimental.
  */
-// eslint-disable-next-line max-lines-per-function
 function buildWebpackBrowser(options, context, transforms = {}) {
     const projectName = context.target?.project;
     if (!projectName) {
         throw new Error('The builder requires a target.');
     }
+    context.logger.warn('The "@angular-devkit/build-angular:browser" builder is deprecated as part of Angular\'s Webpack support deprecation. ' +
+        'Use "@angular/build:application" instead. For more information, see https://angular.dev/tools/cli/build-system-migration.');
     const baseOutputPath = path.resolve(context.workspaceRoot, options.outputPath);
     let outputPaths;
     // Check Angular version.
@@ -119,9 +120,7 @@ function buildWebpackBrowser(options, context, transforms = {}) {
             ...initialization,
             cacheOptions: (0, normalize_cache_1.normalizeCacheOptions)(projectMetadata, context.workspaceRoot),
         };
-    }), (0, rxjs_1.switchMap)(
-    // eslint-disable-next-line max-lines-per-function
-    ({ config, projectRoot, projectSourceRoot, i18n, cacheOptions }) => {
+    }), (0, rxjs_1.switchMap)(({ config, projectRoot, projectSourceRoot, i18n, cacheOptions }) => {
         const normalizedOptimization = (0, utils_1.normalizeOptimization)(options.optimization);
         return (0, build_webpack_1.runWebpack)(config, context, {
             webpackFactory: require('webpack'),
@@ -132,9 +131,7 @@ function buildWebpackBrowser(options, context, transforms = {}) {
                         context.logger.info(stats.toString(statsOptions));
                     }
                 }),
-        }).pipe((0, rxjs_1.concatMap)(
-        // eslint-disable-next-line max-lines-per-function
-        async (buildEvent) => {
+        }).pipe((0, rxjs_1.concatMap)(async (buildEvent) => {
             const spinner = new spinner_1.Spinner();
             spinner.enabled = options.progress !== false;
             const { success, emittedFiles = [], outputPath: webpackOutputPath } = buildEvent;
@@ -205,7 +202,7 @@ function buildWebpackBrowser(options, context, transforms = {}) {
                             spinner.succeed('Copying assets complete.');
                         }
                         catch (err) {
-                            spinner.fail(color_1.colors.redBright('Copying of assets failed.'));
+                            spinner.fail('Copying of assets failed.');
                             (0, error_1.assertIsError)(err);
                             return {
                                 output: {
@@ -340,3 +337,4 @@ function mapEmittedFilesToFileInfo(files = []) {
     return filteredFiles;
 }
 exports.default = (0, architect_1.createBuilder)(buildWebpackBrowser);
+//# sourceMappingURL=index.js.map

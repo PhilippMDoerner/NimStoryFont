@@ -218,7 +218,7 @@ function postprocessComponentFile(multiDimensionalMessages, filename) {
         ...messagesFromComponentSource,
         ...messagesFromAllInlineTemplateHTML.flatMap((messagesFromInlineTemplateHTML, i) => {
             const baseFilename = (0, path_1.basename)(filename);
-            const inlineTemplateTmpFilename = `inline-template-${baseFilename}-${++i}.component.html`;
+            const inlineTemplateTmpFilename = `inline-template-${baseFilename}-${i + 1}.component.html`;
             const rangeData = rangeMap.get(inlineTemplateTmpFilename);
             if (!rangeData) {
                 return [];

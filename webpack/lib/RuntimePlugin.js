@@ -6,12 +6,14 @@
 "use strict";
 
 const RuntimeGlobals = require("./RuntimeGlobals");
-const { getChunkFilenameTemplate } = require("./css/CssModulesPlugin");
+const { getPresentKinds } = require("./TemplatedPathPlugin");
 const RuntimeRequirementsDependency = require("./dependencies/RuntimeRequirementsDependency");
 const JavascriptModulesPlugin = require("./javascript/JavascriptModulesPlugin");
+const AsyncModuleGeneratorRuntimeModule = require("./runtime/AsyncModuleGeneratorRuntimeModule");
 const AsyncModuleRuntimeModule = require("./runtime/AsyncModuleRuntimeModule");
 const AutoPublicPathRuntimeModule = require("./runtime/AutoPublicPathRuntimeModule");
 const BaseUriRuntimeModule = require("./runtime/BaseUriRuntimeModule");
+const CommonJsWrapRuntimeModule = require("./runtime/CommonJsWrapRuntimeModule");
 const CompatGetDefaultExportRuntimeModule = require("./runtime/CompatGetDefaultExportRuntimeModule");
 const CompatRuntimeModule = require("./runtime/CompatRuntimeModule");
 const CreateFakeNamespaceObjectRuntimeModule = require("./runtime/CreateFakeNamespaceObjectRuntimeModule");
@@ -22,26 +24,31 @@ const EnsureChunkRuntimeModule = require("./runtime/EnsureChunkRuntimeModule");
 const GetChunkFilenameRuntimeModule = require("./runtime/GetChunkFilenameRuntimeModule");
 const GetMainFilenameRuntimeModule = require("./runtime/GetMainFilenameRuntimeModule");
 const GetTrustedTypesPolicyRuntimeModule = require("./runtime/GetTrustedTypesPolicyRuntimeModule");
+const GetWorkletBootstrapRuntimeModule = require("./runtime/GetWorkletBootstrapRuntimeModule");
 const GlobalRuntimeModule = require("./runtime/GlobalRuntimeModule");
 const HasOwnPropertyRuntimeModule = require("./runtime/HasOwnPropertyRuntimeModule");
 const LoadScriptRuntimeModule = require("./runtime/LoadScriptRuntimeModule");
+const {
+	MakeDeferredNamespaceObjectRuntimeModule,
+	MakeOptimizedDeferredNamespaceObjectRuntimeModule
+} = require("./runtime/MakeDeferredNamespaceObjectRuntime");
 const MakeNamespaceObjectRuntimeModule = require("./runtime/MakeNamespaceObjectRuntimeModule");
 const NonceRuntimeModule = require("./runtime/NonceRuntimeModule");
 const OnChunksLoadedRuntimeModule = require("./runtime/OnChunksLoadedRuntimeModule");
 const PublicPathRuntimeModule = require("./runtime/PublicPathRuntimeModule");
 const RelativeUrlRuntimeModule = require("./runtime/RelativeUrlRuntimeModule");
 const RuntimeIdRuntimeModule = require("./runtime/RuntimeIdRuntimeModule");
+const SetAnonymousDefaultNameRuntimeModule = require("./runtime/SetAnonymousDefaultNameRuntimeModule");
 const SystemContextRuntimeModule = require("./runtime/SystemContextRuntimeModule");
+const ToBinaryRuntimeModule = require("./runtime/ToBinaryRuntimeModule");
+const WorkerRuntimeModule = require("./runtime/WorkerRuntimeModule");
 const ShareRuntimeModule = require("./sharing/ShareRuntimeModule");
 const StringXor = require("./util/StringXor");
 const memoize = require("./util/memoize");
 
 /** @typedef {import("../declarations/WebpackOptions").LibraryOptions} LibraryOptions */
-/** @typedef {import("../declarations/WebpackOptions").OutputNormalized} OutputNormalized */
 /** @typedef {import("./Chunk")} Chunk */
 /** @typedef {import("./Compiler")} Compiler */
-/** @typedef {import("./Module")} Module */
-/** @typedef {import("./TemplatedPathPlugin").TemplatePath} TemplatePath */
 
 const getJavascriptModulesPlugin = memoize(() =>
 	require("./javascript/JavascriptModulesPlugin")
@@ -73,13 +80,17 @@ const GLOBALS_ON_REQUIRE = [
 	RuntimeGlobals.scriptNonce,
 	RuntimeGlobals.uncaughtErrorHandler,
 	RuntimeGlobals.asyncModule,
+	RuntimeGlobals.asyncModuleGenerator,
 	RuntimeGlobals.wasmInstances,
 	RuntimeGlobals.instantiateWasm,
 	RuntimeGlobals.shareScopeMap,
 	RuntimeGlobals.initializeSharing,
 	RuntimeGlobals.loadScript,
+	RuntimeGlobals.setAnonymousDefaultName,
 	RuntimeGlobals.systemContext,
-	RuntimeGlobals.onChunksLoaded
+	RuntimeGlobals.onChunksLoaded,
+	RuntimeGlobals.makeOptimizedDeferredNamespaceObject,
+	RuntimeGlobals.makeDeferredNamespaceObject
 ];
 
 const MODULE_DEPENDENCIES = {
@@ -97,25 +108,82 @@ const TREE_DEPENDENCIES = {
 		RuntimeGlobals.makeNamespaceObject,
 		RuntimeGlobals.require
 	],
+	[RuntimeGlobals.makeOptimizedDeferredNamespaceObject]: [
+		RuntimeGlobals.require
+	],
+	[RuntimeGlobals.makeDeferredNamespaceObject]: [
+		RuntimeGlobals.createFakeNamespaceObject,
+		RuntimeGlobals.require
+	],
 	[RuntimeGlobals.initializeSharing]: [RuntimeGlobals.shareScopeMap],
 	[RuntimeGlobals.shareScopeMap]: [RuntimeGlobals.hasOwnProperty]
 };
+
+// Tree runtime requirements whose only effect is attaching a zero-arg runtime
+// module to the chunk. Conditional / argument-taking ones stay as explicit taps.
+/** @type {[string, (new () => import("./RuntimeModule"))][]} */
+const SIMPLE_TREE_RUNTIME_MODULES = [
+	[RuntimeGlobals.definePropertyGetters, DefinePropertyGettersRuntimeModule],
+	[RuntimeGlobals.makeNamespaceObject, MakeNamespaceObjectRuntimeModule],
+	[
+		RuntimeGlobals.createFakeNamespaceObject,
+		CreateFakeNamespaceObjectRuntimeModule
+	],
+	[RuntimeGlobals.hasOwnProperty, HasOwnPropertyRuntimeModule],
+	[RuntimeGlobals.compatGetDefaultExport, CompatGetDefaultExportRuntimeModule],
+	[RuntimeGlobals.commonJsWrap, CommonJsWrapRuntimeModule],
+	[
+		RuntimeGlobals.setAnonymousDefaultName,
+		SetAnonymousDefaultNameRuntimeModule
+	],
+	[RuntimeGlobals.runtimeId, RuntimeIdRuntimeModule],
+	[RuntimeGlobals.global, GlobalRuntimeModule],
+	[RuntimeGlobals.shareScopeMap, ShareRuntimeModule],
+	[RuntimeGlobals.relativeUrl, RelativeUrlRuntimeModule],
+	[RuntimeGlobals.worker, WorkerRuntimeModule],
+	[RuntimeGlobals.onChunksLoaded, OnChunksLoadedRuntimeModule],
+	[RuntimeGlobals.scriptNonce, NonceRuntimeModule],
+	[RuntimeGlobals.toBinary, ToBinaryRuntimeModule]
+];
+
+/**
+ * @param {string} template path template
+ * @returns {boolean} true when it references the compilation `[fullhash]`/`[hash]`
+ */
+const usesFullHash = (template) => {
+	const kinds = getPresentKinds(template);
+	return kinds.has("fullhash") || kinds.has("hash");
+};
+
+// `[fullhash:<digest>]`/`[hash:<digest>]` — a non-numeric first arg is a digest (a
+// numeric one is just a length). The re-encoded full hash must be inlined post-hash
+// rather than read from the runtime `getFullHash()` expression.
+const FULLHASH_DIGEST_REGEXP = /\[(?:fullhash|hash):(?!\d+\])\w/;
+
+/**
+ * @param {string} template path template
+ * @returns {boolean} true when it references `[fullhash:<digest>]`/`[hash:<digest>]`
+ */
+const usesFullHashWithDigest = (template) =>
+	FULLHASH_DIGEST_REGEXP.test(template);
 
 const PLUGIN_NAME = "RuntimePlugin";
 
 class RuntimePlugin {
 	/**
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Compiler} compiler the Compiler
 	 * @returns {void}
 	 */
 	apply(compiler) {
-		compiler.hooks.compilation.tap(PLUGIN_NAME, compilation => {
+		compiler.hooks.compilation.tap(PLUGIN_NAME, (compilation) => {
 			const globalChunkLoading = compilation.outputOptions.chunkLoading;
 			/**
+			 * Checks whether this runtime plugin is chunk loading disabled for chunk.
 			 * @param {Chunk} chunk chunk
 			 * @returns {boolean} true, when chunk loading is disabled for the chunk
 			 */
-			const isChunkLoadingDisabledForChunk = chunk => {
+			const isChunkLoadingDisabledForChunk = (chunk) => {
 				const options = chunk.getEntryOptions();
 				const chunkLoading =
 					options && options.chunkLoading !== undefined
@@ -157,55 +225,37 @@ class RuntimePlugin {
 						for (const dep of deps) set.add(dep);
 					});
 			}
+			for (const [
+				runtimeGlobal,
+				RuntimeModule
+			] of SIMPLE_TREE_RUNTIME_MODULES) {
+				compilation.hooks.runtimeRequirementInTree
+					.for(runtimeGlobal)
+					.tap(PLUGIN_NAME, (chunk) => {
+						compilation.addRuntimeModule(chunk, new RuntimeModule());
+						return true;
+					});
+			}
 			compilation.hooks.runtimeRequirementInTree
-				.for(RuntimeGlobals.definePropertyGetters)
-				.tap(PLUGIN_NAME, chunk => {
+				.for(RuntimeGlobals.makeOptimizedDeferredNamespaceObject)
+				.tap(PLUGIN_NAME, (chunk, runtimeRequirement) => {
 					compilation.addRuntimeModule(
 						chunk,
-						new DefinePropertyGettersRuntimeModule()
+						new MakeOptimizedDeferredNamespaceObjectRuntimeModule(
+							runtimeRequirement.has(RuntimeGlobals.asyncModule)
+						)
 					);
 					return true;
 				});
 			compilation.hooks.runtimeRequirementInTree
-				.for(RuntimeGlobals.makeNamespaceObject)
-				.tap(PLUGIN_NAME, chunk => {
+				.for(RuntimeGlobals.makeDeferredNamespaceObject)
+				.tap(PLUGIN_NAME, (chunk, runtimeRequirement) => {
 					compilation.addRuntimeModule(
 						chunk,
-						new MakeNamespaceObjectRuntimeModule()
+						new MakeDeferredNamespaceObjectRuntimeModule(
+							runtimeRequirement.has(RuntimeGlobals.asyncModule)
+						)
 					);
-					return true;
-				});
-			compilation.hooks.runtimeRequirementInTree
-				.for(RuntimeGlobals.createFakeNamespaceObject)
-				.tap(PLUGIN_NAME, chunk => {
-					compilation.addRuntimeModule(
-						chunk,
-						new CreateFakeNamespaceObjectRuntimeModule()
-					);
-					return true;
-				});
-			compilation.hooks.runtimeRequirementInTree
-				.for(RuntimeGlobals.hasOwnProperty)
-				.tap(PLUGIN_NAME, chunk => {
-					compilation.addRuntimeModule(
-						chunk,
-						new HasOwnPropertyRuntimeModule()
-					);
-					return true;
-				});
-			compilation.hooks.runtimeRequirementInTree
-				.for(RuntimeGlobals.compatGetDefaultExport)
-				.tap(PLUGIN_NAME, chunk => {
-					compilation.addRuntimeModule(
-						chunk,
-						new CompatGetDefaultExportRuntimeModule()
-					);
-					return true;
-				});
-			compilation.hooks.runtimeRequirementInTree
-				.for(RuntimeGlobals.runtimeId)
-				.tap(PLUGIN_NAME, chunk => {
-					compilation.addRuntimeModule(chunk, new RuntimeIdRuntimeModule());
 					return true;
 				});
 			compilation.hooks.runtimeRequirementInTree
@@ -221,15 +271,21 @@ class RuntimePlugin {
 
 					if (publicPath === "auto") {
 						const module = new AutoPublicPathRuntimeModule();
-						if (scriptType !== "module") set.add(RuntimeGlobals.global);
+						// A worklet chunk reads `import.meta.url`, so it needs neither the
+						// worker-scope detection nor the `globalThis` polyfill.
+						if (
+							scriptType !== "module" &&
+							!(entryOptions && entryOptions.worklet) &&
+							!outputOptions.environment.globalThis
+						) {
+							set.add(RuntimeGlobals.global);
+						}
+
 						compilation.addRuntimeModule(chunk, module);
 					} else {
 						const module = new PublicPathRuntimeModule(publicPath);
 
-						if (
-							typeof publicPath !== "string" ||
-							/\[(full)?hash\]/.test(publicPath)
-						) {
+						if (typeof publicPath !== "string" || usesFullHash(publicPath)) {
 							module.fullHash = true;
 						}
 
@@ -238,20 +294,28 @@ class RuntimePlugin {
 					return true;
 				});
 			compilation.hooks.runtimeRequirementInTree
-				.for(RuntimeGlobals.global)
-				.tap(PLUGIN_NAME, chunk => {
-					compilation.addRuntimeModule(chunk, new GlobalRuntimeModule());
+				.for(RuntimeGlobals.asyncModule)
+				.tap(PLUGIN_NAME, (chunk) => {
+					const experiments = compilation.options.experiments;
+					compilation.addRuntimeModule(
+						chunk,
+						new AsyncModuleRuntimeModule(experiments.deferImport)
+					);
 					return true;
 				});
 			compilation.hooks.runtimeRequirementInTree
-				.for(RuntimeGlobals.asyncModule)
-				.tap(PLUGIN_NAME, chunk => {
-					compilation.addRuntimeModule(chunk, new AsyncModuleRuntimeModule());
+				.for(RuntimeGlobals.asyncModuleGenerator)
+				.tap(PLUGIN_NAME, (chunk, set) => {
+					set.add(RuntimeGlobals.asyncModule);
+					compilation.addRuntimeModule(
+						chunk,
+						new AsyncModuleGeneratorRuntimeModule()
+					);
 					return true;
 				});
 			compilation.hooks.runtimeRequirementInTree
 				.for(RuntimeGlobals.systemContext)
-				.tap(PLUGIN_NAME, chunk => {
+				.tap(PLUGIN_NAME, (chunk) => {
 					const entryOptions = chunk.getEntryOptions();
 					const libraryType =
 						entryOptions && entryOptions.library !== undefined
@@ -272,9 +336,7 @@ class RuntimePlugin {
 				.tap(PLUGIN_NAME, (chunk, set, { chunkGraph }) => {
 					if (
 						typeof compilation.outputOptions.chunkFilename === "string" &&
-						/\[(full)?hash(:\d+)?\]/.test(
-							compilation.outputOptions.chunkFilename
-						)
+						usesFullHash(compilation.outputOptions.chunkFilename)
 					) {
 						set.add(RuntimeGlobals.getFullHash);
 					}
@@ -284,16 +346,31 @@ class RuntimePlugin {
 							"javascript",
 							"javascript",
 							RuntimeGlobals.getChunkScriptFilename,
-							chunk =>
-								getJavascriptModulesPlugin().chunkHasJs(chunk, chunkGraph) &&
-								/** @type {TemplatePath} */ (
-									chunk.filenameTemplate ||
-										(chunk.canBeInitial()
-											? compilation.outputOptions.filename
-											: compilation.outputOptions.chunkFilename)
-								),
-							set.has(RuntimeGlobals.hmrDownloadUpdateHandlers)
+							(chunk) => {
+								const javascriptModulesPlugin = getJavascriptModulesPlugin();
+
+								return (
+									javascriptModulesPlugin.chunkHasJs(chunk, chunkGraph) &&
+									javascriptModulesPlugin.getChunkFilenameTemplate(
+										chunk,
+										compilation.outputOptions
+									)
+								);
+							},
+							set.has(RuntimeGlobals.hmrDownloadUpdateHandlers),
+							typeof compilation.outputOptions.chunkFilename === "string" &&
+								usesFullHashWithDigest(compilation.outputOptions.chunkFilename)
 						)
+					);
+					return true;
+				});
+			compilation.hooks.runtimeRequirementInTree
+				.for(RuntimeGlobals.getWorkletBootstrap)
+				.tap(PLUGIN_NAME, (chunk, set) => {
+					set.add(RuntimeGlobals.baseURI);
+					compilation.addRuntimeModule(
+						chunk,
+						new GetWorkletBootstrapRuntimeModule()
 					);
 					return true;
 				});
@@ -302,9 +379,7 @@ class RuntimePlugin {
 				.tap(PLUGIN_NAME, (chunk, set, { chunkGraph }) => {
 					if (
 						typeof compilation.outputOptions.cssChunkFilename === "string" &&
-						/\[(full)?hash(:\d+)?\]/.test(
-							compilation.outputOptions.cssChunkFilename
-						)
+						usesFullHash(compilation.outputOptions.cssChunkFilename)
 					) {
 						set.add(RuntimeGlobals.getFullHash);
 					}
@@ -314,10 +389,22 @@ class RuntimePlugin {
 							"css",
 							"css",
 							RuntimeGlobals.getChunkCssFilename,
-							chunk =>
-								getCssModulesPlugin().chunkHasCss(chunk, chunkGraph) &&
-								getChunkFilenameTemplate(chunk, compilation.outputOptions),
-							set.has(RuntimeGlobals.hmrDownloadUpdateHandlers)
+							(chunk) => {
+								const cssModulePlugin = getCssModulesPlugin();
+
+								return (
+									cssModulePlugin.chunkHasCss(chunk, chunkGraph) &&
+									cssModulePlugin.getChunkFilenameTemplate(
+										chunk,
+										compilation.outputOptions
+									)
+								);
+							},
+							set.has(RuntimeGlobals.hmrDownloadUpdateHandlers),
+							typeof compilation.outputOptions.cssChunkFilename === "string" &&
+								usesFullHashWithDigest(
+									compilation.outputOptions.cssChunkFilename
+								)
 						)
 					);
 					return true;
@@ -325,23 +412,22 @@ class RuntimePlugin {
 			compilation.hooks.runtimeRequirementInTree
 				.for(RuntimeGlobals.getChunkUpdateScriptFilename)
 				.tap(PLUGIN_NAME, (chunk, set) => {
-					if (
-						/\[(full)?hash(:\d+)?\]/.test(
-							/** @type {NonNullable<OutputNormalized["hotUpdateChunkFilename"]>} */
-							(compilation.outputOptions.hotUpdateChunkFilename)
-						)
-					)
+					if (usesFullHash(compilation.outputOptions.hotUpdateChunkFilename)) {
 						set.add(RuntimeGlobals.getFullHash);
+					}
 					compilation.addRuntimeModule(
 						chunk,
 						new GetChunkFilenameRuntimeModule(
 							"javascript",
 							"javascript update",
 							RuntimeGlobals.getChunkUpdateScriptFilename,
-							c =>
-								/** @type {NonNullable<OutputNormalized["hotUpdateChunkFilename"]>} */
-								(compilation.outputOptions.hotUpdateChunkFilename),
-							true
+							(_chunk) => compilation.outputOptions.hotUpdateChunkFilename,
+							true,
+							typeof compilation.outputOptions.hotUpdateChunkFilename ===
+								"string" &&
+								usesFullHashWithDigest(
+									compilation.outputOptions.hotUpdateChunkFilename
+								)
 						)
 					);
 					return true;
@@ -349,12 +435,7 @@ class RuntimePlugin {
 			compilation.hooks.runtimeRequirementInTree
 				.for(RuntimeGlobals.getUpdateManifestFilename)
 				.tap(PLUGIN_NAME, (chunk, set) => {
-					if (
-						/\[(full)?hash(:\d+)?\]/.test(
-							/** @type {NonNullable<OutputNormalized["hotUpdateMainFilename"]>} */
-							(compilation.outputOptions.hotUpdateMainFilename)
-						)
-					) {
+					if (usesFullHash(compilation.outputOptions.hotUpdateMainFilename)) {
 						set.add(RuntimeGlobals.getFullHash);
 					}
 					compilation.addRuntimeModule(
@@ -362,8 +443,7 @@ class RuntimePlugin {
 						new GetMainFilenameRuntimeModule(
 							"update manifest",
 							RuntimeGlobals.getUpdateManifestFilename,
-							/** @type {NonNullable<OutputNormalized["hotUpdateMainFilename"]>} */
-							(compilation.outputOptions.hotUpdateMainFilename)
+							compilation.outputOptions.hotUpdateMainFilename
 						)
 					);
 					return true;
@@ -385,12 +465,6 @@ class RuntimePlugin {
 				.for(RuntimeGlobals.ensureChunkIncludeEntries)
 				.tap(PLUGIN_NAME, (chunk, set) => {
 					set.add(RuntimeGlobals.ensureChunkHandlers);
-				});
-			compilation.hooks.runtimeRequirementInTree
-				.for(RuntimeGlobals.shareScopeMap)
-				.tap(PLUGIN_NAME, (chunk, set) => {
-					compilation.addRuntimeModule(chunk, new ShareRuntimeModule());
-					return true;
 				});
 			compilation.hooks.runtimeRequirementInTree
 				.for(RuntimeGlobals.loadScript)
@@ -439,38 +513,17 @@ class RuntimePlugin {
 					return true;
 				});
 			compilation.hooks.runtimeRequirementInTree
-				.for(RuntimeGlobals.relativeUrl)
-				.tap(PLUGIN_NAME, (chunk, set) => {
-					compilation.addRuntimeModule(chunk, new RelativeUrlRuntimeModule());
-					return true;
-				});
-			compilation.hooks.runtimeRequirementInTree
-				.for(RuntimeGlobals.onChunksLoaded)
-				.tap(PLUGIN_NAME, (chunk, set) => {
-					compilation.addRuntimeModule(
-						chunk,
-						new OnChunksLoadedRuntimeModule()
-					);
-					return true;
-				});
-			compilation.hooks.runtimeRequirementInTree
 				.for(RuntimeGlobals.baseURI)
-				.tap(PLUGIN_NAME, chunk => {
+				.tap(PLUGIN_NAME, (chunk) => {
 					if (isChunkLoadingDisabledForChunk(chunk)) {
 						compilation.addRuntimeModule(chunk, new BaseUriRuntimeModule());
 						return true;
 					}
 				});
-			compilation.hooks.runtimeRequirementInTree
-				.for(RuntimeGlobals.scriptNonce)
-				.tap(PLUGIN_NAME, chunk => {
-					compilation.addRuntimeModule(chunk, new NonceRuntimeModule());
-					return true;
-				});
 			// TODO webpack 6: remove CompatRuntimeModule
 			compilation.hooks.additionalTreeRuntimeRequirements.tap(
 				PLUGIN_NAME,
-				(chunk, set) => {
+				(chunk, _set) => {
 					const { mainTemplate } = compilation;
 					if (
 						mainTemplate.hooks.bootstrap.isUsed() ||
@@ -495,4 +548,5 @@ class RuntimePlugin {
 		});
 	}
 }
+
 module.exports = RuntimePlugin;

@@ -46,9 +46,9 @@ exports.augmentAppWithServiceWorkerCore = augmentAppWithServiceWorkerCore;
 const crypto = __importStar(require("node:crypto"));
 const node_fs_1 = require("node:fs");
 const path = __importStar(require("node:path"));
-const bundler_context_1 = require("../tools/esbuild/bundler-context");
+const bundler_files_1 = require("../tools/esbuild/bundler-files");
 const error_1 = require("./error");
-const load_esm_1 = require("./load-esm");
+const path_1 = require("./path");
 class CliFilesystem {
     fs;
     base;
@@ -81,7 +81,7 @@ class CliFilesystem {
             const stats = await this.fs.stat(entryPath);
             if (stats.isFile()) {
                 // Uses posix paths since the service worker expects URLs
-                items.push('/' + path.relative(this.base, entryPath).replace(/\\/g, '/'));
+                items.push('/' + (0, path_1.toPosixPath)(path.relative(this.base, entryPath)));
             }
             else if (stats.isDirectory()) {
                 subdirectories.push(entryPath);
@@ -97,12 +97,12 @@ class ResultFilesystem {
     fileReaders = new Map();
     constructor(outputFiles, assetFiles) {
         for (const file of outputFiles) {
-            if (file.type === bundler_context_1.BuildOutputFileType.Media || file.type === bundler_context_1.BuildOutputFileType.Browser) {
-                this.fileReaders.set('/' + file.path.replace(/\\/g, '/'), async () => file.contents);
+            if (file.type === bundler_files_1.BuildOutputFileType.Media || file.type === bundler_files_1.BuildOutputFileType.Browser) {
+                this.fileReaders.set('/' + (0, path_1.toPosixPath)(file.path), async () => file.contents);
             }
         }
         for (const file of assetFiles) {
-            this.fileReaders.set('/' + file.destination.replace(/\\/g, '/'), () => node_fs_1.promises.readFile(file.source));
+            this.fileReaders.set('/' + (0, path_1.toPosixPath)(file.destination), () => node_fs_1.promises.readFile(file.source));
         }
     }
     async list(dir) {
@@ -149,7 +149,7 @@ async function augmentAppWithServiceWorker(appRoot, workspaceRoot, outputPath, b
         if (error.code === 'ENOENT') {
             throw new Error('Error: Expected to find an ngsw-config.json configuration file' +
                 ` in the ${appRoot} folder. Either provide one or` +
-                ' disable Service Worker in the angular.json configuration file.');
+                ' disable Service Worker in the angular.json configuration file.', { cause: error });
         }
         else {
             throw error;
@@ -181,7 +181,7 @@ async function augmentAppWithServiceWorkerEsbuild(workspaceRoot, configPath, bas
         if (error.code === 'ENOENT') {
             // TODO: Generate an error object that can be consumed by the esbuild-based builder
             const message = `Service worker configuration file "${path.relative(workspaceRoot, configPath)}" could not be found.`;
-            throw new Error(message);
+            throw new Error(message, { cause: error });
         }
         else {
             throw error;
@@ -190,12 +190,10 @@ async function augmentAppWithServiceWorkerEsbuild(workspaceRoot, configPath, bas
     return augmentAppWithServiceWorkerCore(config, new ResultFilesystem(outputFiles, assetFiles), baseHref);
 }
 async function augmentAppWithServiceWorkerCore(config, serviceWorkerFilesystem, baseHref) {
-    // Load ESM `@angular/service-worker/config` using the TypeScript dynamic import workaround.
-    // Once TypeScript provides support for keeping the dynamic import this workaround can be
-    // changed to a direct dynamic import.
-    const GeneratorConstructor = (await (0, load_esm_1.loadEsmModule)('@angular/service-worker/config')).Generator;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { Generator } = (await Promise.resolve(`${'@angular/service-worker/config'}`).then(s => __importStar(require(s))));
     // Generate the manifest
-    const generator = new GeneratorConstructor(serviceWorkerFilesystem, baseHref);
+    const generator = new Generator(serviceWorkerFilesystem, baseHref);
     const output = await generator.process(config);
     // Write the manifest
     const manifest = JSON.stringify(output, null, 2);
@@ -214,3 +212,4 @@ async function augmentAppWithServiceWorkerCore(config, serviceWorkerFilesystem, 
     }
     return result;
 }
+//# sourceMappingURL=service-worker.js.map

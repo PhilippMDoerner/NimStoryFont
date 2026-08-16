@@ -1,0 +1,76 @@
+{
+  "$schema": "http://json-schema.org/schema",
+  "$id": "SchematicsNgRxReducer",
+  "title": "NgRx Reducer Options Schema",
+  "type": "object",
+  "properties": {
+    "name": {
+      "description": "The name of the reducer.",
+      "type": "string",
+      "$default": {
+        "$source": "argv",
+        "index": 0
+      },
+      "x-prompt": "What should be the name of the reducer?"
+    },
+    "path": {
+      "type": "string",
+      "format": "path",
+      "description": "The path to create the component.",
+      "visible": false,
+      "$default": {
+        "$source": "workingDirectory"
+      }
+    },
+    "project": {
+      "type": "string",
+      "description": "The name of the project.",
+      "aliases": ["p"]
+    },
+    "skipTests": {
+      "type": "boolean",
+      "description": "When true, does not create test files.",
+      "default": false
+    },
+    "module": {
+      "type": "string",
+      "description": "Specifies the declaring module.",
+      "aliases": ["m"]
+    },
+    "flat": {
+      "type": "boolean",
+      "default": true,
+      "description": "Flag to indicate if a dir is created."
+    },
+    "feature": {
+      "type": "boolean",
+      "default": false,
+      "description": "Flag to indicate if part of a feature schematic."
+    },
+    "reducers": {
+      "type": "string",
+      "description": "Specifies the reducers file.",
+      "aliases": ["r"]
+    },
+    "group": {
+      "type": "boolean",
+      "default": false,
+      "description": "Group reducer file within 'reducers' folder",
+      "aliases": ["g"]
+    },
+    "api": {
+      "type": "boolean",
+      "default": false,
+      "description": "Specifies if api success and failure actions should be added to the reducer",
+      "aliases": ["a"],
+      "x-prompt": "Should we add success and failure actions to the reducer?"
+    }
+  },
+  "prefix": {
+    "description": "The prefix of the reducer.",
+    "type": "string",
+    "default": "load",
+    "x-prompt": "What should be the prefix of the reducer?"
+  },
+  "required": []
+}

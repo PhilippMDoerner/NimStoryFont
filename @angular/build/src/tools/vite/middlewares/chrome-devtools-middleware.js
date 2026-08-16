@@ -50,3 +50,4 @@ function createChromeDevtoolsMiddleware(cacheDir, projectRoot) {
         res.end(devtoolsConfig);
     };
 }
+//# sourceMappingURL=chrome-devtools-middleware.js.map

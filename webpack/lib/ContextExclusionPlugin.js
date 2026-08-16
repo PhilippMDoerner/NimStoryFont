@@ -5,27 +5,28 @@
 "use strict";
 
 /** @typedef {import("./Compiler")} Compiler */
-/** @typedef {import("./ContextModuleFactory")} ContextModuleFactory */
 
 const PLUGIN_NAME = "ContextExclusionPlugin";
 
 class ContextExclusionPlugin {
 	/**
+	 * Creates an instance of ContextExclusionPlugin.
 	 * @param {RegExp} negativeMatcher Matcher regular expression
 	 */
 	constructor(negativeMatcher) {
+		/** @type {RegExp} */
 		this.negativeMatcher = negativeMatcher;
 	}
 
 	/**
-	 * Apply the plugin
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Compiler} compiler the compiler instance
 	 * @returns {void}
 	 */
 	apply(compiler) {
-		compiler.hooks.contextModuleFactory.tap(PLUGIN_NAME, cmf => {
-			cmf.hooks.contextModuleFiles.tap(PLUGIN_NAME, files =>
-				files.filter(filePath => !this.negativeMatcher.test(filePath))
+		compiler.hooks.contextModuleFactory.tap(PLUGIN_NAME, (cmf) => {
+			cmf.hooks.contextModuleFiles.tap(PLUGIN_NAME, (files) =>
+				files.filter((filePath) => !this.negativeMatcher.test(filePath))
 			);
 		});
 	}

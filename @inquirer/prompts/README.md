@@ -15,22 +15,14 @@ Give it a try in your own terminal!
 npx @inquirer/demo@latest
 ```
 
-# Special Thanks
-
-<div align="center" markdown="1">
-
-[![Graphite](https://github.com/user-attachments/assets/53db40ca-2254-481a-a094-6597f8716e29)](https://graphite.dev/?utm_source=npmjs&utm_medium=repo&utm_campaign=inquirerjs)<br>
-
-### [Graphite is the AI developer productivity platform helping teams on GitHub ship higher quality software, faster](https://graphite.dev/?utm_source=npmjs&utm_medium=repo&utm_campaign=inquirerjs)
-
-</div>
-
 # Installation
 
 <table>
 <tr>
   <th>npm</th>
   <th>yarn</th>
+  <th>pnpm</th>
+  <th>bun</th>
 </tr>
 <tr>
 <td>
@@ -44,6 +36,20 @@ npm install @inquirer/prompts
 
 ```sh
 yarn add @inquirer/prompts
+```
+
+</td>
+<td>
+
+```sh
+pnpm add @inquirer/prompts
+```
+
+</td>
+<td>
+
+```sh
+bun add @inquirer/prompts
 ```
 
 </td>
@@ -164,6 +170,21 @@ import { rawlist } from '@inquirer/prompts';
 
 [See documentation](https://github.com/SBoudrias/Inquirer.js/tree/main/packages/rawlist) for usage example and options documentation.
 
+# Internationalization (i18n)
+
+Need prompts in a language other than English? The [`@inquirer/i18n`](https://github.com/SBoudrias/Inquirer.js/tree/main/packages/i18n) package is a drop-in replacement for `@inquirer/prompts` with built-in localization.
+
+The root import automatically detects your locale from the `LANGUAGE`, `LC_ALL`, `LC_MESSAGES`, and `LANG` environment variables (falling back to the `Intl` API). If no supported locale is found, English is used.
+
+```js
+// Drop-in replacement — locale is auto-detected from environment variables
+import { input, select, confirm } from '@inquirer/i18n';
+```
+
+Built-in locales include English, French, Spanish, Chinese (Simplified), and Portuguese. You can also pin to a specific language via sub-path imports (e.g. `@inquirer/i18n/fr`), or use the `createLocalizedPrompts` and `registerLocale` APIs to add your own.
+
+[See the full documentation](https://github.com/SBoudrias/Inquirer.js/tree/main/packages/i18n) for available languages and how to create a custom locale.
+
 # Create your own prompts
 
 The [API documentation is over here](https://github.com/SBoudrias/Inquirer.js/tree/main/packages/core), and our [testing utilities here](https://github.com/SBoudrias/Inquirer.js/tree/main/packages/testing).
@@ -180,6 +201,11 @@ The context options are:
 | output            | `NodeJS.WritableStream` | no       | The stdout stream (defaults to `process.stdout`)             |
 | clearPromptOnDone | `boolean`               | no       | If true, we'll clear the screen after the prompt is answered |
 | signal            | `AbortSignal`           | no       | An AbortSignal to cancel prompts asynchronously              |
+
+> [!WARNING]
+> When providing an input stream or piping `process.stdin`, it's very likely you need to call `process.stdin.setRawMode(true)`
+> before calling inquirer functions. Node.js usually does it automatically, but when we shadow the stdin, Node can loss track
+> and not know it has to. If the prompt isn't interactive (arrows don't work, etc), it's likely due to this.
 
 Example:
 
@@ -372,7 +398,7 @@ Find out more: [@inquirer-cli](https://github.com/fishballapp/inquirer-cli).
 
 # Community prompts
 
-If you created a cool prompt, [send us a PR adding it](https://github.com/SBoudrias/Inquirer.js/edit/main/README.md) to the list below!
+If you created a cool prompt, [send us a PR adding it](https://github.com/SBoudrias/Inquirer.js/edit/main/packages/prompts/README.md) to the list below!
 
 [**Interactive List Prompt**](https://github.com/pgibler/inquirer-interactive-list-prompt)<br/>
 Select a choice either with arrow keys + Enter or by pressing a key associated with a choice.
@@ -459,6 +485,56 @@ A file selector, you can navigate freely between directories, choose what type o
 Use ↑↓ to navigate through the list
 Press <esc> to navigate to the parent directory
 Press <enter> to select a file or navigate to a directory
+```
+
+[**Select Prompt with Stateful Banner**](https://github.com/patik/inquirer-select-with-state)<br/>
+The same as built-in select prompt, but it also displays a banner above the prompt which can be updated with a `setState` function. For example, it can display the results of a long-running command without making the user wait to see the prompt.
+
+Initial display:
+
+```
+Directory size: loading...
+? Choose an option
+❯ Rename
+  Copy
+  Delete
+```
+
+A moment later:
+
+```
+Directory size: 123M
+? Choose an option
+❯ Rename
+  Copy
+  Delete
+```
+
+[**Ordered Checkbox Prompt**](https://github.com/kyou-izumi/inquirer-ordered-checkbox)<br/>
+A sortable checkbox prompt that maintains the order of selection. Perfect for prioritizing tasks or ranking options.
+
+```
+? Configure your development workflow:
+  [1] Set up CI/CD pipeline
+❯ [3] Code quality tools
+  [ ] Documentation
+  [2] Performance monitoring
+ ──────────────
+- Legacy system (disabled)
+(Linting, formatting, and analysis)
+```
+
+[**Checkbox Plus Plus Prompt**](https://github.com/behnamazimi/inquirer-checkbox-plus-plus)<br/>
+A modern multiselect checkbox prompt with search and filter capabilities, highlighting, autocomplete, and improved UX. Supports both ESM and CommonJS and is compatible with @inquirer/core v10+.
+
+```
+? Select colors [searching: "re"]
+❯ ◉ The red color
+  ◯ The green color
+  ◉ The purple color
+  ◯ The orange color
+
+↑↓ navigate • space de/select • type search • 2 selected  • ⏎ submit
 ```
 
 # License

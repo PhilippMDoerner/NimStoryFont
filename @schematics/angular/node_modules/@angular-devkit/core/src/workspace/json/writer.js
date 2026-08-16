@@ -142,3 +142,4 @@ function getEOL(content) {
     }
     return node_os_1.EOL;
 }
+//# sourceMappingURL=writer.js.map

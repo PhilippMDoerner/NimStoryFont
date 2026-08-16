@@ -5,11 +5,14 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.dev/license
  */
-import { DirectiveMeta as T2DirectiveMeta, Expression, SchemaMetadata } from '@angular/compiler';
+import { ClassPropertyMapping, ClassPropertyName, Expression, ExternalReference, InputOrOutput, MatchSource, SchemaMetadata, DirectiveMeta as T2DirectiveMeta, ForeignComponentMeta as T2ForeignComponentMeta, TemplateGuardMeta } from '@angular/compiler';
 import ts from 'typescript';
 import { Reference } from '../../imports';
 import { ClassDeclaration } from '../../reflection';
-import { ClassPropertyMapping, ClassPropertyName, InputOrOutput } from './property_mapping';
+/** Metadata for a resolved foreign component import. */
+export interface ForeignComponentMeta extends T2ForeignComponentMeta {
+    rawExpression: ts.Expression;
+}
 /**
  * Metadata collected for an `NgModule`.
  */
@@ -94,6 +97,8 @@ export interface DirectiveTypeCheckMeta {
      * The set of input fields which do not have corresponding members in the Directive's class.
      */
     undeclaredInputFields: Set<ClassPropertyName>;
+    /** Names of the public methods of the class. */
+    publicMethods: Set<string>;
     /**
      * Whether the Directive's class is generic, i.e. `class MyDir<T> {...}`.
      */
@@ -106,15 +111,6 @@ export declare enum MetaKind {
     Directive = 0,
     Pipe = 1,
     NgModule = 2
-}
-/**
- * Possible ways that a directive can be matched.
- */
-export declare enum MatchSource {
-    /** The directive was matched by its selector. */
-    Selector = 0,
-    /** The directive was applied as a host directive. */
-    HostDirective = 1
 }
 /** Metadata for a single input mapping. */
 export type InputMapping = InputOrOutput & {
@@ -212,6 +208,13 @@ export interface DirectiveMeta extends T2DirectiveMeta, DirectiveTypeCheckMeta {
      */
     imports: Reference<ClassDeclaration>[] | null;
     /**
+     * For standalone components, the list of imported foreign components.
+     *
+     * Note that while a foreign import is not likely to be a class, this type is used
+     * because it includes the expected identifier we'll need, making further code simpler.
+     */
+    foreignImports: ForeignComponentMeta[] | null;
+    /**
      * Node declaring the `imports` of a standalone component. Used to produce diagnostics.
      */
     rawImports: ts.Expression | null;
@@ -241,6 +244,12 @@ export interface DirectiveMeta extends T2DirectiveMeta, DirectiveTypeCheckMeta {
      * scope via `@Component.deferredImports` field.
      */
     isExplicitlyDeferred: boolean;
+    /** Whether selectorless is enabled for the specific component. */
+    selectorlessEnabled: boolean;
+    /**
+     * Names of the symbols within the source file that are referenced directly inside the template.
+     */
+    localReferencedSymbols: Set<string> | null;
 }
 /** Metadata collected about an additional directive that is being applied to a directive host. */
 export interface HostDirectiveMeta {
@@ -251,7 +260,7 @@ export interface HostDirectiveMeta {
      * which indicates the expression could not be resolved due to being imported from some external
      * file. In this case, the expression is the raw expression as appears in the decorator.
      */
-    directive: Reference<ClassDeclaration> | Expression;
+    directive: Reference<ClassDeclaration> | Expression | ExternalReference;
     /** Whether the reference to the host directive is a forward reference. */
     isForwardReference: boolean;
     /** Inputs from the host directive that have been exposed. */
@@ -278,29 +287,12 @@ export interface HostDirectiveMetaForLocalMode extends HostDirectiveMeta {
     directive: Expression;
 }
 /**
- * Metadata that describes a template guard for one of the directive's inputs.
- */
-export interface TemplateGuardMeta {
-    /**
-     * The input name that this guard should be applied to.
-     */
-    inputName: string;
-    /**
-     * Represents the type of the template guard.
-     *
-     * - 'invocation' means that a call to the template guard function is emitted so that its return
-     *   type can result in narrowing of the input type.
-     * - 'binding' means that the input binding expression itself is used as template guard.
-     */
-    type: 'invocation' | 'binding';
-}
-/**
  * Metadata for a pipe within an NgModule's scope.
  */
 export interface PipeMeta {
     kind: MetaKind.Pipe;
     ref: Reference<ClassDeclaration>;
-    name: string;
+    name: string | null;
     nameExpr: ts.Expression | null;
     isStandalone: boolean;
     isPure: boolean;

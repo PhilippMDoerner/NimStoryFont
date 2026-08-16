@@ -27,6 +27,20 @@ export interface AugmentIndexHtmlOptions {
         as?: string;
     }[];
     imageDomains?: string[];
+    /**
+     * Integrity metadata for module script URLs that are not directly referenced
+     * from `index.html` (e.g. lazy-loaded chunks resolved via `import()`).
+     *
+     * Keys are URLs relative to the deployment base (matching how the browser
+     * will request the module) and values are the corresponding
+     * Subresource Integrity values (e.g. 'sha384-...').
+     *
+     * Emitted as a `<script type="importmap">` block whose `integrity` map the
+     * browser consults when fetching modules without an inline `integrity`
+     * attribute. See:
+     * https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/script/type/importmap#integrity_metadata_map
+     */
+    chunksIntegrity?: ReadonlyMap<string, string>;
 }
 export interface FileInfo {
     file: string;

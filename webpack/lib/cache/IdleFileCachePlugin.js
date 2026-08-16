@@ -16,6 +16,7 @@ const PLUGIN_NAME = "IdleFileCachePlugin";
 
 class IdleFileCachePlugin {
 	/**
+	 * Creates an instance of IdleFileCachePlugin.
 	 * @param {PackFileCacheStrategy} strategy cache strategy
 	 * @param {number} idleTimeout timeout
 	 * @param {number} idleTimeoutForInitialStore initial timeout
@@ -27,14 +28,18 @@ class IdleFileCachePlugin {
 		idleTimeoutForInitialStore,
 		idleTimeoutAfterLargeChanges
 	) {
+		/** @type {PackFileCacheStrategy} */
 		this.strategy = strategy;
+		/** @type {number} */
 		this.idleTimeout = idleTimeout;
+		/** @type {number} */
 		this.idleTimeoutForInitialStore = idleTimeoutForInitialStore;
+		/** @type {number} */
 		this.idleTimeoutAfterLargeChanges = idleTimeoutAfterLargeChanges;
 	}
 
 	/**
-	 * Apply the plugin
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Compiler} compiler the compiler instance
 	 * @returns {void}
 	 */
@@ -52,7 +57,7 @@ class IdleFileCachePlugin {
 		let timeSpendInStore = 0;
 		let avgTimeSpendInStore = 0;
 
-		/** @type {Map<string | typeof BUILD_DEPENDENCIES_KEY, () => Promise<void>>} */
+		/** @type {Map<string | typeof BUILD_DEPENDENCIES_KEY, () => Promise<void | void[]>>} */
 		const pendingIdleTasks = new Map();
 
 		compiler.cache.hooks.store.tap(
@@ -68,7 +73,7 @@ class IdleFileCachePlugin {
 			{ name: PLUGIN_NAME, stage: Cache.STAGE_DISK },
 			(identifier, etag, gotHandlers) => {
 				const restore = () =>
-					strategy.restore(identifier, etag).then(cacheEntry => {
+					strategy.restore(identifier, etag).then((cacheEntry) => {
 						if (cacheEntry === undefined) {
 							gotHandlers.push((result, callback) => {
 								if (result !== undefined) {
@@ -93,7 +98,7 @@ class IdleFileCachePlugin {
 
 		compiler.cache.hooks.storeBuildDependencies.tap(
 			{ name: PLUGIN_NAME, stage: Cache.STAGE_DISK },
-			dependencies => {
+			(dependencies) => {
 				pendingIdleTasks.set(BUILD_DEPENDENCIES_KEY, () =>
 					Promise.resolve().then(() =>
 						strategy.storeBuildDependencies(dependencies)
@@ -111,9 +116,9 @@ class IdleFileCachePlugin {
 				}
 				isIdle = false;
 				const reportProgress = ProgressPlugin.getReporter(compiler);
-				const jobs = Array.from(pendingIdleTasks.values());
+				const jobs = [...pendingIdleTasks.values()];
 				if (reportProgress) reportProgress(0, "process pending cache items");
-				const promises = jobs.map(fn => fn());
+				const promises = jobs.map((fn) => fn());
 				pendingIdleTasks.clear();
 				promises.push(currentIdlePromise);
 				const promise = Promise.all(promises);
@@ -130,7 +135,7 @@ class IdleFileCachePlugin {
 			}
 		);
 
-		/** @type {Promise<TODO>} */
+		/** @type {Promise<void | void[]>} */
 		let currentIdlePromise = resolvedPromise;
 		let isIdle = false;
 		let isInitialStore = true;
@@ -146,7 +151,10 @@ class IdleFileCachePlugin {
 						promises.push(factory());
 						if (maxCount-- <= 0 || Date.now() > maxTime) break;
 					}
-					currentIdlePromise = Promise.all(promises);
+					currentIdlePromise = Promise.all(
+						/** @type {Promise<void>[]} */
+						(promises)
+					);
 					currentIdlePromise.then(() => {
 						timeSpendInStore += Date.now() - startTime;
 						// Allow to exit the process between
@@ -165,7 +173,7 @@ class IdleFileCachePlugin {
 						timeSpendInStore = 0;
 						timeSpendInBuild = 0;
 					})
-					.catch(err => {
+					.catch((err) => {
 						const logger = compiler.getInfrastructureLogger(PLUGIN_NAME);
 						logger.warn(`Background tasks during idle failed: ${err.message}`);
 						logger.debug(err.stack);
@@ -226,7 +234,7 @@ class IdleFileCachePlugin {
 				isIdle = false;
 			}
 		);
-		compiler.hooks.done.tap(PLUGIN_NAME, stats => {
+		compiler.hooks.done.tap(PLUGIN_NAME, (stats) => {
 			// 10% build overhead is ignored, as it's not cacheable
 			timeSpendInBuild *= 0.9;
 			timeSpendInBuild +=

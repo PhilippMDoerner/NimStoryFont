@@ -50,8 +50,8 @@ const environment_options_1 = require("../../../utils/environment-options");
  * @param browserOnlyBuild True, for browser only builds; False, for browser and server builds.
  * @returns An instance of an Angular compilation object.
  */
-async function createAngularCompilation(jit, browserOnlyBuild) {
-    if (environment_options_1.useParallelTs) {
+async function createAngularCompilation(jit, browserOnlyBuild, parallel = environment_options_1.useParallelTs) {
+    if (parallel) {
         const { ParallelCompilation } = await Promise.resolve().then(() => __importStar(require('./parallel-compilation')));
         return new ParallelCompilation(jit, browserOnlyBuild);
     }
@@ -64,3 +64,4 @@ async function createAngularCompilation(jit, browserOnlyBuild) {
         return new AotCompilation(browserOnlyBuild);
     }
 }
+//# sourceMappingURL=factory.js.map

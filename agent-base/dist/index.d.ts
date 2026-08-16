@@ -1,12 +1,8 @@
-/// <reference types="node" />
-/// <reference types="node" />
-/// <reference types="node" />
-/// <reference types="node" />
 import * as net from 'net';
 import * as tls from 'tls';
 import * as http from 'http';
 import type { Duplex } from 'stream';
-export * from './helpers';
+export * from './helpers.js';
 interface HttpConnectOpts extends net.TcpNetConnectOpts {
     secureEndpoint: false;
     protocol?: string;
@@ -30,7 +26,7 @@ export declare abstract class Agent extends http.Agent {
     isSecureEndpoint(options?: AgentConnectOpts): boolean;
     private incrementSockets;
     private decrementSockets;
-    getName(options: AgentConnectOpts): string;
+    getName(options?: AgentConnectOpts): string;
     createSocket(req: http.ClientRequest, options: AgentConnectOpts, cb: (err: Error | null, s?: Duplex) => void): void;
     createConnection(): Duplex;
     get defaultPort(): number;

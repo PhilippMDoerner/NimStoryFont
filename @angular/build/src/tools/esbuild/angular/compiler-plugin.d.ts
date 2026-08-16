@@ -8,6 +8,7 @@
 import type { Plugin } from 'esbuild';
 import { AngularCompilation } from '../../angular/compilation';
 import { LoadResultCache } from '../load-result-cache';
+import { AngularCompilationContext } from './compilation-state';
 import { ComponentStylesheetBundler } from './component-stylesheets';
 import { SourceFileCache } from './source-file-cache';
 export interface CompilerPluginOptions {
@@ -31,4 +32,4 @@ export interface CompilerPluginOptions {
     instrumentForCoverage?: (request: string) => boolean;
     templateUpdates?: Map<string, string>;
 }
-export declare function createCompilerPlugin(pluginOptions: CompilerPluginOptions, compilationOrFactory: AngularCompilation | (() => Promise<AngularCompilation>), stylesheetBundler: ComponentStylesheetBundler): Plugin;
+export declare function createCompilerPlugin(pluginOptions: CompilerPluginOptions, compilationContextOrCompilation: AngularCompilationContext | AngularCompilation | (() => Promise<AngularCompilation>), stylesheetBundler: ComponentStylesheetBundler): Plugin;

@@ -16,6 +16,7 @@ import { DirectiveMeta, MetadataReader, NgModuleMeta, PipeMeta } from './api';
 export declare class DtsMetadataReader implements MetadataReader {
     private checker;
     private reflector;
+    private evaluator;
     constructor(checker: ts.TypeChecker, reflector: ReflectionHost);
     /**
      * Read the metadata from a class that has already been compiled somehow (either it's in a .d.ts
@@ -24,6 +25,7 @@ export declare class DtsMetadataReader implements MetadataReader {
      * @param ref `Reference` to the class of interest, with the context of how it was obtained.
      */
     getNgModuleMetadata(ref: Reference<ClassDeclaration>): NgModuleMeta | null;
+    private extractReferencesFromResolvedValue;
     /**
      * Read directive (or component) metadata from a referenced class in a .d.ts file.
      */

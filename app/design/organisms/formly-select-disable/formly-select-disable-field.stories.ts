@@ -14,11 +14,11 @@ import {
   moduleMetadata,
 } from '@storybook/angular';
 import { Observable, of } from 'rxjs';
-import { User } from 'src/app/_models/user';
+import { User } from '../../../_models/user';
 import {
   requiredMessage,
   requiredValidator,
-} from 'src/app/_services/formly/validators';
+} from '../../../_services/formly/validators';
 import { FormlySelectDisableFieldComponent } from './formly-select-disable-field.component';
 
 const dummyData: User[] = [
@@ -312,10 +312,10 @@ export default {
     componentWrapperDecorator(
       () => `
       <form [formGroup]="form">
-        <formly-form 
-          [model]="model" 
-          [fields]="fields" 
-          [options]="options" 
+        <formly-form
+          [model]="model"
+          [fields]="fields"
+          [options]="options"
           [form]="form"
         ></formly-form>
       </form>

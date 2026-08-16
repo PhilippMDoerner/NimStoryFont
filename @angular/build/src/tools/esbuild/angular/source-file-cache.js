@@ -56,6 +56,18 @@ class SourceFileCache extends Map {
         super();
         this.persistentCachePath = persistentCachePath;
     }
+    /**
+     * Releases all cached content. The cached data is only needed for incremental
+     * rebuilds and can include the emitted contents of every TypeScript file in the
+     * program. The cache is repopulated if a build is performed after this is called.
+     */
+    clear() {
+        super.clear();
+        this.modifiedFiles.clear();
+        this.typeScriptFileCache.clear();
+        this.loadResultCache.clear();
+        this.referencedFiles = undefined;
+    }
     invalidate(files) {
         if (files !== this.modifiedFiles) {
             this.modifiedFiles.clear();
@@ -77,3 +89,4 @@ class SourceFileCache extends Map {
     }
 }
 exports.SourceFileCache = SourceFileCache;
+//# sourceMappingURL=source-file-cache.js.map

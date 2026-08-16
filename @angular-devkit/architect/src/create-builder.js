@@ -60,9 +60,7 @@ function createBuilder(fn) {
             });
             function onInput(i) {
                 const builder = i.info;
-                const loggerName = i.target
-                    ? (0, api_1.targetStringFromTarget)(i.target)
-                    : builder.builderName;
+                const loggerName = i.target ? (0, api_1.targetStringFromTarget)(i.target) : builder.builderName;
                 const logger = new core_1.logging.Logger(loggerName);
                 subscriptions.push(logger.subscribe((entry) => log(entry)));
                 const context = {
@@ -181,3 +179,4 @@ function createBuilder(fn) {
 function isAsyncIterable(obj) {
     return !!obj && typeof obj[Symbol.asyncIterator] === 'function';
 }
+//# sourceMappingURL=create-builder.js.map

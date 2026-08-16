@@ -1,1 +1,36 @@
-"use strict";var __defProp=Object.defineProperty;var __getOwnPropDesc=Object.getOwnPropertyDescriptor;var __getOwnPropNames=Object.getOwnPropertyNames;var __hasOwnProp=Object.prototype.hasOwnProperty;var __export=(target,all)=>{for(var name in all)__defProp(target,name,{get:all[name],enumerable:!0})},__copyProps=(to,from,except,desc)=>{if(from&&typeof from=="object"||typeof from=="function")for(let key of __getOwnPropNames(from))!__hasOwnProp.call(to,key)&&key!==except&&__defProp(to,key,{get:()=>from[key],enumerable:!(desc=__getOwnPropDesc(from,key))||desc.enumerable});return to};var __toCommonJS=mod=>__copyProps(__defProp({},"__esModule",{value:!0}),mod);var webpack_loader_exports={};__export(webpack_loader_exports,{default:()=>webpack_loader_default});module.exports=__toCommonJS(webpack_loader_exports);var import_promises=require("fs/promises"),import_csf_tools=require("storybook/internal/csf-tools");async function loader(content,map){let callback=this.async(),options=this.getOptions(),id=this.resourcePath,sourceCode=await(0,import_promises.readFile)(id,"utf-8");try{let makeTitle=userTitle=>userTitle||"default",csf=(0,import_csf_tools.loadCsf)(content,{makeTitle}).parse(),csfSource=(0,import_csf_tools.loadCsf)(sourceCode,{makeTitle}).parse();(0,import_csf_tools.enrichCsf)(csf,csfSource,options);let formattedCsf=(0,import_csf_tools.formatCsf)(csf,{sourceMaps:!0,inputSourceMap:map,sourceFileName:id},content);if(typeof formattedCsf=="string")return callback(null,formattedCsf,map);callback(null,formattedCsf.code,formattedCsf.map)}catch(err){err.message?.startsWith("CSF:")||console.warn(err.message),callback(null,content,map)}}var webpack_loader_default=loader;
+import CJS_COMPAT_NODE_URL_f9ojq61007o from 'node:url';
+import CJS_COMPAT_NODE_PATH_f9ojq61007o from 'node:path';
+import CJS_COMPAT_NODE_MODULE_f9ojq61007o from "node:module";
+
+var __filename = CJS_COMPAT_NODE_URL_f9ojq61007o.fileURLToPath(import.meta.url);
+var __dirname = CJS_COMPAT_NODE_PATH_f9ojq61007o.dirname(__filename);
+var require = CJS_COMPAT_NODE_MODULE_f9ojq61007o.createRequire(import.meta.url);
+
+// ------------------------------------------------------------
+// end of CJS compatibility banner, injected by Storybook's esbuild configuration
+// ------------------------------------------------------------
+
+// src/webpack-loader.ts
+import { readFile } from "node:fs/promises";
+import { enrichCsf, formatCsf, loadCsf } from "storybook/internal/csf-tools";
+async function loader(content, map) {
+  let callback = this.async(), options = this.getOptions(), id = this.resourcePath, sourceCode = await readFile(id, "utf-8");
+  try {
+    let makeTitle = (userTitle) => userTitle || "default", csf = loadCsf(content, { makeTitle }).parse(), csfSource = loadCsf(sourceCode, { makeTitle }).parse();
+    await enrichCsf(csf, csfSource, options);
+    let formattedCsf = formatCsf(
+      csf,
+      { sourceMaps: !0, inputSourceMap: map, sourceFileName: id },
+      content
+    );
+    if (typeof formattedCsf == "string")
+      return callback(null, formattedCsf, map);
+    callback(null, formattedCsf.code, formattedCsf.map);
+  } catch (err) {
+    err.message?.startsWith("CSF:") || console.warn(err.message), callback(null, content, map);
+  }
+}
+var webpack_loader_default = loader;
+export {
+  webpack_loader_default as default
+};

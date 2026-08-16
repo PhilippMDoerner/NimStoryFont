@@ -27,30 +27,10 @@
       "schema": "./src/builders/extract-i18n/schema.json",
       "description": "Extract i18n strings from a browser application."
     },
-    "jest": {
-      "implementation": "./src/builders/jest",
-      "schema": "./src/builders/jest/schema.json",
-      "description": "Run unit tests using Jest."
-    },
     "karma": {
       "implementation": "./src/builders/karma",
       "schema": "./src/builders/karma/schema.json",
       "description": "Run Karma unit tests."
-    },
-    "web-test-runner": {
-      "implementation": "./src/builders/web-test-runner",
-      "schema": "./src/builders/web-test-runner/schema.json",
-      "description": "Run unit tests with Web Test Runner."
-    },
-    "protractor": {
-      "implementation": "./src/builders/protractor-error",
-      "schema": "./src/builders/protractor/schema.json",
-      "description": "Throw an error that Protractor is end-of-life and no longer supported."
-    },
-    "private-protractor": {
-      "implementation": "./src/builders/protractor",
-      "schema": "./src/builders/protractor/schema.json",
-      "description": "PRIVATE API - Do not use."
     },
     "server": {
       "implementation": "./src/builders/server",

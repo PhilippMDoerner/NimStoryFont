@@ -10,6 +10,7 @@ export type Options = [
     }
 ];
 export type MessageIds = 'bannedTypeMessage' | 'bannedTypeReplacement';
-declare const _default: TSESLint.RuleModule<MessageIds, Options, import("../../rules").ESLintPluginDocs, TSESLint.RuleListener>;
+declare const _default: TSESLint.RuleModule<MessageIds, Options, import("../../rules").ESLintPluginDocs, TSESLint.RuleListener> & {
+    name: string;
+};
 export default _default;
-//# sourceMappingURL=no-restricted-types.d.ts.map

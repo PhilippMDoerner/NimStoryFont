@@ -1,10 +1,10 @@
 let { execSync } = require('child_process')
 let escalade = require('escalade/sync')
 let { existsSync, readFileSync, writeFileSync } = require('fs')
-let { join } = require('path')
+let { dirname, join } = require('path')
 let pico = require('picocolors')
 
-const { detectEOL, detectIndent } = require('./utils')
+let { detectEOL, detectIndent } = require('./utils')
 
 function BrowserslistUpdateError(message) {
   this.name = 'BrowserslistUpdateError'
@@ -18,8 +18,7 @@ function BrowserslistUpdateError(message) {
 BrowserslistUpdateError.prototype = Error.prototype
 
 // Check if HADOOP_HOME is set to determine if this is running in a Hadoop environment
-const IsHadoopExists = !!process.env.HADOOP_HOME
-const yarnCommand = IsHadoopExists ? 'yarnpkg' : 'yarn'
+const YARN_CMD = process.env.HADOOP_HOME ? 'yarnpkg' : 'yarn'
 
 /* c8 ignore next 3 */
 function defaultPrint(str) {
@@ -44,6 +43,7 @@ function detectLockfile() {
   let lockfilePnpm = join(packageDir, 'pnpm-lock.yaml')
   let lockfileBun = join(packageDir, 'bun.lock')
   let lockfileBunBinary = join(packageDir, 'bun.lockb')
+  let lockfileDeno = join(packageDir, 'deno.lock')
 
   if (existsSync(lockfilePnpm)) {
     return { file: lockfilePnpm, mode: 'pnpm' }
@@ -58,9 +58,11 @@ function detectLockfile() {
     return lock
   } else if (existsSync(lockfileShrinkwrap)) {
     return { file: lockfileShrinkwrap, mode: 'npm' }
+  } else if (existsSync(lockfileDeno)) {
+    return { file: lockfileDeno, mode: 'deno' }
   }
   throw new BrowserslistUpdateError(
-    'No lockfile found. Run "npm install", "yarn install" or "pnpm install"'
+    'No lockfile found. Run "npm install", "yarn install", "pnpm install", "bun install" or "deno install"'
   )
 }
 
@@ -68,11 +70,11 @@ function getLatestInfo(lock) {
   if (lock.mode === 'yarn') {
     if (lock.version === 1) {
       return JSON.parse(
-        execSync(yarnCommand + ' info caniuse-lite --json').toString()
+        execSync(YARN_CMD + ' info caniuse-lite --json').toString()
       ).data
     } else {
       return JSON.parse(
-        execSync(yarnCommand + ' npm info caniuse-lite --json').toString()
+        execSync(YARN_CMD + ' npm info caniuse-lite --json').toString()
       )
     }
   }
@@ -80,8 +82,13 @@ function getLatestInfo(lock) {
     return JSON.parse(execSync('pnpm info caniuse-lite --json').toString())
   }
   if (lock.mode === 'bun') {
-    //  TO-DO: No 'bun info' yet. Created issue: https://github.com/oven-sh/bun/issues/12280
-    return JSON.parse(execSync(' npm info caniuse-lite --json').toString())
+    return JSON.parse(execSync(' bun info caniuse-lite --json').toString())
+  }
+  if (lock.mode === 'deno') {
+    let result = JSON.parse(
+      execSync('deno x -y npm:npm show caniuse-lite version --json').toString()
+    )
+    return { version: Array.isArray(result) ? result[0] : result }
   }
 
   return JSON.parse(execSync('npm show caniuse-lite --json').toString())
@@ -224,14 +231,14 @@ function updatePackageManually(print, lock, latest) {
   writeFileSync(lock.file, lockfileData.content)
 
   let install =
-    lock.mode === 'yarn' ? yarnCommand + ' add -W' : lock.mode + ' install'
+    lock.mode === 'yarn' ? YARN_CMD + ' add -W' : lock.mode + ' install'
   print(
     'Installing new caniuse-lite version\n' +
-      pico.yellow('$ ' + install + ' caniuse-lite') +
+      pico.yellow('$ ' + install + ' caniuse-lite baseline-browser-mapping') +
       '\n'
   )
   try {
-    execSync(install + ' caniuse-lite')
+    execSync(install + ' caniuse-lite baseline-browser-mapping')
   } catch (e) /* c8 ignore start */ {
     print(
       pico.red(
@@ -248,17 +255,66 @@ function updatePackageManually(print, lock, latest) {
   } /* c8 ignore end */
 
   let del =
-    lock.mode === 'yarn' ? yarnCommand + ' remove -W' : lock.mode + ' uninstall'
+    lock.mode === 'yarn' ? YARN_CMD + ' remove -W' : lock.mode + ' uninstall'
   print(
     'Cleaning package.json dependencies from caniuse-lite\n' +
-      pico.yellow('$ ' + del + ' caniuse-lite') +
+      pico.yellow('$ ' + del + ' caniuse-lite baseline-browser-mapping') +
       '\n'
   )
-  execSync(del + ' caniuse-lite')
+  execSync(del + ' caniuse-lite baseline-browser-mapping')
 }
 
-function updateWith(print, cmd) {
-  print('Updating caniuse-lite version\n' + pico.yellow('$ ' + cmd) + '\n')
+/**
+ * Bun cannot update a transitive dependency by name: `bun update caniuse-lite`
+ * adds caniuse-lite to package.json as a new direct dependency at the latest
+ * version and leaves every nested copy - the ones that actually get resolved at
+ * runtime - on the old version. A temporary `overrides` entry reaches those,
+ * and the resolutions survive once it is taken back out.
+ */
+function updateBun(print, lock, latest) {
+  let pkgFile = join(dirname(lock.file), 'package.json')
+  let original = readFileSync(pkgFile)
+  let pkg = JSON.parse(original.toString())
+  let withOverride = {
+    ...pkg,
+    overrides: {
+      ...pkg.overrides,
+      'baseline-browser-mapping': 'latest',
+      'caniuse-lite': latest.version
+    }
+  }
+
+  // The file is restored byte for byte below, so its formatting does not matter.
+  writeFileSync(pkgFile, JSON.stringify(withOverride, null, 2) + '\n')
+
+  print(
+    'Updating caniuse-lite version\n' +
+      pico.yellow('$ bun install') +
+      ' (with a temporary caniuse-lite override)\n'
+  )
+  try {
+    execSync('bun install')
+  } catch (e) /* c8 ignore start */ {
+    writeFileSync(pkgFile, original)
+    print(pico.red(e.stdout.toString()))
+    print(
+      pico.red(
+        '\n' +
+          e.stack +
+          '\n\n' +
+          'Problem with `bun install` call. ' +
+          'Run it manually.\n'
+      )
+    )
+    process.exit(1)
+  } /* c8 ignore end */
+
+  writeFileSync(pkgFile, original)
+  updateWith(print, 'bun install', 'Removing the temporary override')
+}
+
+function updateWith(print, cmd, message = 'Updating caniuse-lite version') {
+  print(message + '\n' + pico.yellow('$ ' + cmd) + '\n')
   try {
     execSync(cmd)
   } catch (e) /* c8 ignore start */ {
@@ -293,11 +349,22 @@ module.exports = function updateDB(print = defaultPrint) {
   print('Latest version:     ' + pico.bold(pico.green(latest.version)) + '\n')
 
   if (lock.mode === 'yarn' && lock.version !== 1) {
-    updateWith(print, yarnCommand + ' up -R caniuse-lite')
+    updateWith(print, YARN_CMD + ' up -R caniuse-lite baseline-browser-mapping')
   } else if (lock.mode === 'pnpm') {
-    updateWith(print, 'pnpm up caniuse-lite')
+    let lockContent = readFileSync(lock.file).toString()
+    let packages = lockContent.includes('baseline-browser-mapping')
+      ? 'caniuse-lite baseline-browser-mapping'
+      : 'caniuse-lite'
+    updateWith(print, 'pnpm up --depth=Infinity --no-save ' + packages)
   } else if (lock.mode === 'bun') {
-    updateWith(print, 'bun update caniuse-lite')
+    updateBun(print, lock, latest)
+  } else if (lock.mode === 'deno') {
+    updateWith(print, 'deno add npm:caniuse-lite npm:baseline-browser-mapping')
+    updateWith(
+      print,
+      'deno remove caniuse-lite baseline-browser-mapping',
+      'Cleaning package.json dependencies from caniuse-lite'
+    )
   } else {
     updatePackageManually(print, lock, latest)
   }

@@ -1,11 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RULE_NAME = void 0;
+exports.RULE_DOCS_EXTENSION = exports.RULE_NAME = void 0;
 const utils_1 = require("@angular-eslint/utils");
 const utils_2 = require("@typescript-eslint/utils");
 const create_eslint_rule_1 = require("../utils/create-eslint-rule");
 exports.RULE_NAME = 'no-input-rename';
-const STYLE_GUIDE_LINK = 'https://angular.dev/style-guide#style-05-13';
+const STYLE_GUIDE_LINK = 'https://angular.dev/guide/components/inputs#choosing-input-names';
 exports.default = (0, create_eslint_rule_1.createESLintRule)({
     name: exports.RULE_NAME,
     meta: {
@@ -208,3 +208,6 @@ function isAliasNameAllowed(selectors, propertyName, aliasName, selectorDirectiv
             composedName(selector, propertyName) === aliasName);
     });
 }
+exports.RULE_DOCS_EXTENSION = {
+    rationale: "Renaming inputs creates a confusing situation where the property has one name inside the component class (private name) and a different name in templates (public name). For example, with the @Input() decorator: '@Input(\"userName\") name: string' means you access 'this.name' in the component but bind with '[userName]' in templates. Similarly, with the signal-based input() function: 'userName = input<string>({ alias: \"name\" })' means you access 'this.userName()' internally but bind with '[name]' in templates. This dual naming makes the code harder to understand, complicates refactoring, and can cause bugs when developers forget which name to use in which context. Keep the internal and external names the same unless you have a strong reason for the mismatch.",
+};

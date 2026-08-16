@@ -1,13 +1,17 @@
 import { isIterable } from './utils.js';
 
+const NO_VALUE = Symbol('empty');
 const STACK_OBJECT = 1;
 const STACK_ARRAY = 2;
+const MODE_JSON = 0;
+const MODE_JSONL = 1;
+const MODE_JSONL_AUTO = 2;
 const decoder = new TextDecoder();
 
-function adjustPosition(error, parser) {
-    if (error.name === 'SyntaxError' && parser.jsonParseOffset) {
+function adjustPosition(error, jsonParseOffset) {
+    if (error.name === 'SyntaxError' && jsonParseOffset) {
         error.message = error.message.replace(/at position (\d+)/, (_, pos) =>
-            'at position ' + (Number(pos) + parser.jsonParseOffset)
+            'at position ' + (Number(pos) + jsonParseOffset)
         );
     }
 
@@ -15,8 +19,8 @@ function adjustPosition(error, parser) {
 }
 
 function append(array, elements) {
-    // Note: Avoid to use array.push(...elements) since it may lead to
-    // "RangeError: Maximum call stack size exceeded" for a long arrays
+    // Note: Avoid using array.push(...elements) since it may lead to
+    // "RangeError: Maximum call stack size exceeded" for long arrays
     const initialLength = array.length;
     array.length += elements.length;
 
@@ -25,13 +29,61 @@ function append(array, elements) {
     }
 }
 
-export async function parseChunked(chunkEmitter) {
+function resolveParseMode(mode) {
+    switch (mode) {
+        case 'json':
+            return MODE_JSON;
+        case 'jsonl':
+            return MODE_JSONL;
+        case 'auto':
+            return MODE_JSONL_AUTO;
+        default:
+            throw new TypeError('Invalid options: `mode` should be "json", "jsonl", or "auto"');
+    }
+}
+
+function parseChunkedOptions(value) {
+    const options = typeof value === 'function'
+        ? { reviver: value }
+        : value || {};
+
+    return {
+        mode: resolveParseMode(options.mode ?? 'json'),
+        reviver: options.reviver ?? null,
+        onRootValue: options.onRootValue ?? null,
+        onChunk: options.onChunk ?? null
+    };
+}
+
+function applyReviver(value, reviver) {
+    return walk({ '': value }, '', value);
+
+    function walk(holder, key, value) {
+        if (value && typeof value === 'object') {
+            for (const childKey of Object.keys(value)) {
+                const childValue = value[childKey];
+                const newValue = walk(value, childKey, childValue);
+
+                if (newValue === undefined) {
+                    delete value[childKey];
+                } else if (newValue !== childValue) {
+                    value[childKey] = newValue;
+                }
+            }
+        }
+
+        return reviver.call(holder, key, value);
+    }
+}
+
+export async function parseChunked(chunkEmitter, optionsOrReviver) {
+    const { mode, reviver, onRootValue, onChunk } = parseChunkedOptions(optionsOrReviver);
     const iterable = typeof chunkEmitter === 'function'
         ? chunkEmitter()
         : chunkEmitter;
 
     if (isIterable(iterable)) {
-        let parser = new ChunkParser();
+        const parser = createChunkParser(mode, reviver, onRootValue, onChunk);
 
         try {
             for await (const chunk of iterable) {
@@ -44,7 +96,7 @@ export async function parseChunked(chunkEmitter) {
 
             return parser.finish();
         } catch (e) {
-            throw adjustPosition(e, parser);
+            throw adjustPosition(e, parser.jsonParseOffset);
         }
     }
 
@@ -54,43 +106,147 @@ export async function parseChunked(chunkEmitter) {
     );
 };
 
-class ChunkParser {
-    constructor() {
-        this.value = undefined;
-        this.valueStack = null;
+function createChunkParser(parseMode, reviver, onRootValue, onChunk) {
+    let rootValues = parseMode === MODE_JSONL ? [] : null;
+    let rootValuesCount = 0;
+    let currentRootValue = NO_VALUE;
+    let currentRootValueCursor = null;
+    let consumedChunkLength = 0;
+    let parsedChunkLength = 0;
 
-        this.stack = new Array(100);
-        this.lastFlushDepth = 0;
-        this.flushDepth = 0;
-        this.stateString = false;
-        this.stateStringEscape = false;
-        this.pendingByteSeq = null;
-        this.pendingChunk = null;
-        this.chunkOffset = 0;
-        this.jsonParseOffset = 0;
+    let prevArray = null;
+    let prevArraySlices = [];
+
+    let stack = new Array(100);
+    let lastFlushDepth = 0;
+    let flushDepth = 0;
+    let stateString = false;
+    let stateStringEscape = false;
+    let seenNonWhiteSpace = false;
+    let allowNewRootValue = true;
+    let pendingByteSeq = null;
+    let pendingChunk = null;
+    let jsonParseOffset = 0;
+
+    const state = Object.freeze({
+        get mode() {
+            return parseMode === MODE_JSONL ? 'jsonl' : 'json';
+        },
+        get returnValue() {
+            return typeof onRootValue === 'function'
+                ? rootValuesCount
+                : rootValues !== null
+                    ? rootValues
+                    : currentRootValue !== NO_VALUE
+                        ? currentRootValue
+                        : undefined;
+        },
+        get currentRootValue() {
+            return currentRootValue !== NO_VALUE ? currentRootValue : undefined;
+        },
+        get rootValuesCount() {
+            return rootValuesCount;
+        },
+        get consumed() {
+            return consumedChunkLength;
+        },
+        get parsed() {
+            return parsedChunkLength;
+        }
+    });
+
+    return {
+        push,
+        finish,
+        state,
+        get jsonParseOffset() {
+            return jsonParseOffset;
+        }
+    };
+
+    function startRootValue(fragment) {
+        // Extra non-whitespace after complete root value should fail to parse
+        if (!allowNewRootValue) {
+            jsonParseOffset -= 2;
+            JSON.parse('[]' + fragment);
+        }
+
+        // In "auto" mode, switch to JSONL when a second root value is starting after a newline
+        if (currentRootValue !== NO_VALUE && parseMode === MODE_JSONL_AUTO) {
+            parseMode = MODE_JSONL;
+            rootValues = [currentRootValue];
+        }
+
+        // Block parsing of an additional root value until a newline is encountered
+        allowNewRootValue = false;
+
+        // Parse fragment as a new root value
+        currentRootValue = JSON.parse(fragment);
     }
 
-    parseAndAppend(fragment, wrap) {
-        // Append new entries or elements
-        if (this.stack[this.lastFlushDepth - 1] === STACK_OBJECT) {
-            if (wrap) {
-                this.jsonParseOffset--;
-                fragment = '{' + fragment + '}';
-            }
+    function finishRootValue() {
+        rootValuesCount++;
 
-            Object.assign(this.valueStack.value, JSON.parse(fragment));
-        } else {
-            if (wrap) {
-                this.jsonParseOffset--;
-                fragment = '[' + fragment + ']';
-            }
+        if (typeof reviver === 'function') {
+            currentRootValue = applyReviver(currentRootValue, reviver);
+        }
 
-            append(this.valueStack.value, JSON.parse(fragment));
+        if (typeof onRootValue === 'function') {
+            onRootValue(currentRootValue, state);
+        } else if (parseMode === MODE_JSONL) {
+            rootValues.push(currentRootValue);
         }
     }
 
-    prepareAddition(fragment) {
-        const { value } = this.valueStack;
+    function mergeArraySlices() {
+        if (prevArray === null) {
+            return;
+        }
+
+        if (prevArraySlices.length !== 0) {
+            const newArray = prevArraySlices.length === 1
+                ? prevArray.concat(prevArraySlices[0])
+                : prevArray.concat(...prevArraySlices);
+
+            if (currentRootValueCursor.prev !== null) {
+                currentRootValueCursor.prev.value[currentRootValueCursor.key] = newArray;
+            } else {
+                currentRootValue = newArray;
+            }
+
+            currentRootValueCursor.value = newArray;
+            prevArraySlices = [];
+        }
+
+        prevArray = null;
+    }
+
+    function parseAndAppend(fragment, wrap) {
+        // Append new entries or elements
+        if (stack[lastFlushDepth - 1] === STACK_OBJECT) {
+            if (wrap) {
+                jsonParseOffset--;
+                fragment = '{' + fragment + '}';
+            }
+
+            Object.assign(currentRootValueCursor.value, JSON.parse(fragment));
+        } else {
+            if (wrap) {
+                jsonParseOffset--;
+                fragment = '[' + fragment + ']';
+            }
+
+            if (prevArray === currentRootValueCursor.value) {
+                prevArraySlices.push(JSON.parse(fragment));
+            } else {
+                append(currentRootValueCursor.value, JSON.parse(fragment));
+                prevArray = currentRootValueCursor.value;
+            }
+        }
+    }
+
+    function prepareAddition(fragment) {
+        const { value } = currentRootValueCursor;
         const expectComma = Array.isArray(value)
             ? value.length !== 0
             : Object.keys(value).length !== 0;
@@ -99,7 +255,7 @@ class ChunkParser {
             // Skip a comma at the beginning of fragment, otherwise it would
             // fail to parse
             if (fragment[0] === ',') {
-                this.jsonParseOffset++;
+                jsonParseOffset++;
                 return fragment.slice(1);
             }
 
@@ -109,7 +265,7 @@ class ChunkParser {
             // parsing. Otherwise, the sequence of chunks can be successfully
             // parsed, although it should not, e.g. ["[{}", "{}]"]
             if (fragment[0] !== '}' && fragment[0] !== ']') {
-                this.jsonParseOffset -= 3;
+                jsonParseOffset -= 3;
                 return '[[]' + fragment;
             }
         }
@@ -117,98 +273,104 @@ class ChunkParser {
         return fragment;
     }
 
-    flush(chunk, start, end) {
+    function flush(chunk, start, end) {
         let fragment = chunk.slice(start, end);
 
-        // Save position correction an error in JSON.parse() if any
-        this.jsonParseOffset = this.chunkOffset + start;
+        // Save position correction for an error in JSON.parse() if any
+        jsonParseOffset = consumedChunkLength + start;
+        parsedChunkLength += end - start;
 
         // Prepend pending chunk if any
-        if (this.pendingChunk !== null) {
-            fragment = this.pendingChunk + fragment;
-            this.jsonParseOffset -= this.pendingChunk.length;
-            this.pendingChunk = null;
+        if (pendingChunk !== null) {
+            fragment = pendingChunk + fragment;
+            jsonParseOffset -= pendingChunk.length;
+            parsedChunkLength += pendingChunk.length;
+            pendingChunk = null;
         }
 
-        if (this.flushDepth === this.lastFlushDepth) {
-            // Depth didn't changed, so it's a root value or entry/element set
-            if (this.flushDepth > 0) {
-                this.parseAndAppend(this.prepareAddition(fragment), true);
+        if (flushDepth === lastFlushDepth) {
+            // Depth didn't change, so it's a continuation of the current value or entire value if it's a root one
+            if (lastFlushDepth === 0) {
+                startRootValue(fragment);
             } else {
-                // That's an entire value on a top level
-                this.value = JSON.parse(fragment);
-                this.valueStack = {
-                    value: this.value,
-                    prev: null
-                };
+                parseAndAppend(prepareAddition(fragment), true);
             }
-        } else if (this.flushDepth > this.lastFlushDepth) {
+        } else if (flushDepth > lastFlushDepth) {
             // Add missed closing brackets/parentheses
-            for (let i = this.flushDepth - 1; i >= this.lastFlushDepth; i--) {
-                fragment += this.stack[i] === STACK_OBJECT ? '}' : ']';
+            for (let i = flushDepth - 1; i >= lastFlushDepth; i--) {
+                fragment += stack[i] === STACK_OBJECT ? '}' : ']';
             }
 
-            if (this.lastFlushDepth === 0) {
-                // That's a root value
-                this.value = JSON.parse(fragment);
-                this.valueStack = {
-                    value: this.value,
+            if (lastFlushDepth === 0) {
+                startRootValue(fragment);
+                currentRootValueCursor = {
+                    value: currentRootValue,
+                    key: null,
                     prev: null
                 };
             } else {
-                this.parseAndAppend(this.prepareAddition(fragment), true);
+                parseAndAppend(prepareAddition(fragment), true);
+                mergeArraySlices();
             }
 
             // Move down to the depths to the last object/array, which is current now
-            for (let i = this.lastFlushDepth || 1; i < this.flushDepth; i++) {
-                let value = this.valueStack.value;
+            for (let i = lastFlushDepth || 1; i < flushDepth; i++) {
+                let { value } = currentRootValueCursor;
+                let key = null;
 
-                if (this.stack[i - 1] === STACK_OBJECT) {
-                    // find last entry
-                    let key;
+                if (stack[i - 1] === STACK_OBJECT) {
+                    // Find last entry
                     // eslint-disable-next-line curly
                     for (key in value);
                     value = value[key];
                 } else {
-                    // last element
-                    value = value[value.length - 1];
+                    // Last element
+                    key = value.length - 1;
+                    value = value[key];
                 }
 
-                this.valueStack = {
+                currentRootValueCursor = {
                     value,
-                    prev: this.valueStack
+                    key,
+                    prev: currentRootValueCursor
                 };
             }
-        } else /* this.flushDepth < this.lastFlushDepth */ {
-            fragment = this.prepareAddition(fragment);
+        } else /* flushDepth < lastFlushDepth */ {
+            fragment = prepareAddition(fragment);
 
             // Add missed opening brackets/parentheses
-            for (let i = this.lastFlushDepth - 1; i >= this.flushDepth; i--) {
-                this.jsonParseOffset--;
-                fragment = (this.stack[i] === STACK_OBJECT ? '{' : '[') + fragment;
+            for (let i = lastFlushDepth - 1; i >= flushDepth; i--) {
+                jsonParseOffset--;
+                fragment = (stack[i] === STACK_OBJECT ? '{' : '[') + fragment;
             }
 
-            this.parseAndAppend(fragment, false);
+            parseAndAppend(fragment, false);
+            mergeArraySlices();
 
-            for (let i = this.lastFlushDepth - 1; i >= this.flushDepth; i--) {
-                this.valueStack = this.valueStack.prev;
+            for (let i = lastFlushDepth - 1; i >= flushDepth; i--) {
+                currentRootValueCursor = currentRootValueCursor.prev;
             }
         }
 
-        this.lastFlushDepth = this.flushDepth;
+        if (flushDepth === 0) {
+            finishRootValue();
+        }
+
+        lastFlushDepth = flushDepth;
+        seenNonWhiteSpace = false;
     }
 
-    push(chunk) {
+    function ensureChunkString(chunk) {
         if (typeof chunk !== 'string') {
             // Suppose chunk is Buffer or Uint8Array
 
             // Prepend uncompleted byte sequence if any
-            if (this.pendingByteSeq !== null) {
+            if (pendingByteSeq !== null) {
                 const origRawChunk = chunk;
-                chunk = new Uint8Array(this.pendingByteSeq.length + origRawChunk.length);
-                chunk.set(this.pendingByteSeq);
-                chunk.set(origRawChunk, this.pendingByteSeq.length);
-                this.pendingByteSeq = null;
+                chunk = new Uint8Array(pendingByteSeq.length + origRawChunk.length);
+                chunk.set(pendingByteSeq);
+                chunk.set(origRawChunk, pendingByteSeq.length);
+                pendingByteSeq = null;
             }
 
             // In case Buffer/Uint8Array, an input is encoded in UTF8
@@ -230,8 +392,8 @@ class ChunkParser {
                         if ((seqLength !== 4 && byte >> 3 === 0b11110) ||
                             (seqLength !== 3 && byte >> 4 === 0b1110) ||
                             (seqLength !== 2 && byte >> 5 === 0b110)) {
-                            this.pendingByteSeq = chunk.slice(chunk.length - seqLength);
-                            chunk = chunk.slice(0, -seqLength);
+                            pendingByteSeq = chunk.slice(chunk.length - seqLength); // use slice to avoid tying chunk
+                            chunk = chunk.subarray(0, -seqLength); // use subarray to avoid buffer copy
                         }
 
                         break;
@@ -244,24 +406,31 @@ class ChunkParser {
             chunk = decoder.decode(chunk);
         }
 
+        return chunk;
+    }
+
+    function push(chunk) {
+        chunk = ensureChunkString(chunk);
+
         const chunkLength = chunk.length;
+        const prevParsedChunkLength = parsedChunkLength;
         let lastFlushPoint = 0;
         let flushPoint = 0;
 
         // Main scan loop
         scan: for (let i = 0; i < chunkLength; i++) {
-            if (this.stateString) {
+            if (stateString) {
                 for (; i < chunkLength; i++) {
-                    if (this.stateStringEscape) {
-                        this.stateStringEscape = false;
+                    if (stateStringEscape) {
+                        stateStringEscape = false;
                     } else {
                         switch (chunk.charCodeAt(i)) {
                             case 0x22: /* " */
-                                this.stateString = false;
+                                stateString = false;
                                 continue scan;
 
                             case 0x5C: /* \ */
-                                this.stateStringEscape = true;
+                                stateStringEscape = true;
                         }
                     }
                 }
@@ -271,8 +440,9 @@ class ChunkParser {
 
             switch (chunk.charCodeAt(i)) {
                 case 0x22: /* " */
-                    this.stateString = true;
-                    this.stateStringEscape = false;
+                    stateString = true;
+                    stateStringEscape = false;
+                    seenNonWhiteSpace = true;
                     break;
 
                 case 0x2C: /* , */
@@ -282,23 +452,32 @@ class ChunkParser {
                 case 0x7B: /* { */
                     // Open an object
                     flushPoint = i + 1;
-                    this.stack[this.flushDepth++] = STACK_OBJECT;
+                    stack[flushDepth++] = STACK_OBJECT;
+                    seenNonWhiteSpace = true;
                     break;
 
                 case 0x5B: /* [ */
                     // Open an array
                     flushPoint = i + 1;
-                    this.stack[this.flushDepth++] = STACK_ARRAY;
+                    stack[flushDepth++] = STACK_ARRAY;
+                    seenNonWhiteSpace = true;
                     break;
 
                 case 0x5D: /* ] */
                 case 0x7D: /* } */
                     // Close an object or array
                     flushPoint = i + 1;
-                    this.flushDepth--;
 
-                    if (this.flushDepth < this.lastFlushDepth) {
-                        this.flush(chunk, lastFlushPoint, flushPoint);
+                    if (flushDepth === 0) {
+                        // Unmatched closing bracket/brace at top level, should fail to parse
+                        break scan;
+                    }
+
+                    flushDepth--;
+
+                    // Flush on depth decrease related to last flush, otherwise wait for more chunks to flush together
+                    if (flushDepth < lastFlushDepth) {
+                        flush(chunk, lastFlushPoint, flushPoint);
                         lastFlushPoint = flushPoint;
                     }
 
@@ -308,7 +487,26 @@ class ChunkParser {
                 case 0x0A: /* \n */
                 case 0x0D: /* \r */
                 case 0x20: /* space */
-                    // Move points forward when they points on current position and it's a whitespace
+                    if (flushDepth === 0) {
+                        if (seenNonWhiteSpace) {
+                            flushPoint = i;
+                            flush(chunk, lastFlushPoint, flushPoint);
+                            lastFlushPoint = flushPoint;
+                        }
+
+                        if (parseMode !== MODE_JSON &&
+                            allowNewRootValue === false &&
+                            (chunk.charCodeAt(i) === 0x0A || chunk.charCodeAt(i) === 0x0D)
+                        ) {
+                            allowNewRootValue = true;
+                        }
+
+                        if (flushPoint === i) {
+                            parsedChunkLength++;
+                        }
+                    }
+
+                    // Move points forward when they point to current position and it's a whitespace
                     if (lastFlushPoint === i) {
                         lastFlushPoint++;
                     }
@@ -318,35 +516,54 @@ class ChunkParser {
                     }
 
                     break;
+
+                default:
+                    seenNonWhiteSpace = true;
             }
         }
 
         if (flushPoint > lastFlushPoint) {
-            this.flush(chunk, lastFlushPoint, flushPoint);
+            flush(chunk, lastFlushPoint, flushPoint);
         }
 
         // Produce pendingChunk if something left
         if (flushPoint < chunkLength) {
-            if (this.pendingChunk !== null) {
+            if (pendingChunk !== null) {
                 // When there is already a pending chunk then no flush happened,
                 // appending entire chunk to pending one
-                this.pendingChunk += chunk;
+                pendingChunk += chunk;
             } else {
                 // Create a pending chunk, it will start with non-whitespace since
                 // flushPoint was moved forward away from whitespaces on scan
-                this.pendingChunk = chunk.slice(flushPoint, chunkLength);
+                pendingChunk = chunk.slice(flushPoint, chunkLength);
             }
         }
 
-        this.chunkOffset += chunkLength;
+        consumedChunkLength += chunkLength;
+
+        if (typeof onChunk === 'function') {
+            onChunk(parsedChunkLength - prevParsedChunkLength, chunk, pendingChunk, state);
+        }
     }
 
-    finish() {
-        if (this.pendingChunk !== null) {
-            this.flush('', 0, 0);
-            this.pendingChunk = null;
+    function finish() {
+        if (pendingChunk !== null || (currentRootValue === NO_VALUE && parseMode !== MODE_JSONL)) {
+            // Force the `flushDepth < lastFlushDepth` branch in flush() to prepend missed
+            // opening brackets/parentheses and produce a natural JSON.parse() EOF error
+            flushDepth = 0;
+            flush('', 0, 0);
         }
 
-        return this.value;
+        if (typeof onChunk === 'function') {
+            parsedChunkLength = consumedChunkLength;
+            onChunk(0, null, null, state);
+        }
+
+        const result = state.returnValue;
+
+        rootValues = null;
+        currentRootValue = NO_VALUE;
+
+        return result;
     }
-};
+}

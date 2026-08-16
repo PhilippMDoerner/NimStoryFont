@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RULE_NAME = void 0;
+exports.RULE_DOCS_EXTENSION = exports.RULE_NAME = void 0;
 const bundled_angular_compiler_1 = require("@angular-eslint/bundled-angular-compiler");
 const utils_1 = require("@angular-eslint/utils");
 const create_eslint_rule_1 = require("../utils/create-eslint-rule");
@@ -34,7 +34,7 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
                 }
                 else {
                     // Ignore native elements.
-                    if ('name' in node && (0, get_dom_elements_1.getDomElements)().has(node.name)) {
+                    if ('name' in node && (0, get_dom_elements_1.getDomElements)().has(node.name.toLowerCase())) {
                         return;
                     }
                     processElementOrTemplateNode(node);
@@ -136,7 +136,7 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
     },
 });
 function isContentNode(node) {
-    return 'name' in node && node.name === 'ng-content';
+    return 'name' in node && node.name.toLowerCase() === 'ng-content';
 }
 function findStartOfNgContentInnerHTML(html) {
     let quote;
@@ -166,3 +166,6 @@ function getClosingTagPrefix(openingTagLastChar) {
     const hasOwnWhitespace = openingTagLastChar.trim() === '';
     return hasOwnWhitespace ? '' : ' ';
 }
+exports.RULE_DOCS_EXTENSION = {
+    rationale: 'Self-closing tags like <app-component /> are more concise and eliminate visual clutter when elements have no content. This pattern is familiar from HTML void elements (like <img /> and <br />) and from JSX/React. Using self-closing syntax makes it immediately obvious that an element is empty, whereas <app-component></app-component> requires scanning to the closing tag to confirm there is no content. The shorter syntax also reduces the chance of accidentally nesting content where none was intended. Angular v15.1+ supports self-closing tags for components and structural elements. The rule automatically skips native HTML elements (div, span, etc.) and index.html files since browser support varies. For Angular components and directives, self-closing tags improve template readability.',
+};

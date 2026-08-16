@@ -5,6 +5,11 @@
  */
 export type Schema = {
     /**
+     * When true, the 'type' option will be appended to the generated class name. When false,
+     * only the file name will include the type.
+     */
+    addTypeToClassName?: boolean;
+    /**
      * Configures the change detection strategy for the component.
      */
     changeDetection?: ChangeDetection;
@@ -29,12 +34,12 @@ export type Schema = {
     flat?: boolean;
     /**
      * Include the component's styles directly in the `component.ts` file. By default, a
-     * separate stylesheet file (e.g., `my-component.component.css`) is created.
+     * separate stylesheet file (e.g., `my-component.css`) is created.
      */
     inlineStyle?: boolean;
     /**
      * Include the component's HTML template directly in the `component.ts` file. By default, a
-     * separate template file (e.g., `my-component.component.html`) is created.
+     * separate template file (e.g., `my-component.html`) is created.
      */
     inlineTemplate?: boolean;
     /**
@@ -45,8 +50,7 @@ export type Schema = {
     /**
      * The name for the new component. This will be used to create the component's class,
      * template, and stylesheet files. For example, if you provide `my-component`, the files
-     * will be named `my-component.component.ts`, `my-component.component.html`, and
-     * `my-component.component.css`.
+     * will be named `my-component.ts`, `my-component.html`, and `my-component.css`.
      */
     name: string;
     /**
@@ -112,7 +116,7 @@ export type Schema = {
  * Configures the change detection strategy for the component.
  */
 export declare enum ChangeDetection {
-    Default = "Default",
+    Eager = "Eager",
     OnPush = "OnPush"
 }
 /**

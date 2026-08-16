@@ -45,6 +45,7 @@ exports.log = log;
 const private_1 = require("@angular/build/private");
 const architect_1 = require("@angular-devkit/architect");
 const core_1 = require("@angular-devkit/core");
+const node_module_1 = require("node:module");
 const node_path_1 = require("node:path");
 const url = __importStar(require("node:url"));
 const rxjs_1 = require("rxjs");
@@ -55,9 +56,11 @@ const IGNORED_STDOUT_MESSAGES = [
     'Angular is running in development mode. Call enableProdMode() to enable production mode.',
 ];
 function execute(options, context) {
+    context.logger.warn('The "@angular-devkit/build-angular:ssr-dev-server" builder is deprecated as part of Angular\'s Webpack support deprecation. ' +
+        'Use "@angular/build:ssr-dev-server" instead. For more information, see https://angular.dev/tools/cli/build-system-migration.');
     let browserSync;
     try {
-        browserSync = require('browser-sync');
+        browserSync = (0, node_module_1.createRequire)(context.workspaceRoot + '/')('browser-sync');
     }
     catch {
         return (0, rxjs_1.of)({
@@ -99,7 +102,7 @@ function execute(options, context) {
             if (!s.success || !b.success) {
                 return (0, rxjs_1.of)([b, s]);
             }
-            return startNodeServer(s, nodeServerPort, context.logger, !!options.inspect).pipe((0, rxjs_1.map)(() => [b, s]), (0, rxjs_1.catchError)((err) => {
+            return startNodeServer(s, nodeServerPort, options.host, context.logger, !!options.inspect).pipe((0, rxjs_1.map)(() => [b, s]), (0, rxjs_1.catchError)((err) => {
                 context.logger.error(`A server error has occurred.\n${mapErrorToMessage(err)}`);
                 return rxjs_1.EMPTY;
             }));
@@ -164,16 +167,16 @@ function log({ stderr, stdout }, logger) {
         logger.info(stdout.replace(/\n?$/, ''));
     }
 }
-function startNodeServer(serverOutput, port, logger, inspectMode = false) {
+function startNodeServer(serverOutput, port, host, logger, inspectMode = false) {
     const outputPath = serverOutput.outputPath;
     const path = (0, node_path_1.join)(outputPath, 'main.js');
-    const env = { ...process.env, PORT: '' + port };
-    const args = ['--enable-source-maps', `"${path}"`];
+    const env = { ...process.env, PORT: '' + port, NG_ALLOWED_HOSTS: host ?? 'localhost' };
+    const args = ['--enable-source-maps', path];
     if (inspectMode) {
         args.unshift('--inspect-brk');
     }
     return (0, rxjs_1.of)(null).pipe((0, rxjs_1.delay)(0), // Avoid EADDRINUSE error since it will cause the kill event to be finish.
-    (0, rxjs_1.switchMap)(() => (0, utils_1.spawnAsObservable)('node', args, { env, shell: true })), (0, rxjs_1.tap)((res) => log({ stderr: res.stderr, stdout: res.stdout }, logger)), (0, rxjs_1.ignoreElements)(), 
+    (0, rxjs_1.switchMap)(() => (0, utils_1.spawnAsObservable)(process.execPath, args, { env })), (0, rxjs_1.tap)((res) => log({ stderr: res.stderr, stdout: res.stdout }, logger)), (0, rxjs_1.ignoreElements)(), 
     // Emit a signal after the process has been started
     (0, rxjs_1.startWith)(undefined));
 }
@@ -312,3 +315,4 @@ async function getProxyConfig(root, proxyConfig) {
     });
 }
 exports.default = (0, architect_1.createBuilder)(execute);
+//# sourceMappingURL=index.js.map

@@ -40,11 +40,8 @@ var State;
 (function (State) {
     State[State["Unsafe"] = 1] = "Unsafe";
     State[State["Safe"] = 2] = "Safe";
+    State[State["Chained"] = 3] = "Chained";
 })(State || (State = {}));
-function createDataType(type) {
-    const isErrorType = tsutils.isIntrinsicErrorType(type);
-    return isErrorType ? '`error` typed' : '`any`';
-}
 exports.default = (0, util_1.createRule)({
     name: 'no-unsafe-member-access',
     meta: {
@@ -55,22 +52,54 @@ exports.default = (0, util_1.createRule)({
             requiresTypeChecking: true,
         },
         messages: {
-            unsafeComputedMemberAccess: 'Computed name {{property}} resolves to an {{type}} value.',
-            unsafeMemberExpression: 'Unsafe member access {{property}} on an {{type}} value.',
+            errorComputedMemberAccess: 'The type of computed name {{property}} cannot be resolved.',
+            errorMemberExpression: 'Unsafe member access {{property}} on a type that cannot be resolved.',
+            errorThisMemberExpression: [
+                'Unsafe member access {{property}}. The type of `this` cannot be resolved.',
+                'You can try to fix this by turning on the `noImplicitThis` compiler option, or adding a `this` parameter to the function.',
+            ].join('\n'),
+            unsafeComputedMemberAccess: 'Computed name {{property}} resolves to an `any` value.',
+            unsafeMemberExpression: 'Unsafe member access {{property}} on an `any` value.',
             unsafeThisMemberExpression: [
                 'Unsafe member access {{property}} on an `any` value. `this` is typed as `any`.',
                 'You can try to fix this by turning on the `noImplicitThis` compiler option, or adding a `this` parameter to the function.',
             ].join('\n'),
         },
-        schema: [],
+        schema: [
+            {
+                type: 'object',
+                additionalProperties: false,
+                properties: {
+                    allowOptionalChaining: {
+                        type: 'boolean',
+                        description: 'Whether to allow `?.` optional chains on `any` values.',
+                    },
+                },
+            },
+        ],
     },
-    defaultOptions: [],
-    create(context) {
+    defaultOptions: [
+        {
+            allowOptionalChaining: false,
+        },
+    ],
+    create(context, [{ allowOptionalChaining }]) {
         const services = (0, util_1.getParserServices)(context);
         const compilerOptions = services.program.getCompilerOptions();
         const isNoImplicitThis = tsutils.isStrictCompilerOptionEnabled(compilerOptions, 'noImplicitThis');
         const stateCache = new Map();
+        // Case notes:
+        // value?.outer.middle.inner
+        // The ChainExpression is a child of the root expression, and a parent of all the MemberExpressions.
+        // But the left-most expression is what we want to report on: the inner-most expressions.
+        // In fact, this is true even if the chain is on the inside!
+        // value.outer.middle?.inner;
+        // It was already true that every `object` (MemberExpression) has optional: boolean
         function checkMemberExpression(node) {
+            if (allowOptionalChaining && node.optional) {
+                stateCache.set(node, State.Chained);
+                return State.Chained;
+            }
             const cachedState = stateCache.get(node);
             if (cachedState) {
                 return cachedState;
@@ -89,20 +118,28 @@ exports.default = (0, util_1.createRule)({
             stateCache.set(node, state);
             if (state === State.Unsafe) {
                 const propertyName = context.sourceCode.getText(node.property);
-                let messageId = 'unsafeMemberExpression';
+                let messageId;
                 if (!isNoImplicitThis) {
                     // `this.foo` or `this.foo[bar]`
                     const thisExpression = (0, util_1.getThisExpression)(node);
-                    if (thisExpression &&
-                        (0, util_1.isTypeAnyType)((0, util_1.getConstrainedTypeAtLocation)(services, thisExpression))) {
-                        messageId = 'unsafeThisMemberExpression';
+                    if (thisExpression) {
+                        const thisType = (0, util_1.getConstrainedTypeAtLocation)(services, thisExpression);
+                        if ((0, util_1.isTypeAnyType)(thisType)) {
+                            messageId = tsutils.isIntrinsicErrorType(thisType)
+                                ? 'errorThisMemberExpression'
+                                : 'unsafeThisMemberExpression';
+                        }
                     }
+                }
+                if (!messageId) {
+                    messageId = tsutils.isIntrinsicErrorType(type)
+                        ? 'errorMemberExpression'
+                        : 'unsafeMemberExpression';
                 }
                 context.report({
                     node: node.property,
                     messageId,
                     data: {
-                        type: createDataType(type),
                         property: node.computed ? `[${propertyName}]` : `.${propertyName}`,
                     },
                 });
@@ -113,6 +150,10 @@ exports.default = (0, util_1.createRule)({
             // ignore MemberExpressions with ancestors of type `TSClassImplements` or `TSInterfaceHeritage`
             'MemberExpression:not(TSClassImplements MemberExpression, TSInterfaceHeritage MemberExpression)': checkMemberExpression,
             'MemberExpression[computed = true] > *.property'(node) {
+                if (allowOptionalChaining &&
+                    node.parent.optional) {
+                    return;
+                }
                 if (
                 // x[1]
                 node.type === utils_1.AST_NODE_TYPES.Literal ||
@@ -128,9 +169,10 @@ exports.default = (0, util_1.createRule)({
                     const propertyName = context.sourceCode.getText(node);
                     context.report({
                         node,
-                        messageId: 'unsafeComputedMemberAccess',
+                        messageId: tsutils.isIntrinsicErrorType(type)
+                            ? 'errorComputedMemberAccess'
+                            : 'unsafeComputedMemberAccess',
                         data: {
-                            type: createDataType(type),
                             property: `[${propertyName}]`,
                         },
                     });

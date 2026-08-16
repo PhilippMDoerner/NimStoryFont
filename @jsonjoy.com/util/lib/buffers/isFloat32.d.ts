@@ -1,1 +1,1 @@
-export declare const isFloat32: (n: number) => boolean;
+export * from '@jsonjoy.com/buffers/lib/isFloat32';

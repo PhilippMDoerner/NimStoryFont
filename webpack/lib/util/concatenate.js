@@ -7,29 +7,32 @@
 
 const Template = require("../Template");
 
-/** @typedef {import("eslint-scope").Scope} Scope */
-/** @typedef {import("eslint-scope").Reference} Reference */
-/** @typedef {import("eslint-scope").Variable} Variable */
 /** @typedef {import("estree").Node} Node */
+/** @typedef {import("../javascript/JavascriptModulesPlugin").Scope} Scope */
+/** @typedef {import("../javascript/JavascriptModulesPlugin").Reference} Reference */
+/** @typedef {import("../javascript/JavascriptModulesPlugin").Variable} Variable */
 /** @typedef {import("../javascript/JavascriptParser").Range} Range */
-/** @typedef {import("../javascript/JavascriptParser").Program} Program */
 /** @typedef {Set<string>} UsedNames */
 
 const DEFAULT_EXPORT = "__WEBPACK_DEFAULT_EXPORT__";
 const NAMESPACE_OBJECT_EXPORT = "__WEBPACK_NAMESPACE_OBJECT__";
 
 /**
+ * Gets all references.
  * @param {Variable} variable variable
  * @returns {Reference[]} references
  */
-const getAllReferences = variable => {
+const getAllReferences = (variable) => {
 	let set = variable.references;
 	// Look for inner scope variables too (like in class Foo { t() { Foo } })
-	const identifiers = new Set(variable.identifiers);
+	// identifiers is tiny (usually 1 declaration) — indexOf beats a Set here
+	const identifiers = variable.identifiers;
 	for (const scope of variable.scope.childScopes) {
 		for (const innerVar of scope.variables) {
-			if (innerVar.identifiers.some(id => identifiers.has(id))) {
-				set = set.concat(innerVar.references);
+			if (innerVar.identifiers.some((id) => identifiers.includes(id))) {
+				// copy-on-write to keep the common no-match case allocation-free
+				if (set === variable.references) set = [...set];
+				for (const ref of innerVar.references) set.push(ref);
 				break;
 			}
 		}
@@ -38,6 +41,7 @@ const getAllReferences = variable => {
 };
 
 /**
+ * Returns result.
  * @param {Node | Node[]} ast ast
  * @param {Node} node node
  * @returns {undefined | Node[]} result
@@ -50,10 +54,11 @@ const getPathInAst = (ast, node) => {
 	const nr = /** @type {Range} */ (node.range);
 
 	/**
+	 * Returns result.
 	 * @param {Node} n node
 	 * @returns {Node[] | undefined} result
 	 */
-	const enterNode = n => {
+	const enterNode = (n) => {
 		if (!n) return;
 		const r = n.range;
 		if (r && r[0] <= nr[0] && r[1] >= nr[1]) {
@@ -66,13 +71,32 @@ const getPathInAst = (ast, node) => {
 	};
 
 	if (Array.isArray(ast)) {
-		for (let i = 0; i < ast.length; i++) {
-			const enterResult = enterNode(ast[i]);
-			if (enterResult !== undefined) return enterResult;
+		// sibling ranges are ordered and disjoint; binary search the container
+		let lo = 0;
+		let hi = ast.length - 1;
+		while (lo <= hi) {
+			const mid = (lo + hi) >> 1;
+			const item = ast[mid];
+			const r = item && item.range;
+			if (!r) {
+				// holes or range-less nodes: scan the remaining window linearly
+				for (let i = lo; i <= hi; i++) {
+					const enterResult = enterNode(ast[i]);
+					if (enterResult !== undefined) return enterResult;
+				}
+				return;
+			}
+			if (r[0] > nr[0]) {
+				hi = mid - 1;
+			} else if (nr[0] >= r[1]) {
+				lo = mid + 1;
+			} else {
+				return r[1] >= nr[1] ? enterNode(item) : undefined;
+			}
 		}
 	} else if (ast && typeof ast === "object") {
 		const keys =
-			/** @type {Array<keyof Node>} */
+			/** @type {(keyof Node)[]} */
 			(Object.keys(ast));
 		for (let i = 0; i < keys.length; i++) {
 			// We are making the faster check in `enterNode` using `n.range`
@@ -92,7 +116,34 @@ const getPathInAst = (ast, node) => {
 	}
 };
 
+/** @type {Map<string, string[]>} */
+const splittedInfoCache = new Map();
+
 /**
+ * Returns path segments of the cleaned extra info.
+ * @param {string} extraInfo extra info
+ * @returns {string[]} cleaned path segments
+ */
+const getSplittedInfo = (extraInfo) => {
+	let splittedInfo = splittedInfoCache.get(extraInfo);
+	if (splittedInfo === undefined) {
+		// bound the cache — extraInfo repeats for every renamed binding of a
+		// module, but distinct values grow with project size
+		if (splittedInfoCache.size >= 4096) splittedInfoCache.clear();
+		// Remove uncool stuff
+		splittedInfo = extraInfo
+			.replace(
+				/\.+\/|(?:\/index)?\.[a-zA-Z0-9]{1,4}(?:$|\s|\?)|\s*\+\s*\d+\s*modules/g,
+				""
+			)
+			.split("/");
+		splittedInfoCache.set(extraInfo, splittedInfo);
+	}
+	return splittedInfo;
+};
+
+/**
+ * Returns found new name.
  * @param {string} oldName old name
  * @param {UsedNames} usedNamed1 used named 1
  * @param {UsedNames} usedNamed2 used named 2
@@ -109,32 +160,30 @@ function findNewName(oldName, usedNamed1, usedNamed2, extraInfo) {
 		name = "namespaceObject";
 	}
 
-	// Remove uncool stuff
-	extraInfo = extraInfo.replace(
-		/\.+\/|(\/index)?\.([a-zA-Z0-9]{1,4})($|\s|\?)|\s*\+\s*\d+\s*modules/g,
-		""
-	);
-
-	const splittedInfo = extraInfo.split("/");
-	while (splittedInfo.length) {
-		name = splittedInfo.pop() + (name ? `_${name}` : "");
+	const splittedInfo = getSplittedInfo(extraInfo);
+	for (let i = splittedInfo.length - 1; i >= 0; i--) {
+		name = splittedInfo[i] + (name ? `_${name}` : "");
 		const nameIdent = Template.toIdentifier(name);
 		if (
 			!usedNamed1.has(nameIdent) &&
 			(!usedNamed2 || !usedNamed2.has(nameIdent))
-		)
+		) {
 			return nameIdent;
+		}
 	}
 
+	// `_${i}` is identifier-safe, so escaping the base once is equivalent to
+	// escaping every candidate — avoids two regexes per collision
+	const nameIdent = Template.toIdentifier(name);
 	let i = 0;
-	let nameWithNumber = Template.toIdentifier(`${name}_${i}`);
+	let nameWithNumber = `${nameIdent}_${i}`;
 	while (
 		usedNamed1.has(nameWithNumber) ||
 		// eslint-disable-next-line no-unmodified-loop-condition
 		(usedNamed2 && usedNamed2.has(nameWithNumber))
 	) {
 		i++;
-		nameWithNumber = Template.toIdentifier(`${name}_${i}`);
+		nameWithNumber = `${nameIdent}_${i}`;
 	}
 	return nameWithNumber;
 }
@@ -142,6 +191,7 @@ function findNewName(oldName, usedNamed1, usedNamed2, extraInfo) {
 /** @typedef {Set<Scope>} ScopeSet */
 
 /**
+ * Adds scope symbols.
  * @param {Scope | null} s scope
  * @param {UsedNames} nameSet name set
  * @param {ScopeSet} scopeSet1 scope set 1
@@ -199,33 +249,40 @@ const RESERVED_NAMES = new Set(
 );
 
 /** @typedef {{ usedNames: UsedNames, alreadyCheckedScopes: ScopeSet }} ScopeInfo */
+/** @typedef {Map<string, Map<string, ScopeInfo>>} UsedNamesInScopeInfo */
 
 /**
- * @param {Map<string, ScopeInfo>} usedNamesInScopeInfo used names in scope info
+ * Gets used names in scope info.
+ * @param {UsedNamesInScopeInfo} usedNamesInScopeInfo used names in scope info
  * @param {string} module module identifier
  * @param {string} id export id
  * @returns {ScopeInfo} info
  */
 const getUsedNamesInScopeInfo = (usedNamesInScopeInfo, module, id) => {
-	const key = `${module}-${id}`;
-	let info = usedNamesInScopeInfo.get(key);
+	// nested maps avoid building a `${module}-${id}` key string per lookup
+	let byId = usedNamesInScopeInfo.get(module);
+	if (byId === undefined) {
+		byId = new Map();
+		usedNamesInScopeInfo.set(module, byId);
+	}
+	let info = byId.get(id);
 	if (info === undefined) {
 		info = {
 			usedNames: new Set(),
 			alreadyCheckedScopes: new Set()
 		};
-		usedNamesInScopeInfo.set(key, info);
+		byId.set(id, info);
 	}
 	return info;
 };
 
 module.exports = {
-	getUsedNamesInScopeInfo,
+	DEFAULT_EXPORT,
+	NAMESPACE_OBJECT_EXPORT,
+	RESERVED_NAMES,
+	addScopeSymbols,
 	findNewName,
 	getAllReferences,
 	getPathInAst,
-	NAMESPACE_OBJECT_EXPORT,
-	DEFAULT_EXPORT,
-	RESERVED_NAMES,
-	addScopeSymbols
+	getUsedNamesInScopeInfo
 };

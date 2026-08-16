@@ -1,4 +1,4 @@
-import { OverviewItem } from 'src/app/_models/overview';
+import { OverviewItem } from '../../../_models/overview';
 
 export interface GeneralOverviewPageState {
   entries: OverviewItem[] | undefined;

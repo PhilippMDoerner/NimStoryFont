@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RULE_NAME = void 0;
+exports.RULE_DOCS_EXTENSION = exports.RULE_NAME = void 0;
 const bundled_angular_compiler_1 = require("@angular-eslint/bundled-angular-compiler");
 const utils_1 = require("@angular-eslint/utils");
 const create_eslint_rule_1 = require("../utils/create-eslint-rule");
@@ -78,14 +78,15 @@ function getSpanLength({ span: { start, end } }) {
     return end - start;
 }
 const getFix = ({ node, right, end, sourceCode, fixer, }) => {
-    const { source, ast } = (0, get_nearest_node_from_1.getNearestNodeFrom)(node, isASTWithSource);
-    if (!source)
+    const result = (0, get_nearest_node_from_1.getNearestNodeFrom)(node, isASTWithSource);
+    if (!result?.source)
         return null;
-    let startOffet = 0;
-    while (!isInterpolation(ast) && isLeadingTriviaChar(source[startOffet])) {
-        startOffet++;
+    const { source, ast } = result;
+    let startOffset = 0;
+    while (!isInterpolation(ast) && isLeadingTriviaChar(source[startOffset])) {
+        startOffset++;
     }
-    const endRange = end - startOffet - getSpanLength(right) - 1;
+    const endRange = end - startOffset - getSpanLength(right) - 1;
     let eqOffset = 0;
     while (sourceCode.text[endRange - eqOffset] !== '=') {
         eqOffset++;
@@ -111,3 +112,6 @@ function isStringNonNumericValue(ast) {
 function isNilValue(ast) {
     return ((0, literal_primitive_1.isLiteralPrimitive)(ast) && (ast.value === null || ast.value === undefined));
 }
+exports.RULE_DOCS_EXTENSION = {
+    rationale: 'The == and != operators perform type coercion before comparison, which can lead to unexpected and confusing results. For example, "0" == 0 is true, [] == false is true, and null == undefined is true. These implicit conversions make code harder to understand and can hide bugs. The strict equality operators === and !== compare both value and type without coercion, making comparisons predictable and explicit. This is a widely accepted JavaScript/TypeScript best practice that Angular templates should follow for consistency with TypeScript code. The rule can optionally allow == and != when comparing to null or undefined, as this is a common pattern for checking if a value exists.',
+};

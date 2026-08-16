@@ -12,41 +12,58 @@ const { DEFAULTS } = require("./config/defaults");
 const { first } = require("./util/SetHelpers");
 const SortableSet = require("./util/SortableSet");
 const {
-	compareModulesById,
+	compareIds,
 	compareIterables,
+	compareModulesById,
 	compareModulesByIdentifier,
-	concatComparators,
 	compareSelect,
-	compareIds
+	concatComparators
 } = require("./util/comparators");
 const createHash = require("./util/createHash");
 const findGraphRoots = require("./util/findGraphRoots");
 const {
 	RuntimeSpecMap,
 	RuntimeSpecSet,
-	runtimeToString,
+	forEachRuntime,
 	mergeRuntime,
-	forEachRuntime
+	runtimeToString
 } = require("./util/runtime");
 
 /** @typedef {import("./AsyncDependenciesBlock")} AsyncDependenciesBlock */
 /** @typedef {import("./Chunk")} Chunk */
+/** @typedef {import("./Chunk").Chunks} Chunks */
+/** @typedef {import("./Chunk").Entrypoints} Entrypoints */
 /** @typedef {import("./Chunk").ChunkId} ChunkId */
 /** @typedef {import("./ChunkGroup")} ChunkGroup */
-/** @typedef {import("./Generator").SourceTypes} SourceTypes */
 /** @typedef {import("./Module")} Module */
+/** @typedef {import("./Module").SourceType} SourceType */
+/** @typedef {import("./Module").SourceTypes} SourceTypes */
 /** @typedef {import("./Module").ReadOnlyRuntimeRequirements} ReadOnlyRuntimeRequirements */
 /** @typedef {import("./Module").RuntimeRequirements} RuntimeRequirements */
 /** @typedef {import("./ModuleGraph")} ModuleGraph */
 /** @typedef {import("./ModuleGraphConnection").ConnectionState} ConnectionState */
 /** @typedef {import("./RuntimeModule")} RuntimeModule */
-/** @typedef {typeof import("./util/Hash")} Hash */
+/** @typedef {import("./util/Hash").HashFunction} HashFunction */
 /** @typedef {import("./util/runtime").RuntimeSpec} RuntimeSpec */
+/** @typedef {import("./javascript/JavascriptModule").JavascriptModuleBuildMeta} JavascriptModuleBuildMeta */
 
 /** @type {ReadonlySet<string>} */
 const EMPTY_SET = new Set();
 
 const ZERO_BIG_INT = BigInt(0);
+
+/**
+ * Active state to string. Module-level (depends only on ModuleGraphConnection)
+ * so it isn't re-allocated on every getModuleGraphHash call, incl. cache hits.
+ * @param {ConnectionState} state state
+ * @returns {"F" | "T" | "O"} result
+ */
+const activeStateToString = (state) => {
+	if (state === false) return "F";
+	if (state === true) return "T";
+	if (state === ModuleGraphConnection.TRANSITIVE_ONLY) return "O";
+	throw new Error("Not implemented active state");
+};
 
 const compareModuleIterables = compareIterables(compareModulesByIdentifier);
 
@@ -55,6 +72,7 @@ const compareModuleIterables = compareIterables(compareModulesByIdentifier);
 /** @typedef {[Module, Entrypoint | undefined]} EntryModuleWithChunkGroup */
 
 /**
+ * Represents the module hash info runtime component.
  * @typedef {object} ChunkSizeOptions
  * @property {number=} chunkOverhead constant overhead for a chunk
  * @property {number=} entryChunkMultiplicator multiplicator for initial chunks
@@ -62,27 +80,32 @@ const compareModuleIterables = compareIterables(compareModulesByIdentifier);
 
 class ModuleHashInfo {
 	/**
+	 * Creates an instance of ModuleHashInfo.
 	 * @param {string} hash hash
 	 * @param {string} renderedHash rendered hash
 	 */
 	constructor(hash, renderedHash) {
+		/** @type {string} */
 		this.hash = hash;
+		/** @type {string} */
 		this.renderedHash = renderedHash;
 	}
 }
 
 /**
+ * Returns set as array.
  * @template T
  * @param {SortableSet<T>} set the set
  * @returns {T[]} set as array
  */
-const getArray = set => Array.from(set);
+const getArray = (set) => [...set];
 
 /**
- * @param {SortableSet<Chunk>} chunks the chunks
+ * Gets module runtimes.
+ * @param {SortableChunks} chunks the chunks
  * @returns {RuntimeSpecSet} runtimes
  */
-const getModuleRuntimes = chunks => {
+const getModuleRuntimes = (chunks) => {
 	const runtimes = new RuntimeSpecSet();
 	for (const chunk of chunks) {
 		runtimes.add(chunk.runtime);
@@ -91,11 +114,13 @@ const getModuleRuntimes = chunks => {
 };
 
 /**
- * @param {WeakMap<Module, Set<string>> | undefined} sourceTypesByModule sourceTypesByModule
- * @returns {(set: SortableSet<Module>) => Map<string, SortableSet<Module>>} modules by source type
+ * Modules by source type.
+ * @param {SourceTypesByModule | undefined} sourceTypesByModule sourceTypesByModule
+ * @returns {ModulesBySourceType} modules by source type
  */
-const modulesBySourceType = sourceTypesByModule => set => {
-	/** @type {Map<string, SortableSet<Module>>} */
+const modulesBySourceType = (sourceTypesByModule) => (set) => {
+	/** @typedef {SortableSet<Module>} ModuleSortableSet */
+	/** @type {Map<SourceType, ModuleSortableSet>} */
 	const map = new Map();
 	for (const module of set) {
 		const sourceTypes =
@@ -104,6 +129,7 @@ const modulesBySourceType = sourceTypesByModule => set => {
 		for (const sourceType of sourceTypes) {
 			let innerSet = map.get(sourceType);
 			if (innerSet === undefined) {
+				/** @type {ModuleSortableSet} */
 				innerSet = new SortableSet();
 				map.set(sourceType, innerSet);
 			}
@@ -119,9 +145,14 @@ const modulesBySourceType = sourceTypesByModule => set => {
 	}
 	return map;
 };
+
+/** @typedef {(set: SortableSet<Module>) => Map<string, SortableSet<Module>>} ModulesBySourceType */
+
+/** @type {ModulesBySourceType} */
 const defaultModulesBySourceType = modulesBySourceType(undefined);
 
 /**
+ * Defines the module set to array function type used by this module.
  * @typedef {(set: SortableSet<Module>) => Module[]} ModuleSetToArrayFunction
  */
 
@@ -132,26 +163,28 @@ const defaultModulesBySourceType = modulesBySourceType(undefined);
 const createOrderedArrayFunctionMap = new WeakMap();
 
 /**
+ * Creates an ordered array function.
  * @template T
  * @param {ModuleComparator} comparator comparator function
  * @returns {ModuleSetToArrayFunction} set as ordered array
  */
-const createOrderedArrayFunction = comparator => {
+const createOrderedArrayFunction = (comparator) => {
 	let fn = createOrderedArrayFunctionMap.get(comparator);
 	if (fn !== undefined) return fn;
-	fn = set => {
+	fn = (set) => {
 		set.sortWith(comparator);
-		return Array.from(set);
+		return [...set];
 	};
 	createOrderedArrayFunctionMap.set(comparator, fn);
 	return fn;
 };
 
 /**
+ * Returns the size of the modules.
  * @param {Iterable<Module>} modules the modules to get the count/size of
  * @returns {number} the size of the modules
  */
-const getModulesSize = modules => {
+const getModulesSize = (modules) => {
 	let size = 0;
 	for (const module of modules) {
 		for (const type of module.getSourceTypes()) {
@@ -161,11 +194,15 @@ const getModulesSize = modules => {
 	return size;
 };
 
+/** @typedef {Record<string, number>} SizesOfModules */
+
 /**
+ * Gets modules sizes.
  * @param {Iterable<Module>} modules the sortable Set to get the size of
- * @returns {Record<string, number>} the sizes of the modules
+ * @returns {SizesOfModules} the sizes of the modules
  */
-const getModulesSizes = modules => {
+const getModulesSizes = (modules) => {
+	/** @type {SizesOfModules} */
 	const sizes = Object.create(null);
 	for (const module of modules) {
 		for (const type of module.getSourceTypes()) {
@@ -176,6 +213,7 @@ const getModulesSizes = modules => {
 };
 
 /**
+ * Checks whether this module hash info is available chunk.
  * @param {Chunk} a chunk
  * @param {Chunk} b chunk
  * @returns {boolean} true, if a is always a parent of b
@@ -192,13 +230,15 @@ const isAvailableChunk = (a, b) => {
 	return true;
 };
 
+/** @typedef {SortableSet<Chunk>} SortableChunks */
 /** @typedef {Set<Chunk>} EntryInChunks */
 /** @typedef {Set<Chunk>} RuntimeInChunks */
 /** @typedef {string | number} ModuleId */
+/** @typedef {RuntimeSpecMap<Set<string>, RuntimeRequirements>} ChunkGraphRuntimeRequirements */
 
 class ChunkGraphModule {
 	constructor() {
-		/** @type {SortableSet<Chunk>} */
+		/** @type {SortableChunks} */
 		this.chunks = new SortableSet();
 		/** @type {EntryInChunks | undefined} */
 		this.entryInChunks = undefined;
@@ -208,7 +248,7 @@ class ChunkGraphModule {
 		this.hashes = undefined;
 		/** @type {ModuleId | null} */
 		this.id = null;
-		/** @type {RuntimeSpecMap<Set<string>, RuntimeRequirements> | undefined} */
+		/** @type {ChunkGraphRuntimeRequirements | undefined} */
 		this.runtimeRequirements = undefined;
 		/** @type {RuntimeSpecMap<string, bigint> | undefined} */
 		this.graphHashes = undefined;
@@ -217,13 +257,16 @@ class ChunkGraphModule {
 	}
 }
 
+/** @typedef {WeakMap<Module, SourceTypes>} SourceTypesByModule */
+/** @typedef {Map<Module, Entrypoint>} EntryModules */
+
 class ChunkGraphChunk {
 	constructor() {
 		/** @type {SortableSet<Module>} */
 		this.modules = new SortableSet();
-		/** @type {WeakMap<Module, Set<string>> | undefined} */
+		/** @type {SourceTypesByModule | undefined} */
 		this.sourceTypesByModule = undefined;
-		/** @type {Map<Module, Entrypoint>} */
+		/** @type {EntryModules} */
 		this.entryModules = new Map();
 		/** @type {SortableSet<RuntimeModule>} */
 		this.runtimeModules = new SortableSet();
@@ -231,21 +274,28 @@ class ChunkGraphChunk {
 		this.fullHashModules = undefined;
 		/** @type {Set<RuntimeModule> | undefined} */
 		this.dependentHashModules = undefined;
-		/** @type {Set<string> | undefined} */
+		/** @type {RuntimeRequirements | undefined} */
 		this.runtimeRequirements = undefined;
 		/** @type {Set<string>} */
 		this.runtimeRequirementsInTree = new Set();
-
+		/** @type {ModulesBySourceType} */
 		this._modulesBySourceType = defaultModulesBySourceType;
 	}
 }
+
+/** @typedef {string | number} RuntimeId */
+/** @typedef {Record<ModuleId, string>} IdToHashMap */
+/** @typedef {Record<ChunkId, IdToHashMap>} ChunkModuleHashMap */
+/** @typedef {Record<ChunkId, ModuleId[]>} ChunkModuleIdMap */
+/** @typedef {Record<ChunkId, boolean>} ChunkConditionMap */
 
 /** @typedef {(a: Module, b: Module) => -1 | 0 | 1} ModuleComparator */
 
 class ChunkGraph {
 	/**
+	 * Creates an instance of ChunkGraph.
 	 * @param {ModuleGraph} moduleGraph the module graph
-	 * @param {string | Hash} hashFunction the hash function to use
+	 * @param {HashFunction} hashFunction the hash function to use
 	 */
 	constructor(moduleGraph, hashFunction = DEFAULTS.HASH_FUNCTION) {
 		/**
@@ -265,18 +315,27 @@ class ChunkGraph {
 		this._blockChunkGroups = new WeakMap();
 		/**
 		 * @private
-		 * @type {Map<string, string | number>}
+		 * @type {Map<string, RuntimeId>}
 		 */
 		this._runtimeIds = new Map();
+		/**
+		 * Module runtime requirement Sets stored without copying (ownership not
+		 * transferred). They must be copied before being mutated.
+		 * @private
+		 * @type {WeakSet<RuntimeRequirements>}
+		 */
+		this._sharedModuleRuntimeRequirements = new WeakSet();
 		/** @type {ModuleGraph} */
 		this.moduleGraph = moduleGraph;
 
+		/** @type {HashFunction} */
 		this._hashFunction = hashFunction;
 
 		this._getGraphRoots = this._getGraphRoots.bind(this);
 	}
 
 	/**
+	 * Get chunk graph module.
 	 * @private
 	 * @param {Module} module the module
 	 * @returns {ChunkGraphModule} internal module
@@ -291,6 +350,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Get chunk graph chunk.
 	 * @private
 	 * @param {Chunk} chunk the chunk
 	 * @returns {ChunkGraphChunk} internal chunk
@@ -305,19 +365,21 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Returns the graph roots.
 	 * @param {SortableSet<Module>} set the sortable Set to get the roots of
 	 * @returns {Module[]} the graph roots
 	 */
 	_getGraphRoots(set) {
 		const { moduleGraph } = this;
-		return Array.from(
-			findGraphRoots(set, module => {
+		return [
+			...findGraphRoots(set, (module) => {
 				/** @type {Set<Module>} */
 				const set = new Set();
 				/**
+				 * Adds the provided module to the chunk graph.
 				 * @param {Module} module module
 				 */
-				const addDependencies = module => {
+				const addDependencies = (module) => {
 					for (const connection of moduleGraph.getOutgoingConnections(module)) {
 						if (!connection.module) continue;
 						const activeState = connection.getActiveState(undefined);
@@ -332,10 +394,11 @@ class ChunkGraph {
 				addDependencies(module);
 				return set;
 			})
-		).sort(compareModulesByIdentifier);
+		].sort(compareModulesByIdentifier);
 	}
 
 	/**
+	 * Connects chunk and module.
 	 * @param {Chunk} chunk the new chunk
 	 * @param {Module} module the module
 	 * @returns {void}
@@ -348,6 +411,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Disconnects chunk and module.
 	 * @param {Chunk} chunk the chunk
 	 * @param {Module} module the module
 	 * @returns {void}
@@ -362,6 +426,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Processes the provided chunk.
 	 * @param {Chunk} chunk the chunk which will be disconnected
 	 * @returns {void}
 	 */
@@ -377,6 +442,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Processes the provided chunk.
 	 * @param {Chunk} chunk the chunk
 	 * @param {Iterable<Module>} modules the modules
 	 * @returns {void}
@@ -389,6 +455,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Attach runtime modules.
 	 * @param {Chunk} chunk the chunk
 	 * @param {Iterable<RuntimeModule>} modules the runtime modules
 	 * @returns {void}
@@ -401,6 +468,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Attach full hash modules.
 	 * @param {Chunk} chunk the chunk
 	 * @param {Iterable<RuntimeModule>} modules the modules that require a full hash
 	 * @returns {void}
@@ -414,20 +482,23 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Attach dependent hash modules.
 	 * @param {Chunk} chunk the chunk
 	 * @param {Iterable<RuntimeModule>} modules the modules that require a full hash
 	 * @returns {void}
 	 */
 	attachDependentHashModules(chunk, modules) {
 		const cgc = this._getChunkGraphChunk(chunk);
-		if (cgc.dependentHashModules === undefined)
+		if (cgc.dependentHashModules === undefined) {
 			cgc.dependentHashModules = new Set();
+		}
 		for (const module of modules) {
 			cgc.dependentHashModules.add(module);
 		}
 	}
 
 	/**
+	 * Processes the provided old module.
 	 * @param {Module} oldModule the replaced module
 	 * @param {Module} newModule the replacing module
 	 * @returns {void}
@@ -451,7 +522,7 @@ class ChunkGraph {
 			for (const chunk of oldCgm.entryInChunks) {
 				const cgc = this._getChunkGraphChunk(chunk);
 				const old = /** @type {Entrypoint} */ (cgc.entryModules.get(oldModule));
-				/** @type {Map<Module, Entrypoint>} */
+				/** @type {EntryModules} */
 				const newEntryModules = new Map();
 				for (const [m, cg] of cgc.entryModules) {
 					if (m === oldModule) {
@@ -499,6 +570,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Checks whether this chunk graph is module in chunk.
 	 * @param {Module} module the checked module
 	 * @param {Chunk} chunk the checked chunk
 	 * @returns {boolean} true, if the chunk contains the module
@@ -509,6 +581,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Checks whether this chunk graph is module in chunk group.
 	 * @param {Module} module the checked module
 	 * @param {ChunkGroup} chunkGroup the checked chunk group
 	 * @returns {boolean} true, if the chunk contains the module
@@ -521,6 +594,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Checks whether this chunk graph is entry module.
 	 * @param {Module} module the checked module
 	 * @returns {boolean} true, if the module is entry of any chunk
 	 */
@@ -530,6 +604,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Gets module chunks iterable.
 	 * @param {Module} module the module
 	 * @returns {Iterable<Chunk>} iterable of chunks (do not modify)
 	 */
@@ -539,6 +614,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Gets ordered module chunks iterable.
 	 * @param {Module} module the module
 	 * @param {(a: Chunk, b: Chunk) => -1 | 0 | 1} sortFn sort function
 	 * @returns {Iterable<Chunk>} iterable of chunks (do not modify)
@@ -550,6 +626,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Gets module chunks.
 	 * @param {Module} module the module
 	 * @returns {Chunk[]} array of chunks (cached, do not modify)
 	 */
@@ -559,6 +636,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Gets number of module chunks.
 	 * @param {Module} module the module
 	 * @returns {number} the number of chunk which contain the module
 	 */
@@ -568,6 +646,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Gets module runtimes.
 	 * @param {Module} module the module
 	 * @returns {RuntimeSpecSet} runtimes
 	 */
@@ -577,6 +656,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Gets number of chunk modules.
 	 * @param {Chunk} chunk the chunk
 	 * @returns {number} the number of modules which are contained in this chunk
 	 */
@@ -586,6 +666,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Gets number of chunk full hash modules.
 	 * @param {Chunk} chunk the chunk
 	 * @returns {number} the number of full hash modules which are contained in this chunk
 	 */
@@ -595,6 +676,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Gets chunk modules iterable.
 	 * @param {Chunk} chunk the chunk
 	 * @returns {Iterable<Module>} return the modules for this chunk
 	 */
@@ -604,6 +686,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Gets chunk modules iterable by source type.
 	 * @param {Chunk} chunk the chunk
 	 * @param {string} sourceType source type
 	 * @returns {Iterable<Module> | undefined} return the modules for this chunk
@@ -617,9 +700,10 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Sets chunk module source types.
 	 * @param {Chunk} chunk chunk
 	 * @param {Module} module chunk module
-	 * @param {Set<string>} sourceTypes source types
+	 * @param {SourceTypes} sourceTypes source types
 	 */
 	setChunkModuleSourceTypes(chunk, module, sourceTypes) {
 		const cgc = this._getChunkGraphChunk(chunk);
@@ -632,6 +716,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Gets chunk module source types.
 	 * @param {Chunk} chunk chunk
 	 * @param {Module} module chunk module
 	 * @returns {SourceTypes} source types
@@ -645,6 +730,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Gets module source types.
 	 * @param {Module} module module
 	 * @returns {SourceTypes} source types
 	 */
@@ -655,11 +741,13 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Get overwritten module source types.
 	 * @param {Module} module module
-	 * @returns {Set<string> | undefined} source types
+	 * @returns {SourceTypes | undefined} source types
 	 */
 	_getOverwrittenModuleSourceTypes(module) {
 		let newSet = false;
+		/** @type {Set<SourceType> | undefined} */
 		let sourceTypes;
 		for (const chunk of this.getModuleChunksIterable(module)) {
 			const cgc = this._getChunkGraphChunk(chunk);
@@ -667,7 +755,7 @@ class ChunkGraph {
 			const st = cgc.sourceTypesByModule.get(module);
 			if (st === undefined) return;
 			if (!sourceTypes) {
-				sourceTypes = st;
+				sourceTypes = /** @type {Set<SourceType>} */ (st);
 			} else if (!newSet) {
 				for (const type of st) {
 					if (!newSet) {
@@ -689,6 +777,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Gets ordered chunk modules iterable.
 	 * @param {Chunk} chunk the chunk
 	 * @param {ModuleComparator} comparator comparator function
 	 * @returns {Iterable<Module>} return the modules for this chunk
@@ -700,6 +789,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Gets ordered chunk modules iterable by source type.
 	 * @param {Chunk} chunk the chunk
 	 * @param {string} sourceType source type
 	 * @param {ModuleComparator} comparator comparator function
@@ -716,6 +806,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Gets chunk modules.
 	 * @param {Chunk} chunk the chunk
 	 * @returns {Module[]} return the modules for this chunk (cached, do not modify)
 	 */
@@ -725,6 +816,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Gets ordered chunk modules.
 	 * @param {Chunk} chunk the chunk
 	 * @param {ModuleComparator} comparator comparator function
 	 * @returns {Module[]} return the modules for this chunk (cached, do not modify)
@@ -736,19 +828,20 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Gets chunk module id map.
 	 * @param {Chunk} chunk the chunk
 	 * @param {ModuleFilterPredicate} filterFn function used to filter modules
 	 * @param {boolean} includeAllChunks all chunks or only async chunks
-	 * @returns {Record<string|number, (string|number)[]>} chunk to module ids object
+	 * @returns {ChunkModuleIdMap} chunk to module ids object
 	 */
 	getChunkModuleIdMap(chunk, filterFn, includeAllChunks = false) {
-		/** @type {Record<string|number, (string|number)[]>} */
+		/** @type {ChunkModuleIdMap} */
 		const chunkModuleIdMap = Object.create(null);
 
 		for (const asyncChunk of includeAllChunks
 			? chunk.getAllReferencedChunks()
 			: chunk.getAllAsyncChunks()) {
-			/** @type {(string | number)[] | undefined} */
+			/** @type {ModuleId[] | undefined} */
 			let array;
 			for (const module of this.getOrderedChunkModulesIterable(
 				asyncChunk,
@@ -769,11 +862,12 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Gets chunk module rendered hash map.
 	 * @param {Chunk} chunk the chunk
 	 * @param {ModuleFilterPredicate} filterFn function used to filter modules
 	 * @param {number} hashLength length of the hash
 	 * @param {boolean} includeAllChunks all chunks or only async chunks
-	 * @returns {Record<string|number, Record<string|number, string>>} chunk to module id to module hash object
+	 * @returns {ChunkModuleHashMap} chunk to module id to module hash object
 	 */
 	getChunkModuleRenderedHashMap(
 		chunk,
@@ -781,10 +875,8 @@ class ChunkGraph {
 		hashLength = 0,
 		includeAllChunks = false
 	) {
-		/** @type {Record<ChunkId, Record<string|number, string>>} */
+		/** @type {ChunkModuleHashMap} */
 		const chunkModuleHashMap = Object.create(null);
-
-		/** @typedef {Record<string|number, string>} IdToHashMap  */
 
 		for (const asyncChunk of includeAllChunks
 			? chunk.getAllReferencedChunks()
@@ -797,9 +889,11 @@ class ChunkGraph {
 			)) {
 				if (filterFn(module)) {
 					if (idToHashMap === undefined) {
+						/** @type {IdToHashMap} */
 						idToHashMap = Object.create(null);
 						chunkModuleHashMap[/** @type {ChunkId} */ (asyncChunk.id)] =
-							/** @type {IdToHashMap} */ (idToHashMap);
+							/** @type {IdToHashMap} */
+							(idToHashMap);
 					}
 					const moduleId = this.getModuleId(module);
 					const hash = this.getRenderedModuleHash(module, asyncChunk.runtime);
@@ -815,11 +909,13 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Gets chunk condition map.
 	 * @param {Chunk} chunk the chunk
 	 * @param {ChunkFilterPredicate} filterFn function used to filter chunks
-	 * @returns {Record<string|number, boolean>} chunk map
+	 * @returns {ChunkConditionMap} chunk condition map
 	 */
 	getChunkConditionMap(chunk, filterFn) {
+		/** @type {ChunkConditionMap} */
 		const map = Object.create(null);
 		for (const c of chunk.getAllReferencedChunks()) {
 			map[/** @type {ChunkId} */ (c.id)] = filterFn(c, this);
@@ -828,6 +924,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Checks whether this chunk graph contains the chunk.
 	 * @param {Chunk} chunk the chunk
 	 * @param {ModuleFilterPredicate} filterFn predicate function used to filter modules
 	 * @param {ChunkFilterPredicate=} filterChunkFn predicate function used to filter chunks
@@ -835,6 +932,7 @@ class ChunkGraph {
 	 */
 	hasModuleInGraph(chunk, filterFn, filterChunkFn) {
 		const queue = new Set(chunk.groupsIterable);
+		/** @type {Set<Chunk>} */
 		const chunksProcessed = new Set();
 
 		for (const chunkGroup of queue) {
@@ -858,9 +956,10 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Compares the provided values and returns their ordering.
 	 * @param {Chunk} chunkA first chunk
 	 * @param {Chunk} chunkB second chunk
-	 * @returns {-1|0|1} this is a comparator function like sort and returns -1, 0, or 1 based on sort order
+	 * @returns {-1 | 0 | 1} this is a comparator function like sort and returns -1, 0, or 1 based on sort order
 	 */
 	compareChunks(chunkA, chunkB) {
 		const cgcA = this._getChunkGraphChunk(chunkA);
@@ -873,6 +972,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Gets chunk modules size.
 	 * @param {Chunk} chunk the chunk
 	 * @returns {number} total size of all modules in the chunk
 	 */
@@ -882,6 +982,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Gets chunk modules sizes.
 	 * @param {Chunk} chunk the chunk
 	 * @returns {Record<string, number>} total sizes of all modules in the chunk by source type
 	 */
@@ -891,6 +992,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Gets chunk root modules.
 	 * @param {Chunk} chunk the chunk
 	 * @returns {Module[]} root modules of the chunks (ordered by identifier)
 	 */
@@ -900,6 +1002,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Returns total size of the chunk.
 	 * @param {Chunk} chunk the chunk
 	 * @param {ChunkSizeOptions} options options object
 	 * @returns {number} total size of the chunk
@@ -920,6 +1023,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Gets integrated chunks size.
 	 * @param {Chunk} chunkA chunk
 	 * @param {Chunk} chunkB chunk
 	 * @param {ChunkSizeOptions} options options object
@@ -947,6 +1051,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Checks whether it can chunks be integrated.
 	 * @param {Chunk} chunkA chunk
 	 * @param {Chunk} chunkB chunk
 	 * @returns {boolean} true, if chunks could be integrated
@@ -980,6 +1085,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Processes the provided chunk a.
 	 * @param {Chunk} chunkA the target chunk
 	 * @param {Chunk} chunkB the chunk to integrate
 	 * @returns {void}
@@ -1021,9 +1127,10 @@ class ChunkGraph {
 			this.connectChunkAndModule(chunkA, module);
 		}
 
-		for (const [module, chunkGroup] of Array.from(
-			this.getChunkEntryModulesWithChunkGroupIterable(chunkB)
-		)) {
+		for (const [
+			module,
+			chunkGroup
+		] of this.getChunkEntryModulesWithChunkGroupIterable(chunkB)) {
 			this.disconnectChunkAndEntryModule(chunkB, module);
 			this.connectChunkAndEntryModule(
 				chunkA,
@@ -1042,6 +1149,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Upgrade dependent to full hash modules.
 	 * @param {Chunk} chunk the chunk to upgrade
 	 * @returns {void}
 	 */
@@ -1059,6 +1167,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Checks whether this chunk graph is entry module in chunk.
 	 * @param {Module} module the checked module
 	 * @param {Chunk} chunk the checked chunk
 	 * @returns {boolean} true, if the chunk contains the module as entry
@@ -1069,6 +1178,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Connects chunk and entry module.
 	 * @param {Chunk} chunk the new chunk
 	 * @param {Module} module the entry module
 	 * @param {Entrypoint} entrypoint the chunk group which must be loaded before the module is executed
@@ -1085,6 +1195,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Connects chunk and runtime module.
 	 * @param {Chunk} chunk the new chunk
 	 * @param {RuntimeModule} module the runtime module
 	 * @returns {void}
@@ -1100,6 +1211,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Adds full hash module to chunk.
 	 * @param {Chunk} chunk the new chunk
 	 * @param {RuntimeModule} module the module that require a full hash
 	 * @returns {void}
@@ -1111,18 +1223,21 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Adds dependent hash module to chunk.
 	 * @param {Chunk} chunk the new chunk
 	 * @param {RuntimeModule} module the module that require a full hash
 	 * @returns {void}
 	 */
 	addDependentHashModuleToChunk(chunk, module) {
 		const cgc = this._getChunkGraphChunk(chunk);
-		if (cgc.dependentHashModules === undefined)
+		if (cgc.dependentHashModules === undefined) {
 			cgc.dependentHashModules = new Set();
+		}
 		cgc.dependentHashModules.add(module);
 	}
 
 	/**
+	 * Disconnects chunk and entry module.
 	 * @param {Chunk} chunk the new chunk
 	 * @param {Module} module the entry module
 	 * @returns {void}
@@ -1139,6 +1254,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Disconnects chunk and runtime module.
 	 * @param {Chunk} chunk the new chunk
 	 * @param {RuntimeModule} module the runtime module
 	 * @returns {void}
@@ -1155,6 +1271,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Disconnects entry module.
 	 * @param {Module} module the entry module, it will no longer be entry
 	 * @returns {void}
 	 */
@@ -1168,6 +1285,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Disconnects entries.
 	 * @param {Chunk} chunk the chunk, for which all entries will be removed
 	 * @returns {void}
 	 */
@@ -1185,6 +1303,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Gets number of entry modules.
 	 * @param {Chunk} chunk the chunk
 	 * @returns {number} the amount of entry modules in chunk
 	 */
@@ -1194,6 +1313,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Gets number of runtime modules.
 	 * @param {Chunk} chunk the chunk
 	 * @returns {number} the amount of entry modules in chunk
 	 */
@@ -1203,6 +1323,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Gets chunk entry modules iterable.
 	 * @param {Chunk} chunk the chunk
 	 * @returns {Iterable<Module>} iterable of modules (do not modify)
 	 */
@@ -1212,11 +1333,12 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Gets chunk entry dependent chunks iterable.
 	 * @param {Chunk} chunk the chunk
 	 * @returns {Iterable<Chunk>} iterable of chunks
 	 */
 	getChunkEntryDependentChunksIterable(chunk) {
-		/** @type {Set<Chunk>} */
+		/** @type {Chunks} */
 		const set = new Set();
 		for (const chunkGroup of chunk.groupsIterable) {
 			if (chunkGroup instanceof Entrypoint) {
@@ -1236,6 +1358,62 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Gets runtime chunk dependent chunks iterable.
+	 * @param {Chunk} chunk the chunk
+	 * @returns {Iterable<Chunk>} iterable of chunks and include chunks from children entrypoints
+	 */
+	getRuntimeChunkDependentChunksIterable(chunk) {
+		/** @type {Chunks} */
+		const set = new Set();
+
+		/** @type {Entrypoints} */
+		const entrypoints = new Set();
+
+		for (const chunkGroup of chunk.groupsIterable) {
+			if (chunkGroup instanceof Entrypoint) {
+				const queue = [chunkGroup];
+				while (queue.length > 0) {
+					const current = queue.shift();
+					if (current) {
+						entrypoints.add(current);
+
+						let hasChildrenEntrypoint = false;
+						for (const child of current.childrenIterable) {
+							if (child instanceof Entrypoint && child.dependOn(current)) {
+								hasChildrenEntrypoint = true;
+								queue.push(/** @type {Entrypoint} */ (child));
+							}
+						}
+						// entryChunkB: hasChildrenEntrypoint = true
+						// entryChunkA: dependOn = entryChunkB
+						if (hasChildrenEntrypoint) {
+							const entrypointChunk = current.getEntrypointChunk();
+							if (entrypointChunk !== chunk && !entrypointChunk.hasRuntime()) {
+								// add entryChunkB to set
+								set.add(entrypointChunk);
+							}
+						}
+					}
+				}
+			}
+		}
+
+		for (const entrypoint of entrypoints) {
+			const entrypointChunk = entrypoint.getEntrypointChunk();
+			const cgc = this._getChunkGraphChunk(entrypointChunk);
+			for (const chunkGroup of cgc.entryModules.values()) {
+				for (const c of chunkGroup.chunks) {
+					if (c !== chunk && c !== entrypointChunk && !c.hasRuntime()) {
+						set.add(c);
+					}
+				}
+			}
+		}
+		return set;
+	}
+
+	/**
+	 * Checks whether this chunk graph contains the chunk.
 	 * @param {Chunk} chunk the chunk
 	 * @returns {boolean} true, when it has dependent chunks
 	 */
@@ -1252,6 +1430,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Gets chunk runtime modules iterable.
 	 * @param {Chunk} chunk the chunk
 	 * @returns {Iterable<RuntimeModule>} iterable of modules (do not modify)
 	 */
@@ -1261,15 +1440,19 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Gets chunk runtime modules in order.
 	 * @param {Chunk} chunk the chunk
 	 * @returns {RuntimeModule[]} array of modules in order of execution
 	 */
 	getChunkRuntimeModulesInOrder(chunk) {
 		const cgc = this._getChunkGraphChunk(chunk);
-		const array = Array.from(cgc.runtimeModules);
+		const array = [...cgc.runtimeModules];
 		array.sort(
 			concatComparators(
-				compareSelect(r => /** @type {RuntimeModule} */ (r).stage, compareIds),
+				compareSelect(
+					(r) => /** @type {RuntimeModule} */ (r).stage,
+					compareIds
+				),
 				compareModulesByIdentifier
 			)
 		);
@@ -1277,6 +1460,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Gets chunk full hash modules iterable.
 	 * @param {Chunk} chunk the chunk
 	 * @returns {Iterable<RuntimeModule> | undefined} iterable of modules (do not modify)
 	 */
@@ -1286,6 +1470,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Gets chunk full hash modules set.
 	 * @param {Chunk} chunk the chunk
 	 * @returns {ReadonlySet<RuntimeModule> | undefined} set of modules (do not modify)
 	 */
@@ -1295,6 +1480,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Gets chunk dependent hash modules iterable.
 	 * @param {Chunk} chunk the chunk
 	 * @returns {Iterable<RuntimeModule> | undefined} iterable of modules (do not modify)
 	 */
@@ -1304,6 +1490,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Gets chunk entry modules with chunk group iterable.
 	 * @param {Chunk} chunk the chunk
 	 * @returns {Iterable<EntryModuleWithChunkGroup>} iterable of modules (do not modify)
 	 */
@@ -1313,6 +1500,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Gets block chunk group.
 	 * @param {AsyncDependenciesBlock} depBlock the async block
 	 * @returns {ChunkGroup | undefined} the chunk group
 	 */
@@ -1321,6 +1509,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Connects block and chunk group.
 	 * @param {AsyncDependenciesBlock} depBlock the async block
 	 * @param {ChunkGroup} chunkGroup the chunk group
 	 * @returns {void}
@@ -1331,6 +1520,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Disconnects chunk group.
 	 * @param {ChunkGroup} chunkGroup the chunk group
 	 * @returns {void}
 	 */
@@ -1343,6 +1533,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Returns the id of the module.
 	 * @param {Module} module the module
 	 * @returns {ModuleId | null} the id of the module
 	 */
@@ -1352,6 +1543,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Updates module id using the provided module.
 	 * @param {Module} module the module
 	 * @param {ModuleId} id the id of the module
 	 * @returns {void}
@@ -1362,16 +1554,18 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Returns the id of the runtime.
 	 * @param {string} runtime runtime
-	 * @returns {string | number} the id of the runtime
+	 * @returns {RuntimeId} the id of the runtime
 	 */
 	getRuntimeId(runtime) {
-		return /** @type {string | number} */ (this._runtimeIds.get(runtime));
+		return /** @type {RuntimeId} */ (this._runtimeIds.get(runtime));
 	}
 
 	/**
+	 * Updates runtime id using the provided runtime.
 	 * @param {string} runtime runtime
-	 * @param {string | number} id the id of the runtime
+	 * @param {RuntimeId} id the id of the runtime
 	 * @returns {void}
 	 */
 	setRuntimeId(runtime, id) {
@@ -1379,6 +1573,7 @@ class ChunkGraph {
 	}
 
 	/**
+	 * Get module hash info.
 	 * @template T
 	 * @param {Module} module the module
 	 * @param {RuntimeSpecMap<T>} hashes hashes data
@@ -1398,7 +1593,7 @@ class ChunkGraph {
 				throw new Error(
 					`No unique hash info entry for unspecified runtime for ${module.identifier()} (existing runtimes: ${Array.from(
 						hashes.keys(),
-						r => runtimeToString(r)
+						(r) => runtimeToString(r)
 					).join(", ")}).
 Caller might not support runtime-dependent code generation (opt-out via optimization.usedExports: "global").`
 				);
@@ -1421,6 +1616,7 @@ Caller might not support runtime-dependent code generation (opt-out via optimiza
 	}
 
 	/**
+	 * Checks whether this chunk graph contains the module.
 	 * @param {Module} module the module
 	 * @param {RuntimeSpec} runtime the runtime
 	 * @returns {boolean} true, if the module has hashes for this runtime
@@ -1432,6 +1628,7 @@ Caller might not support runtime-dependent code generation (opt-out via optimiza
 	}
 
 	/**
+	 * Returns hash.
 	 * @param {Module} module the module
 	 * @param {RuntimeSpec} runtime the runtime
 	 * @returns {string} hash
@@ -1443,6 +1640,7 @@ Caller might not support runtime-dependent code generation (opt-out via optimiza
 	}
 
 	/**
+	 * Gets rendered module hash.
 	 * @param {Module} module the module
 	 * @param {RuntimeSpec} runtime the runtime
 	 * @returns {string} hash
@@ -1454,6 +1652,7 @@ Caller might not support runtime-dependent code generation (opt-out via optimiza
 	}
 
 	/**
+	 * Sets module hashes.
 	 * @param {Module} module the module
 	 * @param {RuntimeSpec} runtime the runtime
 	 * @param {string} hash the full hash
@@ -1469,9 +1668,10 @@ Caller might not support runtime-dependent code generation (opt-out via optimiza
 	}
 
 	/**
+	 * Adds module runtime requirements.
 	 * @param {Module} module the module
 	 * @param {RuntimeSpec} runtime the runtime
-	 * @param {Set<string>} items runtime requirements to be added (ownership of this Set is given to ChunkGraph when transferOwnership not false)
+	 * @param {RuntimeRequirements} items runtime requirements to be added (ownership of this Set is given to ChunkGraph when transferOwnership not false)
 	 * @param {boolean} transferOwnership true: transfer ownership of the items object, false: items is immutable and shared and won't be modified
 	 * @returns {void}
 	 */
@@ -1483,29 +1683,40 @@ Caller might not support runtime-dependent code generation (opt-out via optimiza
 	) {
 		const cgm = this._getChunkGraphModule(module);
 		const runtimeRequirementsMap = cgm.runtimeRequirements;
+		if (!transferOwnership) this._sharedModuleRuntimeRequirements.add(items);
 		if (runtimeRequirementsMap === undefined) {
+			/** @type {ChunkGraphRuntimeRequirements} */
 			const map = new RuntimeSpecMap();
-			// TODO avoid cloning item and track ownership instead
-			map.set(runtime, transferOwnership ? items : new Set(items));
+			map.set(runtime, items);
 			cgm.runtimeRequirements = map;
 			return;
 		}
-		runtimeRequirementsMap.update(runtime, runtimeRequirements => {
-			if (runtimeRequirements === undefined) {
-				return transferOwnership ? items : new Set(items);
-			} else if (!transferOwnership || runtimeRequirements.size >= items.size) {
+		runtimeRequirementsMap.update(runtime, (runtimeRequirements) => {
+			if (runtimeRequirements === undefined) return items;
+			const owned =
+				!this._sharedModuleRuntimeRequirements.has(runtimeRequirements);
+			// Merge into whichever owned Set is larger; otherwise copy-on-write.
+			if (owned && runtimeRequirements.size >= items.size) {
+				for (const item of items) runtimeRequirements.add(item);
+				return runtimeRequirements;
+			} else if (transferOwnership) {
+				for (const item of runtimeRequirements) items.add(item);
+				this._sharedModuleRuntimeRequirements.delete(items);
+				return items;
+			} else if (owned) {
 				for (const item of items) runtimeRequirements.add(item);
 				return runtimeRequirements;
 			}
-
-			for (const item of runtimeRequirements) items.add(item);
-			return items;
+			const merged = new Set(runtimeRequirements);
+			for (const item of items) merged.add(item);
+			return merged;
 		});
 	}
 
 	/**
+	 * Adds chunk runtime requirements.
 	 * @param {Chunk} chunk the chunk
-	 * @param {Set<string>} items runtime requirements to be added (ownership of this Set is given to ChunkGraph)
+	 * @param {RuntimeRequirements} items runtime requirements to be added (ownership of this Set is given to ChunkGraph)
 	 * @returns {void}
 	 */
 	addChunkRuntimeRequirements(chunk, items) {
@@ -1522,6 +1733,7 @@ Caller might not support runtime-dependent code generation (opt-out via optimiza
 	}
 
 	/**
+	 * Adds tree runtime requirements.
 	 * @param {Chunk} chunk the chunk
 	 * @param {Iterable<string>} items runtime requirements to be added
 	 * @returns {void}
@@ -1533,6 +1745,7 @@ Caller might not support runtime-dependent code generation (opt-out via optimiza
 	}
 
 	/**
+	 * Gets module runtime requirements.
 	 * @param {Module} module the module
 	 * @param {RuntimeSpec} runtime the runtime
 	 * @returns {ReadOnlyRuntimeRequirements} runtime requirements
@@ -1545,6 +1758,7 @@ Caller might not support runtime-dependent code generation (opt-out via optimiza
 	}
 
 	/**
+	 * Gets chunk runtime requirements.
 	 * @param {Chunk} chunk the chunk
 	 * @returns {ReadOnlyRuntimeRequirements} runtime requirements
 	 */
@@ -1555,6 +1769,7 @@ Caller might not support runtime-dependent code generation (opt-out via optimiza
 	}
 
 	/**
+	 * Gets module graph hash.
 	 * @param {Module} module the module
 	 * @param {RuntimeSpec} runtime the runtime
 	 * @param {boolean} withConnections include connections
@@ -1568,6 +1783,7 @@ Caller might not support runtime-dependent code generation (opt-out via optimiza
 	}
 
 	/**
+	 * Gets module graph hash big int.
 	 * @param {Module} module the module
 	 * @param {RuntimeSpec} runtime the runtime
 	 * @param {boolean} withConnections include connections
@@ -1583,6 +1799,7 @@ Caller might not support runtime-dependent code generation (opt-out via optimiza
 	}
 
 	/**
+	 * Get module graph hash big int.
 	 * @param {ChunkGraphModule} cgm the ChunkGraphModule
 	 * @param {Module} module the module
 	 * @param {RuntimeSpec} runtime the runtime
@@ -1600,12 +1817,13 @@ Caller might not support runtime-dependent code generation (opt-out via optimiza
 				for (const type of sourceTypes) hash.update(type);
 			}
 			this.moduleGraph.getExportsInfo(module).updateHash(hash, runtime);
-			return BigInt(`0x${/** @type {string} */ (hash.digest("hex"))}`);
+			return BigInt(`0x${hash.digest("hex")}`);
 		});
 		return graphHash;
 	}
 
 	/**
+	 * Get module graph hash with connections.
 	 * @param {ChunkGraphModule} cgm the ChunkGraphModule
 	 * @param {Module} module the module
 	 * @param {RuntimeSpec} runtime the runtime
@@ -1616,18 +1834,11 @@ Caller might not support runtime-dependent code generation (opt-out via optimiza
 			cgm.graphHashesWithConnections = new RuntimeSpecMap();
 		}
 
-		/**
-		 * @param {ConnectionState} state state
-		 * @returns {"F" | "T" | "O"} result
-		 */
-		const activeStateToString = state => {
-			if (state === false) return "F";
-			if (state === true) return "T";
-			if (state === ModuleGraphConnection.TRANSITIVE_ONLY) return "O";
-			throw new Error("Not implemented active state");
-		};
-		const strict = module.buildMeta && module.buildMeta.strictHarmonyModule;
 		return cgm.graphHashesWithConnections.provide(runtime, () => {
+			const strict =
+				module.buildMeta &&
+				/** @type {JavascriptModuleBuildMeta} */ (module.buildMeta)
+					.strictHarmonyModule;
 			const graphHash = this._getModuleGraphHashBigInt(
 				cgm,
 				module,
@@ -1639,6 +1850,7 @@ Caller might not support runtime-dependent code generation (opt-out via optimiza
 			/** @type {Map<string, Module | Set<Module>>} */
 			const connectedModules = new Map();
 			/**
+			 * Process connection.
 			 * @param {ModuleGraphConnection} connection connection
 			 * @param {string} stateInfo state info
 			 */
@@ -1646,8 +1858,9 @@ Caller might not support runtime-dependent code generation (opt-out via optimiza
 				const module = connection.module;
 				stateInfo += module.getExportsType(this.moduleGraph, strict);
 				// cspell:word Tnamespace
-				if (stateInfo === "Tnamespace") activeNamespaceModules.add(module);
-				else {
+				if (stateInfo === "Tnamespace") {
+					activeNamespaceModules.add(module);
+				} else {
 					const oldModule = connectedModules.get(stateInfo);
 					if (oldModule === undefined) {
 						connectedModules.set(stateInfo, module);
@@ -1667,11 +1880,12 @@ Caller might not support runtime-dependent code generation (opt-out via optimiza
 			} else {
 				// cspell:word Tnamespace
 				for (const connection of connections) {
+					/** @type {Set<ConnectionState>} */
 					const states = new Set();
 					let stateInfo = "";
 					forEachRuntime(
 						runtime,
-						runtime => {
+						(runtime) => {
 							const state = connection.getActiveState(runtime);
 							states.add(state);
 							stateInfo += activeStateToString(state) + runtime;
@@ -1681,23 +1895,28 @@ Caller might not support runtime-dependent code generation (opt-out via optimiza
 					if (states.size === 1) {
 						const state = first(states);
 						if (state === false) continue;
-						stateInfo = activeStateToString(state);
+						stateInfo = activeStateToString(
+							/** @type {ConnectionState} */
+							(state)
+						);
 					}
 					processConnection(connection, stateInfo);
 				}
 			}
 			// cspell:word Tnamespace
-			if (activeNamespaceModules.size === 0 && connectedModules.size === 0)
+			if (activeNamespaceModules.size === 0 && connectedModules.size === 0) {
 				return graphHash;
+			}
 			const connectedModulesInOrder =
 				connectedModules.size > 1
-					? Array.from(connectedModules).sort(([a], [b]) => (a < b ? -1 : 1))
+					? [...connectedModules].sort(([a], [b]) => (a < b ? -1 : 1))
 					: connectedModules;
 			const hash = createHash(this._hashFunction);
 			/**
+			 * Adds module to hash.
 			 * @param {Module} module module
 			 */
-			const addModuleToHash = module => {
+			const addModuleToHash = (module) => {
 				hash.update(
 					this._getModuleGraphHashBigInt(
 						this._getChunkGraphModule(module),
@@ -1707,27 +1926,27 @@ Caller might not support runtime-dependent code generation (opt-out via optimiza
 				);
 			};
 			/**
+			 * Adds modules to hash.
 			 * @param {Set<Module>} modules modules
 			 */
-			const addModulesToHash = modules => {
+			const addModulesToHash = (modules) => {
 				let xor = ZERO_BIG_INT;
 				for (const m of modules) {
-					xor =
-						xor ^
-						this._getModuleGraphHashBigInt(
-							this._getChunkGraphModule(m),
-							m,
-							runtime
-						);
+					xor ^= this._getModuleGraphHashBigInt(
+						this._getChunkGraphModule(m),
+						m,
+						runtime
+					);
 				}
 				hash.update(xor.toString(16));
 			};
-			if (activeNamespaceModules.size === 1)
+			if (activeNamespaceModules.size === 1) {
 				addModuleToHash(
 					/** @type {Module} */ (activeNamespaceModules.values().next().value)
 				);
-			else if (activeNamespaceModules.size > 1)
+			} else if (activeNamespaceModules.size > 1) {
 				addModulesToHash(activeNamespaceModules);
+			}
 			for (const [stateInfo, modules] of connectedModulesInOrder) {
 				hash.update(stateInfo);
 				if (modules instanceof Set) {
@@ -1737,11 +1956,12 @@ Caller might not support runtime-dependent code generation (opt-out via optimiza
 				}
 			}
 			hash.update(graphHash);
-			return /** @type {string} */ (hash.digest("hex"));
+			return hash.digest("hex");
 		});
 	}
 
 	/**
+	 * Gets tree runtime requirements.
 	 * @param {Chunk} chunk the chunk
 	 * @returns {ReadOnlyRuntimeRequirements} runtime requirements
 	 */
@@ -1752,6 +1972,8 @@ Caller might not support runtime-dependent code generation (opt-out via optimiza
 
 	// TODO remove in webpack 6
 	/**
+	 * Gets chunk graph for module.
+	 * @deprecated
 	 * @param {Module} module the module
 	 * @param {string} deprecateMessage message for the deprecation message
 	 * @param {string} deprecationCode code for the deprecation
@@ -1762,17 +1984,19 @@ Caller might not support runtime-dependent code generation (opt-out via optimiza
 		if (fn) return fn(module);
 		const newFn = util.deprecate(
 			/**
+			 * Handles the callback logic for this hook.
 			 * @param {Module} module the module
 			 * @returns {ChunkGraph} the chunk graph
 			 */
-			module => {
+			(module) => {
 				const chunkGraph = chunkGraphForModuleMap.get(module);
-				if (!chunkGraph)
+				if (!chunkGraph) {
 					throw new Error(
 						`${
 							deprecateMessage
 						}: There was no ChunkGraph assigned to the Module for backward-compat (Use the new API)`
 					);
+				}
 				return chunkGraph;
 			},
 			`${deprecateMessage}: Use new ChunkGraph API`,
@@ -1783,7 +2007,10 @@ Caller might not support runtime-dependent code generation (opt-out via optimiza
 	}
 
 	// TODO remove in webpack 6
+	// BACKWARD-COMPAT START
 	/**
+	 * Sets chunk graph for module.
+	 * @deprecated
 	 * @param {Module} module the module
 	 * @param {ChunkGraph} chunkGraph the chunk graph
 	 * @returns {void}
@@ -1792,8 +2019,9 @@ Caller might not support runtime-dependent code generation (opt-out via optimiza
 		chunkGraphForModuleMap.set(module, chunkGraph);
 	}
 
-	// TODO remove in webpack 6
 	/**
+	 * Clear chunk graph for module.
+	 * @deprecated
 	 * @param {Module} module the module
 	 * @returns {void}
 	 */
@@ -1801,8 +2029,9 @@ Caller might not support runtime-dependent code generation (opt-out via optimiza
 		chunkGraphForModuleMap.delete(module);
 	}
 
-	// TODO remove in webpack 6
 	/**
+	 * Gets chunk graph for chunk.
+	 * @deprecated
 	 * @param {Chunk} chunk the chunk
 	 * @param {string} deprecateMessage message for the deprecation message
 	 * @param {string} deprecationCode code for the deprecation
@@ -1813,17 +2042,19 @@ Caller might not support runtime-dependent code generation (opt-out via optimiza
 		if (fn) return fn(chunk);
 		const newFn = util.deprecate(
 			/**
+			 * Handles the callback logic for this hook.
 			 * @param {Chunk} chunk the chunk
 			 * @returns {ChunkGraph} the chunk graph
 			 */
-			chunk => {
+			(chunk) => {
 				const chunkGraph = chunkGraphForChunkMap.get(chunk);
-				if (!chunkGraph)
+				if (!chunkGraph) {
 					throw new Error(
 						`${
 							deprecateMessage
 						}There was no ChunkGraph assigned to the Chunk for backward-compat (Use the new API)`
 					);
+				}
 				return chunkGraph;
 			},
 			`${deprecateMessage}: Use new ChunkGraph API`,
@@ -1833,8 +2064,9 @@ Caller might not support runtime-dependent code generation (opt-out via optimiza
 		return newFn(chunk);
 	}
 
-	// TODO remove in webpack 6
 	/**
+	 * Sets chunk graph for chunk.
+	 * @deprecated
 	 * @param {Chunk} chunk the chunk
 	 * @param {ChunkGraph} chunkGraph the chunk graph
 	 * @returns {void}
@@ -1843,14 +2075,16 @@ Caller might not support runtime-dependent code generation (opt-out via optimiza
 		chunkGraphForChunkMap.set(chunk, chunkGraph);
 	}
 
-	// TODO remove in webpack 6
 	/**
+	 * Clear chunk graph for chunk.
+	 * @deprecated
 	 * @param {Chunk} chunk the chunk
 	 * @returns {void}
 	 */
 	static clearChunkGraphForChunk(chunk) {
 		chunkGraphForChunkMap.delete(chunk);
 	}
+	// BACKWARD-COMPAT END
 }
 
 // TODO remove in webpack 6

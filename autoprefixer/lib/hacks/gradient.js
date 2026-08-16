@@ -1,11 +1,10 @@
-let range = require('normalize-range')
 let parser = require('postcss-value-parser')
 
 let OldValue = require('../old-value')
 let utils = require('../utils')
 let Value = require('../value')
 
-let IS_DIRECTION = /top|left|right|bottom/gi
+const IS_DIRECTION = /top|left|right|bottom/gi
 
 class Gradient extends Value {
   /**
@@ -56,6 +55,10 @@ class Gradient extends Value {
         continue
       }
 
+      if (param.length === 0) {
+        continue
+      }
+
       let color = parser.stringify(param[0])
       if (param[1] && param[1].type === 'word') {
         pos = param[1].value
@@ -76,7 +79,7 @@ class Gradient extends Value {
 
       let div = param[param.length - 1]
       params[i] = [{ type: 'word', value: stop }]
-      if (div.type === 'div' && div.value === ',') {
+      if (div && div.type === 'div' && div.value === ',') {
         item = params[i].push(div)
       }
       result.push(item)
@@ -185,6 +188,9 @@ class Gradient extends Value {
    * Replace old direction to new
    */
   newDirection(params) {
+    if (!params[0]) {
+      return params
+    }
     if (params[0].value === 'to') {
       return params
     }
@@ -230,7 +236,7 @@ class Gradient extends Value {
       nodes[0].value = this.normalizeUnit(nodes[0].value, 1)
     } else if (nodes[0].value.includes('deg')) {
       let num = parseFloat(nodes[0].value)
-      num = range.wrap(0, 360, num)
+      num = ((num % 360) + 360) % 360
       nodes[0].value = `${num}deg`
     }
 
@@ -298,7 +304,7 @@ class Gradient extends Value {
   oldDirection(params) {
     let div = this.cloneDiv(params[0])
 
-    if (params[0][0].value !== 'to') {
+    if (!params[0][0] || params[0][0].value !== 'to') {
       return params.unshift([
         { type: 'word', value: Gradient.oldDirections.bottom },
         div
@@ -329,6 +335,9 @@ class Gradient extends Value {
     if (this.name !== 'linear-gradient') {
       return false
     }
+    if (nodes.length === 0) {
+      return false
+    }
     if (nodes[0] && nodes[0].value.includes('deg')) {
       return false
     }
@@ -337,6 +346,9 @@ class Gradient extends Value {
       string.includes('-corner') ||
       string.includes('-side')
     ) {
+      return false
+    }
+    if (string.includes('var(')) {
       return false
     }
 
@@ -353,7 +365,7 @@ class Gradient extends Value {
 
     node.nodes = []
     for (let param of params) {
-      node.nodes = node.nodes.concat(param)
+      node.nodes.push(...param)
     }
 
     node.nodes.unshift(

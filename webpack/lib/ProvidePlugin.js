@@ -24,14 +24,16 @@ const PLUGIN_NAME = "ProvidePlugin";
 
 class ProvidePlugin {
 	/**
+	 * Creates an instance of ProvidePlugin.
 	 * @param {Record<string, string | string[]>} definitions the provided identifiers
 	 */
 	constructor(definitions) {
+		/** @type {Record<string, string | string[]>} */
 		this.definitions = definitions;
 	}
 
 	/**
-	 * Apply the plugin
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Compiler} compiler the compiler instance
 	 * @returns {void}
 	 */
@@ -53,15 +55,18 @@ class ProvidePlugin {
 					new ProvidedDependency.Template()
 				);
 				/**
+				 * Handles the hook callback for this code path.
 				 * @param {JavascriptParser} parser the parser
 				 * @param {JavascriptParserOptions} parserOptions options
 				 * @returns {void}
 				 */
 				const handler = (parser, parserOptions) => {
 					for (const name of Object.keys(definitions)) {
-						const request =
-							/** @type {string[]} */
-							([]).concat(definitions[name]);
+						const request = [
+							...(Array.isArray(definitions[name])
+								? definitions[name]
+								: [definitions[name]])
+						];
 						const splittedName = name.split(".");
 						if (splittedName.length > 0) {
 							for (const [i, _] of splittedName.slice(1).entries()) {
@@ -70,7 +75,7 @@ class ProvidePlugin {
 							}
 						}
 
-						parser.hooks.expression.for(name).tap(PLUGIN_NAME, expr => {
+						parser.hooks.expression.for(name).tap(PLUGIN_NAME, (expr) => {
 							const nameIdentifier = name.includes(".")
 								? `__webpack_provided_${name.replace(/\./g, "_dot_")}`
 								: name;
@@ -80,12 +85,12 @@ class ProvidePlugin {
 								request.slice(1),
 								/** @type {Range} */ (expr.range)
 							);
-							dep.loc = /** @type {DependencyLocation} */ (expr.loc);
+							dep.loc = parser.getLocation(expr);
 							parser.state.module.addDependency(dep);
 							return true;
 						});
 
-						parser.hooks.call.for(name).tap(PLUGIN_NAME, expr => {
+						parser.hooks.call.for(name).tap(PLUGIN_NAME, (expr) => {
 							const nameIdentifier = name.includes(".")
 								? `__webpack_provided_${name.replace(/\./g, "_dot_")}`
 								: name;
@@ -95,7 +100,7 @@ class ProvidePlugin {
 								request.slice(1),
 								/** @type {Range} */ (expr.callee.range)
 							);
-							dep.loc = /** @type {DependencyLocation} */ (expr.callee.loc);
+							dep.loc = parser.getLocation(expr.callee);
 							parser.state.module.addDependency(dep);
 							parser.walkExpressions(expr.arguments);
 							return true;

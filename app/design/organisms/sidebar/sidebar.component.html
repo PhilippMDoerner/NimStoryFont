@@ -22,7 +22,7 @@
           <div class="h4 brand__home-link-text" [id]="headerId">
             <img
               class="brand__icon"
-              [ngSrc]="serverUrl + campaign()?.icon"
+              [ngSrc]="serverUrl + $safeNavigationMigration(campaign()?.icon)"
               alt=""
               priority
               [width]="32"

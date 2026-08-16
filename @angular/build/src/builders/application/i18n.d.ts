@@ -7,8 +7,8 @@
  */
 import { BuilderContext } from '@angular-devkit/architect';
 import type { Metafile } from 'esbuild';
-import { InitialFileRecord } from '../../tools/esbuild/bundler-context';
 import { ExecutionResult, PrerenderedRoutesRecord } from '../../tools/esbuild/bundler-execution-result';
+import { InitialFileRecord } from '../../tools/esbuild/bundler-files';
 import { NormalizedApplicationBuildOptions } from './options';
 /**
  * Inlines all active locales as specified by the application build options into all

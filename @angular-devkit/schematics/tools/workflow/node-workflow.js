@@ -66,3 +66,4 @@ class NodeWorkflow extends src_1.workflow.BaseWorkflow {
     }
 }
 exports.NodeWorkflow = NodeWorkflow;
+//# sourceMappingURL=node-workflow.js.map

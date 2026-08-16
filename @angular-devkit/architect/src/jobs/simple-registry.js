@@ -73,3 +73,4 @@ class SimpleJobRegistry {
     }
 }
 exports.SimpleJobRegistry = SimpleJobRegistry;
+//# sourceMappingURL=simple-registry.js.map

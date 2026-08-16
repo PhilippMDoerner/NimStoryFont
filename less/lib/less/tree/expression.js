@@ -19,6 +19,7 @@ Expression.prototype = Object.assign(new node_1.default(), {
         this.value = visitor.visitArray(this.value);
     },
     eval: function (context) {
+        var noSpacing = this.noSpacing;
         var returnValue;
         var mathOn = context.isMathOn();
         var inParenthesis = this.parens;
@@ -50,6 +51,7 @@ Expression.prototype = Object.assign(new node_1.default(), {
             && (!(returnValue instanceof dimension_1.default))) {
             returnValue = new paren_1.default(returnValue);
         }
+        returnValue.noSpacing = returnValue.noSpacing || noSpacing;
         return returnValue;
     },
     genCSS: function (context, output) {

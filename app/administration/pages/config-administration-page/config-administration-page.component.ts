@@ -4,16 +4,16 @@ import {
   computed,
   inject,
 } from '@angular/core';
-import { NodeLinkTypeRaw } from 'src/app/_models/graph';
-import { MapMarkerType } from 'src/app/_models/mapMarkerType';
-import { PlayerClass } from 'src/app/_models/playerclass';
-import { AuthStore } from 'src/app/auth.store';
+import { NodeLinkTypeRaw } from '../../../_models/graph';
+import { MapMarkerType } from '../../../_models/mapMarkerType';
+import { PlayerClass } from '../../../_models/playerclass';
+import { AuthStore } from '../../../auth.store';
 import {
   ConfigTableData,
   ConfigTableKind,
-} from 'src/app/design/organisms/_model/config-table';
-import { ConfigTablesComponent } from 'src/app/design/templates/config-tables/config-tables.component';
-import { GlobalStore } from 'src/app/global.store';
+} from '../../../design/organisms/_model/config-table';
+import { ConfigTablesComponent } from '../../../design/templates/config-tables/config-tables.component';
+import { GlobalStore } from '../../../global.store';
 import { ConfigAdministrationPageStore } from './config-administration-page.store';
 
 @Component({
@@ -29,7 +29,7 @@ export class ConfigAdministrationPageComponent {
   readonly globalStore = inject(GlobalStore);
   readonly authStore = inject(AuthStore);
 
-  tableData = computed<ConfigTableData>(() => {
+  readonly tableData = computed<ConfigTableData>(() => {
     return {
       MARKER_TYPE: this.store.markerTypes(),
       PLAYER_CLASS: this.store.playerClasses(),

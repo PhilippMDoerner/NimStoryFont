@@ -5,17 +5,20 @@
 
 "use strict";
 
-const WebpackError = require("../WebpackError");
+const WebpackError = require("../errors/WebpackError");
 const makeSerializable = require("../util/makeSerializable");
 
 class CriticalDependencyWarning extends WebpackError {
 	/**
+	 * Creates an instance of CriticalDependencyWarning.
 	 * @param {string} message message
 	 */
 	constructor(message) {
 		super();
 
+		/** @type {string} */
 		this.name = "CriticalDependencyWarning";
+		/** @type {string} */
 		this.message = `Critical dependency: ${message}`;
 	}
 }

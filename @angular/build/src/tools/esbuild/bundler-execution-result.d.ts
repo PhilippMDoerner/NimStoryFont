@@ -9,7 +9,8 @@ import type { Message, PartialMessage } from 'esbuild';
 import type { ChangedFiles } from '../../tools/esbuild/watcher';
 import type { ComponentStylesheetBundler } from './angular/component-stylesheets';
 import type { SourceFileCache } from './angular/source-file-cache';
-import type { BuildOutputFile, BuildOutputFileType, BundlerContext } from './bundler-context';
+import type { BundlerContext } from './bundler-context';
+import { type BuildOutputFile, BuildOutputFileType } from './bundler-files';
 export interface BuildOutputAsset {
     source: string;
     destination: string;
@@ -41,6 +42,7 @@ export type PrerenderedRoutesRecord = Record<string, {
  * Represents the result of a single builder execute call.
  */
 export declare class ExecutionResult {
+    #private;
     private rebuildContexts;
     private componentStyleBundler;
     private codeBundleCache?;

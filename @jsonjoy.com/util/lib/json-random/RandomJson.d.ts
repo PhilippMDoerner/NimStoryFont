@@ -1,3 +1,4 @@
+import { Token } from './string';
 type JsonValue = unknown;
 export type NodeType = 'null' | 'boolean' | 'number' | 'string' | 'binary' | 'array' | 'object';
 export interface NodeOdds {
@@ -10,9 +11,10 @@ export interface NodeOdds {
     object: number;
 }
 export interface RandomJsonOptions {
-    rootNode: 'object' | 'array' | undefined;
+    rootNode: 'object' | 'array' | 'string' | undefined;
     nodeCount: number;
     odds: NodeOdds;
+    strings?: Token;
 }
 type ContainerNode = unknown[] | object;
 export declare class RandomJson {
@@ -32,6 +34,7 @@ export declare class RandomJson {
     create(): JsonValue;
     addNode(): void;
     protected generate(type: NodeType): unknown;
+    protected generateString(): string;
     pickNodeType(): NodeType;
     protected pickContainerType(): 'array' | 'object';
     protected pickContainer(): ContainerNode;

@@ -6,7 +6,6 @@
 "use strict";
 
 const { HookMap, SyncBailHook, SyncWaterfallHook } = require("tapable");
-const { concatComparators, keepOriginalOrder } = require("../util/comparators");
 const smartGrouping = require("../util/smartGrouping");
 
 /** @typedef {import("../Chunk")} Chunk */
@@ -18,10 +17,14 @@ const smartGrouping = require("../util/smartGrouping");
 /** @typedef {import("../Module")} Module */
 /** @typedef {import("../ModuleGraph").ModuleProfile} ModuleProfile */
 /** @typedef {import("../ModuleGraphConnection")} ModuleGraphConnection */
-/** @typedef {import("../WebpackError")} WebpackError */
+/** @typedef {import("../errors/WebpackError")} WebpackError */
 /** @typedef {import("../util/comparators").Comparator<EXPECTED_ANY>} Comparator */
 /** @typedef {import("../util/runtime").RuntimeSpec} RuntimeSpec */
-/** @typedef {import("../util/smartGrouping").GroupConfig<EXPECTED_ANY, EXPECTED_OBJECT>} GroupConfig */
+/**
+ * Defines the group config type used by this module.
+ * @template T, R
+ * @typedef {import("../util/smartGrouping").GroupConfig<T, R>} GroupConfig
+ */
 /** @typedef {import("./DefaultStatsFactoryPlugin").ChunkGroupInfoWithName} ChunkGroupInfoWithName */
 /** @typedef {import("./DefaultStatsFactoryPlugin").ModuleIssuerPath} ModuleIssuerPath */
 /** @typedef {import("./DefaultStatsFactoryPlugin").ModuleTrace} ModuleTrace */
@@ -39,16 +42,17 @@ const smartGrouping = require("../util/smartGrouping");
 /** @typedef {import("./DefaultStatsFactoryPlugin").StatsProfile} StatsProfile */
 
 /**
+ * Defines the known stats factory context type used by this module.
  * @typedef {object} KnownStatsFactoryContext
  * @property {string} type
- * @property {(path: string) => string} makePathsRelative
  * @property {Compilation} compilation
+ * @property {(path: string) => string} makePathsRelative
  * @property {Set<Module>} rootModules
  * @property {Map<string, Chunk[]>} compilationFileToChunks
  * @property {Map<string, Chunk[]>} compilationAuxiliaryFileToChunks
  * @property {RuntimeSpec} runtime
- * @property {(compilation: Compilation) => WebpackError[]} cachedGetErrors
- * @property {(compilation: Compilation) => WebpackError[]} cachedGetWarnings
+ * @property {(compilation: Compilation) => Error[]} cachedGetErrors
+ * @property {(compilation: Compilation) => Error[]} cachedGetWarnings
  */
 
 /** @typedef {KnownStatsFactoryContext & Record<string, EXPECTED_ANY>} StatsFactoryContext */
@@ -56,29 +60,32 @@ const smartGrouping = require("../util/smartGrouping");
 // StatsLogging StatsLoggingEntry
 
 /**
+ * Defines the stats object type used by this module.
  * @template T
  * @template F
  * @typedef {T extends Compilation ? StatsCompilation : T extends ChunkGroupInfoWithName ? StatsChunkGroup : T extends Chunk ? StatsChunk : T extends OriginRecord ? StatsChunkOrigin : T extends Module ? StatsModule : T extends ModuleGraphConnection ? StatsModuleReason : T extends Asset ? StatsAsset : T extends ModuleTrace ? StatsModuleTraceItem : T extends Dependency ? StatsModuleTraceDependency : T extends Error ? StatsError : T extends ModuleProfile ? StatsProfile : F} StatsObject
  */
 
 /**
+ * Defines the created object type used by this module.
  * @template T
  * @template F
  * @typedef {T extends ChunkGroupInfoWithName[] ? Record<string, StatsObject<ChunkGroupInfoWithName, F>> : T extends (infer V)[] ? StatsObject<V, F>[] : StatsObject<T, F>} CreatedObject
  */
 
-/** @typedef {TODO} FactoryData */
-/** @typedef {TODO} FactoryDataItem */
-/** @typedef {TODO} Result */
-/** @typedef {Record<string, TODO>} ObjectForExtract */
+/** @typedef {EXPECTED_ANY} ObjectForExtract */
+/** @typedef {EXPECTED_ANY} FactoryData */
+/** @typedef {EXPECTED_ANY} FactoryDataItem */
+/** @typedef {EXPECTED_ANY} Result */
 
 /**
+ * Defines the stats factory hooks type used by this module.
  * @typedef {object} StatsFactoryHooks
  * @property {HookMap<SyncBailHook<[ObjectForExtract, FactoryData, StatsFactoryContext], void>>} extract
  * @property {HookMap<SyncBailHook<[FactoryDataItem, StatsFactoryContext, number, number], boolean | void>>} filter
  * @property {HookMap<SyncBailHook<[Comparator[], StatsFactoryContext], void>>} sort
  * @property {HookMap<SyncBailHook<[FactoryDataItem, StatsFactoryContext, number, number], boolean | void>>} filterSorted
- * @property {HookMap<SyncBailHook<[GroupConfig[], StatsFactoryContext], void>>} groupResults
+ * @property {HookMap<SyncBailHook<[GroupConfig<EXPECTED_ANY, EXPECTED_ANY>[], StatsFactoryContext], void>>} groupResults
  * @property {HookMap<SyncBailHook<[Comparator[], StatsFactoryContext], void>>} sortResults
  * @property {HookMap<SyncBailHook<[FactoryDataItem, StatsFactoryContext, number, number], boolean | void>>} filterResults
  * @property {HookMap<SyncBailHook<[FactoryDataItem[], StatsFactoryContext], Result | void>>} merge
@@ -88,6 +95,7 @@ const smartGrouping = require("../util/smartGrouping");
  */
 
 /**
+ * Represents the stats factory runtime component.
  * @template T
  * @typedef {Map<string, T[]>} Caches
  */
@@ -121,14 +129,17 @@ class StatsFactory {
 			getItemFactory: new HookMap(() => new SyncBailHook(["item", "context"]))
 		});
 		const hooks = this.hooks;
-		this._caches = /** @type {TODO} */ ({});
+		this._caches =
+			/** @type {{ [Key in keyof StatsFactoryHooks]: StatsFactoryHooks[Key] extends HookMap<infer H> ? Map<string, H[]> : never }} */ ({});
 		for (const key of Object.keys(hooks)) {
 			this._caches[/** @type {keyof StatsFactoryHooks} */ (key)] = new Map();
 		}
+		/** @type {boolean} */
 		this._inCreate = false;
 	}
 
 	/**
+	 * Get all level hooks.
 	 * @template {StatsFactoryHooks[keyof StatsFactoryHooks]} HM
 	 * @template {HM extends HookMap<infer H> ? H : never} H
 	 * @param {HM} hookMap hook map
@@ -155,9 +166,10 @@ class StatsFactory {
 	}
 
 	/**
+	 * Returns hook.
 	 * @template {StatsFactoryHooks[keyof StatsFactoryHooks]} HM
 	 * @template {HM extends HookMap<infer H> ? H : never} H
-	 * @template {H extends import("tapable").Hook<any, infer R> ? R : never} R
+	 * @template {H extends import("tapable").Hook<infer A, infer R> ? R : never} R
 	 * @param {HM} hookMap hook map
 	 * @param {Caches<H>} cache cache
 	 * @param {string} type type
@@ -173,14 +185,16 @@ class StatsFactory {
 	}
 
 	/**
+	 * For each level waterfall.
 	 * @template {StatsFactoryHooks[keyof StatsFactoryHooks]} HM
 	 * @template {HM extends HookMap<infer H> ? H : never} H
+	 * @template [D=EXPECTED_ANY]
 	 * @param {HM} hookMap hook map
 	 * @param {Caches<H>} cache cache
 	 * @param {string} type type
-	 * @param {FactoryData} data data
-	 * @param {(hook: H, factoryData: FactoryData) => FactoryData} fn fn
-	 * @returns {FactoryData} data
+	 * @param {D} data data
+	 * @param {(hook: H, data: D) => D} fn fn
+	 * @returns {D} data
 	 * @private
 	 */
 	_forEachLevelWaterfall(hookMap, cache, type, data, fn) {
@@ -191,21 +205,22 @@ class StatsFactory {
 	}
 
 	/**
+	 * For each level filter.
 	 * @template {StatsFactoryHooks[keyof StatsFactoryHooks]} T
 	 * @template {T extends HookMap<infer H> ? H : never} H
-	 * @template {H extends import("tapable").Hook<any, infer R> ? R : never} R
+	 * @template [D=EXPECTED_ANY]
 	 * @param {T} hookMap hook map
 	 * @param {Caches<H>} cache cache
 	 * @param {string} type type
-	 * @param {Array<FactoryData>} items items
-	 * @param {(hook: H, item: R, idx: number, i: number) => R | undefined} fn fn
+	 * @param {D[]} items items
+	 * @param {(hook: H, item: D, idx: number, i: number) => boolean | void} fn fn
 	 * @param {boolean} forceClone force clone
-	 * @returns {R[]} result for each level
+	 * @returns {D[]} result for each level
 	 * @private
 	 */
 	_forEachLevelFilter(hookMap, cache, type, items, fn, forceClone) {
 		const hooks = this._getAllLevelHooks(hookMap, cache, type);
-		if (hooks.length === 0) return forceClone ? items.slice() : items;
+		if (hooks.length === 0) return forceClone ? [...items] : items;
 		let i = 0;
 		return items.filter((item, idx) => {
 			for (const hook of hooks) {
@@ -221,6 +236,7 @@ class StatsFactory {
 	}
 
 	/**
+	 * Returns created object.
 	 * @template FactoryData
 	 * @template FallbackCreatedObject
 	 * @param {string} type type
@@ -236,13 +252,15 @@ class StatsFactory {
 			this._inCreate = true;
 			return this._create(type, data, baseContext);
 		} finally {
-			for (const key of Object.keys(this._caches))
+			for (const key of Object.keys(this._caches)) {
 				this._caches[/** @type {keyof StatsFactoryHooks} */ (key)].clear();
+			}
 			this._inCreate = false;
 		}
 	}
 
 	/**
+	 * Returns created object.
 	 * @private
 	 * @template FactoryData
 	 * @template FallbackCreatedObject
@@ -271,14 +289,11 @@ class StatsFactory {
 			// sort items
 			/** @type {Comparator[]} */
 			const comparators = [];
-			this._forEachLevel(this.hooks.sort, this._caches.sort, type, h =>
+			this._forEachLevel(this.hooks.sort, this._caches.sort, type, (h) =>
 				h.call(comparators, context)
 			);
 			if (comparators.length > 0) {
-				items.sort(
-					// @ts-expect-error number of arguments is correct
-					concatComparators(...comparators, keepOriginalOrder(items))
-				);
+				sortWithOriginalOrder(items, comparators);
 			}
 
 			// run filter on sorted items
@@ -291,23 +306,30 @@ class StatsFactory {
 				false
 			);
 
-			// for each item
+			// reuse one item context; create() spreads it synchronously, so mutating
+			// `_index`/the name key between items is safe and skips a per-item spread
+			/** @type {StatsFactoryContext} */
+			const itemContext = { ...context };
+			const itemNameType = `${type}[]`;
+			/** @type {string | void} */
+			let prevItemName;
 			let resultItems = items2.map((item, i) => {
-				/** @type {StatsFactoryContext} */
-				const itemContext = {
-					...context,
-					_index: i
-				};
+				itemContext._index = i;
 
 				// run getItemName
 				const itemName = this._forEachLevel(
 					this.hooks.getItemName,
 					this._caches.getItemName,
-					`${type}[]`,
-					h => h.call(item, itemContext)
+					itemNameType,
+					(h) => h.call(item, itemContext)
 				);
+				// drop a previous item's name key before adding this one's
+				if (prevItemName !== undefined && prevItemName !== itemName) {
+					delete itemContext[prevItemName];
+				}
 				if (itemName) itemContext[itemName] = item;
-				const innerType = itemName ? `${type}[].${itemName}` : `${type}[]`;
+				prevItemName = itemName;
+				const innerType = itemName ? `${type}[].${itemName}` : itemNameType;
 
 				// run getItemFactory
 				const itemFactory =
@@ -315,7 +337,7 @@ class StatsFactory {
 						this.hooks.getItemFactory,
 						this._caches.getItemFactory,
 						innerType,
-						h => h.call(item, itemContext)
+						(h) => h.call(item, itemContext)
 					) || this;
 
 				// run item factory
@@ -329,23 +351,20 @@ class StatsFactory {
 				this.hooks.sortResults,
 				this._caches.sortResults,
 				type,
-				h => h.call(comparators2, context)
+				(h) => h.call(comparators2, context)
 			);
 			if (comparators2.length > 0) {
-				resultItems.sort(
-					// @ts-expect-error number of arguments is correct
-					concatComparators(...comparators2, keepOriginalOrder(resultItems))
-				);
+				sortWithOriginalOrder(resultItems, comparators2);
 			}
 
 			// group result items
-			/** @type {GroupConfig[]} */
+			/** @type {GroupConfig<EXPECTED_ANY, EXPECTED_ANY>[]} */
 			const groupConfigs = [];
 			this._forEachLevel(
 				this.hooks.groupResults,
 				this._caches.groupResults,
 				type,
-				h => h.call(groupConfigs, context)
+				(h) => h.call(groupConfigs, context)
 			);
 			if (groupConfigs.length > 0) {
 				resultItems = smartGrouping(resultItems, groupConfigs);
@@ -366,7 +385,7 @@ class StatsFactory {
 				this.hooks.merge,
 				this._caches.merge,
 				type,
-				h => h.call(finalResultItems, context)
+				(h) => h.call(finalResultItems, context)
 			);
 			if (result === undefined) result = finalResultItems;
 
@@ -383,7 +402,7 @@ class StatsFactory {
 		const object = {};
 
 		// run extract on value
-		this._forEachLevel(this.hooks.extract, this._caches.extract, type, h =>
+		this._forEachLevel(this.hooks.extract, this._caches.extract, type, (h) =>
 			h.call(object, data, context)
 		);
 
@@ -397,4 +416,34 @@ class StatsFactory {
 		);
 	}
 }
+
+/**
+ * Stable in-place sort applying comparators in order, keeping the original order
+ * for equal items. Inlined instead of `concatComparators(...c, keepOriginalOrder())`
+ * because that combination is single-use per sort and only thrashes the comparator
+ * caches (a fresh tiebreaker closure every call allocates a new cache entry).
+ * @param {EXPECTED_ANY[]} items items to sort in place
+ * @param {Comparator[]} comparators comparators applied in order
+ * @returns {void}
+ */
+const sortWithOriginalOrder = (items, comparators) => {
+	// original-index tiebreaker keeps the sort stable on engines without a stable Array.sort
+	/** @type {Map<EXPECTED_ANY, number>} */
+	const originalOrder = new Map();
+	for (let i = 0; i < items.length; i++) {
+		originalOrder.set(items[i], i);
+	}
+	const count = comparators.length;
+	items.sort((a, b) => {
+		for (let i = 0; i < count; i++) {
+			const res = comparators[i](a, b);
+			if (res !== 0) return res;
+		}
+		return (
+			/** @type {number} */ (originalOrder.get(a)) -
+			/** @type {number} */ (originalOrder.get(b))
+		);
+	});
+};
+
 module.exports = StatsFactory;

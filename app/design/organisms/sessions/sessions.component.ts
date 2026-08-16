@@ -7,16 +7,16 @@ import {
   output,
   signal,
 } from '@angular/core';
-import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
-import { Session, SessionRaw } from 'src/app/_models/session';
+import { getPseudoRandomId } from '../../../../utils/math';
+import { HotkeyDirective } from '../../../_directives/hotkey.directive';
+import { Session, SessionRaw } from '../../../_models/session';
 import {
   slideOutFromBottom,
   slideUpFromBottom,
-} from 'src/app/design/animations/slideDown';
-import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
-import { SpinnerComponent } from 'src/app/design/atoms/spinner/spinner.component';
-import { CollapsiblePanelComponent } from 'src/app/design/molecules';
-import { getPseudoRandomId } from 'src/utils/math';
+} from '../../animations/slideDown';
+import { ButtonComponent } from '../../atoms/button/button.component';
+import { SpinnerComponent } from '../../atoms/spinner/spinner.component';
+import { CollapsiblePanelComponent } from '../../molecules';
 import {
   FocusItem,
   FocusListComponent,
@@ -46,21 +46,21 @@ interface SessionCard {
   animations: [slideOutFromBottom, slideUpFromBottom],
 })
 export class SessionsComponent {
-  DEFAULT_TITLE = 'New Session';
+  readonly DEFAULT_TITLE = 'New Session';
 
-  campaignId = input.required<number>();
-  sessions = input.required<Session[]>();
-  canUpdate = input.required<boolean>();
-  canDelete = input.required<boolean>();
-  canCreate = input.required<boolean>();
-  serverModel = input.required<Session | undefined>();
+  readonly campaignId = input.required<number>();
+  readonly sessions = input.required<Session[]>();
+  readonly canUpdate = input.required<boolean>();
+  readonly canDelete = input.required<boolean>();
+  readonly canCreate = input.required<boolean>();
+  readonly serverModel = input.required<Session | undefined>();
 
   readonly sessionDelete = output<Session>();
   readonly sessionUpdate = output<Session>();
   readonly sessionCreate = output<SessionRaw>();
 
-  isCreatingSession = signal(false);
-  createSessionData = linkedSignal(() => {
+  readonly isCreatingSession = signal(false);
+  readonly createSessionData = linkedSignal(() => {
     const lastSession = this.sessions()[0];
     const currentDate = new Date().toISOString().split('T')[0];
     return {
@@ -73,7 +73,7 @@ export class SessionsComponent {
     } as Session;
   });
 
-  sessionCards = computed<FocusItem<SessionCard>[]>(() =>
+  readonly sessionCards = computed<FocusItem<SessionCard>[]>(() =>
     this.sessions().map((session) => ({
       id: session.pk ?? getPseudoRandomId(),
       data: { session: session, isOpen: false },

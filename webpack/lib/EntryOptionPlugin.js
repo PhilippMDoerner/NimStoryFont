@@ -5,15 +5,41 @@
 
 "use strict";
 
+const { SyncBailHook } = require("tapable");
+
 /** @typedef {import("../declarations/WebpackOptions").EntryDescriptionNormalized} EntryDescription */
 /** @typedef {import("../declarations/WebpackOptions").EntryNormalized} Entry */
 /** @typedef {import("./Compiler")} Compiler */
 /** @typedef {import("./Entrypoint").EntryOptions} EntryOptions */
 
+/**
+ * @typedef {object} EntryOptionPluginHooks
+ * @property {SyncBailHook<[string, string, EntryDescription], string | undefined>} entry transform an entry into a different request (e.g. wrap a non-HTML entry in a synthetic HTML module); return `undefined` to keep the default behavior
+ */
+
 const PLUGIN_NAME = "EntryOptionPlugin";
+
+/** @type {WeakMap<Compiler, EntryOptionPluginHooks>} */
+const hooksMap = new WeakMap();
 
 class EntryOptionPlugin {
 	/**
+	 * @param {Compiler} compiler the compiler
+	 * @returns {EntryOptionPluginHooks} the hooks
+	 */
+	static getHooks(compiler) {
+		let hooks = hooksMap.get(compiler);
+		if (hooks === undefined) {
+			hooks = {
+				entry: new SyncBailHook(["context", "name", "entryDescription"])
+			};
+			hooksMap.set(compiler, hooks);
+		}
+		return hooks;
+	}
+
+	/**
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Compiler} compiler the compiler instance one is tapping into
 	 * @returns {void}
 	 */
@@ -25,6 +51,7 @@ class EntryOptionPlugin {
 	}
 
 	/**
+	 * Apply entry option.
 	 * @param {Compiler} compiler the compiler
 	 * @param {string} context context directory
 	 * @param {Entry} entry request
@@ -33,9 +60,11 @@ class EntryOptionPlugin {
 	static applyEntryOption(compiler, context, entry) {
 		if (typeof entry === "function") {
 			const DynamicEntryPlugin = require("./DynamicEntryPlugin");
+
 			new DynamicEntryPlugin(context, entry).apply(compiler);
 		} else {
 			const EntryPlugin = require("./EntryPlugin");
+
 			for (const name of Object.keys(entry)) {
 				const desc = entry[name];
 				const options = EntryOptionPlugin.entryDescriptionToOptions(
@@ -46,14 +75,26 @@ class EntryOptionPlugin {
 				const descImport =
 					/** @type {Exclude<EntryDescription["import"], undefined>} */
 					(desc.import);
-				for (const entry of descImport) {
-					new EntryPlugin(context, entry, options).apply(compiler);
+				// A plugin (e.g. HtmlModulesPlugin) may rewrite the entry into a
+				// single synthetic request; otherwise each import becomes an entry.
+				const request = EntryOptionPlugin.getHooks(compiler).entry.call(
+					context,
+					name,
+					desc
+				);
+				if (request !== undefined) {
+					new EntryPlugin(context, request, options).apply(compiler);
+				} else {
+					for (const entry of descImport) {
+						new EntryPlugin(context, entry, options).apply(compiler);
+					}
 				}
 			}
 		}
 	}
 
 	/**
+	 * Entry description to options.
 	 * @param {Compiler} compiler the compiler
 	 * @param {string} name entry name
 	 * @param {EntryDescription} desc entry description
@@ -72,23 +113,22 @@ class EntryOptionPlugin {
 			chunkLoading: desc.chunkLoading,
 			asyncChunks: desc.asyncChunks,
 			wasmLoading: desc.wasmLoading,
+			worker: desc.worker,
 			library: desc.library
 		};
-		if (desc.layer !== undefined && !compiler.options.experiments.layers) {
-			throw new Error(
-				"'entryOptions.layer' is only allowed when 'experiments.layers' is enabled"
-			);
-		}
 		if (desc.chunkLoading) {
 			const EnableChunkLoadingPlugin = require("./javascript/EnableChunkLoadingPlugin");
+
 			EnableChunkLoadingPlugin.checkEnabled(compiler, desc.chunkLoading);
 		}
 		if (desc.wasmLoading) {
 			const EnableWasmLoadingPlugin = require("./wasm/EnableWasmLoadingPlugin");
+
 			EnableWasmLoadingPlugin.checkEnabled(compiler, desc.wasmLoading);
 		}
 		if (desc.library) {
 			const EnableLibraryPlugin = require("./library/EnableLibraryPlugin");
+
 			EnableLibraryPlugin.checkEnabled(compiler, desc.library.type);
 		}
 		return options;

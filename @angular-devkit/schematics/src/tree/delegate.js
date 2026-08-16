@@ -9,10 +9,12 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DelegateTree = void 0;
 const interface_1 = require("./interface");
+// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
 class DelegateTree {
     _other;
     constructor(_other) {
         this._other = _other;
+        this[interface_1.TreeSymbol] = () => this;
     }
     branch() {
         return this._other.branch();
@@ -71,8 +73,6 @@ class DelegateTree {
     get actions() {
         return this._other.actions;
     }
-    [interface_1.TreeSymbol]() {
-        return this;
-    }
 }
 exports.DelegateTree = DelegateTree;
+//# sourceMappingURL=delegate.js.map

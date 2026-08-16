@@ -3,32 +3,79 @@
       const require = __cjsCompatRequire(import.meta.url);
     
 import {
+  DiagnosticCategoryLabel,
+  NgCompiler
+} from "../chunk-VG44FWYM.js";
+import "../chunk-NRQWINXV.js";
+import {
+  CompilationMode,
+  createForwardRefResolver,
+  extractDecoratorQueryMetadata,
+  extractTemplate,
+  findAngularDecorator,
+  getAngularDecorators,
+  isShim,
+  parseDecoratorInputTransformFunction,
+  queryDecoratorNames,
+  unwrapExpression
+} from "../chunk-COHPTPZ2.js";
+import {
+  DtsMetadataReader,
   DynamicValue,
+  FatalDiagnosticError,
   ImportManager,
   PartialEvaluator,
   PotentialImportKind,
   PotentialImportMode,
   Reference,
+  ReferenceEmitKind,
+  ReferenceEmitter,
   StaticInterpreter,
+  SymbolKind,
   TypeScriptReflectionHost,
-  createForwardRefResolver,
+  getRootDirs,
   reflectObjectLiteral
-} from "../chunk-NPUFVONQ.js";
-import "../chunk-M3WWDK6S.js";
-import "../chunk-3AHGFMNS.js";
-import "../chunk-U5SKOFKE.js";
-import "../chunk-KPQ72R34.js";
+} from "../chunk-SOEVA7UL.js";
+import "../chunk-ZUYMYKXC.js";
+import {
+  getFileSystem,
+  isLocalRelativePath
+} from "../chunk-UTWH365F.js";
+import {
+  NodeJSFileSystem
+} from "../chunk-KWAGEHJJ.js";
+import "../chunk-IEBNHER4.js";
 export {
+  CompilationMode,
+  DiagnosticCategoryLabel,
+  DtsMetadataReader,
   DynamicValue,
+  FatalDiagnosticError,
   ImportManager,
+  NgCompiler,
+  NodeJSFileSystem,
   PartialEvaluator,
   PotentialImportKind,
   PotentialImportMode,
   Reference,
+  ReferenceEmitKind,
+  ReferenceEmitter,
   StaticInterpreter,
+  SymbolKind,
   TypeScriptReflectionHost,
   createForwardRefResolver,
-  reflectObjectLiteral
+  extractDecoratorQueryMetadata,
+  extractTemplate,
+  findAngularDecorator,
+  getAngularDecorators,
+  getFileSystem,
+  getRootDirs,
+  isLocalRelativePath,
+  isShim,
+  parseDecoratorInputTransformFunction,
+  queryDecoratorNames,
+  reflectObjectLiteral,
+  unwrapExpression
 };
 /**
  * @license

@@ -10,7 +10,8 @@ const get_interactive_element_role_schemas_1 = require("./get-interactive-elemen
 const get_non_interactive_element_role_schemas_1 = require("./get-non-interactive-element-role-schemas");
 function checkIsInteractiveElement(node) {
     function elementSchemaMatcher({ attributes, name }) {
-        return node.name === name && (0, attributes_comparator_1.attributesComparator)(attributes ?? [], node);
+        return (node.name.toLowerCase() === name &&
+            (0, attributes_comparator_1.attributesComparator)(attributes ?? [], node));
     }
     // Check in elementRoles for inherent interactive role associations for
     // this element.
@@ -37,7 +38,8 @@ function checkIsNonInteractiveRole(node) {
  * it's intention is to be interacted with on the DOM.
  */
 function isInherentlyInteractiveElement(node) {
-    return (0, get_dom_elements_1.getDomElements)().has(node.name) && checkIsInteractiveElement(node);
+    return ((0, get_dom_elements_1.getDomElements)().has(node.name.toLowerCase()) &&
+        checkIsInteractiveElement(node));
 }
 function isNonInteractiveRole(node) {
     return checkIsNonInteractiveRole(node);

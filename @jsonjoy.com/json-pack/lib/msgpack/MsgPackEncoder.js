@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MsgPackEncoder = void 0;
 const MsgPackEncoderFast_1 = require("./MsgPackEncoderFast");
-const isUint8Array_1 = require("@jsonjoy.com/util/lib/buffers/isUint8Array");
+const isUint8Array_1 = require("@jsonjoy.com/buffers/lib/isUint8Array");
 const JsonPackExtension_1 = require("../JsonPackExtension");
 const JsonPackValue_1 = require("../JsonPackValue");
 class MsgPackEncoder extends MsgPackEncoderFast_1.MsgPackEncoderFast {

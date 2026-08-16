@@ -7,5 +7,5 @@
  */
 // THIS CODE IS GENERATED - DO NOT MODIFY.
 const u = undefined;
-export default [[["mi", "in the morning", "in the afternoon", "in the evening", "at night"], ["midnight", "in the morning", "in the afternoon", "in the evening", "at night"], ["aadhi raat", "subah", "dopahar", "shaam", "raat"]], [["midnight", "morning", "afternoon", "evening", "night"], u, ["aadhi raat", "subah", "dopahar", "shaam", "raat"]], ["00:00", ["04:00", "12:00"], ["12:00", "16:00"], ["16:00", "20:00"], ["20:00", "04:00"]]];
+export default [[["mi", "subah", "dopahar", "shaam", "raat"], ["midnight", "subah", "dopahar", "shaam", "raat"], ["aadhi raat", "subah", "dopahar", "shaam", "raat"]], [["midnight", "morning", "afternoon", "evening", "night"], u, ["aadhi raat", "subah", "dopahar", "shaam", "raat"]], ["00:00", ["04:00", "12:00"], ["12:00", "16:00"], ["16:00", "20:00"], ["20:00", "04:00"]]];
 //# sourceMappingURL=hi-Latn.js.map

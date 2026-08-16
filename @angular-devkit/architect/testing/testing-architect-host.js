@@ -96,7 +96,7 @@ class TestingArchitectHost {
         const name = (0, src_1.targetStringFromTarget)(target);
         const maybeTarget = this._targetMap.get(name);
         if (!maybeTarget) {
-            return this._backendHost && this._backendHost.getBuilderNameForTarget(target);
+            return this._backendHost?.getBuilderNameForTarget(target) ?? null;
         }
         return maybeTarget.builderName;
     }
@@ -108,8 +108,7 @@ class TestingArchitectHost {
      * @returns All the info needed for the builder itself.
      */
     async resolveBuilder(builderName) {
-        return (this._builderMap.get(builderName) ||
-            (this._backendHost && this._backendHost.resolveBuilder(builderName)));
+        return (this._builderMap.get(builderName) || (this._backendHost?.resolveBuilder(builderName) ?? null));
     }
     async getCurrentDirectory() {
         return this.currentDirectory;
@@ -121,16 +120,16 @@ class TestingArchitectHost {
         const name = (0, src_1.targetStringFromTarget)(target);
         const maybeTarget = this._targetMap.get(name);
         if (!maybeTarget) {
-            return this._backendHost && this._backendHost.getOptionsForTarget(target);
+            return this._backendHost?.getOptionsForTarget(target) ?? null;
         }
         return maybeTarget.options;
     }
     async getProjectMetadata(target) {
-        return this._backendHost && this._backendHost.getProjectMetadata(target);
+        return this._backendHost?.getProjectMetadata(target) ?? null;
     }
     async loadBuilder(info) {
-        return (this._builderImportMap.get(info.builderName) ||
-            (this._backendHost && this._backendHost.loadBuilder(info)));
+        return (this._builderImportMap.get(info.builderName) || (this._backendHost?.loadBuilder(info) ?? null));
     }
 }
 exports.TestingArchitectHost = TestingArchitectHost;
+//# sourceMappingURL=testing-architect-host.js.map

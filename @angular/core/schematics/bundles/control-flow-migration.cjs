@@ -1,21 +1,19 @@
 'use strict';
 /**
- * @license Angular v20.0.3
- * (c) 2010-2025 Google LLC. https://angular.io/
+ * @license Angular v22.1.1
+ * (c) 2010-2026 Google LLC. https://angular.dev/
  * License: MIT
  */
 'use strict';
 
 var schematics = require('@angular-devkit/schematics');
-var p = require('path');
-var compiler_host = require('./compiler_host-C_4Iw5UD.cjs');
-var checker = require('./checker-Bu1Wu4f7.cjs');
+var path = require('path');
+var change_tracker = require('./change_tracker-BzE4pgz5.cjs');
+var compiler = require('@angular/compiler');
 var ts = require('typescript');
-var project_tsconfig_paths = require('./project_tsconfig_paths-CDVxT6Ov.cjs');
-require('os');
-require('fs');
-require('module');
-require('url');
+var parse_html = require('./parse_html-C8eKA9px.cjs');
+var project_tsconfig_paths = require('./project_tsconfig_paths-BejwmdOG.cjs');
+require('@angular/compiler-cli/private/migrations');
 require('@angular-devkit/core');
 
 function lookupIdentifiersInSourceFile(sourceFile, names) {
@@ -275,7 +273,7 @@ class AnalyzedFile {
     }
 }
 /** Finds all non-control flow elements from common module. */
-class CommonCollector extends checker.RecursiveVisitor$1 {
+class CommonCollector extends compiler.RecursiveVisitor {
     count = 0;
     visitElement(el) {
         if (el.attrs.length > 0) {
@@ -314,7 +312,7 @@ class CommonCollector extends checker.RecursiveVisitor$1 {
     }
 }
 /** Finds all elements that represent i18n blocks. */
-class i18nCollector extends checker.RecursiveVisitor$1 {
+class i18nCollector extends compiler.RecursiveVisitor {
     elements = [];
     visitElement(el) {
         if (el.attrs.find((a) => a.name === 'i18n') !== undefined) {
@@ -324,7 +322,7 @@ class i18nCollector extends checker.RecursiveVisitor$1 {
     }
 }
 /** Finds all elements with ngif structural directives. */
-class ElementCollector extends checker.RecursiveVisitor$1 {
+class ElementCollector extends compiler.RecursiveVisitor {
     _attributes;
     elements = [];
     constructor(_attributes = []) {
@@ -377,7 +375,7 @@ class ElementCollector extends checker.RecursiveVisitor$1 {
     }
 }
 /** Finds all elements with ngif structural directives. */
-class TemplateCollector extends checker.RecursiveVisitor$1 {
+class TemplateCollector extends compiler.RecursiveVisitor {
     elements = [];
     templates = new Map();
     visitElement(el) {
@@ -410,6 +408,7 @@ const endMarkerRegex = new RegExp(endMarker, 'gm');
 const startI18nMarkerRegex = new RegExp(startI18nMarker, 'gm');
 const endI18nMarkerRegex = new RegExp(endI18nMarker, 'gm');
 const replaceMarkerRegex = new RegExp(`${startMarker}|${endMarker}`, 'gm');
+const PRIORITY_WEIGHT_TEMPLATE_REFERENCE_BY_OUTLET = 2;
 /**
  * Analyzes a source file to find file that need to be migrated and the text ranges within them.
  * @param sourceFile File to be analyzed.
@@ -549,8 +548,8 @@ function analyzeDecorators(node, sourceFile, analyzedFiles) {
             case 'templateUrl':
                 // Leave the end as undefined which means that the range is until the end of the file.
                 if (ts.isStringLiteralLike(prop.initializer)) {
-                    const path = p.join(p.dirname(sourceFile.fileName), prop.initializer.text);
-                    AnalyzedFile.addRange(path, sourceFile, analyzedFiles, {
+                    const path$1 = path.join(path.dirname(sourceFile.fileName), prop.initializer.text);
+                    AnalyzedFile.addRange(path$1, sourceFile, analyzedFiles, {
                         start: 0,
                         node: prop,
                         type: 'templateUrl',
@@ -580,37 +579,8 @@ function getNestedCount(etm, aggregator) {
         return getNestedCount(etm, aggregator);
     }
 }
-/**
- * parses the template string into the Html AST
- */
-function parseTemplate(template) {
-    let parsed;
-    try {
-        // Note: we use the HtmlParser here, instead of the `parseTemplate` function, because the
-        // latter returns an Ivy AST, not an HTML AST. The HTML AST has the advantage of preserving
-        // interpolated text as text nodes containing a mixture of interpolation tokens and text tokens,
-        // rather than turning them into `BoundText` nodes like the Ivy AST does. This allows us to
-        // easily get the text-only ranges without having to reconstruct the original text.
-        parsed = new checker.HtmlParser().parse(template, '', {
-            // Allows for ICUs to be parsed.
-            tokenizeExpansionForms: true,
-            // Explicitly disable blocks so that their characters are treated as plain text.
-            tokenizeBlocks: true,
-            preserveLineEndings: true,
-        });
-        // Don't migrate invalid templates.
-        if (parsed.errors && parsed.errors.length > 0) {
-            const errors = parsed.errors.map((e) => ({ type: 'parse', error: e }));
-            return { tree: undefined, errors };
-        }
-    }
-    catch (e) {
-        return { tree: undefined, errors: [{ type: 'parse', error: e }] };
-    }
-    return { tree: parsed, errors: [] };
-}
 function validateMigratedTemplate(migrated, fileName) {
-    const parsed = parseTemplate(migrated);
+    const parsed = parse_html.parseTemplate(migrated);
     let errors = [];
     if (parsed.errors.length > 0) {
         errors.push({
@@ -629,7 +599,7 @@ function validateMigratedTemplate(migrated, fileName) {
 }
 function validateI18nStructure(parsed, fileName) {
     const visitor = new i18nCollector();
-    checker.visitAll$1(visitor, parsed.rootNodes);
+    compiler.visitAll(visitor, parsed.rootNodes);
     const parents = visitor.elements.filter((el) => el.children.length > 0);
     for (const p of parents) {
         for (const el of visitor.elements) {
@@ -706,10 +676,10 @@ function reduceNestingOffset(el, nestLevel, offset, postOffsets) {
  * Returns null if the migration failed (e.g. there was a syntax error).
  */
 function getTemplates(template) {
-    const parsed = parseTemplate(template);
+    const parsed = parse_html.parseTemplate(template);
     if (parsed.tree !== undefined) {
         const visitor = new TemplateCollector();
-        checker.visitAll$1(visitor, parsed.tree.rootNodes);
+        compiler.visitAll(visitor, parsed.tree.rootNodes);
         for (let [key, tmpl] of visitor.templates) {
             tmpl.count = countTemplateUsage(parsed.tree.rootNodes, key);
             tmpl.generateContents(template);
@@ -717,34 +687,6 @@ function getTemplates(template) {
         return visitor.templates;
     }
     return new Map();
-}
-function countTemplateUsage(nodes, templateName) {
-    let count = 0;
-    let isReferencedInTemplateOutlet = false;
-    for (const node of nodes) {
-        if (node.attrs) {
-            for (const attr of node.attrs) {
-                if (attr.name === '*ngTemplateOutlet' && attr.value === templateName.slice(1)) {
-                    isReferencedInTemplateOutlet = true;
-                    break;
-                }
-                if (attr.name.trim() === templateName) {
-                    count++;
-                }
-            }
-        }
-        if (node.children) {
-            if (node.name === 'for') {
-                for (const child of node.children) {
-                    if (child.value?.includes(templateName.slice(1))) {
-                        count++;
-                    }
-                }
-            }
-            count += countTemplateUsage(node.children, templateName);
-        }
-    }
-    return isReferencedInTemplateOutlet ? count + 2 : count;
 }
 function updateTemplates(template, templates) {
     const updatedTemplates = getTemplates(template);
@@ -769,9 +711,10 @@ function processNgTemplates(template, sourceFile) {
     try {
         const templates = getTemplates(template);
         // swap placeholders and remove
-        for (const [name, t] of templates) {
-            const replaceRegex = new RegExp(getPlaceholder(name.slice(1)), 'g');
-            const forRegex = new RegExp(getPlaceholder(name.slice(1), PlaceholderKind.Alternate), 'g');
+        for (const [nameWithHash, t] of templates) {
+            const name = nameWithHash.slice(1);
+            const replaceRegex = new RegExp(getPlaceholder(name), 'g');
+            const forRegex = new RegExp(getPlaceholder(nameWithHash.slice(1), PlaceholderKind.Alternate), 'g');
             const forMatches = [...template.matchAll(forRegex)];
             const matches = [...forMatches, ...template.matchAll(replaceRegex)];
             let safeToRemove = true;
@@ -796,7 +739,12 @@ function processNgTemplates(template, sourceFile) {
                     template = template.replace(replaceRegex, t.children);
                 }
                 const dist = matches.filter((obj, index, self) => index === self.findIndex((t) => t.input === obj.input));
-                if ((t.count === dist.length || t.count - matches.length === 1) && safeToRemove) {
+                // Check if template is used by ngTemplateOutlet in addition to control flow
+                const hasTemplateOutletUsage = checkForTemplateOutletUsage(template, nameWithHash.slice(1));
+                // Only remove template if it's safe to do so AND not used by ngTemplateOutlet
+                if ((t.count === dist.length || t.count - matches.length === 1) &&
+                    safeToRemove &&
+                    !hasTemplateOutletUsage) {
                     const refsInComponentFile = getViewChildOrViewChildrenNames(sourceFile);
                     if (refsInComponentFile?.length > 0) {
                         const templateRefs = getTemplateReferences(template);
@@ -826,6 +774,59 @@ function processNgTemplates(template, sourceFile) {
         return { migrated: template, err: err };
     }
 }
+function analyzeTemplateUsage(nodes, templateName) {
+    let count = 0;
+    let isReferencedInTemplateOutlet = false;
+    const templateNameWithHash = `#${templateName}`;
+    function traverseNodes(nodeList) {
+        for (const node of nodeList) {
+            if (node.attrs) {
+                for (const attr of node.attrs) {
+                    if ((attr.name === '*ngTemplateOutlet' || attr.name === '[ngTemplateOutlet]') &&
+                        attr.value?.split(';')[0]?.trim() === templateName) {
+                        isReferencedInTemplateOutlet = true;
+                    }
+                    if (attr.name.trim() === templateNameWithHash) {
+                        count++;
+                    }
+                }
+            }
+            if (node.children) {
+                if (node.name === 'for') {
+                    for (const child of node.children) {
+                        if (child.value?.includes(templateName)) {
+                            count++;
+                        }
+                    }
+                }
+                traverseNodes(node.children);
+            }
+        }
+    }
+    traverseNodes(nodes);
+    return {
+        isReferencedInTemplateOutlet,
+        totalCount: isReferencedInTemplateOutlet
+            ? count + PRIORITY_WEIGHT_TEMPLATE_REFERENCE_BY_OUTLET
+            : count,
+    };
+}
+/**
+ * Checks if a template is used by ngTemplateOutlet directive
+ */
+function checkForTemplateOutletUsage(template, templateName) {
+    const parsed = parse_html.parseTemplate(template);
+    if (parsed.tree === undefined) {
+        return false;
+    }
+    const result = analyzeTemplateUsage(parsed.tree.rootNodes, templateName);
+    return result.isReferencedInTemplateOutlet;
+}
+function countTemplateUsage(nodes, templateNameWithHash) {
+    const templateName = templateNameWithHash.slice(1);
+    const result = analyzeTemplateUsage(nodes, templateName);
+    return result.totalCount;
+}
 function getViewChildOrViewChildrenNames(sourceFile) {
     const names = [];
     function visit(node) {
@@ -846,15 +847,15 @@ function getViewChildOrViewChildrenNames(sourceFile) {
     return names;
 }
 function getTemplateReferences(template) {
-    const parsed = parseTemplate(template);
+    const parsed = parse_html.parseTemplate(template);
     if (parsed.tree === undefined) {
         return [];
     }
-    const references = [];
+    const templateNameRefWithoutHash = [];
     function visitNodes(nodes) {
         for (const node of nodes) {
             if (node?.name === 'ng-template') {
-                references.push(...node.attrs?.map((ref) => ref?.name?.slice(1)));
+                templateNameRefWithoutHash.push(...node.attrs?.map((ref) => ref?.name?.slice(1)));
             }
             if (node.children) {
                 visitNodes(node.children);
@@ -862,7 +863,7 @@ function getTemplateReferences(template) {
         }
     }
     visitNodes(parsed.tree.rootNodes);
-    return references;
+    return templateNameRefWithoutHash;
 }
 function replaceRemainingPlaceholders(template) {
     const pattern = '.*';
@@ -881,11 +882,11 @@ function replaceRemainingPlaceholders(template) {
  * determines if the CommonModule can be safely removed from imports
  */
 function canRemoveCommonModule(template) {
-    const parsed = parseTemplate(template);
+    const parsed = parse_html.parseTemplate(template);
     let removeCommonModule = false;
     if (parsed.tree !== undefined) {
         const visitor = new CommonCollector();
-        checker.visitAll$1(visitor, parsed.tree.rootNodes);
+        compiler.visitAll(visitor, parsed.tree.rootNodes);
         removeCommonModule = visitor.count === 0;
     }
     return removeCommonModule;
@@ -1005,10 +1006,10 @@ function getMainBlock(etm, tmpl, offset) {
     return { start, middle, end };
 }
 function generateI18nMarkers(tmpl) {
-    let parsed = parseTemplate(tmpl);
+    let parsed = parse_html.parseTemplate(tmpl);
     if (parsed.tree !== undefined) {
         const visitor = new i18nCollector();
-        checker.visitAll$1(visitor, parsed.tree.rootNodes);
+        compiler.visitAll(visitor, parsed.tree.rootNodes);
         for (const [ix, el] of visitor.elements.entries()) {
             // we only care about elements with children and i18n tags
             // elements without children have nothing to translate
@@ -1204,13 +1205,13 @@ const cases = [boundcase, switchcase, nakedcase, switchdefault, nakeddefault];
  */
 function migrateCase(template) {
     let errors = [];
-    let parsed = parseTemplate(template);
+    let parsed = parse_html.parseTemplate(template);
     if (parsed.tree === undefined) {
         return { migrated: template, errors, changed: false };
     }
     let result = template;
     const visitor = new ElementCollector(cases);
-    checker.visitAll$1(visitor, parsed.tree.rootNodes);
+    compiler.visitAll(visitor, parsed.tree.rootNodes);
     calculateNesting(visitor, hasLineBreaks(template));
     // this tracks the character shift from different lengths of blocks from
     // the prior directives so as to adjust for nested block replacement during
@@ -1301,13 +1302,13 @@ const stringPairs = new Map([
  */
 function migrateFor(template) {
     let errors = [];
-    let parsed = parseTemplate(template);
+    let parsed = parse_html.parseTemplate(template);
     if (parsed.tree === undefined) {
         return { migrated: template, errors, changed: false };
     }
     let result = template;
     const visitor = new ElementCollector(fors);
-    checker.visitAll$1(visitor, parsed.tree.rootNodes);
+    compiler.visitAll(visitor, parsed.tree.rootNodes);
     calculateNesting(visitor, hasLineBreaks(template));
     // this tracks the character shift from different lengths of blocks from
     // the prior directives so as to adjust for nested block replacement during
@@ -1506,13 +1507,13 @@ const ifs = [ngif, nakedngif, boundngif];
  */
 function migrateIf(template) {
     let errors = [];
-    let parsed = parseTemplate(template);
+    let parsed = parse_html.parseTemplate(template);
     if (parsed.tree === undefined) {
         return { migrated: template, errors, changed: false };
     }
     let result = template;
     const visitor = new ElementCollector(ifs);
-    checker.visitAll$1(visitor, parsed.tree.rootNodes);
+    compiler.visitAll(visitor, parsed.tree.rootNodes);
     calculateNesting(visitor, hasLineBreaks(template));
     // this tracks the character shift from different lengths of blocks from
     // the prior directives so as to adjust for nested block replacement during
@@ -1540,8 +1541,15 @@ function migrateIf(template) {
     return { migrated: result, errors, changed };
 }
 function migrateNgIf(etm, tmpl, offset) {
-    const matchThen = etm.attr.value.match(/[^\w\d];?\s*then/gm);
-    const matchElse = etm.attr.value.match(/[^\w\d];?\s*else/gm);
+    // The negative lookahead (?![\w$]) ensures `then`/`else` are matched only as
+    // whole keywords. Without it, an else/then template reference name that merely
+    // *starts* with `then`/`else` (e.g. `else thenBlock`) is misidentified as the
+    // `then` keyword, since `[^\w$];?\s*then` also matches the `then` prefix of
+    // `thenBlock`. `$` is included alongside `\w` (which already covers digits)
+    // since it is a valid identifier character in JS/template reference names
+    // (e.g. `#then$`), but is not part of `\w`.
+    const matchThen = etm.attr.value.match(/[^\w$];?\s*then(?![\w$])/gm);
+    const matchElse = etm.attr.value.match(/[^\w$];?\s*else(?![\w$])/gm);
     if (etm.thenAttr !== undefined || etm.elseAttr !== undefined) {
         // bound if then / if then else
         return buildBoundIfElseBlock(etm, tmpl, offset);
@@ -1699,13 +1707,13 @@ const switches = [ngswitch];
  */
 function migrateSwitch(template) {
     let errors = [];
-    let parsed = parseTemplate(template);
+    let parsed = parse_html.parseTemplate(template);
     if (parsed.tree === undefined) {
         return { migrated: template, errors, changed: false };
     }
     let result = template;
     const visitor = new ElementCollector(switches);
-    checker.visitAll$1(visitor, parsed.tree.rootNodes);
+    compiler.visitAll(visitor, parsed.tree.rootNodes);
     calculateNesting(visitor, hasLineBreaks(template));
     // this tracks the character shift from different lengths of blocks from
     // the prior directives so as to adjust for nested block replacement during
@@ -1736,11 +1744,11 @@ function migrateSwitch(template) {
 }
 function assertValidSwitchStructure(children) {
     for (const child of children) {
-        if (child instanceof checker.Text && child.value.trim() !== '') {
+        if (child instanceof compiler.Text && child.value.trim() !== '') {
             throw new Error(`Text node: "${child.value}" would result in invalid migrated @switch block structure. ` +
                 `@switch can only have @case or @default as children.`);
         }
-        else if (child instanceof checker.Element$1) {
+        else if (child instanceof compiler.Element) {
             let hasCase = false;
             for (const attr of child.attrs) {
                 if (cases.includes(attr.name)) {
@@ -1844,7 +1852,10 @@ function migrate(options) {
         const basePath = process.cwd();
         let pathToMigrate;
         if (options.path) {
-            pathToMigrate = compiler_host.normalizePath(p.join(basePath, options.path));
+            if (options.path.startsWith('..')) {
+                throw new schematics.SchematicsException('Cannot run control flow migration outside of the current project.');
+            }
+            pathToMigrate = change_tracker.normalizePath(path.join(basePath, options.path));
             if (pathToMigrate.trim() !== '') {
                 allPaths.push(pathToMigrate);
             }
@@ -1854,33 +1865,31 @@ function migrate(options) {
             allPaths = [...buildPaths, ...testPaths];
         }
         if (!allPaths.length) {
-            throw new schematics.SchematicsException('Could not find any tsconfig file. Cannot run the http providers migration.');
+            context.logger.warn('Could not find any tsconfig file. Cannot run the control flow migration.');
+            return;
         }
         let errors = [];
+        let sourceFilesCount = 0;
         for (const tsconfigPath of allPaths) {
-            const migrateErrors = runControlFlowMigration(tree, tsconfigPath, basePath, pathToMigrate, options);
+            const program = change_tracker.createMigrationProgram(tree, tsconfigPath, basePath);
+            const sourceFiles = program
+                .getSourceFiles()
+                .filter((sourceFile) => (pathToMigrate ? sourceFile.fileName.startsWith(pathToMigrate) : true) &&
+                change_tracker.canMigrateFile(basePath, sourceFile, program));
+            const migrateErrors = runControlFlowMigration(tree, sourceFiles, basePath, options);
             errors = [...errors, ...migrateErrors];
+            sourceFilesCount += sourceFiles.length;
         }
         if (errors.length > 0) {
             context.logger.warn(`WARNING: ${errors.length} errors occurred during your migration:\n`);
-            errors.forEach((err) => {
-                context.logger.warn(err);
-            });
+            errors.forEach((err) => context.logger.warn(err));
+        }
+        else if (sourceFilesCount === 0) {
+            context.logger.warn('Control flow migration did not find any files to migrate');
         }
     };
 }
-function runControlFlowMigration(tree, tsconfigPath, basePath, pathToMigrate, schematicOptions) {
-    if (schematicOptions?.path?.startsWith('..')) {
-        throw new schematics.SchematicsException('Cannot run control flow migration outside of the current project.');
-    }
-    const program = compiler_host.createMigrationProgram(tree, tsconfigPath, basePath);
-    const sourceFiles = program
-        .getSourceFiles()
-        .filter((sourceFile) => (pathToMigrate ? sourceFile.fileName.startsWith(pathToMigrate) : true) &&
-        compiler_host.canMigrateFile(basePath, sourceFile, program));
-    if (sourceFiles.length === 0) {
-        throw new schematics.SchematicsException(`Could not find any files to migrate under the path ${pathToMigrate}. Cannot run the control flow migration.`);
-    }
+function runControlFlowMigration(tree, sourceFiles, basePath, schematicOptions) {
     const analysis = new Map();
     const migrateErrors = new Map();
     for (const sourceFile of sourceFiles) {
@@ -1889,10 +1898,10 @@ function runControlFlowMigration(tree, tsconfigPath, basePath, pathToMigrate, sc
     // sort files with .html files first
     // this ensures class files know if it's safe to remove CommonModule
     const paths = sortFilePaths([...analysis.keys()]);
-    for (const path of paths) {
-        const file = analysis.get(path);
+    for (const path$1 of paths) {
+        const file = analysis.get(path$1);
         const ranges = file.getSortedRanges();
-        const relativePath = p.relative(basePath, path);
+        const relativePath = path.relative(basePath, path$1);
         const content = tree.readText(relativePath);
         const update = tree.beginUpdate(relativePath);
         for (const { start, end, node, type } of ranges) {
@@ -1904,7 +1913,7 @@ function runControlFlowMigration(tree, tsconfigPath, basePath, pathToMigrate, sc
                 update.insertLeft(start, migrated);
             }
             if (errors.length > 0) {
-                migrateErrors.set(path, errors);
+                migrateErrors.set(path$1, errors);
             }
         }
         tree.commitUpdate(update);

@@ -62,20 +62,25 @@ export function withQueryMethods<Queries extends RequestMap>(queries: Queries) {
                     [keys.errorField]: undefined,
                   }),
                 ),
-                switchMap((params) => queries[keys.name](params)),
-                tapResponse({
-                  next: (val) =>
-                    patchState(store, {
-                      [keys.dataField]: val,
-                      [keys.queryStateField]: 'success' satisfies RequestState,
+                switchMap((params) =>
+                  queries[keys.name](params).pipe(
+                    tapResponse({
+                      next: (val) =>
+                        patchState(store, {
+                          [keys.dataField]: val,
+                          [keys.queryStateField]:
+                            'success' satisfies RequestState,
+                        }),
+                      error: (err: HttpErrorResponse) => {
+                        patchState(store, {
+                          [keys.errorField]: err,
+                          [keys.queryStateField]:
+                            'error' satisfies RequestState,
+                        });
+                      },
                     }),
-                  error: (err: HttpErrorResponse) => {
-                    patchState(store, {
-                      [keys.errorField]: err,
-                      [keys.queryStateField]: 'error' satisfies RequestState,
-                    });
-                  },
-                }),
+                  ),
+                ),
               ),
             ),
           };

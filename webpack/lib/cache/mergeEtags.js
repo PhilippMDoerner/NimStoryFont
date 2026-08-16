@@ -9,11 +9,14 @@
 
 class MergedEtag {
 	/**
+	 * Creates an instance of MergedEtag.
 	 * @param {Etag} a first
 	 * @param {Etag} b second
 	 */
 	constructor(a, b) {
+		/** @type {Etag} */
 		this.a = a;
+		/** @type {Etag} */
 		this.b = b;
 	}
 
@@ -22,13 +25,16 @@ class MergedEtag {
 	}
 }
 
+/** @type {WeakMap<Etag, WeakMap<Etag, MergedEtag>>} */
 const dualObjectMap = new WeakMap();
+/** @type {WeakMap<Etag, WeakMap<Etag, MergedEtag>>} */
 const objectStringMap = new WeakMap();
 
 /**
+ * Merges the provided values into a single result.
  * @param {Etag} a first
  * @param {Etag} b second
- * @returns {Etag} result
+ * @returns {string | MergedEtag} result
  */
 const mergeEtags = (a, b) => {
 	if (typeof a === "string") {

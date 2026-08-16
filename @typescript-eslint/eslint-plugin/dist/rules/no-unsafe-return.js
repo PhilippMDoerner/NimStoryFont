@@ -63,15 +63,16 @@ exports.default = (0, util_1.createRule)({
         const compilerOptions = services.program.getCompilerOptions();
         const isNoImplicitThis = tsutils.isStrictCompilerOptionEnabled(compilerOptions, 'noImplicitThis');
         function checkReturn(returnNode, reportingNode = returnNode) {
-            const tsNode = services.esTreeNodeToTSNodeMap.get(returnNode);
-            const type = checker.getTypeAtLocation(tsNode);
-            const anyType = (0, util_1.discriminateAnyType)(type, checker, services.program, tsNode);
             const functionNode = (0, getParentFunctionNode_1.getParentFunctionNode)(returnNode);
             /* istanbul ignore if */ if (!functionNode) {
                 return;
             }
+            const tsNode = services.esTreeNodeToTSNodeMap.get(returnNode);
+            const type = checker.getTypeAtLocation(tsNode);
+            const anyType = (0, util_1.discriminateAnyType)(type, checker, services.program, tsNode);
             // function has an explicit return type, so ensure it's a safe return
-            const returnNodeType = (0, util_1.getConstrainedTypeAtLocation)(services, returnNode);
+            const returnNodeType = services.getTypeAtLocation(returnNode);
+            const constrainedReturnNodeType = (0, util_1.getConstrainedTypeAtLocation)(services, returnNode);
             const functionTSNode = services.esTreeNodeToTSNodeMap.get(functionNode);
             // function expressions will not have their return type modified based on receiver typing
             // so we have to use the contextual typing in these cases, i.e.
@@ -81,9 +82,7 @@ exports.default = (0, util_1.createRule)({
                 ts.isArrowFunction(functionTSNode)
                 ? (0, util_1.getContextualType)(checker, functionTSNode)
                 : services.getTypeAtLocation(functionNode);
-            if (!functionType) {
-                functionType = services.getTypeAtLocation(functionNode);
-            }
+            functionType ??= services.getTypeAtLocation(functionNode);
             const callSignatures = tsutils.getCallSignaturesOfType(functionType);
             // If there is an explicit type annotation *and* that type matches the actual
             // function return type, we shouldn't complain (it's intentional, even if unsafe)
@@ -129,7 +128,7 @@ exports.default = (0, util_1.createRule)({
                     return;
                 }
                 let messageId = 'unsafeReturn';
-                const isErrorType = tsutils.isIntrinsicErrorType(returnNodeType);
+                const isErrorType = tsutils.isIntrinsicErrorType(constrainedReturnNodeType);
                 if (!isNoImplicitThis) {
                     // `return this`
                     const thisExpression = (0, util_1.getThisExpression)(returnNode);

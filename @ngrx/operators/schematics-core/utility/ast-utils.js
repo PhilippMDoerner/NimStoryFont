@@ -1,40 +1,37 @@
 "use strict";
-var __values = (this && this.__values) || function(o) {
-    var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
-    if (m) return m.call(o);
-    if (o && typeof o.length === "number") return {
-        next: function () {
-            if (o && i >= o.length) o = void 0;
-            return { value: o && o[i++], done: !o };
-        }
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
     };
-    throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
-};
-var __read = (this && this.__read) || function (o, n) {
-    var m = typeof Symbol === "function" && o[Symbol.iterator];
-    if (!m) return o;
-    var i = m.call(o), r, ar = [], e;
-    try {
-        while ((n === void 0 || n-- > 0) && !(r = i.next()).done) ar.push(r.value);
-    }
-    catch (error) { e = { error: error }; }
-    finally {
-        try {
-            if (r && !r.done && (m = i["return"])) m.call(i);
-        }
-        finally { if (e) throw e.error; }
-    }
-    return ar;
-};
-var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
-    if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
-        if (ar || !(i in from)) {
-            if (!ar) ar = Array.prototype.slice.call(from, 0, i);
-            ar[i] = from[i];
-        }
-    }
-    return to.concat(ar || Array.prototype.slice.call(from));
-};
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.findNodes = findNodes;
 exports.getSourceNodes = getSourceNodes;
@@ -58,8 +55,8 @@ exports.containsProperty = containsProperty;
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.io/license
  */
-var ts = require("typescript");
-var change_1 = require("./change");
+const ts = __importStar(require("typescript"));
+const change_1 = require("./change");
 /**
  * Find all nodes from the AST in the subtree of node of SyntaxKind kind.
  * @param node
@@ -67,38 +64,26 @@ var change_1 = require("./change");
  * @param max The maximum number of items to return.
  * @return all nodes of kind, or [] if none is found
  */
-function findNodes(node, kind, max) {
-    var e_1, _a;
-    if (max === void 0) { max = Infinity; }
+function findNodes(node, kind, max = Infinity) {
     if (!node || max == 0) {
         return [];
     }
-    var arr = [];
+    const arr = [];
     if (node.kind === kind) {
         arr.push(node);
         max--;
     }
     if (max > 0) {
-        try {
-            for (var _b = __values(node.getChildren()), _c = _b.next(); !_c.done; _c = _b.next()) {
-                var child = _c.value;
-                findNodes(child, kind, max).forEach(function (node) {
-                    if (max > 0) {
-                        arr.push(node);
-                    }
-                    max--;
-                });
-                if (max <= 0) {
-                    break;
+        for (const child of node.getChildren()) {
+            findNodes(child, kind, max).forEach((node) => {
+                if (max > 0) {
+                    arr.push(node);
                 }
+                max--;
+            });
+            if (max <= 0) {
+                break;
             }
-        }
-        catch (e_1_1) { e_1 = { error: e_1_1 }; }
-        finally {
-            try {
-                if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
-            }
-            finally { if (e_1) throw e_1.error; }
         }
     }
     return arr;
@@ -109,14 +94,14 @@ function findNodes(node, kind, max) {
  * @returns {Observable<ts.Node>} An observable of all the nodes in the source.
  */
 function getSourceNodes(sourceFile) {
-    var nodes = [sourceFile];
-    var result = [];
+    const nodes = [sourceFile];
+    const result = [];
     while (nodes.length > 0) {
-        var node = nodes.shift();
+        const node = nodes.shift();
         if (node) {
             result.push(node);
             if (node.getChildCount(sourceFile) >= 0) {
-                nodes.unshift.apply(nodes, __spreadArray([], __read(node.getChildren()), false));
+                nodes.unshift(...node.getChildren());
             }
         }
     }
@@ -143,7 +128,7 @@ function nodesByPosition(first, second) {
  * @throw Error if toInsert is first occurence but fall back is not set
  */
 function insertAfterLastOccurrence(nodes, toInsert, file, fallbackPos, syntaxKind) {
-    var lastItem = nodes.sort(nodesByPosition).pop();
+    let lastItem = nodes.sort(nodesByPosition).pop();
     if (!lastItem) {
         throw new Error();
     }
@@ -151,9 +136,9 @@ function insertAfterLastOccurrence(nodes, toInsert, file, fallbackPos, syntaxKin
         lastItem = findNodes(lastItem, syntaxKind).sort(nodesByPosition).pop();
     }
     if (!lastItem && fallbackPos == undefined) {
-        throw new Error("tried to insert ".concat(toInsert, " as first occurence with no fallback position"));
+        throw new Error(`tried to insert ${toInsert} as first occurence with no fallback position`);
     }
-    var lastItemPosition = lastItem ? lastItem.end : fallbackPos;
+    const lastItemPosition = lastItem ? lastItem.end : fallbackPos;
     return new change_1.InsertChange(file, lastItemPosition, toInsert);
 }
 function getContentOfKeyLiteral(_source, node) {
@@ -168,9 +153,8 @@ function getContentOfKeyLiteral(_source, node) {
     }
 }
 function _angularImportsFromNode(node, _sourceFile) {
-    var _a;
-    var ms = node.moduleSpecifier;
-    var modulePath;
+    const ms = node.moduleSpecifier;
+    let modulePath;
     switch (ms.kind) {
         case ts.SyntaxKind.StringLiteral:
             modulePath = ms.text;
@@ -187,21 +171,19 @@ function _angularImportsFromNode(node, _sourceFile) {
             return {};
         }
         else if (node.importClause.namedBindings) {
-            var nb = node.importClause.namedBindings;
+            const nb = node.importClause.namedBindings;
             if (nb.kind == ts.SyntaxKind.NamespaceImport) {
                 // This is of the form `import * as name from 'path'`. Return `name.`.
-                return _a = {},
-                    _a[nb.name.text + '.'] = modulePath,
-                    _a;
+                return {
+                    [nb.name.text + '.']: modulePath,
+                };
             }
             else {
                 // This is of the form `import {a,b,c} from 'path'`
-                var namedImports = nb;
+                const namedImports = nb;
                 return namedImports.elements
-                    .map(function (is) {
-                    return is.propertyName ? is.propertyName.text : is.name.text;
-                })
-                    .reduce(function (acc, curr) {
+                    .map((is) => is.propertyName ? is.propertyName.text : is.name.text)
+                    .reduce((acc, curr) => {
                     acc[curr] = modulePath;
                     return acc;
                 }, {});
@@ -215,72 +197,57 @@ function _angularImportsFromNode(node, _sourceFile) {
     }
 }
 function getDecoratorMetadata(source, identifier, module) {
-    var angularImports = findNodes(source, ts.SyntaxKind.ImportDeclaration)
-        .map(function (node) {
-        return _angularImportsFromNode(node, source);
-    })
-        .reduce(function (acc, current) {
-        var e_2, _a;
-        try {
-            for (var _b = __values(Object.keys(current)), _c = _b.next(); !_c.done; _c = _b.next()) {
-                var key = _c.value;
-                acc[key] = current[key];
-            }
-        }
-        catch (e_2_1) { e_2 = { error: e_2_1 }; }
-        finally {
-            try {
-                if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
-            }
-            finally { if (e_2) throw e_2.error; }
+    const angularImports = findNodes(source, ts.SyntaxKind.ImportDeclaration)
+        .map((node) => _angularImportsFromNode(node, source))
+        .reduce((acc, current) => {
+        for (const key of Object.keys(current)) {
+            acc[key] = current[key];
         }
         return acc;
     }, {});
     return getSourceNodes(source)
-        .filter(function (node) {
+        .filter((node) => {
         return (node.kind == ts.SyntaxKind.Decorator &&
             node.expression.kind == ts.SyntaxKind.CallExpression);
     })
-        .map(function (node) { return node.expression; })
-        .filter(function (expr) {
+        .map((node) => node.expression)
+        .filter((expr) => {
         if (expr.expression.kind == ts.SyntaxKind.Identifier) {
-            var id = expr.expression;
+            const id = expr.expression;
             return (id.getFullText(source) == identifier &&
                 angularImports[id.getFullText(source)] === module);
         }
         else if (expr.expression.kind == ts.SyntaxKind.PropertyAccessExpression) {
             // This covers foo.NgModule when importing * as foo.
-            var paExpr = expr.expression;
+            const paExpr = expr.expression;
             // If the left expression is not an identifier, just give up at that point.
             if (paExpr.expression.kind !== ts.SyntaxKind.Identifier) {
                 return false;
             }
-            var id = paExpr.name.text;
-            var moduleId = paExpr.expression.getText(source);
+            const id = paExpr.name.text;
+            const moduleId = paExpr.expression.getText(source);
             return id === identifier && angularImports[moduleId + '.'] === module;
         }
         return false;
     })
-        .filter(function (expr) {
-        return expr.arguments[0] &&
-            expr.arguments[0].kind == ts.SyntaxKind.ObjectLiteralExpression;
-    })
-        .map(function (expr) { return expr.arguments[0]; });
+        .filter((expr) => expr.arguments[0] &&
+        expr.arguments[0].kind == ts.SyntaxKind.ObjectLiteralExpression)
+        .map((expr) => expr.arguments[0]);
 }
 function _addSymbolToNgModuleMetadata(source, ngModulePath, metadataField, symbolName, importPath) {
-    var nodes = getDecoratorMetadata(source, 'NgModule', '@angular/core');
-    var node = nodes[0]; // eslint-disable-line @typescript-eslint/no-explicit-any
+    const nodes = getDecoratorMetadata(source, 'NgModule', '@angular/core');
+    let node = nodes[0]; // eslint-disable-line @typescript-eslint/no-explicit-any
     // Find the decorator declaration.
     if (!node) {
         return [];
     }
     // Get all the children property assignment of object literals.
-    var matchingProperties = node.properties
-        .filter(function (prop) { return prop.kind == ts.SyntaxKind.PropertyAssignment; })
+    const matchingProperties = node.properties
+        .filter((prop) => prop.kind == ts.SyntaxKind.PropertyAssignment)
         // Filter out every fields that's not "metadataField". Also handles string literals
         // (but not expressions).
-        .filter(function (prop) {
-        var name = prop.name;
+        .filter((prop) => {
+        const name = prop.name;
         switch (name.kind) {
             case ts.SyntaxKind.Identifier:
                 return name.getText(source) == metadataField;
@@ -295,36 +262,36 @@ function _addSymbolToNgModuleMetadata(source, ngModulePath, metadataField, symbo
     }
     if (matchingProperties.length == 0) {
         // We haven't found the field in the metadata declaration. Insert a new field.
-        var expr = node;
-        var position_1;
-        var toInsert_1;
+        const expr = node;
+        let position;
+        let toInsert;
         if (expr.properties.length == 0) {
-            position_1 = expr.getEnd() - 1;
-            toInsert_1 = "  ".concat(metadataField, ": [").concat(symbolName, "]\n");
+            position = expr.getEnd() - 1;
+            toInsert = `  ${metadataField}: [${symbolName}]\n`;
         }
         else {
             node = expr.properties[expr.properties.length - 1];
-            position_1 = node.getEnd();
+            position = node.getEnd();
             // Get the indentation of the last element, if any.
-            var text = node.getFullText(source);
-            var matches = text.match(/^\r?\n\s*/);
+            const text = node.getFullText(source);
+            const matches = text.match(/^\r?\n\s*/);
             if (matches.length > 0) {
-                toInsert_1 = ",".concat(matches[0]).concat(metadataField, ": [").concat(symbolName, "]");
+                toInsert = `,${matches[0]}${metadataField}: [${symbolName}]`;
             }
             else {
-                toInsert_1 = ", ".concat(metadataField, ": [").concat(symbolName, "]");
+                toInsert = `, ${metadataField}: [${symbolName}]`;
             }
         }
-        var newMetadataProperty = new change_1.InsertChange(ngModulePath, position_1, toInsert_1);
-        var newMetadataImport = insertImport(source, ngModulePath, symbolName.replace(/\..*$/, ''), importPath);
+        const newMetadataProperty = new change_1.InsertChange(ngModulePath, position, toInsert);
+        const newMetadataImport = insertImport(source, ngModulePath, symbolName.replace(/\..*$/, ''), importPath);
         return [newMetadataProperty, newMetadataImport];
     }
-    var assignment = matchingProperties[0];
+    const assignment = matchingProperties[0];
     // If it's not an array, nothing we can do really.
     if (assignment.initializer.kind !== ts.SyntaxKind.ArrayLiteralExpression) {
         return [];
     }
-    var arrLiteral = assignment.initializer;
+    const arrLiteral = assignment.initializer;
     if (arrLiteral.elements.length == 0) {
         // Forward the property.
         node = arrLiteral;
@@ -337,41 +304,39 @@ function _addSymbolToNgModuleMetadata(source, ngModulePath, metadataField, symbo
         return [];
     }
     if (Array.isArray(node)) {
-        var nodeArray = node;
-        var symbolsArray = nodeArray.map(function (node) { return node.getText(); });
+        const nodeArray = node;
+        const symbolsArray = nodeArray.map((node) => node.getText());
         if (symbolsArray.includes(symbolName)) {
             return [];
         }
         node = node[node.length - 1];
-        var effectsModule = nodeArray.find(function (node) {
-            return (node.getText().includes('EffectsModule.forRoot') &&
-                symbolName.includes('EffectsModule.forRoot')) ||
-                (node.getText().includes('EffectsModule.forFeature') &&
-                    symbolName.includes('EffectsModule.forFeature'));
-        });
+        const effectsModule = nodeArray.find((node) => (node.getText().includes('EffectsModule.forRoot') &&
+            symbolName.includes('EffectsModule.forRoot')) ||
+            (node.getText().includes('EffectsModule.forFeature') &&
+                symbolName.includes('EffectsModule.forFeature')));
         if (effectsModule && symbolName.includes('EffectsModule')) {
-            var effectsArgs = effectsModule.arguments.shift();
+            const effectsArgs = effectsModule.arguments.shift();
             if (effectsArgs &&
                 effectsArgs.kind === ts.SyntaxKind.ArrayLiteralExpression) {
-                var effectsElements = effectsArgs
+                const effectsElements = effectsArgs
                     .elements;
-                var _a = __read(symbolName.match(/\[(.*)\]/), 2), effectsSymbol = _a[1];
-                var epos = void 0;
+                const [, effectsSymbol] = symbolName.match(/\[(.*)\]/);
+                let epos;
                 if (effectsElements.length === 0) {
                     epos = effectsArgs.getStart() + 1;
                     return [new change_1.InsertChange(ngModulePath, epos, effectsSymbol)];
                 }
                 else {
-                    var lastEffect = effectsElements[effectsElements.length - 1];
+                    const lastEffect = effectsElements[effectsElements.length - 1];
                     epos = lastEffect.getEnd();
                     // Get the indentation of the last element, if any.
-                    var text = lastEffect.getFullText(source);
-                    var effectInsert = void 0;
+                    const text = lastEffect.getFullText(source);
+                    let effectInsert;
                     if (text.match('^\r?\r?\n')) {
-                        effectInsert = ",".concat(text.match(/^\r?\n\s+/)[0]).concat(effectsSymbol);
+                        effectInsert = `,${text.match(/^\r?\n\s+/)[0]}${effectsSymbol}`;
                     }
                     else {
-                        effectInsert = ", ".concat(effectsSymbol);
+                        effectInsert = `, ${effectsSymbol}`;
                     }
                     return [new change_1.InsertChange(ngModulePath, epos, effectInsert)];
                 }
@@ -381,62 +346,62 @@ function _addSymbolToNgModuleMetadata(source, ngModulePath, metadataField, symbo
             }
         }
     }
-    var toInsert;
-    var position = node.getEnd();
+    let toInsert;
+    let position = node.getEnd();
     if (node.kind == ts.SyntaxKind.ObjectLiteralExpression) {
         // We haven't found the field in the metadata declaration. Insert a new
         // field.
-        var expr = node;
+        const expr = node;
         if (expr.properties.length == 0) {
             position = expr.getEnd() - 1;
-            toInsert = "  ".concat(metadataField, ": [").concat(symbolName, "]\n");
+            toInsert = `  ${metadataField}: [${symbolName}]\n`;
         }
         else {
             node = expr.properties[expr.properties.length - 1];
             position = node.getEnd();
             // Get the indentation of the last element, if any.
-            var text = node.getFullText(source);
+            const text = node.getFullText(source);
             if (text.match('^\r?\r?\n')) {
-                toInsert = ",".concat(text.match(/^\r?\n\s+/)[0]).concat(metadataField, ": [").concat(symbolName, "]");
+                toInsert = `,${text.match(/^\r?\n\s+/)[0]}${metadataField}: [${symbolName}]`;
             }
             else {
-                toInsert = ", ".concat(metadataField, ": [").concat(symbolName, "]");
+                toInsert = `, ${metadataField}: [${symbolName}]`;
             }
         }
     }
     else if (node.kind == ts.SyntaxKind.ArrayLiteralExpression) {
         // We found the field but it's empty. Insert it just before the `]`.
         position--;
-        toInsert = "".concat(symbolName);
+        toInsert = `${symbolName}`;
     }
     else {
         // Get the indentation of the last element, if any.
-        var text = node.getFullText(source);
+        const text = node.getFullText(source);
         if (text.match(/^\r?\n/)) {
-            toInsert = ",".concat(text.match(/^\r?\n(\r?)\s+/)[0]).concat(symbolName);
+            toInsert = `,${text.match(/^\r?\n(\r?)\s+/)[0]}${symbolName}`;
         }
         else {
-            toInsert = ", ".concat(symbolName);
+            toInsert = `, ${symbolName}`;
         }
     }
-    var insert = new change_1.InsertChange(ngModulePath, position, toInsert);
-    var importInsert = insertImport(source, ngModulePath, symbolName.replace(/\..*$/, ''), importPath);
+    const insert = new change_1.InsertChange(ngModulePath, position, toInsert);
+    const importInsert = insertImport(source, ngModulePath, symbolName.replace(/\..*$/, ''), importPath);
     return [insert, importInsert];
 }
 function _addSymbolToComponentMetadata(source, componentPath, metadataField, symbolName, importPath) {
-    var nodes = getDecoratorMetadata(source, 'Component', '@angular/core');
-    var node = nodes[0]; // eslint-disable-line @typescript-eslint/no-explicit-any
+    const nodes = getDecoratorMetadata(source, 'Component', '@angular/core');
+    let node = nodes[0]; // eslint-disable-line @typescript-eslint/no-explicit-any
     // Find the decorator declaration.
     if (!node) {
         return [];
     }
     // Get all the children property assignment of object literals.
-    var matchingProperties = node.properties
-        .filter(function (prop) { return prop.kind == ts.SyntaxKind.PropertyAssignment; })
+    const matchingProperties = node.properties
+        .filter((prop) => prop.kind == ts.SyntaxKind.PropertyAssignment)
         // Filter out every fields that's not "metadataField". Also handles string literals
         // (but not expressions).
-        .filter(function (prop) {
-        var name = prop.name;
+        .filter((prop) => {
+        const name = prop.name;
         switch (name.kind) {
             case ts.SyntaxKind.Identifier:
                 return name.getText(source) == metadataField;
@@ -451,36 +416,36 @@ function _addSymbolToComponentMetadata(source, componentPath, metadataField, sym
     }
     if (matchingProperties.length == 0) {
         // We haven't found the field in the metadata declaration. Insert a new field.
-        var expr = node;
-        var position_2;
-        var toInsert_2;
+        const expr = node;
+        let position;
+        let toInsert;
         if (expr.properties.length == 0) {
-            position_2 = expr.getEnd() - 1;
-            toInsert_2 = "  ".concat(metadataField, ": [").concat(symbolName, "]\n");
+            position = expr.getEnd() - 1;
+            toInsert = `  ${metadataField}: [${symbolName}]\n`;
         }
         else {
             node = expr.properties[expr.properties.length - 1];
-            position_2 = node.getEnd();
+            position = node.getEnd();
             // Get the indentation of the last element, if any.
-            var text = node.getFullText(source);
-            var matches = text.match(/^\r?\n\s*/);
+            const text = node.getFullText(source);
+            const matches = text.match(/^\r?\n\s*/);
             if (matches.length > 0) {
-                toInsert_2 = ",".concat(matches[0]).concat(metadataField, ": [").concat(symbolName, "]");
+                toInsert = `,${matches[0]}${metadataField}: [${symbolName}]`;
             }
             else {
-                toInsert_2 = ", ".concat(metadataField, ": [").concat(symbolName, "]");
+                toInsert = `, ${metadataField}: [${symbolName}]`;
             }
         }
-        var newMetadataProperty = new change_1.InsertChange(componentPath, position_2, toInsert_2);
-        var newMetadataImport = insertImport(source, componentPath, symbolName.replace(/\..*$/, ''), importPath);
+        const newMetadataProperty = new change_1.InsertChange(componentPath, position, toInsert);
+        const newMetadataImport = insertImport(source, componentPath, symbolName.replace(/\..*$/, ''), importPath);
         return [newMetadataProperty, newMetadataImport];
     }
-    var assignment = matchingProperties[0];
+    const assignment = matchingProperties[0];
     // If it's not an array, nothing we can do really.
     if (assignment.initializer.kind !== ts.SyntaxKind.ArrayLiteralExpression) {
         return [];
     }
-    var arrLiteral = assignment.initializer;
+    const arrLiteral = assignment.initializer;
     if (arrLiteral.elements.length == 0) {
         // Forward the property.
         node = arrLiteral;
@@ -493,53 +458,53 @@ function _addSymbolToComponentMetadata(source, componentPath, metadataField, sym
         return [];
     }
     if (Array.isArray(node)) {
-        var nodeArray = node;
-        var symbolsArray = nodeArray.map(function (node) { return node.getText(); });
+        const nodeArray = node;
+        const symbolsArray = nodeArray.map((node) => node.getText());
         if (symbolsArray.includes(symbolName)) {
             return [];
         }
         node = node[node.length - 1];
     }
-    var toInsert;
-    var position = node.getEnd();
+    let toInsert;
+    let position = node.getEnd();
     if (node.kind == ts.SyntaxKind.ObjectLiteralExpression) {
         // We haven't found the field in the metadata declaration. Insert a new
         // field.
-        var expr = node;
+        const expr = node;
         if (expr.properties.length == 0) {
             position = expr.getEnd() - 1;
-            toInsert = "  ".concat(metadataField, ": [").concat(symbolName, "]\n");
+            toInsert = `  ${metadataField}: [${symbolName}]\n`;
         }
         else {
             node = expr.properties[expr.properties.length - 1];
             position = node.getEnd();
             // Get the indentation of the last element, if any.
-            var text = node.getFullText(source);
+            const text = node.getFullText(source);
             if (text.match('^\r?\r?\n')) {
-                toInsert = ",".concat(text.match(/^\r?\n\s+/)[0]).concat(metadataField, ": [").concat(symbolName, "]");
+                toInsert = `,${text.match(/^\r?\n\s+/)[0]}${metadataField}: [${symbolName}]`;
             }
             else {
-                toInsert = ", ".concat(metadataField, ": [").concat(symbolName, "]");
+                toInsert = `, ${metadataField}: [${symbolName}]`;
             }
         }
     }
     else if (node.kind == ts.SyntaxKind.ArrayLiteralExpression) {
         // We found the field but it's empty. Insert it just before the `]`.
         position--;
-        toInsert = "".concat(symbolName);
+        toInsert = `${symbolName}`;
     }
     else {
         // Get the indentation of the last element, if any.
-        var text = node.getFullText(source);
+        const text = node.getFullText(source);
         if (text.match(/^\r?\n/)) {
-            toInsert = ",".concat(text.match(/^\r?\n(\r?)\s+/)[0]).concat(symbolName);
+            toInsert = `,${text.match(/^\r?\n(\r?)\s+/)[0]}${symbolName}`;
         }
         else {
-            toInsert = ", ".concat(symbolName);
+            toInsert = `, ${symbolName}`;
         }
     }
-    var insert = new change_1.InsertChange(componentPath, position, toInsert);
-    var importInsert = insertImport(source, componentPath, symbolName.replace(/\..*$/, ''), importPath);
+    const insert = new change_1.InsertChange(componentPath, position, toInsert);
+    const importInsert = insertImport(source, componentPath, symbolName.replace(/\..*$/, ''), importPath);
     return [insert, importInsert];
 }
 /**
@@ -589,69 +554,65 @@ function addBootstrapToModule(source, modulePath, classifiedName, importPath) {
  * @param isDefault (if true, import follows style for importing default exports)
  * @return Change
  */
-function insertImport(source, fileToEdit, symbolName, fileName, isDefault) {
-    if (isDefault === void 0) { isDefault = false; }
-    var rootNode = source;
-    var allImports = findNodes(rootNode, ts.SyntaxKind.ImportDeclaration);
+function insertImport(source, fileToEdit, symbolName, fileName, isDefault = false) {
+    const rootNode = source;
+    const allImports = findNodes(rootNode, ts.SyntaxKind.ImportDeclaration);
     // get nodes that map to import statements from the file fileName
-    var relevantImports = allImports.filter(function (node) {
+    const relevantImports = allImports.filter((node) => {
         // StringLiteral of the ImportDeclaration is the import file (fileName in this case).
-        var importFiles = node
+        const importFiles = node
             .getChildren()
-            .filter(function (child) { return child.kind === ts.SyntaxKind.StringLiteral; })
-            .map(function (n) { return n.text; });
-        return importFiles.filter(function (file) { return file === fileName; }).length === 1;
+            .filter((child) => child.kind === ts.SyntaxKind.StringLiteral)
+            .map((n) => n.text);
+        return importFiles.filter((file) => file === fileName).length === 1;
     });
     if (relevantImports.length > 0) {
-        var importsAsterisk_1 = false;
+        let importsAsterisk = false;
         // imports from import file
-        var imports_1 = [];
-        relevantImports.forEach(function (n) {
-            Array.prototype.push.apply(imports_1, findNodes(n, ts.SyntaxKind.Identifier));
+        const imports = [];
+        relevantImports.forEach((n) => {
+            Array.prototype.push.apply(imports, findNodes(n, ts.SyntaxKind.Identifier));
             if (findNodes(n, ts.SyntaxKind.AsteriskToken).length > 0) {
-                importsAsterisk_1 = true;
+                importsAsterisk = true;
             }
         });
         // if imports * from fileName, don't add symbolName
-        if (importsAsterisk_1) {
+        if (importsAsterisk) {
             return new change_1.NoopChange();
         }
-        var importTextNodes = imports_1.filter(function (n) { return n.text === symbolName; });
+        const importTextNodes = imports.filter((n) => n.text === symbolName);
         // insert import if it's not there
         if (importTextNodes.length === 0) {
-            var fallbackPos_1 = findNodes(relevantImports[0], ts.SyntaxKind.CloseBraceToken)[0].getStart() ||
+            const fallbackPos = findNodes(relevantImports[0], ts.SyntaxKind.CloseBraceToken)[0].getStart() ||
                 findNodes(relevantImports[0], ts.SyntaxKind.FromKeyword)[0].getStart();
-            return insertAfterLastOccurrence(imports_1, ", ".concat(symbolName), fileToEdit, fallbackPos_1);
+            return insertAfterLastOccurrence(imports, `, ${symbolName}`, fileToEdit, fallbackPos);
         }
         return new change_1.NoopChange();
     }
     // no such import declaration exists
-    var useStrict = findNodes(rootNode, ts.SyntaxKind.StringLiteral).filter(function (n) { return n.getText() === 'use strict'; });
-    var fallbackPos = 0;
+    const useStrict = findNodes(rootNode, ts.SyntaxKind.StringLiteral).filter((n) => n.getText() === 'use strict');
+    let fallbackPos = 0;
     if (useStrict.length > 0) {
         fallbackPos = useStrict[0].end;
     }
-    var open = isDefault ? '' : '{ ';
-    var close = isDefault ? '' : ' }';
+    const open = isDefault ? '' : '{ ';
+    const close = isDefault ? '' : ' }';
     // if there are no imports or 'use strict' statement, insert import at beginning of file
-    var insertAtBeginning = allImports.length === 0 && useStrict.length === 0;
-    var separator = insertAtBeginning ? '' : ';\n';
-    var toInsert = "".concat(separator, "import ").concat(open).concat(symbolName).concat(close) +
-        " from '".concat(fileName, "'").concat(insertAtBeginning ? ';\n' : '');
+    const insertAtBeginning = allImports.length === 0 && useStrict.length === 0;
+    const separator = insertAtBeginning ? '' : ';\n';
+    const toInsert = `${separator}import ${open}${symbolName}${close}` +
+        ` from '${fileName}'${insertAtBeginning ? ';\n' : ''}`;
     return insertAfterLastOccurrence(allImports, toInsert, fileToEdit, fallbackPos, ts.SyntaxKind.StringLiteral);
 }
 function replaceImport(sourceFile, path, importFrom, importAsIs, importToBe) {
-    var imports = sourceFile.statements
+    const imports = sourceFile.statements
         .filter(ts.isImportDeclaration)
-        .filter(function (_a) {
-        var moduleSpecifier = _a.moduleSpecifier;
-        return moduleSpecifier.getText(sourceFile) === "'".concat(importFrom, "'") ||
-            moduleSpecifier.getText(sourceFile) === "\"".concat(importFrom, "\"");
-    });
+        .filter(({ moduleSpecifier }) => moduleSpecifier.getText(sourceFile) === `'${importFrom}'` ||
+        moduleSpecifier.getText(sourceFile) === `"${importFrom}"`);
     if (imports.length === 0) {
         return [];
     }
-    var importText = function (specifier) {
+    const importText = (specifier) => {
         if (specifier.name.text) {
             return specifier.name.text;
         }
@@ -661,18 +622,17 @@ function replaceImport(sourceFile, path, importFrom, importAsIs, importToBe) {
         }
         return '';
     };
-    var changes = imports.map(function (p) {
-        var _a;
-        var namedImports = (_a = p === null || p === void 0 ? void 0 : p.importClause) === null || _a === void 0 ? void 0 : _a.namedBindings;
+    const changes = imports.map((p) => {
+        const namedImports = p?.importClause?.namedBindings;
         if (!namedImports) {
             return [];
         }
-        var importSpecifiers = namedImports.elements;
-        var isAlreadyImported = importSpecifiers
+        const importSpecifiers = namedImports.elements;
+        const isAlreadyImported = importSpecifiers
             .map(importText)
             .includes(importToBe);
-        var importChanges = importSpecifiers.map(function (specifier, index) {
-            var text = importText(specifier);
+        const importChanges = importSpecifiers.map((specifier, index) => {
+            const text = importText(specifier);
             // import is not the one we're looking for, can be skipped
             if (text !== importAsIs) {
                 return undefined;
@@ -681,7 +641,7 @@ function replaceImport(sourceFile, path, importFrom, importAsIs, importToBe) {
             if (!isAlreadyImported) {
                 return (0, change_1.createReplaceChange)(sourceFile, specifier, importAsIs, importToBe);
             }
-            var nextIdentifier = importSpecifiers[index + 1];
+            const nextIdentifier = importSpecifiers[index + 1];
             // identifer is not the last, also clean up the comma
             if (nextIdentifier) {
                 return (0, change_1.createRemoveChange)(sourceFile, specifier, specifier.getStart(sourceFile), nextIdentifier.getStart(sourceFile));
@@ -691,14 +651,12 @@ function replaceImport(sourceFile, path, importFrom, importAsIs, importToBe) {
         });
         return importChanges.filter(Boolean);
     });
-    return changes.reduce(function (imports, curr) { return imports.concat(curr); }, []);
+    return changes.reduce((imports, curr) => imports.concat(curr), []);
 }
 function containsProperty(objectLiteral, propertyName) {
     return (objectLiteral &&
-        objectLiteral.properties.some(function (prop) {
-            return ts.isPropertyAssignment(prop) &&
-                ts.isIdentifier(prop.name) &&
-                prop.name.text === propertyName;
-        }));
+        objectLiteral.properties.some((prop) => ts.isPropertyAssignment(prop) &&
+            ts.isIdentifier(prop.name) &&
+            prop.name.text === propertyName));
 }
 //# sourceMappingURL=ast-utils.js.map

@@ -26,10 +26,10 @@ __exportStar(require("./default-progress"), exports);
 var private_1 = require("@angular/build/private");
 Object.defineProperty(exports, "deleteOutputDir", { enumerable: true, get: function () { return private_1.deleteOutputDir; } });
 Object.defineProperty(exports, "loadProxyConfiguration", { enumerable: true, get: function () { return private_1.loadProxyConfiguration; } });
-__exportStar(require("./run-module-as-observable-fork"), exports);
 __exportStar(require("./normalize-file-replacements"), exports);
 __exportStar(require("./normalize-asset-patterns"), exports);
 __exportStar(require("./normalize-source-maps"), exports);
 __exportStar(require("./normalize-optimization"), exports);
 __exportStar(require("./normalize-builder-schema"), exports);
 __exportStar(require("./url"), exports);
+//# sourceMappingURL=index.js.map

@@ -19,6 +19,10 @@ export interface RuleMetaDataDocs {
      * The URL of the rule's docs.
      */
     url?: string;
+    /**
+     * Mark this rule as feature-frozen.
+     */
+    frozen?: boolean;
 }
 export interface ExternalSpecifier {
     /**
@@ -94,7 +98,7 @@ export interface RuleMetaData<MessageIds extends string, PluginDocs = unknown, O
     hasSuggestions?: boolean;
     /**
      * A map of messages which the rule can report.
-     * The key is the messageId, and the string is the parameterised error string.
+     * The key is the messageId, and the string is the parameterized error string.
      * See: https://eslint.org/docs/developer-guide/working-with-rules#messageids
      */
     messages: Record<MessageIds, string>;
@@ -118,7 +122,7 @@ export interface RuleMetaData<MessageIds extends string, PluginDocs = unknown, O
     /**
      * Specifies default options for the rule. If present, any user-provided options in their config will be merged on top of them recursively.
      * This merging will be applied directly to `context.options`.
-     * If you want backwards-compatible support for earlier ESLint version; consider using the top-level `defaultOptions` instead.
+     * If you want backwards-compatible support for earlier ESLint version, consider using the top-level `defaultOptions` instead.
      *
      * since ESLint 9.15.0
      */
@@ -202,7 +206,9 @@ export interface RuleContext<MessageIds extends string, Options extends readonly
     /**
      * The language options configured for this run
      */
-    languageOptions: FlatConfig.LanguageOptions;
+    languageOptions: FlatConfig.LanguageOptions & {
+        parserOptions: FlatConfig.ParserOptions;
+    };
     /**
      * An array of the configured options for this rule.
      * This array does not include the rule severity.
@@ -210,10 +216,12 @@ export interface RuleContext<MessageIds extends string, Options extends readonly
     options: Options;
     /**
      * The parser options configured for this run
+     * @deprecated This was deprecated in ESLint 9 and removed in ESLint 10.
      */
     parserOptions: Linter.ParserOptions;
     /**
      * The name of the parser from configuration, if in eslintrc (legacy) config.
+     * @deprecated This was deprecated in ESLint 9 and removed in ESLint 10.
      */
     parserPath: string | undefined;
     /**
@@ -563,13 +571,18 @@ export interface RuleModule<MessageIds extends string, Options extends readonly 
      */
     create(context: Readonly<RuleContext<MessageIds, Options>>): ExtendedRuleListener;
     /**
+     * @deprecated Use meta.defaultOptions instead
      * Default options the rule will be run with
      */
-    defaultOptions: Options;
+    defaultOptions?: Options;
     /**
      * Metadata about the rule
      */
     meta: RuleMetaData<MessageIds, Docs, Options>;
+    /**
+     * Rule name
+     */
+    name?: string;
 }
 export type AnyRuleModule = RuleModule<string, readonly unknown[]>;
 export interface RuleModuleWithMetaDocs<MessageIds extends string, Options extends readonly unknown[] = [], Docs = unknown, ExtendedRuleListener extends RuleListener = RuleListener> extends RuleModule<MessageIds, Options, Docs, ExtendedRuleListener> {
@@ -591,12 +604,11 @@ export type AnyRuleModuleWithMetaDocs = RuleModuleWithMetaDocs<string, unknown[]
  *
  * @see {@link LooseParserModule}, {@link LooseProcessorModule}
  */
-export type LooseRuleDefinition = {
+export type LooseRuleDefinition = LooseRuleCreateFunction | {
     create: LooseRuleCreateFunction;
     meta?: object | undefined;
-} | LooseRuleCreateFunction;
+};
 export type LooseRuleCreateFunction = (context: any) => Record<string, Function | undefined>;
 export type RuleCreateFunction<MessageIds extends string = never, Options extends readonly unknown[] = unknown[]> = (context: Readonly<RuleContext<MessageIds, Options>>) => RuleListener;
 export type AnyRuleCreateFunction = RuleCreateFunction<string, readonly unknown[]>;
 export {};
-//# sourceMappingURL=Rule.d.ts.map

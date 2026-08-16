@@ -30,9 +30,6 @@ class PiscinaHistogramHandler {
     get runTimeCount() {
         return __classPrivateFieldGet(this, _PiscinaHistogramHandler_runTime, "f").count;
     }
-    get waitTimeCount() {
-        return __classPrivateFieldGet(this, _PiscinaHistogramHandler_waitTime, "f").count;
-    }
     recordRunTime(value) {
         __classPrivateFieldGet(this, _PiscinaHistogramHandler_runTime, "f").record(PiscinaHistogramHandler.toHistogramIntegerNano(value));
     }
@@ -50,7 +47,7 @@ class PiscinaHistogramHandler {
         return {
             average: mean / 1000,
             mean: mean / 1000,
-            stddev,
+            stddev: stddev / 1000,
             min: min / 1000,
             max: max / 1000,
             p0_001: histogram.percentile(0.001) / 1000,

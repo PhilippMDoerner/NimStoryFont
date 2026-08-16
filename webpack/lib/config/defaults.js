@@ -8,36 +8,43 @@
 const fs = require("fs");
 const path = require("path");
 const {
-	JAVASCRIPT_MODULE_TYPE_AUTO,
-	JAVASCRIPT_MODULE_TYPE_ESM,
-	JAVASCRIPT_MODULE_TYPE_DYNAMIC,
-	JSON_MODULE_TYPE,
-	WEBASSEMBLY_MODULE_TYPE_ASYNC,
-	WEBASSEMBLY_MODULE_TYPE_SYNC,
+	CSS_TYPE,
+	JAVASCRIPT_TYPE,
+	UNKNOWN_TYPE
+} = require("../ModuleSourceTypeConstants");
+const {
 	ASSET_MODULE_TYPE,
+	ASSET_MODULE_TYPE_BYTES,
 	ASSET_MODULE_TYPE_INLINE,
 	ASSET_MODULE_TYPE_RESOURCE,
-	CSS_MODULE_TYPE_AUTO,
+	ASSET_MODULE_TYPE_SOURCE,
 	CSS_MODULE_TYPE,
+	CSS_MODULE_TYPE_AUTO,
+	CSS_MODULE_TYPE_GLOBAL,
 	CSS_MODULE_TYPE_MODULE,
-	CSS_MODULE_TYPE_GLOBAL
+	HTML_MODULE_TYPE,
+	JAVASCRIPT_MODULE_TYPE_AUTO,
+	JAVASCRIPT_MODULE_TYPE_DYNAMIC,
+	JAVASCRIPT_MODULE_TYPE_ESM,
+	JSON_MODULE_TYPE,
+	WEBASSEMBLY_MODULE_TYPE_ASYNC,
+	WEBASSEMBLY_MODULE_TYPE_SYNC
 } = require("../ModuleTypeConstants");
 const Template = require("../Template");
+const RuleSetCompiler = require("../rules/RuleSetCompiler");
 const { cleverMerge } = require("../util/cleverMerge");
 const {
-	getTargetsProperties,
+	getDefaultTarget,
 	getTargetProperties,
-	getDefaultTarget
+	getTargetsProperties
 } = require("./target");
 
-/** @typedef {import("../../declarations/WebpackOptions").CacheOptions} CacheOptions */
 /** @typedef {import("../../declarations/WebpackOptions").CacheOptionsNormalized} CacheOptionsNormalized */
 /** @typedef {import("../../declarations/WebpackOptions").Context} Context */
+/** @typedef {import("../../declarations/WebpackOptions").DevTool} Devtool */
 /** @typedef {import("../../declarations/WebpackOptions").CssGeneratorOptions} CssGeneratorOptions */
-/** @typedef {import("../../declarations/WebpackOptions").CssParserOptions} CssParserOptions */
 /** @typedef {import("../../declarations/WebpackOptions").EntryDescription} EntryDescription */
 /** @typedef {import("../../declarations/WebpackOptions").EntryNormalized} Entry */
-/** @typedef {import("../../declarations/WebpackOptions").EntryStaticNormalized} EntryStaticNormalized */
 /** @typedef {import("../../declarations/WebpackOptions").Environment} Environment */
 /** @typedef {import("../../declarations/WebpackOptions").Experiments} Experiments */
 /** @typedef {import("../../declarations/WebpackOptions").ExperimentsNormalized} ExperimentsNormalized */
@@ -50,29 +57,163 @@ const {
 /** @typedef {import("../../declarations/WebpackOptions").JsonGeneratorOptions} JsonGeneratorOptions */
 /** @typedef {import("../../declarations/WebpackOptions").Library} Library */
 /** @typedef {import("../../declarations/WebpackOptions").LibraryName} LibraryName */
-/** @typedef {import("../../declarations/WebpackOptions").LibraryOptions} LibraryOptions */
 /** @typedef {import("../../declarations/WebpackOptions").LibraryType} LibraryType */
 /** @typedef {import("../../declarations/WebpackOptions").Loader} Loader */
 /** @typedef {import("../../declarations/WebpackOptions").Mode} Mode */
+/** @typedef {import("../../declarations/WebpackOptions").HashFunction} HashFunction */
+/** @typedef {import("../../declarations/WebpackOptions").HashSalt} HashSalt */
+/** @typedef {import("../../declarations/WebpackOptions").HashDigest} HashDigest */
+/** @typedef {import("../../declarations/WebpackOptions").HashDigestLength} HashDigestLength */
 /** @typedef {import("../../declarations/WebpackOptions").ModuleOptionsNormalized} ModuleOptions */
 /** @typedef {import("../../declarations/WebpackOptions").Node} WebpackNode */
-/** @typedef {import("../../declarations/WebpackOptions").Optimization} Optimization */
+/** @typedef {import("../../declarations/WebpackOptions").OptimizationNormalized} Optimization */
 /** @typedef {import("../../declarations/WebpackOptions").OptimizationSplitChunksOptions} OptimizationSplitChunksOptions */
 /** @typedef {import("../../declarations/WebpackOptions").OutputNormalized} Output */
 /** @typedef {import("../../declarations/WebpackOptions").ParserOptionsByModuleTypeKnown} ParserOptionsByModuleTypeKnown */
 /** @typedef {import("../../declarations/WebpackOptions").Performance} Performance */
 /** @typedef {import("../../declarations/WebpackOptions").ResolveOptions} ResolveOptions */
+/** @typedef {import("../../declarations/WebpackOptions").RuleSetRule} RuleSetRule */
 /** @typedef {import("../../declarations/WebpackOptions").RuleSetRules} RuleSetRules */
 /** @typedef {import("../../declarations/WebpackOptions").SnapshotOptions} SnapshotOptions */
-/** @typedef {import("../../declarations/WebpackOptions").Target} Target */
-/** @typedef {import("../../declarations/WebpackOptions").WebpackOptions} WebpackOptions */
 /** @typedef {import("../../declarations/WebpackOptions").WebpackOptionsNormalized} WebpackOptionsNormalized */
-/** @typedef {import("../Compiler")} Compiler */
 /** @typedef {import("../Module")} Module */
+/** @typedef {import("../javascript/EnableChunkLoadingPlugin").ChunkLoadingTypes} ChunkLoadingTypes */
+/** @typedef {import("../wasm/EnableWasmLoadingPlugin").WasmLoadingTypes} WasmLoadingTypes */
 /** @typedef {import("./target").PlatformTargetProperties} PlatformTargetProperties */
 /** @typedef {import("./target").TargetProperties} TargetProperties */
 
 /**
+ * Defines the recursive non nullable type used by this module.
+ * @template T
+ * @typedef {{ [P in keyof T]-?: T[P] extends object ? RecursiveNonNullable<NonNullable<T[P]>> : NonNullable<T[P]> }} RecursiveNonNullable
+ */
+
+/**
+ * Defines the shared type used by this module.
+ * @typedef {Output & {
+ * uniqueName: NonNullable<Output["uniqueName"]>,
+ * filename: NonNullable<Output["filename"]>,
+ * cssFilename: NonNullable<Output["cssFilename"]>,
+ * chunkFilename: NonNullable<Output["chunkFilename"]>,
+ * cssChunkFilename: NonNullable<Output["cssChunkFilename"]>,
+ * hotUpdateChunkFilename: NonNullable<Output["hotUpdateChunkFilename"]>,
+ * hotUpdateGlobal: NonNullable<Output["hotUpdateGlobal"]>,
+ * assetModuleFilename: NonNullable<Output["assetModuleFilename"]>,
+ * webassemblyModuleFilename: NonNullable<Output["webassemblyModuleFilename"]>,
+ * sourceMapFilename: NonNullable<Output["sourceMapFilename"]>,
+ * hotUpdateMainFilename: NonNullable<Output["hotUpdateMainFilename"]>,
+ * devtoolNamespace: NonNullable<Output["devtoolNamespace"]>,
+ * publicPath: NonNullable<Output["publicPath"]>,
+ * workerPublicPath: NonNullable<Output["workerPublicPath"]>,
+ * workerChunkFilename: NonNullable<Output["workerChunkFilename"]>,
+ * workerWasmLoading: NonNullable<Output["workerWasmLoading"]>,
+ * workerChunkLoading: NonNullable<Output["workerChunkLoading"]>,
+ * chunkFormat: NonNullable<Output["chunkFormat"]>,
+ * module: NonNullable<Output["module"]>,
+ * asyncChunks: NonNullable<Output["asyncChunks"]>,
+ * charset: NonNullable<Output["charset"]>,
+ * iife: NonNullable<Output["iife"]>,
+ * globalObject: NonNullable<Output["globalObject"]>,
+ * scriptType: NonNullable<Output["scriptType"]>,
+ * path: NonNullable<Output["path"]>,
+ * pathinfo: NonNullable<Output["pathinfo"]>,
+ * hashFunction: NonNullable<Output["hashFunction"]>,
+ * hashDigest: NonNullable<Output["hashDigest"]>,
+ * hashDigestLength: NonNullable<Output["hashDigestLength"]>,
+ * chunkLoadTimeout: NonNullable<Output["chunkLoadTimeout"]>,
+ * chunkLoading: NonNullable<Output["chunkLoading"]>,
+ * chunkLoadingGlobal: NonNullable<Output["chunkLoadingGlobal"]>,
+ * compareBeforeEmit: NonNullable<Output["compareBeforeEmit"]>,
+ * strictModuleErrorHandling: NonNullable<Output["strictModuleErrorHandling"]>,
+ * strictModuleExceptionHandling: NonNullable<Output["strictModuleExceptionHandling"]>,
+ * strictModuleResolution: NonNullable<Output["strictModuleResolution"]>,
+ * importFunctionName: NonNullable<Output["importFunctionName"]>,
+ * importMetaName: NonNullable<Output["importMetaName"]>,
+ * environment: RecursiveNonNullable<Output["environment"]>,
+ * crossOriginLoading: NonNullable<Output["crossOriginLoading"]>,
+ * wasmLoading: NonNullable<Output["wasmLoading"]>,
+ * }} OutputNormalizedWithDefaults
+ */
+
+/**
+ * Defines the shared type used by this module.
+ * @typedef {SnapshotOptions & {
+ * managedPaths: NonNullable<SnapshotOptions["managedPaths"]>,
+ * unmanagedPaths: NonNullable<SnapshotOptions["unmanagedPaths"]>,
+ * immutablePaths: NonNullable<SnapshotOptions["immutablePaths"]>,
+ * resolveBuildDependencies: NonNullable<SnapshotOptions["resolveBuildDependencies"]>,
+ * buildDependencies: NonNullable<SnapshotOptions["buildDependencies"]>,
+ * module: NonNullable<SnapshotOptions["module"]>,
+ * resolve: NonNullable<SnapshotOptions["resolve"]>,
+ * }} SnapshotNormalizedWithDefaults
+ */
+
+/**
+ * Defines the shared type used by this module.
+ * @typedef {Optimization & {
+ * runtimeChunk: NonNullable<Optimization["runtimeChunk"]>,
+ * splitChunks: NonNullable<Optimization["splitChunks"]>,
+ * mergeDuplicateChunks: NonNullable<Optimization["mergeDuplicateChunks"]>,
+ * removeAvailableModules: NonNullable<Optimization["removeAvailableModules"]>,
+ * removeEmptyChunks: NonNullable<Optimization["removeEmptyChunks"]>,
+ * flagIncludedChunks: NonNullable<Optimization["flagIncludedChunks"]>,
+ * moduleIds: NonNullable<Optimization["moduleIds"]>,
+ * chunkIds: NonNullable<Optimization["chunkIds"]>,
+ * sideEffects: NonNullable<Optimization["sideEffects"]>,
+ * providedExports: NonNullable<Optimization["providedExports"]>,
+ * usedExports: NonNullable<Optimization["usedExports"]>,
+ * mangleExports: NonNullable<Optimization["mangleExports"]>,
+ * innerGraph: NonNullable<Optimization["innerGraph"]>,
+ * inlineExports: NonNullable<Optimization["inlineExports"]>,
+ * concatenateModules: NonNullable<Optimization["concatenateModules"]>,
+ * avoidEntryIife: NonNullable<Optimization["avoidEntryIife"]>,
+ * emitOnErrors: NonNullable<Optimization["emitOnErrors"]>,
+ * checkWasmTypes: NonNullable<Optimization["checkWasmTypes"]>,
+ * mangleWasmImports: NonNullable<Optimization["mangleWasmImports"]>,
+ * portableRecords: NonNullable<Optimization["portableRecords"]>,
+ * realContentHash: NonNullable<Optimization["realContentHash"]>,
+ * minimize: NonNullable<Optimization["minimize"]>,
+ * minimizer: NonNullable<Exclude<Optimization["minimizer"], "...">>,
+ * nodeEnv: NonNullable<Optimization["nodeEnv"]>,
+ * }} OptimizationNormalizedWithDefaults
+ */
+
+/**
+ * Defines the shared type used by this module.
+ * @typedef {ExternalsPresets & {
+ * web: NonNullable<ExternalsPresets["web"]>,
+ * node: NonNullable<ExternalsPresets["node"]>,
+ * nwjs: NonNullable<ExternalsPresets["nwjs"]>,
+ * electron: NonNullable<ExternalsPresets["electron"]>,
+ * electronMain: NonNullable<ExternalsPresets["electronMain"]>,
+ * electronPreload: NonNullable<ExternalsPresets["electronPreload"]>,
+ * electronRenderer: NonNullable<ExternalsPresets["electronRenderer"]>,
+ * }} ExternalsPresetsNormalizedWithDefaults
+ */
+
+/**
+ * Defines the shared type used by this module.
+ * @typedef {InfrastructureLogging & {
+ * stream: NonNullable<InfrastructureLogging["stream"]>,
+ * level: NonNullable<InfrastructureLogging["level"]>,
+ * debug: NonNullable<InfrastructureLogging["debug"]>,
+ * colors: NonNullable<InfrastructureLogging["colors"]>,
+ * appendOnly: NonNullable<InfrastructureLogging["appendOnly"]>,
+ * }} InfrastructureLoggingNormalizedWithDefaults
+ */
+
+/**
+ * Defines the webpack options normalized with base defaults type used by this module.
+ * @typedef {WebpackOptionsNormalized & { context: NonNullable<WebpackOptionsNormalized["context"]> } & { infrastructureLogging: InfrastructureLoggingNormalizedWithDefaults }} WebpackOptionsNormalizedWithBaseDefaults
+ */
+
+/**
+ * Defines the webpack options normalized with defaults type used by this module.
+ * @typedef {WebpackOptionsNormalizedWithBaseDefaults & { target: NonNullable<WebpackOptionsNormalized["target"]> } & { output: OutputNormalizedWithDefaults } & { optimization: OptimizationNormalizedWithDefaults } & { devtool: NonNullable<WebpackOptionsNormalized["devtool"]> } & { stats: NonNullable<WebpackOptionsNormalized["stats"]> } & { node: NonNullable<WebpackOptionsNormalized["node"]> } & { profile: NonNullable<WebpackOptionsNormalized["profile"]> } & { parallelism: NonNullable<WebpackOptionsNormalized["parallelism"]> } & { snapshot: SnapshotNormalizedWithDefaults } & { externalsPresets: ExternalsPresetsNormalizedWithDefaults } & { externalsType: NonNullable<WebpackOptionsNormalized["externalsType"]> } & { watch: NonNullable<WebpackOptionsNormalized["watch"]> } & { performance: NonNullable<WebpackOptionsNormalized["performance"]> } & { recordsInputPath: NonNullable<WebpackOptionsNormalized["recordsInputPath"]> } & { recordsOutputPath: NonNullable<WebpackOptionsNormalized["recordsOutputPath"]> } & { dotenv: NonNullable<WebpackOptionsNormalized["dotenv"]> }} WebpackOptionsNormalizedWithDefaults
+ */
+
+/**
+ * Defines the resolved options type used by this module.
  * @typedef {object} ResolvedOptions
  * @property {PlatformTargetProperties | false} platform - platform target properties
  */
@@ -85,7 +226,7 @@ const DEFAULTS = {
 };
 
 /**
- * Sets a constant default value when undefined
+ * Processes the provided obj.
  * @template T
  * @template {keyof T} P
  * @param {T} obj an object
@@ -100,7 +241,7 @@ const D = (obj, prop, value) => {
 };
 
 /**
- * Sets a dynamic default value when undefined, by calling the factory function
+ * Processes the provided obj.
  * @template T
  * @template {keyof T} P
  * @param {T} obj an object
@@ -140,9 +281,9 @@ const A = (obj, prop, factory) => {
 					newArray = value.slice(0, i);
 					obj[prop] = /** @type {T[P]} */ (/** @type {unknown} */ (newArray));
 				}
-				const items = /** @type {EXPECTED_ANY[]} */ (
-					/** @type {unknown} */ (factory())
-				);
+				const items =
+					/** @type {EXPECTED_ANY[]} */
+					(/** @type {unknown} */ (factory()));
 				if (items !== undefined) {
 					for (const item of items) {
 						newArray.push(item);
@@ -156,15 +297,17 @@ const A = (obj, prop, factory) => {
 };
 
 /**
+ * Apply webpack options base defaults.
  * @param {WebpackOptionsNormalized} options options to be modified
  * @returns {void}
  */
-const applyWebpackOptionsBaseDefaults = options => {
+const applyWebpackOptionsBaseDefaults = (options) => {
 	F(options, "context", () => process.cwd());
 	applyInfrastructureLoggingDefaults(options.infrastructureLogging);
 };
 
 /**
+ * Apply webpack options defaults.
  * @param {WebpackOptionsNormalized} options options to be modified
  * @param {number=} compilerIndex index of compiler
  * @returns {ResolvedOptions} Resolved options after apply defaults
@@ -200,22 +343,61 @@ const applyWebpackOptionsDefaults = (options, compilerIndex) => {
 		}
 	}
 
-	F(options, "devtool", () => (development ? "eval" : false));
 	D(options, "watch", false);
 	D(options, "profile", false);
 	D(options, "parallelism", 100);
 	D(options, "recordsInputPath", false);
 	D(options, "recordsOutputPath", false);
 
+	// Capture the raw html intent before "auto" is resolved: only an explicit
+	// `html: true` (or futureDefaults) keeps `.html` ahead of `.js` when resolving.
+	const htmlExplicitlyEnabled = options.experiments.html === true;
+	const htmlWasUnset = options.experiments.html === undefined;
+
 	applyExperimentsDefaults(options.experiments, {
 		production,
 		development,
-		targetProperties
+		targetProperties,
+		rules: options.module.rules
 	});
+
+	// After experiments are resolved: the default dev source map depends on the
+	// (possibly "auto"-resolved) `experiments.css` value.
+	F(
+		options,
+		"devtool",
+		() =>
+			/** @type {Devtool} */ (
+				development
+					? [
+							options.experiments.css
+								? {
+										type: "css",
+										use: "source-map"
+									}
+								: undefined,
+							{
+								type: "javascript",
+								use: "eval"
+							}
+						].filter(Boolean)
+					: false
+			)
+	);
 
 	const futureDefaults =
 		/** @type {NonNullable<ExperimentsNormalized["futureDefaults"]>} */
 		(options.experiments.futureDefaults);
+
+	// `.html` outranks `.js` only for an explicit opt-in (`html: true`, or the
+	// futureDefaults-forced default), never for the auto-enabled default.
+	const htmlFirst = htmlExplicitlyEnabled || (htmlWasUnset && futureDefaults);
+
+	F(options, "validate", () => !(futureDefaults === true && production));
+
+	// Progress lives on infrastructureLogging; webpack@6 shows the interactive
+	// bar by default (`"auto"` = TTY only), webpack@5 stays opt-in.
+	D(options.infrastructureLogging, "progress", futureDefaults ? "auto" : false);
 
 	F(options, "cache", () =>
 		development ? { type: /** @type {"memory"} */ ("memory") } : false
@@ -242,7 +424,7 @@ const applyWebpackOptionsDefaults = (options, compilerIndex) => {
 			target === undefined ||
 			(typeof target === "string" && target.startsWith("browserslist")) ||
 			(Array.isArray(target) &&
-				target.some(target => target.startsWith("browserslist"))),
+				target.some((target) => target.startsWith("browserslist"))),
 		outputModule:
 			/** @type {NonNullable<ExperimentsNormalized["outputModule"]>} */
 			(options.experiments.outputModule),
@@ -250,43 +432,98 @@ const applyWebpackOptionsDefaults = (options, compilerIndex) => {
 		entry: options.entry,
 		futureDefaults,
 		asyncWebAssembly:
-			/** @type {NonNullable<ExperimentsNormalized["asyncWebAssembly"]>} */
+			/** @type {boolean} */
 			(options.experiments.asyncWebAssembly)
 	});
 
 	applyModuleDefaults(options.module, {
 		cache,
+		hashSalt: /** @type {NonNullable<Output["hashSalt"]>} */ (
+			options.output.hashSalt
+		),
+		hashFunction: /** @type {NonNullable<Output["hashFunction"]>} */ (
+			options.output.hashFunction
+		),
 		syncWebAssembly:
 			/** @type {NonNullable<ExperimentsNormalized["syncWebAssembly"]>} */
 			(options.experiments.syncWebAssembly),
 		asyncWebAssembly:
-			/** @type {NonNullable<ExperimentsNormalized["asyncWebAssembly"]>} */
+			/** @type {boolean} */
 			(options.experiments.asyncWebAssembly),
 		css:
-			/** @type {NonNullable<ExperimentsNormalized["css"]>} */
+			/** @type {boolean} */
 			(options.experiments.css),
+		html:
+			/** @type {boolean} */
+			(options.experiments.html),
+		typescript:
+			/** @type {boolean} */
+			(options.experiments.typescript),
+		deferImport:
+			/** @type {NonNullable<ExperimentsNormalized["deferImport"]>} */
+			(options.experiments.deferImport),
+		sourceImport:
+			/** @type {NonNullable<ExperimentsNormalized["sourceImport"]>} */
+			(options.experiments.sourceImport),
 		futureDefaults,
 		isNode: targetProperties && targetProperties.node === true,
 		uniqueName: /** @type {string} */ (options.output.uniqueName),
 		targetProperties,
-		mode: options.mode
+		mode: options.mode,
+		outputModule:
+			/** @type {NonNullable<WebpackOptionsNormalized["output"]["module"]>} */
+			(options.output.module),
+		library: options.output.library
 	});
+
+	// `output.resourceHints.urlHints` shorthand: fan the project-wide rules out
+	// as the base `urlHints` of every URL-emitting parser (JS `new URL`, CSS
+	// `url()`, HTML `<img src>`). They go first so parser-scoped
+	// `parser.<type>.urlHints` rules — matched later, last-match-wins — override.
+	const outputUrlHints =
+		options.output.resourceHints && options.output.resourceHints.urlHints;
+	if (outputUrlHints && outputUrlHints.length > 0) {
+		for (const type of [
+			"javascript",
+			CSS_MODULE_TYPE,
+			CSS_MODULE_TYPE_AUTO,
+			CSS_MODULE_TYPE_MODULE,
+			CSS_MODULE_TYPE_GLOBAL,
+			HTML_MODULE_TYPE
+		]) {
+			const parser =
+				/** @type {{ urlHints?: import("../../declarations/WebpackOptions").UrlHintRule[] } | undefined} */
+				(options.module.parser[type]);
+			if (!parser) continue;
+			parser.urlHints = [...outputUrlHints, ...(parser.urlHints || [])];
+		}
+	}
 
 	applyExternalsPresetsDefaults(options.externalsPresets, {
 		targetProperties,
-		buildHttp: Boolean(options.experiments.buildHttp)
+		buildHttp: Boolean(options.experiments.buildHttp),
+		outputModule:
+			/** @type {NonNullable<WebpackOptionsNormalized["output"]["module"]>} */
+			(options.output.module)
 	});
 
 	applyLoaderDefaults(
 		/** @type {NonNullable<WebpackOptionsNormalized["loader"]>} */ (
 			options.loader
 		),
-		{ targetProperties, environment: options.output.environment }
+		{
+			targetProperties,
+			environment: options.output.environment,
+			outputModule:
+				/** @type {NonNullable<WebpackOptionsNormalized["output"]["module"]>} */
+				(options.output.module)
+		}
 	);
 
 	F(options, "externalsType", () => {
 		const validExternalTypes = require("../../schemas/WebpackOptions.json")
 			.definitions.ExternalsType.enum;
+
 		return options.output.library &&
 			validExternalTypes.includes(options.output.library.type)
 			? /** @type {ExternalsType} */ (options.output.library.type)
@@ -324,7 +561,7 @@ const applyWebpackOptionsDefaults = (options, compilerIndex) => {
 		development,
 		production,
 		css:
-			/** @type {NonNullable<ExperimentsNormalized["css"]>} */
+			/** @type {boolean} */
 			(options.experiments.css),
 		records: Boolean(options.recordsInputPath || options.recordsOutputPath)
 	});
@@ -336,8 +573,15 @@ const applyWebpackOptionsDefaults = (options, compilerIndex) => {
 			targetProperties,
 			mode: /** @type {Mode} */ (options.mode),
 			css:
-				/** @type {NonNullable<ExperimentsNormalized["css"]>} */
-				(options.experiments.css)
+				/** @type {boolean} */
+				(options.experiments.css),
+			html:
+				/** @type {boolean} */
+				(options.experiments.html),
+			htmlFirst,
+			typescript:
+				/** @type {boolean} */
+				(options.experiments.typescript)
 		}),
 		options.resolve
 	);
@@ -356,41 +600,103 @@ const applyWebpackOptionsDefaults = (options, compilerIndex) => {
 						browser: targetProperties.browser,
 						webworker: targetProperties.webworker,
 						node: targetProperties.node,
+						deno: targetProperties.deno,
+						bun: targetProperties.bun,
 						nwjs: targetProperties.nwjs,
-						electron: targetProperties.electron
+						electron: targetProperties.electron,
+						// spans both web and node (target "universal" or ["web", "node"])
+						universal:
+							targetProperties.node === null && targetProperties.web === null
 					}
 	};
 };
 
 /**
+ * Apply experiments defaults.
  * @param {ExperimentsNormalized} experiments options
  * @param {object} options options
  * @param {boolean} options.production is production
  * @param {boolean} options.development is development mode
  * @param {TargetProperties | false} options.targetProperties target properties
+ * @param {RuleSetRules} options.rules user `module.rules`, used to resolve the css/html/asyncWebAssembly/typescript "auto" defaults
  * @returns {void}
  */
 const applyExperimentsDefaults = (
 	experiments,
-	{ production, development, targetProperties }
+	{ production, development, targetProperties, rules }
 ) => {
 	D(experiments, "futureDefaults", false);
 	D(experiments, "backCompat", !experiments.futureDefaults);
+	// TODO do we need sync web assembly in webpack@6?
 	D(experiments, "syncWebAssembly", false);
-	D(experiments, "asyncWebAssembly", experiments.futureDefaults);
-	D(experiments, "outputModule", false);
-	D(experiments, "layers", false);
+	D(
+		experiments,
+		"asyncWebAssembly",
+		experiments.futureDefaults ? true : "auto"
+	);
+	// the universal target (web + node, neither specific) only works as ESM
+	const universal =
+		Boolean(targetProperties) &&
+		/** @type {TargetProperties} */ (targetProperties).node === null &&
+		/** @type {TargetProperties} */ (targetProperties).web === null;
+	// the deno and bun targets only emit ECMAScript modules
+	const deno =
+		Boolean(targetProperties) &&
+		/** @type {TargetProperties} */ (targetProperties).deno === true;
+	const bun =
+		Boolean(targetProperties) &&
+		/** @type {TargetProperties} */ (targetProperties).bun === true;
+	D(experiments, "outputModule", universal || deno || bun);
 	D(experiments, "lazyCompilation", undefined);
 	D(experiments, "buildHttp", undefined);
 	D(experiments, "cacheUnaffected", experiments.futureDefaults);
-	F(experiments, "css", () => (experiments.futureDefaults ? true : undefined));
+	D(experiments, "deferImport", false);
+	D(experiments, "sourceImport", false);
+	F(experiments, "css", () => (experiments.futureDefaults ? true : "auto"));
+	F(experiments, "html", () => (experiments.futureDefaults ? true : "auto"));
+	F(experiments, "typescript", () =>
+		experiments.futureDefaults ? true : "auto"
+	);
 
-	// TODO webpack 6: remove this. topLevelAwait should be enabled by default
-	let shouldEnableTopLevelAwait = true;
-	if (typeof experiments.topLevelAwait === "boolean") {
-		shouldEnableTopLevelAwait = experiments.topLevelAwait;
+	// Resolve the "auto" default: enable the built-in css/html module type unless
+	// the user already registered a loader (or explicit type) for these files, so
+	// enabling them by default does not break existing css-loader/html-loader setups.
+	// The built-in `/\.css$/i` rule also covers `.module.css`, so a loader scoped to
+	// CSS modules must disable the built-in type too — sample both extensions.
+	// When enabled implicitly the value stays `"auto"` (truthy): Css/HtmlModulesPlugin
+	// then step aside per-module for requests that loaders were applied to
+	// (inline requests or loaders injected via hooks, e.g. html-webpack-plugin).
+	// TODO webpack 6: css/html default to `true`, drop the `"auto"` marker.
+	if (experiments.css === "auto") {
+		experiments.css =
+			!(
+				RuleSetCompiler.hasRuleForResource(rules, "/file.css") ||
+				RuleSetCompiler.hasRuleForResource(rules, "/file.module.css")
+			) && "auto";
 	}
-	D(experiments, "topLevelAwait", shouldEnableTopLevelAwait);
+	if (experiments.html === "auto") {
+		experiments.html =
+			!RuleSetCompiler.hasRuleForResource(rules, "/file.html") && "auto";
+	}
+	// Auto-enable only when the built-in TypeScript support can actually run:
+	// it needs `module.stripTypeScriptTypes` (Node.js >= 22.6) and must step
+	// aside for a loader registered for `.ts`/`.mts`/`.cts` (e.g. ts-loader).
+	if (experiments.typescript === "auto") {
+		experiments.typescript =
+			// eslint-disable-next-line n/no-unsupported-features/node-builtins
+			typeof require("module").stripTypeScriptTypes === "function" &&
+			!(
+				RuleSetCompiler.hasRuleForResource(rules, "/file.ts") ||
+				RuleSetCompiler.hasRuleForResource(rules, "/file.mts") ||
+				RuleSetCompiler.hasRuleForResource(rules, "/file.cts")
+			);
+	}
+	// `syncWebAssembly` already claims `.wasm`, so don't let "auto" override it.
+	if (experiments.asyncWebAssembly === "auto") {
+		experiments.asyncWebAssembly =
+			!experiments.syncWebAssembly &&
+			!RuleSetCompiler.hasRuleForResource(rules, "/file.wasm");
+	}
 
 	if (typeof experiments.buildHttp === "object") {
 		D(experiments.buildHttp, "frozen", production);
@@ -399,6 +705,7 @@ const applyExperimentsDefaults = (
 };
 
 /**
+ * Apply cache defaults.
  * @param {CacheOptionsNormalized} cache options
  * @param {object} options options
  * @param {string} options.name name
@@ -481,6 +788,7 @@ const applyCacheDefaults = (
 };
 
 /**
+ * Apply snapshot defaults.
  * @param {SnapshotOptions} snapshot options
  * @param {object} options options
  * @param {boolean} options.production is production
@@ -551,21 +859,36 @@ const applySnapshotDefaults = (snapshot, { production, futureDefaults }) => {
 	F(snapshot, "module", () =>
 		production ? { timestamp: true, hash: true } : { timestamp: true }
 	);
+	F(snapshot, "contextModule", () => ({ timestamp: true }));
 	F(snapshot, "resolve", () =>
 		production ? { timestamp: true, hash: true } : { timestamp: true }
 	);
 };
 
 /**
+ * Apply javascript parser options defaults.
  * @param {JavascriptParserOptions} parserOptions parser options
  * @param {object} options options
  * @param {boolean} options.futureDefaults is future defaults enabled
+ * @param {boolean} options.deferImport is defer import enabled
+ * @param {boolean} options.sourceImport is import source enabled
  * @param {boolean} options.isNode is node target platform
+ * @param {boolean} options.outputModule is output.module enabled
+ * @param {WebpackOptionsNormalized["output"]["library"]} options.library library options
+ * @param {boolean} options.typescript is typescript enabled
  * @returns {void}
  */
 const applyJavascriptParserOptionsDefaults = (
 	parserOptions,
-	{ futureDefaults, isNode }
+	{
+		futureDefaults,
+		deferImport,
+		sourceImport,
+		isNode,
+		outputModule,
+		library,
+		typescript
+	}
 ) => {
 	D(parserOptions, "unknownContextRequest", ".");
 	D(parserOptions, "unknownContextRegExp", false);
@@ -579,24 +902,32 @@ const applyJavascriptParserOptionsDefaults = (
 	D(parserOptions, "wrappedContextRecursive", true);
 	D(parserOptions, "wrappedContextCritical", false);
 	D(parserOptions, "strictThisContextOnImports", false);
-	D(parserOptions, "importMeta", true);
+	D(parserOptions, "importMeta", outputModule ? "preserve-unknown" : true);
 	D(parserOptions, "dynamicImportMode", "lazy");
 	D(parserOptions, "dynamicImportPrefetch", false);
 	D(parserOptions, "dynamicImportPreload", false);
 	D(parserOptions, "dynamicImportFetchPriority", false);
 	D(parserOptions, "createRequire", isNode);
+	D(parserOptions, "dynamicUrl", true);
+	D(parserOptions, "deferImport", deferImport);
+	D(parserOptions, "sourceImport", sourceImport);
+	D(parserOptions, "typescript", typescript);
 	if (futureDefaults) D(parserOptions, "exportsPresence", "error");
+	D(parserOptions, "strictModeViolations", futureDefaults ? "error" : "warn");
+	D(parserOptions, "anonymousDefaultExportName", !library);
 };
 
 /**
+ * Apply json generator options defaults.
  * @param {JsonGeneratorOptions} generatorOptions generator options
  * @returns {void}
  */
-const applyJsonGeneratorOptionsDefaults = generatorOptions => {
+const applyJsonGeneratorOptionsDefaults = (generatorOptions) => {
 	D(generatorOptions, "JSONParse", true);
 };
 
 /**
+ * Apply css generator options defaults.
  * @param {CssGeneratorOptions} generatorOptions generator options
  * @param {object} options options
  * @param {TargetProperties | false} options.targetProperties target properties
@@ -615,31 +946,48 @@ const applyCssGeneratorOptionsDefaults = (
 };
 
 /**
+ * Apply module defaults.
  * @param {ModuleOptions} module options
  * @param {object} options options
  * @param {boolean} options.cache is caching enabled
  * @param {boolean} options.syncWebAssembly is syncWebAssembly enabled
  * @param {boolean} options.asyncWebAssembly is asyncWebAssembly enabled
+ * @param {boolean} options.typescript is typescript enabled
  * @param {boolean} options.css is css enabled
+ * @param {boolean} options.html is html enabled
  * @param {boolean} options.futureDefaults is future defaults enabled
  * @param {string} options.uniqueName the unique name
  * @param {boolean} options.isNode is node target platform
+ * @param {boolean} options.deferImport is defer import enabled
+ * @param {boolean} options.sourceImport is import source enabled
  * @param {TargetProperties | false} options.targetProperties target properties
  * @param {Mode | undefined} options.mode mode
+ * @param {HashSalt} options.hashSalt hash salt
+ * @param {HashFunction} options.hashFunction hash function
+ * @param {boolean} options.outputModule is output.module enabled
+ * @param {WebpackOptionsNormalized["output"]["library"]} options.library library options
  * @returns {void}
  */
 const applyModuleDefaults = (
 	module,
 	{
+		hashSalt,
+		hashFunction,
 		cache,
 		syncWebAssembly,
 		asyncWebAssembly,
 		css,
+		html,
+		typescript,
 		futureDefaults,
 		isNode,
 		uniqueName,
 		targetProperties,
-		mode
+		mode,
+		deferImport,
+		sourceImport,
+		outputModule,
+		library
 	}
 ) => {
 	if (cache) {
@@ -647,10 +995,11 @@ const applyModuleDefaults = (
 			module,
 			"unsafeCache",
 			/**
+			 * Handles the callback logic for this hook.
 			 * @param {Module} module module
 			 * @returns {boolean} true, if we want to cache the module
 			 */
-			module => {
+			(module) => {
 				const name = module.nameForCondition();
 				if (!name) {
 					return false;
@@ -697,11 +1046,17 @@ const applyModuleDefaults = (
 		(module.parser.javascript),
 		{
 			futureDefaults,
-			isNode
+			deferImport,
+			sourceImport,
+			isNode,
+			outputModule,
+			library,
+			typescript
 		}
 	);
 
 	F(module.generator, "json", () => ({}));
+
 	applyJsonGeneratorOptionsDefaults(
 		/** @type {NonNullable<GeneratorOptionsByModuleTypeKnown["json"]>} */
 		(module.generator.json)
@@ -728,6 +1083,75 @@ const applyModuleDefaults = (
 			"namedExports",
 			true
 		);
+		D(
+			/** @type {NonNullable<ParserOptionsByModuleTypeKnown[CSS_MODULE_TYPE]>} */
+			(module.parser[CSS_MODULE_TYPE]),
+			"customMedia",
+			true
+		);
+		D(
+			/** @type {NonNullable<ParserOptionsByModuleTypeKnown[CSS_MODULE_TYPE]>} */
+			(module.parser[CSS_MODULE_TYPE]),
+			"customSelectors",
+			true
+		);
+
+		for (const type of [
+			CSS_MODULE_TYPE_AUTO,
+			CSS_MODULE_TYPE_MODULE,
+			CSS_MODULE_TYPE_GLOBAL
+		]) {
+			F(module.parser, type, () => ({}));
+
+			D(
+				/** @type {NonNullable<ParserOptionsByModuleTypeKnown[CSS_MODULE_TYPE_AUTO]> | NonNullable<ParserOptionsByModuleTypeKnown[CSS_MODULE_TYPE_MODULE]> | NonNullable<ParserOptionsByModuleTypeKnown[CSS_MODULE_TYPE_GLOBAL]>} */
+				(module.parser[type]),
+				"animation",
+				true
+			);
+			D(
+				/** @type {NonNullable<ParserOptionsByModuleTypeKnown[CSS_MODULE_TYPE_AUTO]> | NonNullable<ParserOptionsByModuleTypeKnown[CSS_MODULE_TYPE_MODULE]> | NonNullable<ParserOptionsByModuleTypeKnown[CSS_MODULE_TYPE_GLOBAL]>} */
+				(module.parser[type]),
+				"container",
+				true
+			);
+			D(
+				/** @type {NonNullable<ParserOptionsByModuleTypeKnown[CSS_MODULE_TYPE_AUTO]> | NonNullable<ParserOptionsByModuleTypeKnown[CSS_MODULE_TYPE_MODULE]> | NonNullable<ParserOptionsByModuleTypeKnown[CSS_MODULE_TYPE_GLOBAL]>} */
+				(module.parser[type]),
+				"customIdents",
+				true
+			);
+			D(
+				/** @type {NonNullable<ParserOptionsByModuleTypeKnown[CSS_MODULE_TYPE_AUTO]> | NonNullable<ParserOptionsByModuleTypeKnown[CSS_MODULE_TYPE_MODULE]> | NonNullable<ParserOptionsByModuleTypeKnown[CSS_MODULE_TYPE_GLOBAL]>} */
+				(module.parser[type]),
+				"dashedIdents",
+				true
+			);
+			D(
+				/** @type {NonNullable<ParserOptionsByModuleTypeKnown[CSS_MODULE_TYPE_AUTO]> | NonNullable<ParserOptionsByModuleTypeKnown[CSS_MODULE_TYPE_MODULE]> | NonNullable<ParserOptionsByModuleTypeKnown[CSS_MODULE_TYPE_GLOBAL]>} */
+				(module.parser[type]),
+				"function",
+				true
+			);
+			D(
+				/** @type {NonNullable<ParserOptionsByModuleTypeKnown[CSS_MODULE_TYPE_AUTO]> | NonNullable<ParserOptionsByModuleTypeKnown[CSS_MODULE_TYPE_MODULE]> | NonNullable<ParserOptionsByModuleTypeKnown[CSS_MODULE_TYPE_GLOBAL]>} */
+				(module.parser[type]),
+				"grid",
+				true
+			);
+			D(
+				/** @type {NonNullable<ParserOptionsByModuleTypeKnown[CSS_MODULE_TYPE_AUTO]> | NonNullable<ParserOptionsByModuleTypeKnown[CSS_MODULE_TYPE_MODULE]> | NonNullable<ParserOptionsByModuleTypeKnown[CSS_MODULE_TYPE_GLOBAL]>} */
+				(module.parser[type]),
+				"customMedia",
+				true
+			);
+			D(
+				/** @type {NonNullable<ParserOptionsByModuleTypeKnown[CSS_MODULE_TYPE_AUTO]> | NonNullable<ParserOptionsByModuleTypeKnown[CSS_MODULE_TYPE_MODULE]> | NonNullable<ParserOptionsByModuleTypeKnown[CSS_MODULE_TYPE_GLOBAL]>} */
+				(module.parser[type]),
+				"customSelectors",
+				true
+			);
+		}
 
 		F(module.generator, CSS_MODULE_TYPE, () => ({}));
 
@@ -738,48 +1162,86 @@ const applyModuleDefaults = (
 		);
 
 		const localIdentName =
-			uniqueName.length > 0 ? "[uniqueName]-[id]-[local]" : "[id]-[local]";
+			mode === "development"
+				? uniqueName.length > 0
+					? "[uniqueName]-[id]-[local]"
+					: "[id]-[local]"
+				: "[fullhash]";
+		const localIdentHashSalt = hashSalt;
+		const localIdentHashDigest = "base64url";
+		const localIdentHashDigestLength = 6;
+		const exportsConvention = "as-is";
 
-		F(module.generator, CSS_MODULE_TYPE_AUTO, () => ({}));
-		D(
-			/** @type {NonNullable<GeneratorOptionsByModuleTypeKnown[CSS_MODULE_TYPE_AUTO]>} */
-			(module.generator[CSS_MODULE_TYPE_AUTO]),
-			"localIdentName",
-			localIdentName
-		);
-		D(
-			/** @type {NonNullable<GeneratorOptionsByModuleTypeKnown[CSS_MODULE_TYPE_AUTO]>} */
-			(module.generator[CSS_MODULE_TYPE_AUTO]),
-			"exportsConvention",
-			"as-is"
-		);
+		for (const type of [
+			CSS_MODULE_TYPE_AUTO,
+			CSS_MODULE_TYPE_MODULE,
+			CSS_MODULE_TYPE_GLOBAL
+		]) {
+			F(module.generator, type, () => ({}));
 
-		F(module.generator, CSS_MODULE_TYPE_MODULE, () => ({}));
-		D(
-			/** @type {NonNullable<GeneratorOptionsByModuleTypeKnown[CSS_MODULE_TYPE_MODULE]>} */
-			(module.generator[CSS_MODULE_TYPE_MODULE]),
-			"localIdentName",
-			localIdentName
-		);
-		D(
-			/** @type {NonNullable<GeneratorOptionsByModuleTypeKnown[CSS_MODULE_TYPE_MODULE]>} */
-			(module.generator[CSS_MODULE_TYPE_MODULE]),
-			"exportsConvention",
-			"as-is"
-		);
+			D(
+				/** @type {NonNullable<GeneratorOptionsByModuleTypeKnown[CSS_MODULE_TYPE_AUTO]> | NonNullable<GeneratorOptionsByModuleTypeKnown[CSS_MODULE_TYPE_MODULE]> | NonNullable<GeneratorOptionsByModuleTypeKnown[CSS_MODULE_TYPE_GLOBAL]>} */
+				(module.generator[type]),
+				"localIdentName",
+				localIdentName
+			);
 
-		F(module.generator, CSS_MODULE_TYPE_GLOBAL, () => ({}));
+			D(
+				/** @type {NonNullable<GeneratorOptionsByModuleTypeKnown[CSS_MODULE_TYPE_AUTO]> | NonNullable<GeneratorOptionsByModuleTypeKnown[CSS_MODULE_TYPE_MODULE]> | NonNullable<GeneratorOptionsByModuleTypeKnown[CSS_MODULE_TYPE_GLOBAL]>} */
+				(module.generator[type]),
+				"localIdentHashSalt",
+				localIdentHashSalt
+			);
+
+			D(
+				/** @type {NonNullable<GeneratorOptionsByModuleTypeKnown[CSS_MODULE_TYPE_AUTO]> | NonNullable<GeneratorOptionsByModuleTypeKnown[CSS_MODULE_TYPE_MODULE]> | NonNullable<GeneratorOptionsByModuleTypeKnown[CSS_MODULE_TYPE_MODULE]>} */
+				(module.generator[type]),
+				"localIdentHashFunction",
+				hashFunction
+			);
+
+			D(
+				/** @type {NonNullable<GeneratorOptionsByModuleTypeKnown[CSS_MODULE_TYPE_AUTO]> | NonNullable<GeneratorOptionsByModuleTypeKnown[CSS_MODULE_TYPE_MODULE]> | NonNullable<GeneratorOptionsByModuleTypeKnown[CSS_MODULE_TYPE_MODULE]>} */
+				(module.generator[type]),
+				"localIdentHashDigest",
+				localIdentHashDigest
+			);
+
+			D(
+				/** @type {NonNullable<GeneratorOptionsByModuleTypeKnown[CSS_MODULE_TYPE_AUTO]> | NonNullable<GeneratorOptionsByModuleTypeKnown[CSS_MODULE_TYPE_MODULE]> | NonNullable<GeneratorOptionsByModuleTypeKnown[CSS_MODULE_TYPE_MODULE]>} */
+				(module.generator[type]),
+				"localIdentHashDigestLength",
+				localIdentHashDigestLength
+			);
+
+			D(
+				/** @type {NonNullable<GeneratorOptionsByModuleTypeKnown[CSS_MODULE_TYPE_AUTO]> | NonNullable<GeneratorOptionsByModuleTypeKnown[CSS_MODULE_TYPE_MODULE]> | NonNullable<GeneratorOptionsByModuleTypeKnown[CSS_MODULE_TYPE_GLOBAL]>} */
+				(module.generator[type]),
+				"exportsConvention",
+				exportsConvention
+			);
+		}
+	}
+
+	if (html) {
+		// `module.generator.html.extract` is intentionally left undefined by
+		// default: HtmlGenerator treats undefined as "extract iff this HTML
+		// module is a compilation entry", which is the HTML-entry-point
+		// behaviour. Setting `extract: true` forces extraction for all HTML
+		// modules (including imported ones); `extract: false` disables it
+		// everywhere.
+		F(module.generator, HTML_MODULE_TYPE, () => ({}));
+		// `module.parser.html.sources` defaults to `true` — HtmlParser uses
+		// the built-in source list to extract URL-like attributes (`<img
+		// src>`, `<link href>`, `<script src>`, …) as webpack dependencies.
+		// Users may pass `false` to disable extraction entirely or an array
+		// (with `"..."` to include the defaults) to customize it.
+		F(module.parser, HTML_MODULE_TYPE, () => ({}));
 		D(
-			/** @type {NonNullable<GeneratorOptionsByModuleTypeKnown[CSS_MODULE_TYPE_GLOBAL]>} */
-			(module.generator[CSS_MODULE_TYPE_GLOBAL]),
-			"localIdentName",
-			localIdentName
-		);
-		D(
-			/** @type {NonNullable<GeneratorOptionsByModuleTypeKnown[CSS_MODULE_TYPE_GLOBAL]>} */
-			(module.generator[CSS_MODULE_TYPE_GLOBAL]),
-			"exportsConvention",
-			"as-is"
+			/** @type {NonNullable<ParserOptionsByModuleTypeKnown[HTML_MODULE_TYPE]>} */
+			(module.parser[HTML_MODULE_TYPE]),
+			"sources",
+			true
 		);
 	}
 
@@ -840,6 +1302,7 @@ const applyModuleDefaults = (
 				...esm
 			}
 		];
+
 		if (asyncWebAssembly) {
 			const wasm = {
 				type: WEBASSEMBLY_MODULE_TYPE_ASYNC,
@@ -885,6 +1348,7 @@ const applyModuleDefaults = (
 				...wasm
 			});
 		}
+
 		if (css) {
 			const resolve = {
 				fullySpecified: true,
@@ -905,7 +1369,130 @@ const applyModuleDefaults = (
 				type: CSS_MODULE_TYPE,
 				resolve
 			});
+			// For CSS modules, i.e. `.class { composes: className from "./style.css" }`
+			// We inherit for such constructions, but skip files that are already
+			// detected as CSS modules by extension (`.module.<ext>`) — they get
+			// the same modules-mode behavior from the auto rule, and forcing a
+			// different type stamp here would create a duplicate module instance.
+			const moduleExtension = /\.module\.\w+$/i;
+			rules.push({
+				dependency: /css-import-local-module/,
+				exclude: moduleExtension,
+				type: CSS_MODULE_TYPE_MODULE,
+				resolve
+			});
+			rules.push({
+				dependency: /css-import-global-module/,
+				exclude: moduleExtension,
+				type: CSS_MODULE_TYPE_GLOBAL,
+				resolve
+			});
+
+			rules.push(
+				{
+					with: { type: "css" },
+					parser: {
+						exportType: "css-style-sheet"
+					},
+					resolve
+				},
+				{
+					assert: { type: "css" },
+					parser: {
+						exportType: "css-style-sheet"
+					},
+					resolve
+				}
+			);
 		}
+		if (html) {
+			const resolve = {
+				fullySpecified: true,
+				preferRelative: true
+			};
+
+			rules.push({
+				test: /\.html$/i,
+				type: HTML_MODULE_TYPE,
+				resolve
+			});
+			rules.push({
+				mimetype: "text/html",
+				type: HTML_MODULE_TYPE,
+				resolve
+			});
+			// `<iframe srcdoc>` content is fed back through the HTML pipeline as a
+			// `data:text/html` module. `extract: "inline"` exposes the processed
+			// HTML on the `html` codegen channel that `HtmlInlineHtmlDependency.
+			// Template` reads back into the attribute, without emitting a standalone
+			// `.html` file (the module is never a page on its own).
+			rules.push({
+				dependency: "html-srcdoc",
+				generator: {
+					extract: "inline"
+				},
+				resolve
+			});
+			if (css) {
+				// Inline `<style>` content in an HTML module is fed into the
+				// CSS pipeline as a `data:text/css` virtual module. We force
+				// `exportType: "text"` so the CSS module exposes the
+				// processed CSS text on the `css-text` codegen channel that
+				// `HtmlInlineStyleDependency.Template` reads back into the
+				// `<style>` tag.
+				rules.push({
+					dependency: "html-style",
+					parser: {
+						exportType: "text"
+					},
+					resolve
+				});
+				// A `style="..."` attribute is a CSS block's contents, not a
+				// stylesheet, so parse it as one (`as: "block-contents"`).
+				rules.push({
+					dependency: "html-style-attribute",
+					parser: {
+						exportType: "text",
+						as: "block-contents"
+					},
+					resolve
+				});
+			}
+		}
+
+		if (typescript) {
+			rules.push(
+				{
+					test: /\.mts$/i,
+					...esm
+				},
+				{
+					test: /\.ts$/i,
+					descriptionData: {
+						type: "module"
+					},
+					...esm
+				},
+				{
+					test: /\.cts$/i,
+					...commonjs
+				},
+				{
+					test: /\.ts$/i,
+					descriptionData: {
+						type: "commonjs"
+					},
+					...commonjs
+				},
+				{
+					mimetype: {
+						or: ["text/typescript", "application/typescript"]
+					},
+					...esm
+				}
+			);
+		}
+
 		rules.push(
 			{
 				dependency: "url",
@@ -920,19 +1507,70 @@ const applyModuleDefaults = (
 				]
 			},
 			{
-				assert: { type: JSON_MODULE_TYPE },
-				type: JSON_MODULE_TYPE
+				with: { type: JSON_MODULE_TYPE },
+				type: JSON_MODULE_TYPE,
+				parser: { namedExports: false }
 			},
 			{
-				with: { type: JSON_MODULE_TYPE },
-				type: JSON_MODULE_TYPE
+				assert: { type: JSON_MODULE_TYPE },
+				type: JSON_MODULE_TYPE,
+				parser: { namedExports: false }
+			},
+			{
+				with: { type: "text" },
+				type: ASSET_MODULE_TYPE_SOURCE
+			},
+			{
+				with: { type: "bytes" },
+				type: ASSET_MODULE_TYPE_BYTES
 			}
 		);
+		if (html) {
+			// A `.webmanifest` referenced by `<link rel="manifest">` is a `url`
+			// dependency; route it to the `asset/webmanifest` type so its icon URLs
+			// are parsed. Must come after the generic `url` → asset rule so it wins.
+			rules.push({
+				dependency: "url",
+				test: /\.webmanifest$/i,
+				type: "asset/webmanifest"
+			});
+			// A generated manifest (`output.html.manifest` object) is injected as a
+			// `data:application/manifest+json` URL with no `.webmanifest` extension;
+			// route it by mimetype so its icons are parsed and hashed too.
+			rules.push({
+				dependency: "url",
+				mimetype: "application/manifest+json",
+				type: "asset/webmanifest"
+			});
+		}
+		if (futureDefaults) {
+			rules.push({
+				oneOf: [
+					{
+						resourceQuery: /(\?|&)raw(&|$)/,
+						type: ASSET_MODULE_TYPE_SOURCE
+					},
+					{
+						resourceQuery: /(\?|&)url(&|$)/,
+						type: ASSET_MODULE_TYPE_RESOURCE
+					},
+					{
+						resourceQuery: /(\?|&)no-inline(&|$)/,
+						type: ASSET_MODULE_TYPE_RESOURCE
+					},
+					{
+						resourceQuery: /(\?|&)inline(&|$)/,
+						type: ASSET_MODULE_TYPE_INLINE
+					}
+				]
+			});
+		}
 		return rules;
 	});
 };
 
 /**
+ * Apply output defaults.
  * @param {Output} output options
  * @param {object} options options
  * @param {string} options.context context
@@ -959,10 +1597,11 @@ const applyOutputDefaults = (
 	}
 ) => {
 	/**
+	 * Returns a readable library name.
 	 * @param {Library=} library the library option
 	 * @returns {string} a readable library name
 	 */
-	const getLibraryName = library => {
+	const getLibraryName = (library) => {
 		const libraryName =
 			typeof library === "object" &&
 			library &&
@@ -993,7 +1632,7 @@ const applyOutputDefaults = (
 		if (libraryName) return libraryName;
 		const pkgPath = path.resolve(context, "package.json");
 		try {
-			const packageInfo = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
+			const packageInfo = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
 			return packageInfo.name || "";
 		} catch (err) {
 			if (/** @type {Error & { code: string }} */ (err).code !== "ENOENT") {
@@ -1010,11 +1649,13 @@ const applyOutputDefaults = (
 
 	const environment = /** @type {Environment} */ (output.environment);
 	/**
+	 * Returns true, when v is truthy or undefined.
 	 * @param {boolean | undefined} v value
 	 * @returns {boolean} true, when v is truthy or undefined
 	 */
-	const optimistic = v => v || v === undefined;
+	const optimistic = (v) => v || v === undefined;
 	/**
+	 * Conditionally optimistic.
 	 * @param {boolean | undefined} v value
 	 * @param {boolean | undefined} c condition
 	 * @returns {boolean | undefined} true, when v is truthy or undefined, or c is truthy
@@ -1028,6 +1669,17 @@ const applyOutputDefaults = (
 	);
 	F(
 		environment,
+		"symbol",
+		() => tp && optimistic(/** @type {boolean | undefined} */ (tp.symbol))
+	);
+	F(
+		environment,
+		"hasOwn",
+		// No optimistic, because it is new
+		() => tp && /** @type {boolean | undefined} */ (tp.hasOwn)
+	);
+	F(
+		environment,
 		"bigIntLiteral",
 		() =>
 			tp && optimistic(/** @type {boolean | undefined} */ (tp.bigIntLiteral))
@@ -1036,6 +1688,28 @@ const applyOutputDefaults = (
 		environment,
 		"const",
 		() => tp && optimistic(/** @type {boolean | undefined} */ (tp.const))
+	);
+	// `let` was added after `const`; targets predating it report only `const`,
+	// so fall back to `const` when `let` is unreported (undefined). Targets that
+	// do report `let` (browserslist, built-ins) keep their own accurate value.
+	F(environment, "let", () =>
+		conditionallyOptimistic(
+			/** @type {boolean | undefined} */ (tp && tp.let),
+			environment.const
+		)
+	);
+	F(
+		environment,
+		"logicalAssignment",
+		() =>
+			// No optimistic, because it is new
+			tp && /** @type {boolean | undefined} */ (tp.logicalAssignment)
+	);
+	F(
+		environment,
+		"methodShorthand",
+		() =>
+			tp && optimistic(/** @type {boolean | undefined} */ (tp.methodShorthand))
 	);
 	F(
 		environment,
@@ -1048,6 +1722,11 @@ const applyOutputDefaults = (
 		"asyncFunction",
 		() =>
 			tp && optimistic(/** @type {boolean | undefined} */ (tp.asyncFunction))
+	);
+	F(
+		environment,
+		"generator",
+		() => tp && optimistic(/** @type {boolean | undefined} */ (tp.generator))
 	);
 	F(
 		environment,
@@ -1068,12 +1747,31 @@ const applyOutputDefaults = (
 	);
 	F(
 		environment,
+		"spread",
+		() => tp && optimistic(/** @type {boolean | undefined} */ (tp.spread))
+	);
+	F(
+		environment,
 		"nodePrefixForCoreModules",
 		() =>
 			tp &&
 			optimistic(
 				/** @type {boolean | undefined} */ (tp.nodePrefixForCoreModules)
 			)
+	);
+	F(
+		environment,
+		"importMetaDirnameAndFilename",
+		() =>
+			// No optimistic, because it is new
+			tp && /** @type {boolean | undefined} */ (tp.importMetaDirnameAndFilename)
+	);
+	F(
+		environment,
+		"nodeBuiltinModuleGetter",
+		() =>
+			// No optimistic, because it is new
+			tp && /** @type {boolean | undefined} */ (tp.nodeBuiltinModuleGetter)
 	);
 	F(
 		environment,
@@ -1104,6 +1802,30 @@ const applyOutputDefaults = (
 		"document",
 		() => tp && optimistic(/** @type {boolean | undefined} */ (tp.document))
 	);
+	F(
+		environment,
+		"modulePreload",
+		() =>
+			tp && optimistic(/** @type {boolean | undefined} */ (tp.modulePreload))
+	);
+
+	// Vite-style default for ESM output (`output.module`): preload the entry's
+	// initial dependency graph, which native `import()` would otherwise fetch in
+	// a waterfall. Classic output loads initial chunks via parallel `<script>`
+	// tags (no waterfall), so it stays opt-in.
+	if (output.module && output.resourceHints === undefined) {
+		output.resourceHints = {};
+	}
+	if (output.resourceHints) {
+		if (output.module) D(output.resourceHints, "initial", true);
+		// `modulePreloadPolyfill` defaults from the target's modulepreload
+		// support: inject the polyfill iff the environment lacks it.
+		D(
+			output.resourceHints,
+			"modulePreloadPolyfill",
+			!environment.modulePreload
+		);
+	}
 
 	D(output, "filename", output.module ? "[name].mjs" : "[name].js");
 	F(output, "iife", () => !output.module);
@@ -1143,8 +1865,48 @@ const applyOutputDefaults = (
 		}
 		return "[id].css";
 	});
-	D(output, "assetModuleFilename", "[hash][ext][query]");
+	// Derive html filename defaults from `output.filename` / `output.chunkFilename`
+	// (the same shape the CSS pipeline uses), but if the derived template lacks
+	// any per-module differentiator, fall back to `[name].html` so multiple
+	// extracted HTML modules in one compilation don't collide on the same
+	// emitted file. For example: `output.filename: "bundle.js"` would derive
+	// `bundle.html` — two `.html` modules extracted in the same build would
+	// both want that name and conflict at emit time.
+	const HAS_PATH_PLACEHOLDER_REGEXP =
+		/\[(name|id|chunkhash|contenthash|fullhash|hash)/;
+	/**
+	 * @param {string} template html filename template derived from `output.filename`
+	 * @returns {string} same template, or `[name].html` if it has no per-module placeholder
+	 */
+	const ensureUniqueHtmlTemplate = (template) =>
+		HAS_PATH_PLACEHOLDER_REGEXP.test(template) ? template : "[name].html";
+	F(output, "htmlFilename", () => {
+		const filename =
+			/** @type {NonNullable<Output["htmlFilename"]>} */
+			(output.filename);
+		if (typeof filename !== "function") {
+			return ensureUniqueHtmlTemplate(
+				filename.replace(/\.[mc]?js(\?|$)/, ".html$1")
+			);
+		}
+		return "[name].html";
+	});
+	F(output, "htmlChunkFilename", () => {
+		const chunkFilename =
+			/** @type {NonNullable<Output["htmlChunkFilename"]>} */
+			(output.chunkFilename);
+		if (typeof chunkFilename !== "function") {
+			return ensureUniqueHtmlTemplate(
+				chunkFilename.replace(/\.[mc]?js(\?|$)/, ".html$1")
+			);
+		}
+		return "[name].html";
+	});
+	D(output, "html", false);
+	D(output, "assetModuleFilename", "[hash][ext][query][fragment]");
 	D(output, "webassemblyModuleFilename", "[hash].module.wasm");
+	// On by default like other wasm toolchains; set false to drop the fallback runtime code.
+	D(output, "wasmStreamingFallback", true);
 	D(output, "compareBeforeEmit", true);
 	D(output, "charset", !futureDefaults);
 	const uniqueNameId = Template.toIdentifier(
@@ -1156,6 +1918,11 @@ const applyOutputDefaults = (
 		if (tp) {
 			if (tp.global) return "global";
 			if (tp.globalThis) return "globalThis";
+			// Universal target (web + node) with no reported accessor: `globalThis`
+			// is the only one defined everywhere (`null` = mixed support → `self`).
+			if (tp.web === null && tp.node === null && tp.globalThis === undefined) {
+				return "globalThis";
+			}
 		}
 		return "self";
 	});
@@ -1170,9 +1937,7 @@ const applyOutputDefaults = (
 				throw new Error(
 					"For the selected environment is no default ESM chunk format available:\n" +
 						"ESM exports can be chosen when 'import()' is available.\n" +
-						`JSONP Array push can be chosen when 'document' is available.\n${
-							helpMessage
-						}`
+						`JSONP Array push can be chosen when 'document' is available.\n${helpMessage}`
 				);
 			} else {
 				if (tp.document) return "array-push";
@@ -1181,10 +1946,13 @@ const applyOutputDefaults = (
 				if (tp.importScripts) return "array-push";
 				throw new Error(
 					"For the selected environment is no default script chunk format available:\n" +
-						"JSONP Array push can be chosen when 'document' or 'importScripts' is available.\n" +
-						`CommonJs exports can be chosen when 'require' or node builtins are available.\n${
-							helpMessage
-						}`
+						`${
+							tp.module
+								? "Module ('module') can be chosen when ES modules are available (please set 'experiments.outputModule' and 'output.module' to `true`)"
+								: ""
+						}\n` +
+						"JSONP Array push ('array-push') can be chosen when 'document' or 'importScripts' is available.\n" +
+						`CommonJs exports ('commonjs') can be chosen when 'require' or node builtins are available.\n${helpMessage}`
 				);
 			}
 		}
@@ -1216,11 +1984,18 @@ const applyOutputDefaults = (
 				output.module &&
 				environment.dynamicImport
 			) {
-				return "universal";
+				return "import";
 			}
 		}
 		return false;
 	});
+	F(
+		output,
+		"workerChunkFilename",
+		() =>
+			/** @type {NonNullable<Output["workerChunkFilename"]>} */
+			(output.chunkFilename)
+	);
 	F(output, "workerChunkLoading", () => {
 		if (tp) {
 			switch (output.chunkFormat) {
@@ -1240,9 +2015,9 @@ const applyOutputDefaults = (
 					tp.nodeBuiltins === null ||
 					tp.importScriptsInWorker === null) &&
 				output.module &&
-				environment.dynamicImport
+				environment.dynamicImportInWorker
 			) {
-				return "universal";
+				return "import";
 			}
 		}
 		return false;
@@ -1253,7 +2028,6 @@ const applyOutputDefaults = (
 			if (tp.nodeBuiltins) return "async-node";
 			if (
 				(tp.nodeBuiltins === null || tp.fetchWasm === null) &&
-				asyncWebAssembly &&
 				output.module &&
 				environment.dynamicImport
 			) {
@@ -1275,7 +2049,13 @@ const applyOutputDefaults = (
 		"hotUpdateChunkFilename",
 		`[id].[fullhash].hot-update.${output.module ? "mjs" : "js"}`
 	);
-	D(output, "hotUpdateMainFilename", "[runtime].[fullhash].hot-update.json");
+	D(
+		output,
+		"hotUpdateMainFilename",
+		// Only `chunkLoading: "import"` loads the manifest via `import()` (needs an
+		// `export default` ES module); every other loader fetches it as raw JSON.
+		`[runtime].[fullhash].hot-update.${output.chunkLoading === "import" ? "json.mjs" : "json"}`
+	);
 	D(output, "crossOriginLoading", false);
 	F(output, "scriptType", () => (output.module ? "module" : false));
 	D(
@@ -1299,6 +2079,7 @@ const applyOutputDefaults = (
 	D(output, "hashDigestLength", futureDefaults ? 16 : 20);
 	D(output, "strictModuleErrorHandling", false);
 	D(output, "strictModuleExceptionHandling", false);
+	F(output, "strictModuleResolution", () => development);
 
 	const { trustedTypes } = output;
 	if (trustedTypes) {
@@ -1307,18 +2088,19 @@ const applyOutputDefaults = (
 			"policyName",
 			() =>
 				/** @type {NonNullable<Output["uniqueName"]>} */
-				(output.uniqueName).replace(/[^a-zA-Z0-9\-#=_/@.%]+/g, "_") || "webpack"
+				(output.uniqueName).replace(/[^a-z0-9\-#=_/@.%]+/gi, "_") || "webpack"
 		);
 		D(trustedTypes, "onPolicyCreationFailure", "stop");
 	}
 
 	/**
+	 * Processes the provided fn.
 	 * @param {(entryDescription: EntryDescription) => void} fn iterator
 	 * @returns {void}
 	 */
-	const forEachEntry = fn => {
+	const forEachEntry = (fn) => {
 		for (const name of Object.keys(entry)) {
-			fn(/** @type {{[k: string] : EntryDescription}} */ (entry)[name]);
+			fn(/** @type {{ [k: string]: EntryDescription }} */ (entry)[name]);
 		}
 	};
 	A(output, "enabledLibraryTypes", () => {
@@ -1327,7 +2109,7 @@ const applyOutputDefaults = (
 		if (output.library) {
 			enabledLibraryTypes.push(output.library.type);
 		}
-		forEachEntry(desc => {
+		forEachEntry((desc) => {
 			if (desc.library) {
 				enabledLibraryTypes.push(desc.library.type);
 			}
@@ -1336,6 +2118,7 @@ const applyOutputDefaults = (
 	});
 
 	A(output, "enabledChunkLoadingTypes", () => {
+		/** @type {ChunkLoadingTypes} */
 		const enabledChunkLoadingTypes = new Set();
 		if (output.chunkLoading) {
 			enabledChunkLoadingTypes.add(output.chunkLoading);
@@ -1343,15 +2126,16 @@ const applyOutputDefaults = (
 		if (output.workerChunkLoading) {
 			enabledChunkLoadingTypes.add(output.workerChunkLoading);
 		}
-		forEachEntry(desc => {
+		forEachEntry((desc) => {
 			if (desc.chunkLoading) {
 				enabledChunkLoadingTypes.add(desc.chunkLoading);
 			}
 		});
-		return Array.from(enabledChunkLoadingTypes);
+		return [...enabledChunkLoadingTypes];
 	});
 
 	A(output, "enabledWasmLoadingTypes", () => {
+		/** @type {WasmLoadingTypes} */
 		const enabledWasmLoadingTypes = new Set();
 		if (output.wasmLoading) {
 			enabledWasmLoadingTypes.add(output.wasmLoading);
@@ -1359,49 +2143,81 @@ const applyOutputDefaults = (
 		if (output.workerWasmLoading) {
 			enabledWasmLoadingTypes.add(output.workerWasmLoading);
 		}
-		forEachEntry(desc => {
+		forEachEntry((desc) => {
 			if (desc.wasmLoading) {
 				enabledWasmLoadingTypes.add(desc.wasmLoading);
 			}
 		});
-		return Array.from(enabledWasmLoadingTypes);
+		return [...enabledWasmLoadingTypes];
 	});
 };
 
 /**
+ * Apply externals presets defaults.
  * @param {ExternalsPresets} externalsPresets options
  * @param {object} options options
  * @param {TargetProperties | false} options.targetProperties target properties
  * @param {boolean} options.buildHttp buildHttp experiment enabled
+ * @param {boolean} options.outputModule is output type is module
  * @returns {void}
  */
 const applyExternalsPresetsDefaults = (
 	externalsPresets,
-	{ targetProperties, buildHttp }
+	{ targetProperties, buildHttp, outputModule }
 ) => {
+	/**
+	 * Checks whether this object is universal.
+	 * @param {keyof TargetProperties} key a key
+	 * @returns {boolean} true when target is universal, otherwise false
+	 */
+	const isUniversal = (key) =>
+		Boolean(outputModule && targetProperties && targetProperties[key] === null);
+
 	D(
 		externalsPresets,
 		"web",
 		/** @type {boolean | undefined} */
-		(!buildHttp && targetProperties && targetProperties.web)
+		(
+			!buildHttp &&
+				targetProperties &&
+				(targetProperties.web || isUniversal("node"))
+		)
 	);
 	D(
 		externalsPresets,
 		"node",
 		/** @type {boolean | undefined} */
-		(targetProperties && targetProperties.node)
+		(
+			targetProperties &&
+				((targetProperties.node &&
+					!targetProperties.deno &&
+					!targetProperties.bun) ||
+					isUniversal("node"))
+		)
+	);
+	D(
+		externalsPresets,
+		"deno",
+		/** @type {boolean | undefined} */
+		(Boolean(targetProperties && targetProperties.deno))
+	);
+	D(
+		externalsPresets,
+		"bun",
+		/** @type {boolean | undefined} */
+		(Boolean(targetProperties && targetProperties.bun))
 	);
 	D(
 		externalsPresets,
 		"nwjs",
 		/** @type {boolean | undefined} */
-		(targetProperties && targetProperties.nwjs)
+		(targetProperties && (targetProperties.nwjs || isUniversal("nwjs")))
 	);
 	D(
 		externalsPresets,
 		"electron",
 		/** @type {boolean | undefined} */
-		(targetProperties && targetProperties.electron)
+		((targetProperties && targetProperties.electron) || isUniversal("electron"))
 	);
 	D(
 		externalsPresets,
@@ -1410,7 +2226,7 @@ const applyExternalsPresetsDefaults = (
 		(
 			targetProperties &&
 				targetProperties.electron &&
-				targetProperties.electronMain
+				(targetProperties.electronMain || isUniversal("electronMain"))
 		)
 	);
 	D(
@@ -1420,7 +2236,7 @@ const applyExternalsPresetsDefaults = (
 		(
 			targetProperties &&
 				targetProperties.electron &&
-				targetProperties.electronPreload
+				(targetProperties.electronPreload || isUniversal("electronPreload"))
 		)
 	);
 	D(
@@ -1430,19 +2246,24 @@ const applyExternalsPresetsDefaults = (
 		(
 			targetProperties &&
 				targetProperties.electron &&
-				targetProperties.electronRenderer
+				(targetProperties.electronRenderer || isUniversal("electronRenderer"))
 		)
 	);
 };
 
 /**
+ * Apply loader defaults.
  * @param {Loader} loader options
  * @param {object} options options
  * @param {TargetProperties | false} options.targetProperties target properties
  * @param {Environment} options.environment environment
+ * @param {boolean} options.outputModule is output type is module
  * @returns {void}
  */
-const applyLoaderDefaults = (loader, { targetProperties, environment }) => {
+const applyLoaderDefaults = (
+	loader,
+	{ targetProperties, environment, outputModule }
+) => {
 	F(loader, "target", () => {
 		if (targetProperties) {
 			if (targetProperties.electron) {
@@ -1452,14 +2273,26 @@ const applyLoaderDefaults = (loader, { targetProperties, environment }) => {
 				return "electron";
 			}
 			if (targetProperties.nwjs) return "nwjs";
+			if (targetProperties.deno) return "deno";
+			if (targetProperties.bun) return "bun";
 			if (targetProperties.node) return "node";
 			if (targetProperties.web) return "web";
+			// no single platform to report: the bundle runs on both (target
+			// `"universal"` / `["web", "node"]`), so loaders get `"universal"`
+			if (
+				outputModule &&
+				targetProperties.node === null &&
+				targetProperties.web === null
+			) {
+				return "universal";
+			}
 		}
 	});
 	D(loader, "environment", environment);
 };
 
 /**
+ * Apply node defaults.
  * @param {WebpackNode} node options
  * @param {object} options options
  * @param {TargetProperties | false} options.targetProperties target properties
@@ -1475,14 +2308,28 @@ const applyNodeDefaults = (
 
 	F(node, "global", () => {
 		if (targetProperties && targetProperties.global) return false;
-		// TODO webpack 6 should always default to false
+		// We use `warm` because overriding `global` with `globalThis` (or a polyfill) is sometimes safe (global.URL), sometimes unsafe (global.process), but we need to warn about it
 		return futureDefaults ? "warn" : true;
 	});
 
 	const handlerForNames = () => {
-		if (targetProperties && targetProperties.node)
-			return outputModule ? "node-module" : "eval-only";
-		// TODO webpack 6 should always default to false
+		// TODO webpack@6 remove `node-module` in favor of `eval-only`
+		if (targetProperties) {
+			if (targetProperties.node) {
+				return "eval-only";
+			}
+
+			// For the "universal" target we only evaluate these values
+			if (
+				outputModule &&
+				targetProperties.node === null &&
+				targetProperties.web === null
+			) {
+				return "eval-only";
+			}
+		}
+
+		// TODO webpack@6 should we use `warn-even-only`?
 		return futureDefaults ? "warn-mock" : "mock";
 	};
 
@@ -1491,6 +2338,7 @@ const applyNodeDefaults = (
 };
 
 /**
+ * Apply performance defaults.
  * @param {Performance} performance options
  * @param {object} options options
  * @param {boolean} options.production is production
@@ -1504,6 +2352,7 @@ const applyPerformanceDefaults = (performance, { production }) => {
 };
 
 /**
+ * Apply optimization defaults.
  * @param {Optimization} optimization options
  * @param {object} options options
  * @param {boolean} options.production is production
@@ -1534,6 +2383,7 @@ const applyOptimizationDefaults = (
 	D(optimization, "providedExports", true);
 	D(optimization, "usedExports", production);
 	D(optimization, "innerGraph", production);
+	D(optimization, "inlineExports", production);
 	D(optimization, "mangleExports", production);
 	D(optimization, "concatenateModules", production);
 	D(optimization, "avoidEntryIife", production);
@@ -1546,9 +2396,10 @@ const applyOptimizationDefaults = (
 	D(optimization, "minimize", production);
 	A(optimization, "minimizer", () => [
 		{
-			apply: compiler => {
-				// Lazy load the Terser plugin
-				const TerserPlugin = require("terser-webpack-plugin");
+			apply: (compiler) => {
+				// Lazy load the minimizer plugin
+				const TerserPlugin = require("minimizer-webpack-plugin");
+
 				new TerserPlugin({
 					terserOptions: {
 						compress: {
@@ -1567,7 +2418,9 @@ const applyOptimizationDefaults = (
 	const { splitChunks } = optimization;
 	if (splitChunks) {
 		A(splitChunks, "defaultSizeTypes", () =>
-			css ? ["javascript", "css", "unknown"] : ["javascript", "unknown"]
+			css
+				? [JAVASCRIPT_TYPE, CSS_TYPE, UNKNOWN_TYPE]
+				: [JAVASCRIPT_TYPE, UNKNOWN_TYPE]
 		);
 		D(splitChunks, "hidePathInfo", production);
 		D(splitChunks, "chunks", "async");
@@ -1598,12 +2451,16 @@ const applyOptimizationDefaults = (
 };
 
 /**
+ * Gets resolve defaults.
  * @param {object} options options
  * @param {boolean} options.cache is cache enable
  * @param {string} options.context build context
  * @param {TargetProperties | false} options.targetProperties target properties
  * @param {Mode} options.mode mode
  * @param {boolean} options.css is css enabled
+ * @param {boolean} options.html is html enabled
+ * @param {boolean} options.htmlFirst whether `.html` should outrank `.js` when resolving (only when html was explicitly enabled)
+ * @param {boolean} options.typescript is typescript enabled
  * @returns {ResolveOptions} resolve options
  */
 const getResolveDefaults = ({
@@ -1611,7 +2468,10 @@ const getResolveDefaults = ({
 	context,
 	targetProperties,
 	mode,
-	css
+	css,
+	html,
+	htmlFirst,
+	typescript
 }) => {
 	/** @type {string[]} */
 	const conditions = ["webpack"];
@@ -1619,6 +2479,8 @@ const getResolveDefaults = ({
 	conditions.push(mode === "development" ? "development" : "production");
 
 	if (targetProperties) {
+		if (targetProperties.deno) conditions.push("deno");
+		if (targetProperties.bun) conditions.push("bun");
 		if (targetProperties.webworker) conditions.push("worker");
 		if (targetProperties.node) conditions.push("node");
 		if (targetProperties.web) conditions.push("browser");
@@ -1626,26 +2488,69 @@ const getResolveDefaults = ({
 		if (targetProperties.nwjs) conditions.push("nwjs");
 	}
 
-	const jsExtensions = [".js", ".json", ".wasm"];
+	const jsExtensions = typescript
+		? [".ts", ".js", ".json", ".wasm"]
+		: [".js", ".json", ".wasm"];
+
+	// Explicitly enabling html keeps `.html` ahead of `.js` (html-as-entry feature).
+	// Auto-enabled html/css are lower-priority fallbacks after `.js`, so enabling
+	// them by default never makes `x.html`/`x.css` shadow `x.js`.
+	const esmResolveExtensions = [
+		...(html && htmlFirst ? [".html"] : []),
+		...jsExtensions,
+		...(html && !htmlFirst ? [".html"] : []),
+		...(css ? [".css"] : [])
+	];
 
 	const tp = targetProperties;
 	const browserField =
 		tp && tp.web && (!tp.node || (tp.electron && tp.electronRenderer));
 
+	// When `experiments.typescript` is on, also honor the `typescript`
+	// conditional-exports key so monorepo packages can ship .ts sources via
+	// `package.json#exports` — same convention Node.js's amaro uses.
+	const tsConditionPrefix = typescript ? ["typescript"] : [];
+
 	/** @type {() => ResolveOptions} */
 	const cjsDeps = () => ({
 		aliasFields: browserField ? ["browser"] : [],
 		mainFields: browserField ? ["browser", "module", "..."] : ["module", "..."],
-		conditionNames: ["require", "module", "..."],
+		conditionNames: [
+			...tsConditionPrefix,
+			"require",
+			"module-sync",
+			"module",
+			"..."
+		],
 		extensions: [...jsExtensions]
 	});
 	/** @type {() => ResolveOptions} */
 	const esmDeps = () => ({
 		aliasFields: browserField ? ["browser"] : [],
 		mainFields: browserField ? ["browser", "module", "..."] : ["module", "..."],
-		conditionNames: ["import", "module", "..."],
-		extensions: [...jsExtensions]
+		conditionNames: [
+			...tsConditionPrefix,
+			"import",
+			"module-sync",
+			"module",
+			"..."
+		],
+		extensions: [...esmResolveExtensions]
 	});
+
+	/** @type {() => ResolveOptions} */
+	const workerDeps = () => {
+		const options = esmDeps();
+
+		const conditionNames = options.conditionNames
+			? ["worker", ...options.conditionNames]
+			: options.conditionNames;
+		return {
+			...options,
+			conditionNames,
+			preferRelative: true
+		};
+	};
 
 	/** @type {ResolveOptions} */
 	const resolveOptions = {
@@ -1666,10 +2571,7 @@ const getResolveDefaults = ({
 			url: {
 				preferRelative: true
 			},
-			worker: {
-				...esmDeps(),
-				preferRelative: true
-			},
+			worker: workerDeps(),
 			commonjs: cjsDeps(),
 			amd: cjsDeps(),
 			// for backward-compat: loadModule
@@ -1682,14 +2584,15 @@ const getResolveDefaults = ({
 	};
 
 	if (css) {
+		/** @type {string[]} */
 		const styleConditions = [];
 
 		styleConditions.push("webpack");
 		styleConditions.push(mode === "development" ? "development" : "production");
 		styleConditions.push("style");
 
-		/** @type {NonNullable<ResolveOptions["byDependency"]>} */
-		(resolveOptions.byDependency)["css-import"] = {
+		/** @type {ResolveOptions} */
+		const cssResolveOptions = {
 			// We avoid using any main files because we have to be consistent with CSS `@import`
 			// and CSS `@import` does not handle `main` files in directories,
 			// you should always specify the full URL for styles
@@ -1699,12 +2602,33 @@ const getResolveDefaults = ({
 			extensions: [".css"],
 			preferRelative: true
 		};
+
+		/** @type {NonNullable<ResolveOptions["byDependency"]>} */
+		(resolveOptions.byDependency)["css-import"] = cssResolveOptions;
+		// For CSS modules, i.e. `.class { composes: className from "./style.css" }`
+		// We inherit for such constructions
+		/** @type {NonNullable<ResolveOptions["byDependency"]>} */
+		(resolveOptions.byDependency)["css-import-local-module"] =
+			cssResolveOptions;
+		/** @type {NonNullable<ResolveOptions["byDependency"]>} */
+		(resolveOptions.byDependency)["css-import-global-module"] =
+			cssResolveOptions;
+	}
+
+	if (typescript) {
+		resolveOptions.tsconfig = true;
+		resolveOptions.extensionAlias = {
+			".js": [".js", ".ts"],
+			".cjs": [".cjs", ".cts"],
+			".mjs": [".mjs", ".mts"]
+		};
 	}
 
 	return resolveOptions;
 };
 
 /**
+ * Gets resolve loader defaults.
  * @param {object} options options
  * @param {boolean} options.cache is cache enable
  * @returns {ResolveOptions} resolve options
@@ -1724,10 +2648,11 @@ const getResolveLoaderDefaults = ({ cache }) => {
 };
 
 /**
+ * Apply infrastructure logging defaults.
  * @param {InfrastructureLogging} infrastructureLogging options
  * @returns {void}
  */
-const applyInfrastructureLoggingDefaults = infrastructureLogging => {
+const applyInfrastructureLoggingDefaults = (infrastructureLogging) => {
 	F(infrastructureLogging, "stream", () => process.stderr);
 	const tty =
 		/** @type {NonNullable<InfrastructureLogging["stream"]>} */
@@ -1738,7 +2663,7 @@ const applyInfrastructureLoggingDefaults = infrastructureLogging => {
 	D(infrastructureLogging, "appendOnly", !tty);
 };
 
+module.exports.DEFAULTS = DEFAULTS;
 module.exports.applyWebpackOptionsBaseDefaults =
 	applyWebpackOptionsBaseDefaults;
 module.exports.applyWebpackOptionsDefaults = applyWebpackOptionsDefaults;
-module.exports.DEFAULTS = DEFAULTS;

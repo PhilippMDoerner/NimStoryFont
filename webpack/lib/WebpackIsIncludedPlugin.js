@@ -5,21 +5,19 @@
 
 "use strict";
 
-const IgnoreErrorModuleFactory = require("./IgnoreErrorModuleFactory");
 const {
 	JAVASCRIPT_MODULE_TYPE_AUTO,
 	JAVASCRIPT_MODULE_TYPE_DYNAMIC,
 	JAVASCRIPT_MODULE_TYPE_ESM
 } = require("./ModuleTypeConstants");
 const WebpackIsIncludedDependency = require("./dependencies/WebpackIsIncludedDependency");
+const IgnoreErrorModuleFactory = require("./errors/IgnoreErrorModuleFactory");
 const {
 	toConstantDependency
 } = require("./javascript/JavascriptParserHelpers");
 
-/** @typedef {import("enhanced-resolve").Resolver} Resolver */
 /** @typedef {import("./Compiler")} Compiler */
 /** @typedef {import("./Dependency").DependencyLocation} DependencyLocation */
-/** @typedef {import("./Module")} Module */
 /** @typedef {import("./javascript/JavascriptParser")} JavascriptParser */
 /** @typedef {import("./javascript/JavascriptParser").Range} Range */
 
@@ -27,6 +25,7 @@ const PLUGIN_NAME = "WebpackIsIncludedPlugin";
 
 class WebpackIsIncludedPlugin {
 	/**
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Compiler} compiler the compiler instance
 	 * @returns {void}
 	 */
@@ -44,19 +43,21 @@ class WebpackIsIncludedPlugin {
 				);
 
 				/**
+				 * Handles the hook callback for this code path.
 				 * @param {JavascriptParser} parser the parser
 				 * @returns {void}
 				 */
-				const handler = parser => {
+				const handler = (parser) => {
 					parser.hooks.call
 						.for("__webpack_is_included__")
-						.tap(PLUGIN_NAME, expr => {
+						.tap(PLUGIN_NAME, (expr) => {
 							if (
 								expr.type !== "CallExpression" ||
 								expr.arguments.length !== 1 ||
 								expr.arguments[0].type === "SpreadElement"
-							)
+							) {
 								return;
+							}
 
 							const request = parser.evaluateExpression(expr.arguments[0]);
 
@@ -66,7 +67,7 @@ class WebpackIsIncludedPlugin {
 								/** @type {string} */ (request.string),
 								/** @type {Range} */ (expr.range)
 							);
-							dep.loc = /** @type {DependencyLocation} */ (expr.loc);
+							dep.loc = parser.getLocation(expr);
 							parser.state.module.addDependency(dep);
 							return true;
 						});

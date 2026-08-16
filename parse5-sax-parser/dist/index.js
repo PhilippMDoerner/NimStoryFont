@@ -189,4 +189,3 @@ export class SAXParser extends Transform {
         }
     }
 }
-//# sourceMappingURL=index.js.map

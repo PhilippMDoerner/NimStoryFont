@@ -1,1 +1,1 @@
-export declare const isUint8Array: (x: unknown) => x is Uint8Array;
+export * from '@jsonjoy.com/buffers/lib/isUint8Array';

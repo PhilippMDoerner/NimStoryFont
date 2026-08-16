@@ -11,22 +11,22 @@ const ExternalModuleInitFragment = require("./ExternalModuleInitFragment");
 
 /** @typedef {import("webpack-sources").ReplaceSource} ReplaceSource */
 /** @typedef {import("../Dependency")} Dependency */
-/** @typedef {import("../Dependency").UpdateHashContext} UpdateHashContext */
 /** @typedef {import("../DependencyTemplate").DependencyTemplateContext} DependencyTemplateContext */
-/** @typedef {import("../javascript/JavascriptModulesPlugin").ChunkRenderContext} ChunkRenderContext */
 /** @typedef {import("../javascript/JavascriptParser").Range} Range */
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext} ObjectDeserializerContext */
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext} ObjectSerializerContext */
-/** @typedef {import("../util/Hash")} Hash */
+/** @typedef {import("../dependencies/ExternalModuleInitFragment").ArrayImportSpecifiers} ArrayImportSpecifiers */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext<(string | ArrayImportSpecifiers | undefined)[]>} ObjectDeserializerContext */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext<(string | ArrayImportSpecifiers | undefined)[]>} ObjectSerializerContext */
 
 class ExternalModuleDependency extends CachedConstDependency {
 	/**
+	 * Creates an instance of ExternalModuleDependency.
 	 * @param {string} module module
-	 * @param {{ name: string, value: string }[]} importSpecifiers import specifiers
+	 * @param {ArrayImportSpecifiers} importSpecifiers import specifiers
 	 * @param {string | undefined} defaultImport default import
 	 * @param {string} expression expression
-	 * @param {Range} range range
+	 * @param {Range | null} range range
 	 * @param {string} identifier identifier
+	 * @param {number=} place place where we inject the expression
 	 */
 	constructor(
 		module,
@@ -34,16 +34,21 @@ class ExternalModuleDependency extends CachedConstDependency {
 		defaultImport,
 		expression,
 		range,
-		identifier
+		identifier,
+		place = CachedConstDependency.PLACE_MODULE
 	) {
-		super(expression, range, identifier);
+		super(expression, range, identifier, place);
 
+		/** @type {string} */
 		this.importedModule = module;
+		/** @type {ArrayImportSpecifiers} */
 		this.specifiers = importSpecifiers;
+		/** @type {string | undefined} */
 		this.default = defaultImport;
 	}
 
 	/**
+	 * Create hash update.
 	 * @returns {string} hash update
 	 */
 	_createHashUpdate() {
@@ -53,6 +58,7 @@ class ExternalModuleDependency extends CachedConstDependency {
 	}
 
 	/**
+	 * Serializes this instance into the provided serializer context.
 	 * @param {ObjectSerializerContext} context context
 	 */
 	serialize(context) {
@@ -64,14 +70,15 @@ class ExternalModuleDependency extends CachedConstDependency {
 	}
 
 	/**
+	 * Restores this instance from the provided deserializer context.
 	 * @param {ObjectDeserializerContext} context context
 	 */
 	deserialize(context) {
 		super.deserialize(context);
 		const { read } = context;
-		this.importedModule = read();
-		this.specifiers = read();
-		this.default = read();
+		this.importedModule = /** @type {string} */ (read());
+		this.specifiers = /** @type {ArrayImportSpecifiers} */ (read());
+		this.default = /** @type {string | undefined} */ (read());
 	}
 }
 
@@ -84,6 +91,7 @@ ExternalModuleDependency.Template = class ExternalModuleDependencyTemplate exten
 	CachedConstDependency.Template
 ) {
 	/**
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Dependency} dependency the dependency for which the template should be applied
 	 * @param {ReplaceSource} source the current replace source which can be modified
 	 * @param {DependencyTemplateContext} templateContext the context object

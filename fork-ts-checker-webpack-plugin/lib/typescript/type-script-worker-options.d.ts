@@ -1,6 +1,6 @@
 import type { TypeScriptConfigOverwrite } from './type-script-config-overwrite';
 import type { TypeScriptDiagnosticsOptions } from './type-script-diagnostics-options';
-declare type TypeScriptWorkerOptions = {
+type TypeScriptWorkerOptions = {
     memoryLimit?: number;
     configFile?: string;
     configOverwrite?: TypeScriptConfigOverwrite;

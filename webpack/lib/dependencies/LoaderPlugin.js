@@ -6,25 +6,29 @@
 "use strict";
 
 const NormalModule = require("../NormalModule");
+const { markNotCacheable } = require("../loaders/LoaderRunner");
 const LazySet = require("../util/LazySet");
 const LoaderDependency = require("./LoaderDependency");
 const LoaderImportDependency = require("./LoaderImportDependency");
 
-/** @typedef {import("../../declarations/LoaderContext").LoaderPluginLoaderContext} LoaderPluginLoaderContext */
-/** @typedef {import("../Compilation").DepConstructor} DepConstructor */
+/** @typedef {import("webpack-sources").RawSourceMap} RawSourceMap */
+/** @typedef {import("../Compilation").DependencyConstructor} DependencyConstructor */
 /** @typedef {import("../Compilation").ExecuteModuleExports} ExecuteModuleExports */
 /** @typedef {import("../Compilation").ExecuteModuleResult} ExecuteModuleResult */
 /** @typedef {import("../Compiler")} Compiler */
-/** @typedef {import("../Module")} Module */
 /** @typedef {import("../Module").BuildInfo} BuildInfo */
+/** @typedef {import("../Module").FileSystemDependencies} FileSystemDependencies */
 
 /**
+ * Defines the import module callback callback.
  * @callback ImportModuleCallback
  * @param {(Error | null)=} err error object
  * @param {ExecuteModuleExports=} exports exports of the evaluated module
+ * @returns {void}
  */
 
 /**
+ * Defines the import module options type used by this module.
  * @typedef {object} ImportModuleOptions
  * @property {string=} layer the target layer
  * @property {string=} publicPath the target public path
@@ -35,7 +39,7 @@ const PLUGIN_NAME = "LoaderPlugin";
 
 class LoaderPlugin {
 	/**
-	 * Apply the plugin
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Compiler} compiler the compiler instance
 	 * @returns {void}
 	 */
@@ -54,18 +58,19 @@ class LoaderPlugin {
 			}
 		);
 
-		compiler.hooks.compilation.tap(PLUGIN_NAME, compilation => {
+		compiler.hooks.compilation.tap(PLUGIN_NAME, (compilation) => {
 			const moduleGraph = compilation.moduleGraph;
 			NormalModule.getCompilationHooks(compilation).loader.tap(
 				PLUGIN_NAME,
-				loaderContext => {
+				(loaderContext) => {
 					loaderContext.loadModule = (request, callback) => {
 						const dep = new LoaderDependency(request);
 						dep.loc = {
 							name: request
 						};
 						const factory = compilation.dependencyFactories.get(
-							/** @type {DepConstructor} */ (dep.constructor)
+							/** @type {DependencyConstructor} */
+							(dep.constructor)
 						);
 						if (factory === undefined) {
 							return callback(
@@ -91,7 +96,7 @@ class LoaderPlugin {
 								context: loaderContext.context,
 								recursive: false
 							},
-							err => {
+							(err) => {
 								compilation.factorizeQueue.setContext(oldFactorizeQueueContext);
 								compilation.addModuleQueue.setContext(oldAddModuleQueueContext);
 								compilation.buildQueue.decreaseParallelism();
@@ -115,7 +120,9 @@ class LoaderPlugin {
 										)
 									);
 								}
+								/** @type {null | RawSourceMap} */
 								let map;
+								/** @type {string | Buffer | undefined} */
 								let source;
 								if (moduleSource.sourceAndMap) {
 									const sourceAndMap = moduleSource.sourceAndMap();
@@ -125,9 +132,13 @@ class LoaderPlugin {
 									map = moduleSource.map();
 									source = moduleSource.source();
 								}
+								/** @type {FileSystemDependencies} */
 								const fileDependencies = new LazySet();
+								/** @type {FileSystemDependencies} */
 								const contextDependencies = new LazySet();
+								/** @type {FileSystemDependencies} */
 								const missingDependencies = new LazySet();
+								/** @type {FileSystemDependencies} */
 								const buildDependencies = new LazySet();
 								referencedModule.addCacheDependencies(
 									fileDependencies,
@@ -154,6 +165,7 @@ class LoaderPlugin {
 					};
 
 					/**
+					 * Processes the provided request.
 					 * @param {string} request the request string to load the module from
 					 * @param {ImportModuleOptions} options options
 					 * @param {ImportModuleCallback} callback callback returning the exports
@@ -165,7 +177,8 @@ class LoaderPlugin {
 							name: request
 						};
 						const factory = compilation.dependencyFactories.get(
-							/** @type {DepConstructor} */ (dep.constructor)
+							/** @type {DependencyConstructor} */
+							(dep.constructor)
 						);
 						if (factory === undefined) {
 							return callback(
@@ -196,7 +209,7 @@ class LoaderPlugin {
 								connectOrigin: false,
 								checkCycle: true
 							},
-							err => {
+							(err) => {
 								compilation.factorizeQueue.setContext(oldFactorizeQueueContext);
 								compilation.addModuleQueue.setContext(oldAddModuleQueueContext);
 								compilation.buildQueue.decreaseParallelism();
@@ -225,6 +238,7 @@ class LoaderPlugin {
 											missingDependencies,
 											buildDependencies,
 											cacheable,
+											notCacheableReasons,
 											assets,
 											exports
 										} = /** @type {ExecuteModuleResult} */ (result);
@@ -240,7 +254,9 @@ class LoaderPlugin {
 										for (const d of buildDependencies) {
 											loaderContext.addBuildDependency(d);
 										}
-										if (cacheable === false) loaderContext.cacheable(false);
+										if (cacheable === false) {
+											markNotCacheable(loaderContext, notCacheableReasons);
+										}
 										for (const [name, { source, info }] of assets) {
 											const buildInfo =
 												/** @type {BuildInfo} */
@@ -281,4 +297,5 @@ class LoaderPlugin {
 		});
 	}
 }
+
 module.exports = LoaderPlugin;

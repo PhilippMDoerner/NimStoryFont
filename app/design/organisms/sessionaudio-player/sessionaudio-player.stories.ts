@@ -1,7 +1,7 @@
 import { FormlyModule } from '@ngx-formly/core';
-import { action } from 'storybook/actions';
 import { Meta, StoryFn, moduleMetadata } from '@storybook/angular';
-import { Timestamp } from 'src/app/_models/sessionAudio';
+import { action } from 'storybook/actions';
+import { Timestamp } from '../../../_models/sessionAudio';
 import {
   integerValidator,
   invalidTimeMessage,
@@ -9,7 +9,7 @@ import {
   requiredMessage,
   requiredValidator,
   timeValidator,
-} from 'src/app/_services/formly/validators';
+} from '../../../_services/formly/validators';
 import { SessionaudioPlayerComponent } from './sessionaudio-player.component';
 
 const dummyTimestamps: Timestamp[] = [

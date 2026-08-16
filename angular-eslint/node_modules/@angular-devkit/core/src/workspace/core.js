@@ -130,3 +130,4 @@ async function writeWorkspace(workspace, host, path, format) {
             throw new Error('Unsupported workspace format.');
     }
 }
+//# sourceMappingURL=core.js.map

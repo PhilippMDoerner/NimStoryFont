@@ -104,7 +104,7 @@ export declare function resolveProvidersRequiringFactory(rawProviders: ts.Expres
  * The `value` is the exported declaration of the class from its source file.
  * The `type` is an expression that would be used in the typings (.d.ts) files.
  */
-export declare function wrapTypeReference(reflector: ReflectionHost, clazz: ClassDeclaration): R3Reference;
+export declare function wrapTypeReference(clazz: ClassDeclaration): R3Reference;
 /** Creates a ParseSourceSpan for a TypeScript node. */
 export declare function createSourceSpan(node: ts.Node): ParseSourceSpan;
 /**
@@ -120,3 +120,4 @@ export declare function resolveImportedFile(moduleResolver: ModuleResolver, impo
  */
 export declare function getOriginNodeForDiagnostics(expr: ts.Expression, container: ts.Expression): ts.Expression;
 export declare function isAbstractClassDeclaration(clazz: ClassDeclaration): boolean;
+export declare function parseStandaloneOption(decorator: Readonly<Decorator | null>, evaluator: PartialEvaluator, implicitStandaloneValue: boolean): boolean;

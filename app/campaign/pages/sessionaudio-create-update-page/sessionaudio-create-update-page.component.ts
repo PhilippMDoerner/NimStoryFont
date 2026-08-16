@@ -12,17 +12,18 @@ import { ActivatedRoute } from '@angular/router';
 import { NgbProgressbarModule } from '@ng-bootstrap/ng-bootstrap';
 import { FormlyFieldConfig } from '@ngx-formly/core';
 import { filter, map, mergeMap, Observable, take } from 'rxjs';
-import { OverviewItem } from 'src/app/_models/overview';
-import { Session } from 'src/app/_models/session';
-import { SessionAudio, SessionAudioRaw } from 'src/app/_models/sessionAudio';
-import { FormlyService } from 'src/app/_services/formly/formly-service.service';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { PROLOGUE_FORBIDDEN_CHARACTERS } from 'src/app/app.constants';
-import { PageContainerComponent } from 'src/app/design//organisms/page-container/page-container.component';
-import { CreateUpdateComponent } from 'src/app/design//templates/create-update/create-update.component';
-import { CreateUpdateState } from 'src/app/design/templates/_models/create-update-states';
-import { GlobalStore } from 'src/app/global.store';
-import { filterNil } from 'src/utils/rxjs-operators';
+
+import { filterNil } from '../../../../utils/rxjs-operators';
+import { OverviewItem } from '../../../_models/overview';
+import { Session } from '../../../_models/session';
+import { SessionAudio, SessionAudioRaw } from '../../../_models/sessionAudio';
+import { FormlyService } from '../../../_services/formly/formly-service.service';
+import { RoutingService } from '../../../_services/routing.service';
+import { PROLOGUE_FORBIDDEN_CHARACTERS } from '../../../app.constants';
+import { PageContainerComponent } from '../../../design/organisms/page-container/page-container.component';
+import { CreateUpdateState } from '../../../design/templates/_models/create-update-states';
+import { CreateUpdateComponent } from '../../../design/templates/create-update/create-update.component';
+import { GlobalStore } from '../../../global.store';
 import { SessionaudioCreateUpdatePageStore } from './sessionaudio-create-update-page.store';
 
 @Component({
@@ -38,23 +39,27 @@ import { SessionaudioCreateUpdatePageStore } from './sessionaudio-create-update-
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SessionaudioCreateUpdatePageComponent {
-  private route = inject(ActivatedRoute);
-  private routeUrlSegments = toSignal(this.route.url);
-  private routingService = inject(RoutingService);
-  private formlyService = inject(FormlyService);
-  globalStore = inject(GlobalStore);
-  store = inject(SessionaudioCreateUpdatePageStore);
+  private readonly route = inject(ActivatedRoute);
+  private readonly routeUrlSegments = toSignal(this.route.url);
+  private readonly routingService = inject(RoutingService);
+  private readonly formlyService = inject(FormlyService);
+  readonly globalStore = inject(GlobalStore);
+  readonly store = inject(SessionaudioCreateUpdatePageStore);
 
-  private sessions$ = toObservable(this.store.campaignSessions).pipe(
+  private readonly sessions$ = toObservable(this.store.campaignSessions).pipe(
     filterNil(),
   );
-  private audioCreateState$ = toObservable(this.store.createSessionaudioState);
-  private audioUpdateState$ = toObservable(this.store.updateSessionaudioState);
-  private item$ = toObservable(this.store.sessionaudio);
+  private readonly audioCreateState$ = toObservable(
+    this.store.createSessionaudioState,
+  );
+  private readonly audioUpdateState$ = toObservable(
+    this.store.updateSessionaudioState,
+  );
+  private readonly item$ = toObservable(this.store.sessionaudio);
 
   @HostBinding('class.uploading') isUploading = false;
 
-  state = computed<CreateUpdateState>(() => {
+  readonly state = computed<CreateUpdateState>(() => {
     const pathSegments = this.routeUrlSegments()?.map(
       (segment) => segment.path,
     );
@@ -71,7 +76,7 @@ export class SessionaudioCreateUpdatePageComponent {
     }
   });
 
-  userModel = computed(() => {
+  readonly userModel = computed(() => {
     switch (this.state()) {
       case 'CREATE':
         return {
@@ -83,7 +88,7 @@ export class SessionaudioCreateUpdatePageComponent {
     }
   });
 
-  heading = computed(() => {
+  readonly heading = computed(() => {
     const session: Session | undefined =
       this.store.sessionaudio()?.session_details;
 
@@ -96,7 +101,7 @@ export class SessionaudioCreateUpdatePageComponent {
     }
   });
 
-  formlyFields = computed<FormlyFieldConfig[]>(() => [
+  readonly formlyFields = computed<FormlyFieldConfig[]>(() => [
     this.formlyService.buildDisableSelectConfig({
       key: 'session',
       options$: this.sessions$,

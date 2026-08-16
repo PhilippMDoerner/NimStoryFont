@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RULE_NAME = void 0;
+exports.RULE_DOCS_EXTENSION = exports.RULE_NAME = void 0;
 const utils_1 = require("@angular-eslint/utils");
 const create_eslint_rule_1 = require("../utils/create-eslint-rule");
 const is_child_node_of_1 = require("../utils/is-child-node-of");
@@ -80,17 +80,18 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
         let labelItems = [];
         return {
             [`Element`](node) {
-                if (allControlComponents.has(node.name)) {
+                const tagName = node.name.toLowerCase();
+                if (allControlComponents.has(tagName)) {
                     inputItems.push(node);
                 }
-                const element = allLabelComponents.find(({ selector }) => selector === node.name);
+                const element = allLabelComponents.find(({ selector }) => selector === tagName);
                 if (element) {
                     labelItems.push(node);
                 }
             },
             onCodePathEnd() {
                 for (const node of labelItems) {
-                    const element = allLabelComponents.find(({ selector }) => selector === node.name);
+                    const element = allLabelComponents.find(({ selector }) => selector === node.name.toLowerCase());
                     if (!element)
                         continue;
                     const attributesInputs = new Map([...node.attributes, ...node.inputs].map(({ name, value }) => [
@@ -129,3 +130,6 @@ function hasControlComponentWithId(controlComponents, id) {
 function filterUndefined(value) {
     return value !== undefined && value !== null;
 }
+exports.RULE_DOCS_EXTENSION = {
+    rationale: "Form labels must be associated with their form controls for accessibility and usability. This association can be achieved by: (1) wrapping the input inside the label, (2) using the 'for' attribute with a matching input 'id', or (3) for Angular Material, ensuring proper accessibility attributes are set. This association provides multiple benefits: screen readers can announce what each form field is for, clicking the label focuses the input (increasing the clickable area), and it creates a clear connection between labels and fields for all users. This is a WCAG Level A requirement.",
+};

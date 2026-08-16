@@ -1,6 +1,6 @@
 @let campaignName = globalStore.campaignName();
 @let spells = store.spells();
-@let campaignId = globalStore.currentCampaign()?.pk;
+@let campaignId = $safeNavigationMigration(globalStore.currentCampaign()?.pk);
 
 @if (spells && campaignName && campaignId) {
   <app-spells-template

@@ -52,3 +52,4 @@ __exportStar(require("./registry"), exports);
 __exportStar(require("./schema"), exports);
 __exportStar(require("./visitor"), exports);
 __exportStar(require("./utility"), exports);
+//# sourceMappingURL=index.js.map

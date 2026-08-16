@@ -6,9 +6,9 @@ import {
   Signal,
 } from '@angular/core';
 import { Observable } from 'rxjs';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { OrganizationComponent } from 'src/app/design/templates/organization/organization.component';
-import { GlobalStore } from 'src/app/global.store';
+import { RoutingService } from '../../../_services/routing.service';
+import { OrganizationComponent } from '../../../design/templates/organization/organization.component';
+import { GlobalStore } from '../../../global.store';
 import { OrganizationStore } from './organization-page.store';
 
 @Component({
@@ -19,10 +19,10 @@ import { OrganizationStore } from './organization-page.store';
   styleUrl: './organization-page.component.scss',
 })
 export class OrganizationPageComponent {
-  serverUrl = '';
-  store = inject(OrganizationStore);
-  globalStore = inject(GlobalStore);
-  routingService = inject(RoutingService);
+  readonly serverUrl = '';
+  readonly store = inject(OrganizationStore);
+  readonly globalStore = inject(GlobalStore);
+  readonly routingService = inject(RoutingService);
 
   private readonly isPageLoading: Observable<boolean> | Signal<boolean> =
     computed(() => this.store.organization() == null);

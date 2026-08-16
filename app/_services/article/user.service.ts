@@ -2,8 +2,8 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { OverviewItem } from 'src/app/_models/overview';
-import { User, UserRaw } from 'src/app/_models/user';
+import { OverviewItem } from '../../_models/overview';
+import { User, UserRaw } from '../../_models/user';
 import { BaseService } from '../base.service';
 
 @Injectable({

@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { OverviewItem } from 'src/app/_models/overview';
-import { SpellPlayerClassConnection } from 'src/app/_models/spell';
+import { OverviewItem } from '../../_models/overview';
+import { SpellPlayerClassConnection } from '../../_models/spell';
 import { BaseService } from '../base.service';
 import { CreateDeleteService } from '../service.interfaces';
 

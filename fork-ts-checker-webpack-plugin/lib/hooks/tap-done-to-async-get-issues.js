@@ -64,7 +64,7 @@ function tapDoneToAsyncGetIssues(compiler, config, state) {
             config.logger.log((0, stats_formatter_1.statsFormatter)(issues, stats));
         }
         else {
-            config.logger.log(chalk_1.default.green('No errors found.'));
+            config.logger.log(chalk_1.default.green('No typescript errors found.'));
         }
         // report issues to webpack-dev-server, if it's listening
         // skip reporting if there are no issues, to avoid an extra hot reload

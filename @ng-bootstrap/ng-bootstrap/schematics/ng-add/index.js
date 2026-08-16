@@ -5,7 +5,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 var schematics = require('@angular-devkit/schematics');
 var tasks = require('@angular-devkit/schematics/tasks');
 var utility = require('@schematics/angular/utility');
-var messages = require('../messages-Coq8X1sU.js');
+var messages = require('../messages-BL7pjewd.js');
 
 /**
  * Sorts the keys of the given object.
@@ -68,7 +68,7 @@ function ngAdd(options) {
         // Installing dependencies
         const angularCoreVersion = getPackageVersionFromPackageJson(tree, '@angular/core');
         const angularLocalizeVersion = getPackageVersionFromPackageJson(tree, '@angular/localize', true);
-        addPackageToPackageJson(tree, 'bootstrap', "^5.3.6");
+        addPackageToPackageJson(tree, 'bootstrap', "^5.3.8");
         addPackageToPackageJson(tree, '@popperjs/core', "^2.11.8");
         if (angularLocalizeVersion === null) {
             addPackageToPackageJson(tree, '@angular/localize', angularCoreVersion, true);

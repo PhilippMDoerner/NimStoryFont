@@ -19,19 +19,21 @@ class AutoPublicPathRuntimeModule extends RuntimeModule {
 	}
 
 	/**
+	 * Generates runtime code for this runtime module.
 	 * @returns {string | null} runtime code
 	 */
 	generate() {
 		const compilation = /** @type {Compilation} */ (this.compilation);
-		const { scriptType, importMetaName, path } = compilation.outputOptions;
+		const { scriptType, importMetaName, path, environment } =
+			compilation.outputOptions;
+		const chunk = /** @type {Chunk} */ (this.chunk);
 		const chunkName = compilation.getPath(
 			JavascriptModulesPlugin.getChunkFilenameTemplate(
-				/** @type {Chunk} */
-				(this.chunk),
+				chunk,
 				compilation.outputOptions
 			),
 			{
-				chunk: this.chunk,
+				chunk,
 				contentHashType: "javascript"
 			}
 		);
@@ -41,26 +43,42 @@ class AutoPublicPathRuntimeModule extends RuntimeModule {
 			false
 		);
 
+		const global = environment.globalThis
+			? "globalThis"
+			: RuntimeGlobals.global;
+
+		const entryOptions = chunk.getEntryOptions();
+		// A worklet chunk is always loaded as a module via `addModule`, so it can
+		// read `import.meta.url` directly instead of the worker-scope detection.
+		const fromImportMeta =
+			scriptType === "module" || Boolean(entryOptions && entryOptions.worklet);
+
+		const runtimeTemplate = compilation.runtimeTemplate;
+		const cst = runtimeTemplate.renderConst();
+		const lt = runtimeTemplate.renderLet();
 		return Template.asString([
-			"var scriptUrl;",
-			scriptType === "module"
+			`${lt} scriptUrl;`,
+			fromImportMeta
 				? `if (typeof ${importMetaName}.url === "string") scriptUrl = ${importMetaName}.url`
 				: Template.asString([
-						`if (${RuntimeGlobals.global}.importScripts) scriptUrl = ${RuntimeGlobals.global}.location + "";`,
-						`var document = ${RuntimeGlobals.global}.document;`,
+						`if (${global}.importScripts) scriptUrl = ${global}.location + "";`,
+						`${cst} document = ${global}.document;`,
 						"if (!scriptUrl && document) {",
 						Template.indent([
 							// Technically we could use `document.currentScript instanceof window.HTMLScriptElement`,
 							// but an attacker could try to inject `<script>HTMLScriptElement = HTMLImageElement</script>`
 							// and use `<img name="currentScript" src="https://attacker.controlled.server/"></img>`
-							"if (document.currentScript && document.currentScript.tagName.toUpperCase() === 'SCRIPT')",
+							`if (${runtimeTemplate.optionalChaining(
+								"document.currentScript",
+								"tagName.toUpperCase() === 'SCRIPT'"
+							)})`,
 							Template.indent("scriptUrl = document.currentScript.src;"),
 							"if (!scriptUrl) {",
 							Template.indent([
-								'var scripts = document.getElementsByTagName("script");',
+								`${cst} scripts = document.getElementsByTagName("script");`,
 								"if(scripts.length) {",
 								Template.indent([
-									"var i = scripts.length - 1;",
+									`${lt} i = scripts.length - 1;`,
 									"while (i > -1 && (!scriptUrl || !/^http(s?):/.test(scriptUrl))) scriptUrl = scripts[i--].src;"
 								]),
 								"}"

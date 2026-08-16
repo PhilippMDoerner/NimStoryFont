@@ -16,18 +16,21 @@ class CreateFakeNamespaceObjectRuntimeModule extends HelperRuntimeModule {
 	}
 
 	/**
+	 * Generates runtime code for this runtime module.
 	 * @returns {string | null} runtime code
 	 */
 	generate() {
 		const compilation = /** @type {Compilation} */ (this.compilation);
 		const { runtimeTemplate } = compilation;
 		const fn = RuntimeGlobals.createFakeNamespaceObject;
+		const cst = runtimeTemplate.renderConst();
+		const lt = runtimeTemplate.renderLet();
 		return Template.asString([
-			`var getProto = Object.getPrototypeOf ? ${runtimeTemplate.returningFunction(
+			`${cst} getProto = Object.getPrototypeOf ? ${runtimeTemplate.returningFunction(
 				"Object.getPrototypeOf(obj)",
 				"obj"
 			)} : ${runtimeTemplate.returningFunction("obj.__proto__", "obj")};`,
-			"var leafPrototypes;",
+			`${lt} leafPrototypes;`,
 			"// create a fake namespace object",
 			"// mode & 1: value is a module id, require it",
 			"// mode & 2: merge all properties of value into the ns",
@@ -45,11 +48,11 @@ class CreateFakeNamespaceObjectRuntimeModule extends HelperRuntimeModule {
 					"if((mode & 16) && typeof value.then === 'function') return value;"
 				]),
 				"}",
-				"var ns = Object.create(null);",
+				`${cst} ns = Object.create(null);`,
 				`${RuntimeGlobals.makeNamespaceObject}(ns);`,
-				"var def = {};",
+				`${cst} def = {};`,
 				"leafPrototypes = leafPrototypes || [null, getProto({}), getProto([]), getProto(getProto)];",
-				"for(var current = mode & 2 && value; typeof current == 'object' && !~leafPrototypes.indexOf(current); current = getProto(current)) {",
+				"for(var current = mode & 2 && value; (typeof current == 'object' || typeof current == 'function') && !~leafPrototypes.indexOf(current); current = getProto(current)) {",
 				Template.indent([
 					`Object.getOwnPropertyNames(current).forEach(${runtimeTemplate.expressionFunction(
 						`def[key] = ${runtimeTemplate.returningFunction("value[key]", "")}`,

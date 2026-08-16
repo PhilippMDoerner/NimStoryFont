@@ -5,9 +5,9 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.dev/license
  */
+import { InputOrOutput } from '@angular/compiler';
 import ts from 'typescript';
 import { ImportedSymbolsTracker } from '../../../imports';
-import { InputOrOutput } from '../../../metadata';
 import { ClassMember, ReflectionHost } from '../../../reflection';
 import { InitializerApiFunction } from './initializer_functions';
 /** Possible functions that can declare an output. */

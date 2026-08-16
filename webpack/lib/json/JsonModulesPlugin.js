@@ -6,32 +6,11 @@
 "use strict";
 
 const { JSON_MODULE_TYPE } = require("../ModuleTypeConstants");
-const createSchemaValidation = require("../util/create-schema-validation");
 const JsonGenerator = require("./JsonGenerator");
+const JsonModule = require("./JsonModule");
 const JsonParser = require("./JsonParser");
 
 /** @typedef {import("../Compiler")} Compiler */
-/** @typedef {import("../util/fs").JsonArray} JsonArray */
-/** @typedef {import("../util/fs").JsonObject} JsonObject */
-/** @typedef {import("../util/fs").JsonValue} JsonValue */
-
-const validate = createSchemaValidation(
-	require("../../schemas/plugins/json/JsonModulesPluginParser.check.js"),
-	() => require("../../schemas/plugins/json/JsonModulesPluginParser.json"),
-	{
-		name: "Json Modules Plugin",
-		baseDataPath: "parser"
-	}
-);
-
-const validateGenerator = createSchemaValidation(
-	require("../../schemas/plugins/json/JsonModulesPluginGenerator.check.js"),
-	() => require("../../schemas/plugins/json/JsonModulesPluginGenerator.json"),
-	{
-		name: "Json Modules Plugin",
-		baseDataPath: "generator"
-	}
-);
 
 const PLUGIN_NAME = "JsonModulesPlugin";
 
@@ -41,7 +20,7 @@ const PLUGIN_NAME = "JsonModulesPlugin";
  */
 class JsonModulesPlugin {
 	/**
-	 * Apply the plugin
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Compiler} compiler the compiler instance
 	 * @returns {void}
 	 */
@@ -49,16 +28,48 @@ class JsonModulesPlugin {
 		compiler.hooks.compilation.tap(
 			PLUGIN_NAME,
 			(compilation, { normalModuleFactory }) => {
+				normalModuleFactory.hooks.createModuleClass
+					.for(JSON_MODULE_TYPE)
+					.tap(
+						PLUGIN_NAME,
+						(createData, _resolveData) => new JsonModule(createData)
+					);
 				normalModuleFactory.hooks.createParser
 					.for(JSON_MODULE_TYPE)
-					.tap(PLUGIN_NAME, parserOptions => {
-						validate(parserOptions);
+					.tap(PLUGIN_NAME, (parserOptions) => {
+						compiler.validate(
+							() =>
+								require("../../schemas/plugins/json/JsonModulesPluginParser.json"),
+							parserOptions,
+							{
+								name: "Json Modules Plugin",
+								baseDataPath: "parser"
+							},
+							(options) =>
+								require("../../schemas/plugins/json/JsonModulesPluginParser.check")(
+									options
+								)
+						);
+
 						return new JsonParser(parserOptions);
 					});
 				normalModuleFactory.hooks.createGenerator
 					.for(JSON_MODULE_TYPE)
-					.tap(PLUGIN_NAME, generatorOptions => {
-						validateGenerator(generatorOptions);
+					.tap(PLUGIN_NAME, (generatorOptions) => {
+						compiler.validate(
+							() =>
+								require("../../schemas/plugins/json/JsonModulesPluginGenerator.json"),
+							generatorOptions,
+							{
+								name: "Json Modules Plugin",
+								baseDataPath: "generator"
+							},
+							(options) =>
+								require("../../schemas/plugins/json/JsonModulesPluginGenerator.check")(
+									options
+								)
+						);
+
 						return new JsonGenerator(generatorOptions);
 					});
 			}

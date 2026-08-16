@@ -239,3 +239,4 @@ class SassWorkerImplementation {
     }
 }
 exports.SassWorkerImplementation = SassWorkerImplementation;
+//# sourceMappingURL=sass-service.js.map

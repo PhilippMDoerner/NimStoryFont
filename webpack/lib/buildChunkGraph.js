@@ -5,9 +5,8 @@
 
 "use strict";
 
-const AsyncDependencyToInitialChunkError = require("./AsyncDependencyToInitialChunkError");
-const { connectChunkGroupParentAndChild } = require("./GraphHelpers");
 const ModuleGraphConnection = require("./ModuleGraphConnection");
+const AsyncDependencyToInitialChunkError = require("./errors/AsyncDependencyToInitialChunkError");
 const { getEntryRuntime, mergeRuntime } = require("./util/runtime");
 
 /** @typedef {import("./AsyncDependenciesBlock")} AsyncDependenciesBlock */
@@ -15,9 +14,9 @@ const { getEntryRuntime, mergeRuntime } = require("./util/runtime");
 /** @typedef {import("./ChunkGroup")} ChunkGroup */
 /** @typedef {import("./Compilation")} Compilation */
 /** @typedef {import("./DependenciesBlock")} DependenciesBlock */
-/** @typedef {import("./Dependency")} Dependency */
 /** @typedef {import("./Dependency").DependencyLocation} DependencyLocation */
 /** @typedef {import("./Entrypoint")} Entrypoint */
+/** @typedef {import("./Entrypoint").EntryOptions} EntryOptions */
 /** @typedef {import("./Module")} Module */
 /** @typedef {import("./ModuleGraph")} ModuleGraph */
 /** @typedef {import("./ModuleGraphConnection").ConnectionState} ConnectionState */
@@ -25,6 +24,7 @@ const { getEntryRuntime, mergeRuntime } = require("./util/runtime");
 /** @typedef {import("./util/runtime").RuntimeSpec} RuntimeSpec */
 
 /**
+ * Defines the queue item type used by this module.
  * @typedef {object} QueueItem
  * @property {number} action
  * @property {DependenciesBlock} block
@@ -35,6 +35,7 @@ const { getEntryRuntime, mergeRuntime } = require("./util/runtime");
  */
 
 /**
+ * Defines the chunk group info type used by this module.
  * @typedef {object} ChunkGroupInfo
  * @property {ChunkGroup} chunkGroup the chunk group
  * @property {RuntimeSpec} runtime the runtimes
@@ -51,9 +52,12 @@ const { getEntryRuntime, mergeRuntime } = require("./util/runtime");
  * @property {number} postOrderIndex next post order index
  * @property {boolean} chunkLoading has a chunk loading mechanism
  * @property {boolean} asyncChunks create async chunks
+ * @property {Module | null} depModule the module that is the dependency of the block
+ * @property {boolean} circular Whether to deduplicate to avoid circular references
  */
 
 /**
+ * Defines the block chunk group connection type used by this module.
  * @typedef {object} BlockChunkGroupConnection
  * @property {ChunkGroupInfo} originChunkGroupInfo origin chunk group
  * @property {ChunkGroup} chunkGroup referenced chunk group
@@ -73,6 +77,7 @@ const ZERO_BIGINT = BigInt(0);
 const ONE_BIGINT = BigInt(1);
 
 /**
+ * Checks whether this object is ordinal set in mask.
  * @param {bigint} mask The mask to test
  * @param {number} ordinal The ordinal of the bit to test
  * @returns {boolean} If the ordinal-th bit is set in the mask
@@ -81,6 +86,7 @@ const isOrdinalSetInMask = (mask, ordinal) =>
 	BigInt.asUintN(1, mask >> BigInt(ordinal)) !== ZERO_BIGINT;
 
 /**
+ * Gets active state of connections.
  * @param {ModuleGraphConnection[]} connections list of connections
  * @param {RuntimeSpec} runtime for which runtime
  * @returns {ConnectionState} connection state
@@ -100,6 +106,7 @@ const getActiveStateOfConnections = (connections, runtime) => {
 };
 
 /**
+ * Extract block modules.
  * @param {Module} module module
  * @param {ModuleGraph} moduleGraph module graph
  * @param {RuntimeSpec} runtime runtime
@@ -166,6 +173,7 @@ const extractBlockModules = (module, moduleGraph, runtime, blockModulesMap) => {
 
 	for (const modules of arrays) {
 		if (modules.length === 0) continue;
+		/** @type {undefined | Map<Module | ModuleGraphConnection | ConnectionState, number>} */
 		let indexMap;
 		let length = 0;
 		outer: for (let j = 0; j < modules.length; j += 3) {
@@ -235,6 +243,45 @@ const extractBlockModules = (module, moduleGraph, runtime, blockModulesMap) => {
 };
 
 /**
+ * Derives block modules for another runtime from an already extracted result.
+ * Only the merged active state of each connection group can differ per
+ * runtime; modules and connection groups are reused. When all states turn
+ * out equal, the tuple array is shared instead of copied.
+ * @param {Module} module the root module
+ * @param {BlockModulesMap} source map containing the extracted result for all blocks of the module
+ * @param {RuntimeSpec} runtime runtime to derive for
+ * @param {BlockModulesMap} blockModulesMap block modules map to fill
+ */
+const deriveBlockModules = (module, source, runtime, blockModulesMap) => {
+	/** @type {DependenciesBlock[]} */
+	const queue = [module];
+	while (queue.length > 0) {
+		const block = /** @type {DependenciesBlock} */ (queue.pop());
+		const sourceModules =
+			/** @type {BlockModulesInFlattenTuples} */
+			(source.get(block));
+		let target = sourceModules;
+		for (let i = 0, len = sourceModules.length; i < len; i += 3) {
+			const state = getActiveStateOfConnections(
+				/** @type {ModuleGraphConnection[]} */ (sourceModules[i + 2]),
+				runtime
+			);
+			if (target === sourceModules) {
+				if (state === sourceModules[i + 1]) continue;
+				// states diverged, copy (states before i are identical)
+				target = [...sourceModules];
+			}
+			target[i + 1] = state;
+		}
+		blockModulesMap.set(block, target);
+		for (const b of block.blocks) {
+			queue.push(b);
+		}
+	}
+};
+
+/**
+ * Processes the provided logger.
  * @param {Logger} logger a logger
  * @param {Compilation} compilation the compilation
  * @param {InputEntrypointsAndModules} inputEntrypointsAndModules chunk groups which are processed with the modules
@@ -259,17 +306,20 @@ const visitModules = (
 	/** @type {Map<RuntimeSpec, BlockModulesMap>} */
 	const blockModulesRuntimeMap = new Map();
 
-	/** @type {BlockModulesMap | undefined} */
-	let blockModulesMap;
+	// map containing the first extraction per root module,
+	// other runtimes derive their result from it
+	/** @type {Map<Module, BlockModulesMap>} */
+	const firstBlockModulesMapByModule = new Map();
 
 	/** @type {Map<Module, number>} */
 	const ordinalByModule = new Map();
 
 	/**
+	 * Gets module ordinal.
 	 * @param {Module} module The module to look up
 	 * @returns {number} The ordinal of the module in masks
 	 */
-	const getModuleOrdinal = module => {
+	const getModuleOrdinal = (module) => {
 		let ordinal = ordinalByModule.get(module);
 		if (ordinal === undefined) {
 			ordinal = ordinalByModule.size;
@@ -287,12 +337,13 @@ const visitModules = (
 	}
 
 	/**
+	 * Gets block modules.
 	 * @param {DependenciesBlock} block block
 	 * @param {RuntimeSpec} runtime runtime
 	 * @returns {BlockModulesInFlattenTuples | undefined} block modules in flatten tuples
 	 */
 	const getBlockModules = (block, runtime) => {
-		blockModulesMap = blockModulesRuntimeMap.get(runtime);
+		let blockModulesMap = blockModulesRuntimeMap.get(runtime);
 		if (blockModulesMap === undefined) {
 			/** @type {BlockModulesMap} */
 			blockModulesMap = new Map();
@@ -310,17 +361,33 @@ const visitModules = (
 				() => {
 					logger.time("visitModules: prepare");
 					const map = new Map();
-					extractBlockModules(module, moduleGraph, runtime, map);
+					const source = firstBlockModulesMapByModule.get(module);
+					if (source !== undefined) {
+						deriveBlockModules(module, source, runtime, map);
+					} else {
+						extractBlockModules(module, moduleGraph, runtime, map);
+					}
 					logger.timeAggregate("visitModules: prepare");
 					return map;
 				}
 			);
-			for (const [block, blockModules] of map)
+			// allow other runtimes to derive from a memCache hit too
+			if (!firstBlockModulesMapByModule.has(module)) {
+				firstBlockModulesMapByModule.set(module, map);
+			}
+			for (const [block, blockModules] of map) {
 				blockModulesMap.set(block, blockModules);
+			}
 			return map.get(block);
 		}
 		logger.time("visitModules: prepare");
-		extractBlockModules(module, moduleGraph, runtime, blockModulesMap);
+		const source = firstBlockModulesMapByModule.get(module);
+		if (source !== undefined) {
+			deriveBlockModules(module, source, runtime, blockModulesMap);
+		} else {
+			extractBlockModules(module, moduleGraph, runtime, blockModulesMap);
+			firstBlockModulesMapByModule.set(module, blockModulesMap);
+		}
 		blockModules =
 			/** @type {BlockModulesInFlattenTuples} */
 			(blockModulesMap.get(block));
@@ -352,11 +419,16 @@ const visitModules = (
 	/** @type {Map<ChunkGroupInfo, Set<DependenciesBlock>>} */
 	const blocksByChunkGroups = new Map();
 
-	/** @type {Map<string, ChunkGroupInfo>} */
+	/** @typedef {Map<string, ChunkGroupInfo>} NamedChunkGroup */
+
+	/** @type {NamedChunkGroup} */
 	const namedChunkGroups = new Map();
 
-	/** @type {Map<string, ChunkGroupInfo>} */
+	/** @type {NamedChunkGroup} */
 	const namedAsyncEntrypoints = new Map();
+
+	/** @type {Map<Module, ChunkGroupInfo>} */
+	const depModuleAsyncEntrypoints = new Map();
 
 	/** @type {Set<ChunkGroupInfo>} */
 	const outdatedOrderIndexChunkGroups = new Set();
@@ -371,7 +443,8 @@ const visitModules = (
 	/** @type {QueueItem[]} */
 	let queue = [];
 
-	/** @type {Map<ChunkGroupInfo, Set<[ChunkGroupInfo, QueueItem | null]>>} */
+	/** @typedef {Set<[ChunkGroupInfo, QueueItem | null]>} ConnectList */
+	/** @type {Map<ChunkGroupInfo, ConnectList>} */
 	const queueConnect = new Map();
 	/** @type {Set<ChunkGroupInfo>} */
 	const chunkGroupsForCombining = new Set();
@@ -386,6 +459,8 @@ const visitModules = (
 		);
 		/** @type {ChunkGroupInfo} */
 		const chunkGroupInfo = {
+			depModule: null,
+			circular: false,
 			initialized: false,
 			chunkGroup,
 			runtime,
@@ -482,10 +557,11 @@ const visitModules = (
 
 	// For each async Block in graph
 	/**
+	 * Processes the provided b.
 	 * @param {AsyncDependenciesBlock} b iterating over each Async DepBlock
 	 * @returns {void}
 	 */
-	const iteratorBlock = b => {
+	const iteratorBlock = (b) => {
 		// 1. We create a chunk group with single chunk in it for this Block
 		// but only once (blockChunkGroups map)
 		/** @type {ChunkGroupInfo | undefined} */
@@ -494,11 +570,16 @@ const visitModules = (
 		let c;
 		/** @type {Entrypoint | undefined} */
 		let entrypoint;
+		/** @type {Module | null} */
+		const depModule = moduleGraph.getModule(b.dependencies[0]);
 		const entryOptions = b.groupOptions && b.groupOptions.entryOptions;
 		if (cgi === undefined) {
 			const chunkName = (b.groupOptions && b.groupOptions.name) || b.chunkName;
 			if (entryOptions) {
 				cgi = namedAsyncEntrypoints.get(/** @type {string} */ (chunkName));
+				if (!cgi && !b.circular && depModule) {
+					cgi = depModuleAsyncEntrypoints.get(depModule);
+				}
 				if (!cgi) {
 					entrypoint = compilation.addAsyncEntrypoint(
 						entryOptions,
@@ -509,6 +590,8 @@ const visitModules = (
 					maskByChunk.set(entrypoint.chunks[0], ZERO_BIGINT);
 					entrypoint.index = nextChunkGroupIndex++;
 					cgi = {
+						depModule,
+						circular: b.circular,
 						chunkGroup: entrypoint,
 						initialized: false,
 						runtime:
@@ -546,9 +629,35 @@ const visitModules = (
 							(cgi)
 						);
 					}
+					if (!b.circular && depModule) {
+						depModuleAsyncEntrypoints.set(
+							depModule,
+							/** @type {ChunkGroupInfo} */ (cgi)
+						);
+					}
 				} else {
 					entrypoint = /** @type {Entrypoint} */ (cgi.chunkGroup);
-					// TODO merge entryOptions
+					// Fill in options the existing entrypoint hasn't set yet. We never
+					// overwrite: blocks that dedupe to one entrypoint (e.g. several
+					// workers pointing at the same module) legitimately carry distinct
+					// values such as `runtime`, so the first block to create the
+					// entrypoint wins and later ones only contribute missing keys.
+					// `name` is excluded: it is the entrypoint's identity, fixed at
+					// creation (and used to key namedChunkGroups), so back-filling it
+					// from a block that deduped in via its module would leave
+					// `entrypoint.name` out of sync and make module codegen
+					// order-dependent, which breaks persistent caching.
+					const existingOptions = entrypoint.options;
+					for (const key_ of Object.keys(entryOptions)) {
+						const key =
+							/** @type {keyof EntryOptions} */
+							(key_);
+						if (key === "name") continue;
+						if (entryOptions[key] === undefined) continue;
+						if (existingOptions[key] !== undefined) continue;
+						/** @type {EntryOptions[keyof EntryOptions]} */
+						(existingOptions[key]) = entryOptions[key];
+					}
 					entrypoint.addOrigin(
 						module,
 						/** @type {DependencyLocation} */ (b.loc),
@@ -588,6 +697,8 @@ const visitModules = (
 					maskByChunk.set(c.chunks[0], ZERO_BIGINT);
 					c.index = nextChunkGroupIndex++;
 					cgi = {
+						depModule,
+						circular: b.circular,
 						initialized: false,
 						chunkGroup: c,
 						runtime: chunkGroupInfo.runtime,
@@ -649,6 +760,7 @@ const visitModules = (
 			// 3. We enqueue the chunk group info creation/updating
 			let connectList = queueConnect.get(chunkGroupInfo);
 			if (connectList === undefined) {
+				/** @type {ConnectList} */
 				connectList = new Set();
 				queueConnect.set(chunkGroupInfo, connectList);
 			}
@@ -663,16 +775,20 @@ const visitModules = (
 					chunkGroupInfo: /** @type {ChunkGroupInfo} */ (cgi)
 				}
 			]);
-		} else if (entrypoint !== undefined) {
+		} else if (
+			entrypoint !== undefined &&
+			(chunkGroupInfo.circular || chunkGroupInfo.depModule !== depModule)
+		) {
 			chunkGroupInfo.chunkGroup.addAsyncEntrypoint(entrypoint);
 		}
 	};
 
 	/**
+	 * Processes the provided block.
 	 * @param {DependenciesBlock} block the block
 	 * @returns {void}
 	 */
-	const processBlock = block => {
+	const processBlock = (block) => {
 		statProcessedBlocks++;
 		// get prepared block info
 		const blockModules = getBlockModules(block, chunkGroupInfo.runtime);
@@ -693,7 +809,6 @@ const visitModules = (
 					continue;
 				}
 
-				const refOrdinal = /** @type {number} */ getModuleOrdinal(refModule);
 				const activeState = /** @type {ConnectionState} */ (
 					blockModules[i + 1]
 				);
@@ -704,7 +819,10 @@ const visitModules = (
 					skipConnectionBuffer.push([refModule, connections]);
 					// We skip inactive connections
 					if (activeState === false) continue;
-				} else if (isOrdinalSetInMask(minAvailableModules, refOrdinal)) {
+				} else if (
+					// assigning ordinals lazily here keeps masks small
+					isOrdinalSetInMask(minAvailableModules, getModuleOrdinal(refModule))
+				) {
 					// already in parent chunks, skip it for now
 					skipBuffer.push(refModule);
 					continue;
@@ -761,10 +879,11 @@ const visitModules = (
 	};
 
 	/**
+	 * Process entry block.
 	 * @param {DependenciesBlock} block the block
 	 * @returns {void}
 	 */
-	const processEntryBlock = block => {
+	const processEntryBlock = (block) => {
 		statProcessedBlocks++;
 		// get prepared block info
 		const blockModules = getBlockModules(block, chunkGroupInfo.runtime);
@@ -888,12 +1007,14 @@ const visitModules = (
 	};
 
 	/**
+	 * Calculate resulting available modules.
 	 * @param {ChunkGroupInfo} chunkGroupInfo The info object for the chunk group
 	 * @returns {bigint} The mask of available modules after the chunk group
 	 */
-	const calculateResultingAvailableModules = chunkGroupInfo => {
-		if (chunkGroupInfo.resultingAvailableModules !== undefined)
+	const calculateResultingAvailableModules = (chunkGroupInfo) => {
+		if (chunkGroupInfo.resultingAvailableModules !== undefined) {
 			return chunkGroupInfo.resultingAvailableModules;
+		}
 
 		let resultingAvailableModules = /** @type {bigint} */ (
 			chunkGroupInfo.minAvailableModules
@@ -1088,6 +1209,7 @@ const visitModules = (
 				for (const cgi of info.children) {
 					let connectList = queueConnect.get(info);
 					if (connectList === undefined) {
+						/** @type {ConnectList} */
 						connectList = new Set();
 						queueConnect.set(info, connectList);
 					}
@@ -1161,6 +1283,7 @@ const visitModules = (
 			let preOrderIndex = 0;
 			let postOrderIndex = 0;
 			/**
+			 * Processes the provided current.
 			 * @param {DependenciesBlock} current current
 			 * @param {BlocksWithNestedBlocks} visited visited dependencies blocks
 			 */
@@ -1208,6 +1331,7 @@ const visitModules = (
 };
 
 /**
+ * Connects chunk groups.
  * @param {Compilation} compilation the compilation
  * @param {BlocksWithNestedBlocks} blocksWithNestedBlocks flag for blocks that have nested blocks
  * @param {BlockConnections} blockConnections connection for blocks
@@ -1244,7 +1368,8 @@ const connectChunkGroups = (
 		// connections and modules can only create one version
 		// TODO maybe decide this per runtime
 		if (
-			// TODO is this needed?
+			// Blocks with nested blocks must stay connected — skipping orphans the
+			// nested block's chunk group from this block's chunk group parent.
 			!blocksWithNestedBlocks.has(block) &&
 			connections.every(({ chunkGroup, originChunkGroupInfo }) =>
 				areModulesAvailable(
@@ -1264,10 +1389,9 @@ const connectChunkGroups = (
 			chunkGraph.connectBlockAndChunkGroup(block, chunkGroup);
 
 			// 4. Connect chunk with parent
-			connectChunkGroupParentAndChild(
-				originChunkGroupInfo.chunkGroup,
-				chunkGroup
-			);
+			if (originChunkGroupInfo.chunkGroup.addChild(chunkGroup)) {
+				chunkGroup.addParent(originChunkGroupInfo.chunkGroup);
+			}
 		}
 	}
 };
@@ -1345,8 +1469,9 @@ const buildChunkGraph = (compilation, inputEntrypointsAndModules) => {
 	logger.timeEnd("connectChunkGroups");
 
 	for (const [chunkGroup, chunkGroupInfo] of chunkGroupInfoMap) {
-		for (const chunk of chunkGroup.chunks)
+		for (const chunk of chunkGroup.chunks) {
 			chunk.runtime = mergeRuntime(chunk.runtime, chunkGroupInfo.runtime);
+		}
 	}
 
 	// Cleanup work

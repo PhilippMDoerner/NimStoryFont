@@ -13,15 +13,20 @@ import {
   XmbTranslationSerializer,
   checkDuplicateMessages,
   parseFormatOptions
-} from "../../chunk-TONUHCMD.js";
-import "../../chunk-EZ3BW4XG.js";
+} from "../../chunk-YVLDVVFF.js";
+import "../../chunk-IFAGRJJI.js";
 
-// bazel-out/darwin_arm64-fastbuild/bin/packages/localize/tools/src/extract/cli.js
-import { ConsoleLogger, LogLevel, NodeJSFileSystem, setFileSystem } from "@angular/compiler-cli/private/localize";
+// packages/localize/tools/src/extract/cli.ts
+import {
+  ConsoleLogger,
+  LogLevel,
+  NodeJSFileSystem,
+  setFileSystem
+} from "@angular/compiler-cli/private/localize";
 import { globSync } from "tinyglobby";
 import yargs from "yargs";
 
-// bazel-out/darwin_arm64-fastbuild/bin/packages/localize/tools/src/extract/index.js
+// packages/localize/tools/src/extract/index.js
 function extractTranslations({ rootPath: rootPath2, sourceFilePaths: sourceFilePaths2, sourceLocale, format: format2, outputPath: output, logger: logger2, useSourceMaps, useLegacyIds, duplicateMessageHandling: duplicateMessageHandling2, formatOptions: formatOptions2 = {}, fileSystem: fs }) {
   const basePath = fs.resolve(rootPath2);
   const extractor = new MessageExtractor(fs, logger2, { basePath, useSourceMaps });
@@ -64,7 +69,7 @@ function getSerializer(format2, sourceLocale, rootPath2, useLegacyIds, formatOpt
   throw new Error(`No translation serializer can handle the provided format: ${format2}`);
 }
 
-// bazel-out/darwin_arm64-fastbuild/bin/packages/localize/tools/src/extract/cli.js
+// packages/localize/tools/src/extract/cli.ts
 process.title = "Angular Localization Message Extractor (localize-extract)";
 var args = process.argv.slice(2);
 var options = yargs(args).option("l", {

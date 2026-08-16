@@ -38,6 +38,8 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getNameLocationInGlobalDirectiveComment = getNameLocationInGlobalDirectiveComment;
 exports.forEachReturnStatement = forEachReturnStatement;
+exports.forEachChildESTree = forEachChildESTree;
+const visitor_keys_1 = require("@typescript-eslint/visitor-keys");
 const ts = __importStar(require("typescript"));
 const escapeRegExp_1 = require("./escapeRegExp");
 // deeply re-export, for convenience
@@ -46,9 +48,9 @@ __exportStar(require("@typescript-eslint/utils/ast-utils"), exports);
 // https://github.com/eslint/eslint/blob/145aec1ab9052fbca96a44d04927c595951b1536/lib/rules/utils/ast-utils.js#L1751-L1779
 // Could be export { getNameLocationInGlobalDirectiveComment } from 'eslint/lib/rules/utils/ast-utils'
 /**
- * Get the `loc` object of a given name in a `/*globals` directive comment.
+ * Get the `loc` object of a given name in a `/*globals` comment directive.
  * @param sourceCode The source code to convert index to loc.
- * @param comment The `/*globals` directive comment which include the name.
+ * @param comment The `/*globals` comment directive which include the name.
  * @param name The name to find.
  * @returns The `loc` object.
  */
@@ -94,4 +96,48 @@ function forEachReturnStatement(body, visitor) {
         }
         return undefined;
     }
+}
+function isESTreeNodeLike(node) {
+    return (typeof node === 'object' &&
+        node != null &&
+        'type' in node &&
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        typeof node.type === 'string');
+}
+/**
+ * Rough equivalent to ts.forEachChild for ESTree nodes.
+ * It returns the first truthy value returned by the callback, if any.
+ */
+function forEachChildESTree(node, callback) {
+    function visit(currentNode) {
+        const result = callback(currentNode);
+        if (result) {
+            return result;
+        }
+        const currentKeys = visitor_keys_1.visitorKeys[currentNode.type];
+        if (!currentKeys) {
+            return undefined;
+        }
+        for (const key of currentKeys) {
+            const currentProperty = currentNode[key];
+            if (Array.isArray(currentProperty)) {
+                for (const child of currentProperty) {
+                    if (isESTreeNodeLike(child)) {
+                        const result = visit(child);
+                        if (result) {
+                            return result;
+                        }
+                    }
+                }
+            }
+            else if (isESTreeNodeLike(currentProperty)) {
+                const result = visit(currentProperty);
+                if (result) {
+                    return result;
+                }
+            }
+        }
+        return undefined;
+    }
+    return visit(node);
 }

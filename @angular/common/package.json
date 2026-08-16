@@ -1,11 +1,11 @@
 {
   "name": "@angular/common",
-  "version": "20.0.3",
+  "version": "22.1.1",
   "description": "Angular - commonly needed directives and services",
   "author": "angular",
   "license": "MIT",
   "engines": {
-    "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
+    "node": "^22.22.3 || ^24.15.0 || >=26.0.0"
   },
   "locales": "locales",
   "dependencies": {
@@ -23,28 +23,28 @@
       "default": "./package.json"
     },
     ".": {
-      "types": "./index.d.ts",
+      "types": "./types/common.d.ts",
       "default": "./fesm2022/common.mjs"
     },
     "./http": {
-      "types": "./http/index.d.ts",
+      "types": "./types/http.d.ts",
       "default": "./fesm2022/http.mjs"
     },
     "./http/testing": {
-      "types": "./http/testing/index.d.ts",
-      "default": "./fesm2022/http/testing.mjs"
+      "types": "./types/http-testing.d.ts",
+      "default": "./fesm2022/http-testing.mjs"
     },
     "./testing": {
-      "types": "./testing/index.d.ts",
+      "types": "./types/testing.d.ts",
       "default": "./fesm2022/testing.mjs"
     },
     "./upgrade": {
-      "types": "./upgrade/index.d.ts",
+      "types": "./types/upgrade.d.ts",
       "default": "./fesm2022/upgrade.mjs"
     }
   },
   "peerDependencies": {
-    "@angular/core": "20.0.3",
+    "@angular/core": "22.1.1",
     "rxjs": "^6.5.3 || ^7.4.0"
   },
   "repository": {
@@ -77,6 +77,6 @@
     "**/closure-locale.*"
   ],
   "module": "./fesm2022/common.mjs",
-  "typings": "./index.d.ts",
+  "typings": "./types/common.d.ts",
   "type": "module"
 }

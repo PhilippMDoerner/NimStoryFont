@@ -8,15 +8,15 @@ import {
   TemplateRef,
 } from '@angular/core';
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
-import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
+import { HotkeyDirective } from '../../../_directives/hotkey.directive';
 import {
   ButtonKind,
   ElementKind,
   ElementSize,
   toElementKind,
-} from 'src/app/design/atoms/_models/button';
-import { Icon } from 'src/app/design/atoms/_models/icon';
-import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
+} from '../../atoms/_models/button';
+import { Icon } from '../../atoms/_models/icon';
+import { ButtonComponent } from '../../atoms/button/button.component';
 import { ConfirmationModalComponent } from '../confirmation-modal/confirmation-modal.component';
 
 @Component({
@@ -27,24 +27,24 @@ import { ConfirmationModalComponent } from '../confirmation-modal/confirmation-m
   imports: [ButtonComponent, HotkeyDirective, ConfirmationModalComponent],
 })
 export class ConfirmationToggleButtonComponent {
-  itemToDelete = input.required<string>();
-  icon = input<Icon>();
-  text = input<string>();
-  enableHotkey = input<boolean>(true);
-  toggleType = input<ButtonKind>('DANGER-OUTLINE');
-  toggleSize = input<ElementSize>('MEDIUM');
-  cancelButtonType = input<ElementKind>('SECONDARY');
+  readonly itemToDelete = input.required<string>();
+  readonly icon = input<Icon>();
+  readonly text = input<string>();
+  readonly enableHotkey = input<boolean>(true);
+  readonly toggleType = input<ButtonKind>('DANGER-OUTLINE');
+  readonly toggleSize = input<ElementSize>('MEDIUM');
+  readonly cancelButtonType = input<ElementKind>('SECONDARY');
 
-  confirmButtonType = computed<ElementKind>(
+  readonly confirmButtonType = computed<ElementKind>(
     () => toElementKind(this.toggleType()) ?? 'DANGER',
   );
 
-  modalHeading = computed(() => `Delete ${this.itemToDelete()}?`);
-  modalBody = computed(
+  readonly modalHeading = computed(() => `Delete ${this.itemToDelete()}?`);
+  readonly modalBody = computed(
     () => `Are you sure you want to delete ${this.itemToDelete()}?`,
   );
 
-  modalService = inject(NgbModal);
+  readonly modalService = inject(NgbModal);
 
   readonly confirm = output<void>();
 

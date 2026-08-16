@@ -14,4 +14,4 @@ import type { AngularCompilation } from './angular-compilation';
  * @param browserOnlyBuild True, for browser only builds; False, for browser and server builds.
  * @returns An instance of an Angular compilation object.
  */
-export declare function createAngularCompilation(jit: boolean, browserOnlyBuild: boolean): Promise<AngularCompilation>;
+export declare function createAngularCompilation(jit: boolean, browserOnlyBuild: boolean, parallel?: boolean): Promise<AngularCompilation>;

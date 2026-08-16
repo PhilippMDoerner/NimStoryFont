@@ -47,3 +47,4 @@ exports.jobs = void 0;
 const jobs = __importStar(require("./jobs/job-registry"));
 exports.jobs = jobs;
 __exportStar(require("./node-modules-architect-host"), exports);
+//# sourceMappingURL=index.js.map

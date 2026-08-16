@@ -6,15 +6,14 @@ import {
   input,
   output,
 } from '@angular/core';
-import { MapMarker } from 'src/app/_models/mapMarker';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { PageContainerComponent } from '../../organisms/page-container/page-container.component';
-
 import { RouterLink } from '@angular/router';
+import { MapMarker } from '../../../_models/mapMarker';
+import { RoutingService } from '../../../_services/routing.service';
 import { ButtonLinkComponent } from '../../atoms/button-link/button-link.component';
 import { IconComponent } from '../../atoms/icon/icon.component';
 import { ArticleContextMenuComponent } from '../../molecules/article-context-menu/article-context-menu.component';
 import { ArticleFooterComponent } from '../../molecules/article-footer/article-footer.component';
+import { PageContainerComponent } from '../../organisms/page-container/page-container.component';
 
 @Component({
   selector: 'app-marker',
@@ -31,15 +30,15 @@ import { ArticleFooterComponent } from '../../molecules/article-footer/article-f
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MarkerComponent {
-  marker = input.required<MapMarker>();
-  canDelete = input<boolean>(false);
-  canUpdate = input<boolean>(false);
+  readonly marker = input.required<MapMarker>();
+  readonly canDelete = input<boolean>(false);
+  readonly canUpdate = input<boolean>(false);
 
   readonly markerDelete = output<MapMarker>();
 
   private readonly routingService = inject(RoutingService);
 
-  locationUrl = computed(() => {
+  readonly locationUrl = computed(() => {
     const { campaign_details, location_details } = this.marker();
     return this.routingService.getRoutePath('location', {
       parent_name: location_details?.parent_location_name,
@@ -47,7 +46,7 @@ export class MarkerComponent {
       campaign: campaign_details.name,
     });
   });
-  updateUrl = computed(() => {
+  readonly updateUrl = computed(() => {
     const { campaign_details, location_details, map_details } = this.marker();
 
     return this.routingService.getRoutePath('marker-update', {

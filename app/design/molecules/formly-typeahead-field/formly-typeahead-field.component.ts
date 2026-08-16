@@ -31,8 +31,8 @@ import {
   take,
   withLatestFrom,
 } from 'rxjs';
-import { CustomTypeaheadProps } from 'src/app/_models/formly';
-import { filterNil } from 'src/utils/rxjs-operators';
+import { filterNil } from '../../../../utils/rxjs-operators';
+import { CustomTypeaheadProps } from '../../../_models/formly';
 import {
   cleanSearchTerm,
   matchesSearchterm,
@@ -57,27 +57,28 @@ export class FormlyTypeaheadFieldComponent<T>
   extends FieldType<FieldTypeConfig>
   implements OnInit
 {
-  destroyRef = inject(DestroyRef);
-  typeaheadElement = viewChild<NgbTypeahead>(`instance`, {
+  readonly destroyRef = inject(DestroyRef);
+  readonly typeaheadElement = viewChild<NgbTypeahead>(`instance`, {
     debugName: 'instance',
   });
 
-  inputElement = viewChild<ElementRef<HTMLInputElement>>(`inputElement`);
-  inputElement$ = toObservable(this.inputElement).pipe(
+  readonly inputElement =
+    viewChild<ElementRef<HTMLInputElement>>(`inputElement`);
+  readonly inputElement$ = toObservable(this.inputElement).pipe(
     map((input) => input?.nativeElement),
     filterNil(),
   );
-  focus$ = this.inputElement$.pipe(
+  readonly focus$ = this.inputElement$.pipe(
     switchMap((input) => fromEvent<FocusEvent>(input, 'focus')),
     map((event) => (event.target as HTMLInputElement | null)?.value),
   );
-  click$ = this.inputElement$.pipe(
+  readonly click$ = this.inputElement$.pipe(
     switchMap((input) => fromEvent(input, 'click')),
     map((event) => (event.target as HTMLInputElement | null)?.value),
   );
 
-  selectedItem$ = new ReplaySubject<Partial<T> | null>(1);
-  selectedItemLabel$ = this.selectedItem$.pipe(
+  readonly selectedItem$ = new ReplaySubject<Partial<T> | null>(1);
+  readonly selectedItemLabel$ = this.selectedItem$.pipe(
     map((item) =>
       item ? `${item?.[this.getCustomProps().optionLabelProp]}` : null,
     ),
@@ -114,7 +115,7 @@ export class FormlyTypeaheadFieldComponent<T>
       .subscribe((item) => this.formControl.setValue(item));
   }
 
-  search: OperatorFunction<string, readonly T[]> = (
+  readonly search: OperatorFunction<string, readonly T[]> = (
     searchTrigger$: Observable<string>,
   ) => {
     const searchTerm$ = merge(searchTrigger$, this.focus$, this.click$).pipe(

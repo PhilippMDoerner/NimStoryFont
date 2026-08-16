@@ -12,6 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createGlobalStylesBundleOptions = createGlobalStylesBundleOptions;
 const node_assert_1 = __importDefault(require("node:assert"));
+const path_1 = require("../../utils/path");
 const bundle_options_1 = require("./stylesheets/bundle-options");
 const virtual_module_plugin_1 = require("./virtual-module-plugin");
 function createGlobalStylesBundleOptions(options, target, initial) {
@@ -66,7 +67,7 @@ function createGlobalStylesBundleOptions(options, target, initial) {
                 const files = globalStyles.find(({ name }) => name === args.path)?.files;
                 (0, node_assert_1.default)(files, `global style name should always be found [${args.path}]`);
                 return {
-                    contents: files.map((file) => `@import '${file.replace(/\\/g, '/')}';`).join('\n'),
+                    contents: files.map((file) => `@import '${(0, path_1.toPosixPath)(file)}';`).join('\n'),
                     loader: 'css',
                     resolveDir: workspaceRoot,
                 };
@@ -75,3 +76,4 @@ function createGlobalStylesBundleOptions(options, target, initial) {
         return buildOptions;
     };
 }
+//# sourceMappingURL=global-styles.js.map

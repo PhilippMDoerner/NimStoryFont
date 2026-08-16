@@ -19,7 +19,26 @@ var NestableAtRulePrototype = {
             this.rules = visitor.visitArray(this.rules);
         }
     },
+    evalFunction: function () {
+        if (!this.features || !Array.isArray(this.features.value) || this.features.value.length < 1) {
+            return;
+        }
+        var exprValues = this.features.value;
+        var expr, paren;
+        for (var index = 0; index < exprValues.length; ++index) {
+            expr = exprValues[index];
+            if (expr.type === 'Keyword' && index + 1 < exprValues.length && (expr.noSpacing || expr.noSpacing == null)) {
+                paren = exprValues[index + 1];
+                if (paren.type === 'Paren' && paren.noSpacing) {
+                    exprValues[index] = new expression_1.default([expr, paren]);
+                    exprValues.splice(index + 1, 1);
+                    exprValues[index].noSpacing = true;
+                }
+            }
+        }
+    },
     evalTop: function (context) {
+        this.evalFunction();
         var result = this;
         // Render all dependent Media blocks.
         if (context.mediaBlocks.length > 1) {
@@ -34,6 +53,7 @@ var NestableAtRulePrototype = {
         return result;
     },
     evalNested: function (context) {
+        this.evalFunction();
         var i;
         var value;
         var path = context.mediaPath.concat([this]);

@@ -4,16 +4,6 @@ Interactive search prompt component for command line interfaces.
 
 ![search prompt](https://raw.githubusercontent.com/SBoudrias/Inquirer.js/f459199e679aec7676cecc0fc12ef8a4cd3dda0b/assets/screenshots/search.png)
 
-# Special Thanks
-
-<div align="center" markdown="1">
-
-[![Graphite](https://github.com/user-attachments/assets/53db40ca-2254-481a-a094-6597f8716e29)](https://graphite.dev/?utm_source=npmjs&utm_medium=repo&utm_campaign=inquirerjs)<br>
-
-### [Graphite is the AI developer productivity platform helping teams on GitHub ship higher quality software, faster](https://graphite.dev/?utm_source=npmjs&utm_medium=repo&utm_campaign=inquirerjs)
-
-</div>
-
 # Installation
 
 <table>
@@ -91,6 +81,7 @@ const answer = await search({
 | message  | `string`                                                   | yes      | The question to ask                                                                                                                                                                                  |
 | source   | `(term: string \| void) => Promise<Choice[]>`              | yes      | This function returns the choices relevant to the search term.                                                                                                                                       |
 | pageSize | `number`                                                   | no       | By default, lists of choice longer than 7 will be paginated. Use this option to control how many choices will appear on the screen at once.                                                          |
+| default  | `Value`                                                    | no       | Defines in front of which item the cursor will initially appear. When omitted, the cursor will appear on the first selectable item.                                                                  |
 | validate | `Value => boolean \| string \| Promise<boolean \| string>` | no       | On submit, validate the answer. When returning a string, it'll be used as the error message displayed to the user. Note: returning a rejected promise, we'll assume a code error happened and crash. |
 | theme    | [See Theming](#Theming)                                    | no       | Customize look of the prompt.                                                                                                                                                                        |
 
@@ -146,7 +137,7 @@ You can rely on this behavior to implement progressive autocomplete searches. Wh
 
 Pressing `tab` also triggers the term autocomplete.
 
-You can see this behavior in action in [our search demo](https://github.com/SBoudrias/Inquirer.js/blob/main/packages/demo/demos/search.mjs).
+You can see this behavior in action in [our search demo](https://github.com/SBoudrias/Inquirer.js/blob/main/packages/demo/src/demos/search.ts).
 
 ## Theming
 
@@ -168,19 +159,33 @@ type Theme = {
     description: (text: string) => string;
     disabled: (text: string) => string;
     searchTerm: (text: string) => string;
+    keysHelpTip: (keys: [key: string, action: string][]) => string | undefined;
   };
   icon: {
     cursor: string;
   };
-  helpMode: 'always' | 'never' | 'auto';
 };
 ```
 
-### `theme.helpMode`
+### `theme.style.keysHelpTip`
 
-- `auto` (default): Hide the help tips after an interaction occurs.
-- `always`: The help tips will always show and never hide.
-- `never`: The help tips will never show.
+This function allows you to customize the keyboard shortcuts help tip displayed below the prompt. It receives an array of key-action pairs and should return a formatted string. You can also hook here to localize the labels to different languages.
+
+It can also returns `undefined` to hide the help tip entirely.
+
+```js
+theme: {
+  style: {
+    keysHelpTip: (keys) => {
+      // Return undefined to hide the help tip completely.
+      return undefined;
+
+      // Or customize the formatting. Or localize the labels.
+      return keys.map(([key, action]) => `${key}: ${action}`).join(' | ');
+    };
+  }
+}
+```
 
 ## Recipes
 

@@ -5,20 +5,19 @@
 [![Known Vulnerabilities](https://snyk.io/test/github/chimurai/http-proxy-middleware/badge.svg)](https://snyk.io/test/github/chimurai/http-proxy-middleware)
 [![npm](https://img.shields.io/npm/v/http-proxy-middleware?color=%23CC3534&style=flat-square&logo=npm)](https://www.npmjs.com/package/http-proxy-middleware)
 
-Node.js proxying made simple. Configure proxy middleware with ease for [connect](https://github.com/senchalabs/connect), [express](https://github.com/expressjs/express), [next.js](https://github.com/vercel/next.js) and [many more](#compatible-servers).
+Node.js proxying made simple. Configure proxy middleware with ease for [connect](https://github.com/senchalabs/connect), [express](https://github.com/expressjs/express), [next.js](https://github.com/vercel/next.js), [hono](https://github.com/honojs/hono) and [many more](#compatible-servers).
 
-Powered by the popular Nodejitsu [`http-proxy`](https://github.com/http-party/node-http-proxy). [![GitHub stars](https://img.shields.io/github/stars/http-party/node-http-proxy.svg?style=social&label=Star)](https://github.com/http-party/node-http-proxy)
+Powered by [`httpxy`](https://github.com/unjs/httpxy). A maintained version of [http-proxy](https://github.com/http-party/node-http-proxy).
 
 ## ⚠️ Note <!-- omit in toc -->
 
-This page is showing documentation for version v3.x.x ([release notes](https://github.com/chimurai/http-proxy-middleware/releases))
+This page is showing documentation for version **v4.x.x** ([release notes](https://github.com/chimurai/http-proxy-middleware/releases))
 
-See [MIGRATION.md](https://github.com/chimurai/http-proxy-middleware/blob/master/MIGRATION.md) for details on how to migrate from v2.x.x to v3.x.x
+For older documentation:
 
-If you're looking for older documentation. Go to:
-
-- <https://github.com/chimurai/http-proxy-middleware/tree/v2.0.4#readme>
-- <https://github.com/chimurai/http-proxy-middleware/tree/v0.21.0#readme>
+- [v3.0.5](https://github.com/chimurai/http-proxy-middleware/tree/v3.0.5#readme)
+- [v2.0.4](https://github.com/chimurai/http-proxy-middleware/tree/v2.0.4#readme)
+- [v0.21.0](https://github.com/chimurai/http-proxy-middleware/tree/v0.21.0#readme)
 
 ## TL;DR <!-- omit in toc -->
 
@@ -28,10 +27,8 @@ Proxy `/api` requests to `http://www.example.org`
 
 ```typescript
 // typescript
-
-import * as express from 'express';
-import type { Request, Response, NextFunction } from 'express';
-
+import express from 'express';
+import type { NextFunction, Request, Response } from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import type { Filter, Options, RequestHandler } from 'http-proxy-middleware';
 
@@ -50,7 +47,7 @@ app.listen(3000);
 // http://127.0.0.1:3000/api/foo/bar -> http://www.example.org/api/foo/bar
 ```
 
-_All_ `http-proxy` [options](https://github.com/nodejitsu/node-http-proxy#options) can be used, along with some extra `http-proxy-middleware` [options](#options).
+_All_ `httpxy` [options](https://github.com/unjs/httpxy#options) can be used, along with some extra `http-proxy-middleware` [options](#options).
 
 ## Table of Contents <!-- omit in toc -->
 
@@ -66,9 +63,10 @@ _All_ `http-proxy` [options](https://github.com/nodejitsu/node-http-proxy#option
   - [`router` (object/function)](#router-objectfunction)
   - [`plugins` (Array)](#plugins-array)
   - [`ejectPlugins` (boolean) default: `false`](#ejectplugins-boolean-default-false)
+- [`definePlugin` helper](#defineplugin-helper)
   - [`logger` (Object)](#logger-object)
-- [`http-proxy` events](#http-proxy-events)
-- [`http-proxy` options](#http-proxy-options)
+- [`httpxy` events](#httpxy-events)
+- [`httpxy` options](#httpxy-options)
 - [WebSocket](#websocket)
   - [External WebSocket upgrade](#external-websocket-upgrade)
 - [Intercept and manipulate requests](#intercept-and-manipulate-requests)
@@ -95,7 +93,7 @@ npm install --save-dev http-proxy-middleware
 Create and configure a proxy middleware with: `createProxyMiddleware(config)`.
 
 ```javascript
-const { createProxyMiddleware } = require('http-proxy-middleware');
+import { createProxyMiddleware } from 'http-proxy-middleware';
 
 const apiProxy = createProxyMiddleware({
   target: 'http://www.example.org',
@@ -116,13 +114,13 @@ An example with `express` server.
 
 ```javascript
 // include dependencies
-const express = require('express');
-const { createProxyMiddleware } = require('http-proxy-middleware');
+import express from 'express';
+import { createProxyMiddleware } from 'http-proxy-middleware';
 
 const app = express();
 
 // create the proxy
-/** @type {import('http-proxy-middleware/dist/types').RequestHandler<express.Request, express.Response>} */
+/** @type {import('http-proxy-middleware').RequestHandler<import('express').Request, import('express').Response>} */
 const exampleProxy = createProxyMiddleware({
   target: 'http://www.example.org/api', // target host with the same base path
   changeOrigin: true, // needed for virtual hosted sites
@@ -163,18 +161,15 @@ http-proxy-middleware options:
 Narrow down which requests should be proxied. The `path` used for filtering is the `request.url` pathname. In Express, this is the `path` relative to the mount-point of the proxy.
 
 - **path matching**
-
   - `createProxyMiddleware({...})` - matches any path, all requests will be proxied when `pathFilter` is not configured.
   - `createProxyMiddleware({ pathFilter: '/api', ...})` - matches paths starting with `/api`
 
 - **multiple path matching**
-
   - `createProxyMiddleware({ pathFilter: ['/api', '/ajax', '/someotherpath'], ...})`
 
 - **wildcard path matching**
 
   For fine-grained control you can use wildcard matching. Glob pattern matching is done by _micromatch_. Visit [micromatch](https://www.npmjs.com/package/micromatch) or [glob](https://www.npmjs.com/package/glob) for more globbing examples.
-
   - `createProxyMiddleware({ pathFilter: '**', ...})` matches any path, all requests will be proxied.
   - `createProxyMiddleware({ pathFilter: '**/*.html', ...})` matches any path which ends with `.html`
   - `createProxyMiddleware({ pathFilter: '/*.html', ...})` matches paths directly under path-absolute
@@ -217,14 +212,16 @@ pathRewrite: {'^/remove/api' : ''}
 pathRewrite: {'^/' : '/basepath/'}
 
 // custom rewriting
-pathRewrite: function (path, req) { return path.replace('/api', '/base/api') }
+pathRewrite: function (path, req, res, options) { return path.replace('/api', '/base/api') }
 
 // custom rewriting, returning Promise
-pathRewrite: async function (path, req) {
+pathRewrite: async function (path, req, res, options) {
   const should_add_something = await httpRequestToDecideSomething(path);
   if (should_add_something) path += "something";
   return path;
 }
+
+// `res` is undefined in WebSocket upgrade flows.
 ```
 
 ### `router` (object/function)
@@ -242,12 +239,12 @@ router: {
 }
 
 // Custom router function (string target)
-router: function(req) {
+router: function(req, res, options) {
     return 'http://127.0.0.1:8004';
 }
 
 // Custom router function (target object)
-router: function(req) {
+router: function(req, res, options) {
     return {
         protocol: 'https:', // The : is required
         host: '127.0.0.1',
@@ -256,10 +253,12 @@ router: function(req) {
 }
 
 // Asynchronous router function which returns promise
-router: async function(req) {
+router: async function(req, res, options) {
     const url = await doSomeIO();
     return url;
 }
+
+// NOTE: `res` is undefined in WebSocket upgrade flows.
 ```
 
 ### `plugins` (Array)
@@ -286,19 +285,38 @@ NOTE: register your own error handlers to prevent server from crashing.
 
 ```js
 // eject default plugins and manually add them back
-
-const {
+import {
   debugProxyErrorsPlugin, // subscribe to proxy errors to prevent server from crashing
-  loggerPlugin, // log proxy events to a logger (ie. console)
   errorResponsePlugin, // return 5xx response on proxy error
+  loggerPlugin, // log proxy events to a logger (ie. console)
   proxyEventsPlugin, // implements the "on:" option
-} = require('http-proxy-middleware');
+} from 'http-proxy-middleware';
 
 createProxyMiddleware({
   target: `http://example.org`,
   changeOrigin: true,
   ejectPlugins: true,
   plugins: [debugProxyErrorsPlugin, loggerPlugin, errorResponsePlugin, proxyEventsPlugin],
+});
+```
+
+## `definePlugin` helper
+
+Create your own `http-proxy-middleware` plugin.
+
+(Default plugins are created with `definePlugin`)
+
+```ts
+import { createProxyMiddleware, definePlugin } from 'http-proxy-middleware';
+
+const myPlugin = definePlugin((proxyServer, options) => {
+  // plugin implementation
+});
+
+// use configure and use plugin
+createProxyMiddleware({
+  target: `http://example.org`,
+  plugins: [myPlugin],
 });
 ```
 
@@ -318,9 +336,9 @@ createProxyMiddleware({
 });
 ```
 
-## `http-proxy` events
+## `httpxy` events
 
-Subscribe to [http-proxy events](https://github.com/nodejitsu/node-http-proxy#listening-for-proxy-events) with the `on` option:
+Subscribe to [httpxy events](https://github.com/unjs/httpxy#events) with the `on` option:
 
 ```js
 createProxyMiddleware({
@@ -339,7 +357,7 @@ createProxyMiddleware({
 });
 ```
 
-- **option.on.error**: function, subscribe to http-proxy's `error` event for custom error handling.
+- **option.on.error**: function, subscribe to httpxy's `error` event for custom error handling.
 
   ```javascript
   function onError(err, req, res, target) {
@@ -350,7 +368,7 @@ createProxyMiddleware({
   }
   ```
 
-- **option.on.proxyRes**: function, subscribe to http-proxy's `proxyRes` event.
+- **option.on.proxyRes**: function, subscribe to httpxy's `proxyRes` event.
 
   ```javascript
   function onProxyRes(proxyRes, req, res) {
@@ -359,7 +377,7 @@ createProxyMiddleware({
   }
   ```
 
-- **option.on.proxyReq**: function, subscribe to http-proxy's `proxyReq` event.
+- **option.on.proxyReq**: function, subscribe to httpxy's `proxyReq` event.
 
   ```javascript
   function onProxyReq(proxyReq, req, res) {
@@ -369,7 +387,7 @@ createProxyMiddleware({
   }
   ```
 
-- **option.on.proxyReqWs**: function, subscribe to http-proxy's `proxyReqWs` event.
+- **option.on.proxyReqWs**: function, subscribe to httpxy's `proxyReqWs` event.
 
   ```javascript
   function onProxyReqWs(proxyReq, req, socket, options, head) {
@@ -378,7 +396,7 @@ createProxyMiddleware({
   }
   ```
 
-- **option.on.open**: function, subscribe to http-proxy's `open` event.
+- **option.on.open**: function, subscribe to httpxy's `open` event.
 
   ```javascript
   function onOpen(proxySocket) {
@@ -387,7 +405,7 @@ createProxyMiddleware({
   }
   ```
 
-- **option.on.close**: function, subscribe to http-proxy's `close` event.
+- **option.on.close**: function, subscribe to httpxy's `close` event.
 
   ```javascript
   function onClose(res, socket, head) {
@@ -396,9 +414,9 @@ createProxyMiddleware({
   }
   ```
 
-## `http-proxy` options
+## `httpxy` options
 
-The following options are provided by the underlying [http-proxy](https://github.com/nodejitsu/node-http-proxy#options) library.
+The following options are provided by the underlying [httpxy](https://github.com/unjs/httpxy#options) library.
 
 - **option.target**: url string to be parsed with the url module
 - **option.forward**: url string to be parsed with the url module
@@ -418,13 +436,12 @@ The following options are provided by the underlying [http-proxy](https://github
 - **option.autoRewrite**: rewrites the location host/port on (301/302/307/308) redirects based on requested host/port. Default: false.
 - **option.protocolRewrite**: rewrites the location protocol on (301/302/307/308) redirects to 'http' or 'https'. Default: null.
 - **option.cookieDomainRewrite**: rewrites domain of `set-cookie` headers. Possible values:
-
   - `false` (default): disable cookie rewriting
   - String: new domain, for example `cookieDomainRewrite: "new.domain"`. To remove the domain, use `cookieDomainRewrite: ""`.
   - Object: mapping of domains to new domains, use `"*"` to match all domains.  
     For example keep one domain unchanged, rewrite one domain and remove other domains:
 
-    ```json
+    ```jsonc
     cookieDomainRewrite: {
       "unchanged.domain": "unchanged.domain",
       "old.domain": "new.domain",
@@ -433,13 +450,12 @@ The following options are provided by the underlying [http-proxy](https://github
     ```
 
 - **option.cookiePathRewrite**: rewrites path of `set-cookie` headers. Possible values:
-
   - `false` (default): disable cookie rewriting
   - String: new path, for example `cookiePathRewrite: "/newPath/"`. To remove the path, use `cookiePathRewrite: ""`. To set path to root use `cookiePathRewrite: "/"`.
   - Object: mapping of paths to new paths, use `"*"` to match all paths.
     For example, to keep one path unchanged, rewrite one path and remove other paths:
 
-    ```json
+    ```jsonc
     cookiePathRewrite: {
       "/unchanged.path/": "/unchanged.path/",
       "/old.path/": "/new.path/",
@@ -455,13 +471,12 @@ The following options are provided by the underlying [http-proxy](https://github
 - **option.buffer**: stream of data to send as the request body. Maybe you have some middleware that consumes the request stream before proxying it on e.g. If you read the body of a request into a field called 'req.rawbody' you could restream this field in the buffer option:
 
   ```javascript
-  'use strict';
+  import { createProxyServer } from 'httpxy';
+  import streamify from 'stream-array';
 
-  const streamify = require('stream-array');
-  const HttpProxy = require('http-proxy');
-  const proxy = new HttpProxy();
+  const proxy = createProxyServer();
 
-  module.exports = (req, res, next) => {
+  export default function proxyWithBody(req, res, next) {
     proxy.web(
       req,
       res,
@@ -471,10 +486,12 @@ The following options are provided by the underlying [http-proxy](https://github
       },
       next,
     );
-  };
+  }
   ```
 
 ## WebSocket
+
+See [recipes/websocket.md](recipes/websocket.md) for more examples.
 
 ```javascript
 // verbose api
@@ -483,7 +500,9 @@ createProxyMiddleware({ pathFilter: '/', target: 'http://echo.websocket.org', ws
 
 ### External WebSocket upgrade
 
-In the previous WebSocket examples, http-proxy-middleware relies on a initial http request in order to listen to the http `upgrade` event. If you need to proxy WebSockets without the initial http request, you can subscribe to the server's http `upgrade` event manually.
+In the previous WebSocket examples, http-proxy-middleware relies on an initial HTTP request in order to listen to the HTTP `upgrade` event. If you need to proxy WebSockets without the initial HTTP request, you can subscribe to the server's HTTP `upgrade` event manually.
+
+When the same middleware instance is attached to multiple servers and `ws: true` is used, each server needs its own initial HTTP request before upgrades are auto-subscribed.
 
 ```javascript
 const wsProxy = createProxyMiddleware({ target: 'ws://echo.websocket.org', changeOrigin: true });
@@ -504,7 +523,7 @@ Currently the only pre-provided request interceptor is `fixRequestBody`, which i
 Example:
 
 ```javascript
-const { createProxyMiddleware, fixRequestBody } = require('http-proxy-middleware');
+import { createProxyMiddleware, fixRequestBody } from 'http-proxy-middleware';
 
 const proxy = createProxyMiddleware({
   /**
@@ -529,7 +548,7 @@ NOTE: `responseInterceptor` disables streaming of target's response.
 Example:
 
 ```javascript
-const { createProxyMiddleware, responseInterceptor } = require('http-proxy-middleware');
+import { createProxyMiddleware, responseInterceptor } from 'http-proxy-middleware';
 
 const proxy = createProxyMiddleware({
   /**
@@ -549,7 +568,7 @@ const proxy = createProxyMiddleware({
 });
 ```
 
-Check out [interception recipes](https://github.com/chimurai/http-proxy-middleware/blob/master/recipes/response-interceptor.md#readme) for more examples.
+Check out [interception recipes](https://github.com/chimurai/http-proxy-middleware/blob/master/recipes/response-interceptor.md) for more examples.
 
 ## Node.js 17+: ECONNREFUSED issue with IPv6 and localhost ([#705](https://github.com/chimurai/http-proxy-middleware/issues/705))
 
@@ -563,6 +582,10 @@ Ways to solve it:
 - Change `target: "http://localhost"` to `target: "http://127.0.0.1"` (IPv4).
 - Change the target server to (also) accept IPv6 connections.
 - Add this flag when running `node`: `node index.js --dns-result-order=ipv4first`. (Not recommended.)
+
+Additional IPv6 notes:
+
+- Unspecified IPv6 host `http://[::]:port` is normalized to loopback (`::1`) to reach local listeners.
 
 > Note: There’s a thing called [Happy Eyeballs](https://en.wikipedia.org/wiki/Happy_Eyeballs) which means connecting to both IPv4 and IPv6 in parallel, which Node.js doesn’t have, but explains why for example `curl` can connect.
 
@@ -599,6 +622,7 @@ View the [recipes](https://github.com/chimurai/http-proxy-middleware/tree/master
 
 - [connect](https://www.npmjs.com/package/connect)
 - [express](https://www.npmjs.com/package/express)
+- [hono](https://www.npmjs.com/package/@hono/node-server)
 - [next.js](https://www.npmjs.com/package/next)
 - [fastify](https://www.npmjs.com/package/fastify)
 - [browser-sync](https://www.npmjs.com/package/browser-sync)
@@ -630,7 +654,7 @@ $ yarn build
 $ yarn test
 
 # code coverage
-$ yarn cover
+$ yarn coverage
 
 # check spelling mistakes
 $ yarn spellcheck
@@ -644,4 +668,4 @@ $ yarn spellcheck
 
 The MIT License (MIT)
 
-Copyright (c) 2015-2025 Steven Chim
+Copyright (c) 2015-2026 Steven Chim

@@ -1,8 +1,13 @@
-// src/highlight/constants.ts
-var t = "storybook/highlight", o = `${t}/add`, e = `${t}/remove`, H = `${t}/reset`, I = `${t}/scroll-into-view`;
+import {
+  HIGHLIGHT,
+  REMOVE_HIGHLIGHT,
+  RESET_HIGHLIGHT,
+  SCROLL_INTO_VIEW
+} from "../_browser-chunks/chunk-KJHJLCBK.js";
+import "../_browser-chunks/chunk-IMSF75WX.js";
 export {
-  o as HIGHLIGHT,
-  e as REMOVE_HIGHLIGHT,
-  H as RESET_HIGHLIGHT,
-  I as SCROLL_INTO_VIEW
+  HIGHLIGHT,
+  REMOVE_HIGHLIGHT,
+  RESET_HIGHLIGHT,
+  SCROLL_INTO_VIEW
 };

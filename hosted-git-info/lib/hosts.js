@@ -109,10 +109,8 @@ hosts.gitlab = {
   treepath: 'tree',
   blobpath: 'tree',
   editpath: '-/edit',
-  httpstemplate: ({ auth, domain, user, project, committish }) =>
-    `git+https://${maybeJoin(auth, '@')}${domain}/${user}/${project}.git${maybeJoin('#', committish)}`,
   tarballtemplate: ({ domain, user, project, committish }) =>
-    `https://${domain}/${user}/${project}/repository/archive.tar.gz?ref=${maybeEncode(committish || 'HEAD')}`,
+    `https://${domain}/api/v4/projects/${maybeEncode(user + '/' + project)}/repository/archive.tar.gz?sha=${maybeEncode(committish || 'HEAD')}`,
   extract: (url) => {
     const path = url.pathname.slice(1)
     if (path.includes('/-/') || path.includes('/archive.tar.gz')) {
@@ -200,7 +198,7 @@ hosts.sourcehut = {
   filetemplate: ({ domain, user, project, committish, path }) =>
     `https://${domain}/${user}/${project}/blob/${maybeEncode(committish) || 'HEAD'}/${path}`,
   httpstemplate: ({ domain, user, project, committish }) =>
-    `https://${domain}/${user}/${project}.git${maybeJoin('#', committish)}`,
+    `https://${domain}/${user}/${project}${maybeJoin('#', committish)}`,
   tarballtemplate: ({ domain, user, project, committish }) =>
     `https://${domain}/${user}/${project}/archive/${maybeEncode(committish) || 'HEAD'}.tar.gz`,
   bugstemplate: () => null,

@@ -43,3 +43,4 @@ async function deleteOutputDir(root, outputPath, emptyOnlyDirectories) {
         await (0, promises_1.rm)(fullEntry, { force: true, recursive: true, maxRetries: 3 });
     }
 }
+//# sourceMappingURL=delete-output-dir.js.map

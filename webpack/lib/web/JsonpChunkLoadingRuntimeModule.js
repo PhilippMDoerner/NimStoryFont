@@ -5,13 +5,17 @@
 "use strict";
 
 const { SyncWaterfallHook } = require("tapable");
-const Compilation = require("../Compilation");
+/** @typedef {import("../Compilation")} Compilation */
 const RuntimeGlobals = require("../RuntimeGlobals");
 const RuntimeModule = require("../RuntimeModule");
 const Template = require("../Template");
+const {
+	generateJavascriptHMR
+} = require("../hmr/JavascriptHotModuleReplacementHelper");
 const chunkHasJs = require("../javascript/JavascriptModulesPlugin").chunkHasJs;
 const { getInitialChunkIds } = require("../javascript/StartupHelpers");
 const compileBooleanMatcher = require("../util/compileBooleanMatcher");
+const createHooksRegistry = require("../util/createHooksRegistry");
 
 /** @typedef {import("../Chunk")} Chunk */
 /** @typedef {import("../ChunkGraph")} ChunkGraph */
@@ -23,36 +27,13 @@ const compileBooleanMatcher = require("../util/compileBooleanMatcher");
  * @property {SyncWaterfallHook<[string, Chunk]>} linkPrefetch
  */
 
-/** @type {WeakMap<Compilation, JsonpCompilationPluginHooks>} */
-const compilationHooksMap = new WeakMap();
-
 class JsonpChunkLoadingRuntimeModule extends RuntimeModule {
-	/**
-	 * @param {Compilation} compilation the compilation
-	 * @returns {JsonpCompilationPluginHooks} hooks
-	 */
-	static getCompilationHooks(compilation) {
-		if (!(compilation instanceof Compilation)) {
-			throw new TypeError(
-				"The 'compilation' argument must be an instance of Compilation"
-			);
-		}
-		let hooks = compilationHooksMap.get(compilation);
-		if (hooks === undefined) {
-			hooks = {
-				linkPreload: new SyncWaterfallHook(["source", "chunk"]),
-				linkPrefetch: new SyncWaterfallHook(["source", "chunk"])
-			};
-			compilationHooksMap.set(compilation, hooks);
-		}
-		return hooks;
-	}
-
 	/**
 	 * @param {ReadOnlyRuntimeRequirements} runtimeRequirements runtime requirements
 	 */
 	constructor(runtimeRequirements) {
 		super("jsonp chunk loading", RuntimeModule.STAGE_ATTACH);
+		/** @type {ReadOnlyRuntimeRequirements} */
 		this._runtimeRequirements = runtimeRequirements;
 	}
 
@@ -66,10 +47,11 @@ class JsonpChunkLoadingRuntimeModule extends RuntimeModule {
 		if (options && options.baseUri) {
 			return `${RuntimeGlobals.baseURI} = ${JSON.stringify(options.baseUri)};`;
 		}
-		return `${RuntimeGlobals.baseURI} = document.baseURI || self.location.href;`;
+		return `${RuntimeGlobals.baseURI} = (typeof document !== 'undefined' && document.baseURI) || self.location.href;`;
 	}
 
 	/**
+	 * Generates runtime code for this runtime module.
 	 * @returns {string | null} runtime code
 	 */
 	generate() {
@@ -126,21 +108,24 @@ class JsonpChunkLoadingRuntimeModule extends RuntimeModule {
 			? `${RuntimeGlobals.hmrRuntimeStatePrefix}_jsonp`
 			: undefined;
 
+		const cst = runtimeTemplate.renderConst();
+		const lt = runtimeTemplate.renderLet();
+		const installedChunksObject = `{\n${Template.indent(
+			Array.from(initialChunkIds, (id) => `${JSON.stringify(id)}: 0`).join(
+				",\n"
+			)
+		)}\n}`;
 		return Template.asString([
 			withBaseURI ? this._generateBaseUri(chunk) : "// no baseURI",
 			"",
 			"// object to store loaded and loading chunks",
 			"// undefined = chunk not loaded, null = chunk preloaded/prefetched",
 			"// [resolve, reject, Promise] = chunk loading, 0 = chunk loaded",
-			`var installedChunks = ${
-				stateExpression ? `${stateExpression} = ${stateExpression} || ` : ""
-			}{`,
-			Template.indent(
-				Array.from(initialChunkIds, id => `${JSON.stringify(id)}: 0`).join(
-					",\n"
-				)
-			),
-			"};",
+			`${cst} installedChunks = ${
+				stateExpression
+					? runtimeTemplate.assignOr(stateExpression, installedChunksObject)
+					: installedChunksObject
+			};`,
 			"",
 			withLoading
 				? Template.asString([
@@ -149,7 +134,7 @@ class JsonpChunkLoadingRuntimeModule extends RuntimeModule {
 							hasJsMatcher !== false
 								? Template.indent([
 										"// JSONP chunk loading for javascript",
-										`var installedChunkData = ${RuntimeGlobals.hasOwnProperty}(installedChunks, chunkId) ? installedChunks[chunkId] : undefined;`,
+										`${lt} installedChunkData = ${RuntimeGlobals.hasOwnProperty}(installedChunks, chunkId) ? installedChunks[chunkId] : undefined;`,
 										'if(installedChunkData !== 0) { // 0 means "already installed".',
 										Template.indent([
 											"",
@@ -165,17 +150,17 @@ class JsonpChunkLoadingRuntimeModule extends RuntimeModule {
 													: `if(${hasJsMatcher("chunkId")}) {`,
 												Template.indent([
 													"// setup Promise in chunk cache",
-													`var promise = new Promise(${runtimeTemplate.expressionFunction(
+													`${cst} promise = new Promise(${runtimeTemplate.expressionFunction(
 														"installedChunkData = installedChunks[chunkId] = [resolve, reject]",
 														"resolve, reject"
 													)});`,
 													"promises.push(installedChunkData[2] = promise);",
 													"",
 													"// start chunk loading",
-													`var url = ${RuntimeGlobals.publicPath} + ${RuntimeGlobals.getChunkScriptFilename}(chunkId);`,
+													`${cst} url = ${RuntimeGlobals.publicPath} + ${RuntimeGlobals.getChunkScriptFilename}(chunkId);`,
 													"// create error before stack unwound to get useful stacktrace later",
-													"var error = new Error();",
-													`var loadingEnded = ${runtimeTemplate.basicFunction(
+													`${cst} error = new Error();`,
+													`${cst} loadingEnded = ${runtimeTemplate.basicFunction(
 														"event",
 														[
 															`if(${RuntimeGlobals.hasOwnProperty}(installedChunks, chunkId)) {`,
@@ -184,12 +169,13 @@ class JsonpChunkLoadingRuntimeModule extends RuntimeModule {
 																"if(installedChunkData !== 0) installedChunks[chunkId] = undefined;",
 																"if(installedChunkData) {",
 																Template.indent([
-																	"var errorType = event && (event.type === 'load' ? 'missing' : event.type);",
-																	"var realSrc = event && event.target && event.target.src;",
+																	`${cst} errorType = event && (event.type === 'load' ? 'missing' : event.type);`,
+																	`${cst} realSrc = event && event.target && event.target.src;`,
 																	"error.message = 'Loading chunk ' + chunkId + ' failed.\\n(' + errorType + ': ' + realSrc + ')';",
 																	"error.name = 'ChunkLoadError';",
 																	"error.type = errorType;",
 																	"error.request = realSrc;",
+																	"error.event = event;",
 																	"installedChunkData[1](error);"
 																]),
 																"}"
@@ -229,7 +215,7 @@ class JsonpChunkLoadingRuntimeModule extends RuntimeModule {
 							"installedChunks[chunkId] = null;",
 							linkPrefetch.call(
 								Template.asString([
-									"var link = document.createElement('link');",
+									`${cst} link = document.createElement('link');`,
 									charset ? "link.charset = 'utf-8';" : "",
 									crossOriginLoading
 										? `link.crossOrigin = ${JSON.stringify(
@@ -266,7 +252,7 @@ class JsonpChunkLoadingRuntimeModule extends RuntimeModule {
 							"installedChunks[chunkId] = null;",
 							linkPreload.call(
 								Template.asString([
-									"var link = document.createElement('link');",
+									`${cst} link = document.createElement('link');`,
 									scriptType && scriptType !== "module"
 										? `link.type = ${JSON.stringify(scriptType)};`
 										: "",
@@ -305,8 +291,8 @@ class JsonpChunkLoadingRuntimeModule extends RuntimeModule {
 			"",
 			withHmr
 				? Template.asString([
-						"var currentUpdatedModulesList;",
-						"var waitingUpdateResolves = {};",
+						`${lt} currentUpdatedModulesList;`,
+						`${cst} waitingUpdateResolves = {};`,
 						"function loadUpdateChunk(chunkId, updatedModulesList) {",
 						Template.indent([
 							"currentUpdatedModulesList = updatedModulesList;",
@@ -315,23 +301,27 @@ class JsonpChunkLoadingRuntimeModule extends RuntimeModule {
 								[
 									"waitingUpdateResolves[chunkId] = resolve;",
 									"// start update chunk loading",
-									`var url = ${RuntimeGlobals.publicPath} + ${RuntimeGlobals.getChunkUpdateScriptFilename}(chunkId);`,
+									`${cst} url = ${RuntimeGlobals.publicPath} + ${RuntimeGlobals.getChunkUpdateScriptFilename}(chunkId);`,
 									"// create error before stack unwound to get useful stacktrace later",
-									"var error = new Error();",
-									`var loadingEnded = ${runtimeTemplate.basicFunction("event", [
-										"if(waitingUpdateResolves[chunkId]) {",
-										Template.indent([
-											"waitingUpdateResolves[chunkId] = undefined",
-											"var errorType = event && (event.type === 'load' ? 'missing' : event.type);",
-											"var realSrc = event && event.target && event.target.src;",
-											"error.message = 'Loading hot update chunk ' + chunkId + ' failed.\\n(' + errorType + ': ' + realSrc + ')';",
-											"error.name = 'ChunkLoadError';",
-											"error.type = errorType;",
-											"error.request = realSrc;",
-											"reject(error);"
-										]),
-										"}"
-									])};`,
+									`${cst} error = new Error();`,
+									`${cst} loadingEnded = ${runtimeTemplate.basicFunction(
+										"event",
+										[
+											"if(waitingUpdateResolves[chunkId]) {",
+											Template.indent([
+												"waitingUpdateResolves[chunkId] = undefined",
+												`${cst} errorType = event && (event.type === 'load' ? 'missing' : event.type);`,
+												`${cst} realSrc = event && event.target && event.target.src;`,
+												"error.message = 'Loading hot update chunk ' + chunkId + ' failed.\\n(' + errorType + ': ' + realSrc + ')';",
+												"error.name = 'ChunkLoadError';",
+												"error.type = errorType;",
+												"error.request = realSrc;",
+												"error.event = event;",
+												"reject(error);"
+											]),
+											"}"
+										]
+									)};`,
 									`${RuntimeGlobals.loadScript}(url, loadingEnded);`
 								]
 							)});`
@@ -348,7 +338,7 @@ class JsonpChunkLoadingRuntimeModule extends RuntimeModule {
 									`if(${RuntimeGlobals.hasOwnProperty}(moreModules, moduleId)) {`,
 									Template.indent([
 										"currentUpdate[moduleId] = moreModules[moduleId];",
-										"if(currentUpdatedModulesList) currentUpdatedModulesList.push(moduleId);"
+										`${runtimeTemplate.optionalChaining("currentUpdatedModulesList", "push(moduleId)")};`
 									]),
 									"}"
 								]),
@@ -363,28 +353,7 @@ class JsonpChunkLoadingRuntimeModule extends RuntimeModule {
 							]
 						)};`,
 						"",
-						Template.getFunctionContent(
-							require("../hmr/JavascriptHotModuleReplacement.runtime.js")
-						)
-							.replace(/\$key\$/g, "jsonp")
-							.replace(/\$installedChunks\$/g, "installedChunks")
-							.replace(/\$loadUpdateChunk\$/g, "loadUpdateChunk")
-							.replace(/\$moduleCache\$/g, RuntimeGlobals.moduleCache)
-							.replace(/\$moduleFactories\$/g, RuntimeGlobals.moduleFactories)
-							.replace(
-								/\$ensureChunkHandlers\$/g,
-								RuntimeGlobals.ensureChunkHandlers
-							)
-							.replace(/\$hasOwnProperty\$/g, RuntimeGlobals.hasOwnProperty)
-							.replace(/\$hmrModuleData\$/g, RuntimeGlobals.hmrModuleData)
-							.replace(
-								/\$hmrDownloadUpdateHandlers\$/g,
-								RuntimeGlobals.hmrDownloadUpdateHandlers
-							)
-							.replace(
-								/\$hmrInvalidateModuleHandlers\$/g,
-								RuntimeGlobals.hmrInvalidateModuleHandlers
-							)
+						generateJavascriptHMR("jsonp")
 					])
 				: "// no HMR",
 			"",
@@ -417,7 +386,7 @@ class JsonpChunkLoadingRuntimeModule extends RuntimeModule {
 			withCallback || withLoading
 				? Template.asString([
 						"// install a JSONP callback for chunk loading",
-						`var webpackJsonpCallback = ${runtimeTemplate.basicFunction(
+						`${cst} webpackJsonpCallback = ${runtimeTemplate.basicFunction(
 							"parentChunkLoadingFunction, data",
 							[
 								runtimeTemplate.destructureArray(
@@ -460,7 +429,7 @@ class JsonpChunkLoadingRuntimeModule extends RuntimeModule {
 							]
 						)}`,
 						"",
-						`var chunkLoadingGlobal = ${chunkLoadingGlobalExpr} = ${chunkLoadingGlobalExpr} || [];`,
+						`${cst} chunkLoadingGlobal = ${runtimeTemplate.assignOr(chunkLoadingGlobalExpr, "[]")};`,
 						"chunkLoadingGlobal.forEach(webpackJsonpCallback.bind(null, 0));",
 						"chunkLoadingGlobal.push = webpackJsonpCallback.bind(null, chunkLoadingGlobal.push.bind(chunkLoadingGlobal));"
 					])
@@ -468,5 +437,13 @@ class JsonpChunkLoadingRuntimeModule extends RuntimeModule {
 		]);
 	}
 }
+
+JsonpChunkLoadingRuntimeModule.getCompilationHooks = createHooksRegistry(
+	() =>
+		/** @type {JsonpCompilationPluginHooks} */ ({
+			linkPreload: new SyncWaterfallHook(["source", "chunk"]),
+			linkPrefetch: new SyncWaterfallHook(["source", "chunk"])
+		})
+);
 
 module.exports = JsonpChunkLoadingRuntimeModule;

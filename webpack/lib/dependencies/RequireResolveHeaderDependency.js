@@ -12,11 +12,12 @@ const NullDependency = require("./NullDependency");
 /** @typedef {import("../Dependency")} Dependency */
 /** @typedef {import("../DependencyTemplate").DependencyTemplateContext} DependencyTemplateContext */
 /** @typedef {import("../javascript/JavascriptParser").Range} Range */
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext} ObjectDeserializerContext */
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext} ObjectSerializerContext */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext<[Range]>} ObjectDeserializerContext */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext<[Range]>} ObjectSerializerContext */
 
 class RequireResolveHeaderDependency extends NullDependency {
 	/**
+	 * Creates an instance of RequireResolveHeaderDependency.
 	 * @param {Range} range range
 	 */
 	constructor(range) {
@@ -28,17 +29,17 @@ class RequireResolveHeaderDependency extends NullDependency {
 	}
 
 	/**
+	 * Serializes this instance into the provided serializer context.
 	 * @param {ObjectSerializerContext} context context
 	 */
 	serialize(context) {
-		const { write } = context;
-
-		write(this.range);
+		context.write(this.range);
 
 		super.serialize(context);
 	}
 
 	/**
+	 * Restores this instance from the provided deserializer context.
 	 * @param {ObjectDeserializerContext} context context
 	 * @returns {RequireResolveHeaderDependency} RequireResolveHeaderDependency
 	 */
@@ -58,6 +59,7 @@ RequireResolveHeaderDependency.Template = class RequireResolveHeaderDependencyTe
 	NullDependency.Template
 ) {
 	/**
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Dependency} dependency the dependency for which the template should be applied
 	 * @param {ReplaceSource} source the current replace source which can be modified
 	 * @param {DependencyTemplateContext} templateContext the context object
@@ -69,6 +71,7 @@ RequireResolveHeaderDependency.Template = class RequireResolveHeaderDependencyTe
 	}
 
 	/**
+	 * Apply as template argument.
 	 * @param {string} name name
 	 * @param {RequireResolveHeaderDependency} dep dependency
 	 * @param {ReplaceSource} source source

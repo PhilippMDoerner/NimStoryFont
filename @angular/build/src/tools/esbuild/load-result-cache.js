@@ -35,10 +35,23 @@ function createCachedLoad(cache, callback) {
 class MemoryLoadResultCache {
     #loadResults = new Map();
     #fileDependencies = new Map();
+    #watchFilesPerKey = new Map();
     get(path) {
         return this.#loadResults.get(path);
     }
     async put(path, result) {
+        if (result.errors && result.errors.length > 0) {
+            const previousWatchFiles = this.#watchFilesPerKey.get(path);
+            if (previousWatchFiles) {
+                result.watchFiles = Array.from(new Set([...(result.watchFiles ?? []), ...previousWatchFiles]));
+            }
+        }
+        else if (result.watchFiles && result.watchFiles.length > 0) {
+            this.#watchFilesPerKey.set(path, [...result.watchFiles]);
+        }
+        else {
+            this.#watchFilesPerKey.delete(path);
+        }
         this.#loadResults.set(path, result);
         if (result.watchFiles) {
             for (const watchFile of result.watchFiles) {
@@ -71,5 +84,11 @@ class MemoryLoadResultCache {
         // are namespaced request paths and not disk-based file paths.
         return [...this.#fileDependencies.keys()];
     }
+    clear() {
+        this.#loadResults.clear();
+        this.#fileDependencies.clear();
+        this.#watchFilesPerKey.clear();
+    }
 }
 exports.MemoryLoadResultCache = MemoryLoadResultCache;
+//# sourceMappingURL=load-result-cache.js.map

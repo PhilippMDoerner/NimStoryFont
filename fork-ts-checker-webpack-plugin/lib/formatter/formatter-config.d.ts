@@ -1,6 +1,6 @@
 import type { Formatter, FormatterPathType } from './formatter';
 import type { FormatterOptions } from './formatter-options';
-declare type FormatterConfig = {
+type FormatterConfig = {
     format: Formatter;
     pathType: FormatterPathType;
 };

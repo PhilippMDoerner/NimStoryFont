@@ -11,22 +11,25 @@ import {
 } from '@ngrx/signals';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
 import { map, pipe, shareReplay, switchMap, take, tap } from 'rxjs';
-import { OrganizationMembership } from 'src/app/_models/character';
-import { Organization, OrganizationMember } from 'src/app/_models/organization';
-import { OverviewItem } from 'src/app/_models/overview';
-import { httpErrorToast, successToast } from 'src/app/_models/toast';
-import { CharacterService } from 'src/app/_services/article/character.service';
-import { OrganizationMembershipService } from 'src/app/_services/article/organization-membership.service';
-import { OrganizationService } from 'src/app/_services/article/organization.service';
-import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
-import { GlobalStore } from 'src/app/global.store';
-import { replaceItem } from 'src/utils/array';
-import { filterNil } from 'src/utils/rxjs-operators';
-import { RequestState } from 'src/utils/store/factory-types';
-import { handleError } from 'src/utils/store/toServerModel';
-import { withImages } from 'src/utils/store/withImages';
-import { withQueries } from 'src/utils/store/withQueries';
-import { withUpdates } from 'src/utils/store/withUpdates';
+import { replaceItem } from '../../../../utils/array';
+import { filterNil } from '../../../../utils/rxjs-operators';
+import { RequestState } from '../../../../utils/store/factory-types';
+import { handleError } from '../../../../utils/store/toServerModel';
+import { withImages } from '../../../../utils/store/withImages';
+import { withQueries } from '../../../../utils/store/withQueries';
+import { withUpdates } from '../../../../utils/store/withUpdates';
+import { OrganizationMembership } from '../../../_models/character';
+import {
+  Organization,
+  OrganizationMember,
+} from '../../../_models/organization';
+import { OverviewItem } from '../../../_models/overview';
+import { httpErrorToast, successToast } from '../../../_models/toast';
+import { CharacterService } from '../../../_services/article/character.service';
+import { OrganizationMembershipService } from '../../../_services/article/organization-membership.service';
+import { OrganizationService } from '../../../_services/article/organization.service';
+import { ToastService } from '../../../design/organisms/toast-overlay/toast.service';
+import { GlobalStore } from '../../../global.store';
 
 interface OrganizationState {
   organizationDeleteState: RequestState;
@@ -206,11 +209,14 @@ export const OrganizationStore = signalStore(
       ),
     };
   }),
-  withUpdates(() => {
-    const organizationService = inject(OrganizationService);
-    return {
-      organization: (update: Organization) =>
-        organizationService.update(update.pk!, update),
-    };
-  }),
+  withUpdates(
+    () => {
+      const organizationService = inject(OrganizationService);
+      return {
+        organization: (update: Organization) =>
+          organizationService.update(update.pk!, update),
+      };
+    },
+    { suppressUpdateNotification: true },
+  ),
 );

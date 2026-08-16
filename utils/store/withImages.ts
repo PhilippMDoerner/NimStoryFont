@@ -9,10 +9,10 @@ import {
   withState,
 } from '@ngrx/signals';
 import { take } from 'rxjs';
-import { Image, ImageType } from 'src/app/_models/image';
-import { httpErrorToast } from 'src/app/_models/toast';
-import { ImageUploadService } from 'src/app/_services/article/image-upload.service';
-import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
+import { Image, ImageType } from '../../app/_models/image';
+import { httpErrorToast } from '../../app/_models/toast';
+import { ImageUploadService } from '../../app/_services/article/image-upload.service';
+import { ToastService } from '../../app/design/organisms/toast-overlay/toast.service';
 import { InnerStore } from './withQueries';
 
 function addArticleId(

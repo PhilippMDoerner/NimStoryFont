@@ -47,6 +47,7 @@ exports.default = (0, util_1.createRule)({
         fixable: 'code',
         messages: {
             missingAsync: 'Functions that return promises must be async.',
+            missingAsyncHybridReturn: 'Functions that return promises must be async. Consider adding an explicit return type annotation if the function is intended to return a union of promise and non-promise types.',
         },
         schema: [
             {
@@ -133,10 +134,14 @@ exports.default = (0, util_1.createRule)({
             returnTypes.every(type => (0, util_1.containsAllTypesByName)(type, true, allAllowedPromiseNames, 
             // If no return type is explicitly set, we check if any parts of the return type match a Promise (instead of requiring all to match).
             node.returnType == null))) {
+                const isHybridReturnType = returnTypes.some(type => type.isUnion() &&
+                    !type.types.every(part => (0, util_1.containsAllTypesByName)(part, true, allAllowedPromiseNames)));
                 context.report({
                     loc: (0, util_1.getFunctionHeadLoc)(node, context.sourceCode),
                     node,
-                    messageId: 'missingAsync',
+                    messageId: isHybridReturnType
+                        ? 'missingAsyncHybridReturn'
+                        : 'missingAsync',
                     fix: fixer => {
                         if (node.parent.type === utils_1.AST_NODE_TYPES.MethodDefinition ||
                             (node.parent.type === utils_1.AST_NODE_TYPES.Property &&
@@ -151,10 +156,12 @@ exports.default = (0, util_1.createRule)({
                                 const lastDecorator = method.decorators[method.decorators.length - 1];
                                 keyToken = (0, util_1.nullThrows)(context.sourceCode.getTokenAfter(lastDecorator), util_1.NullThrowsReasons.MissingToken('key token', 'last decorator'));
                             }
-                            // if current token is a keyword like `static` or `public` then skip it
-                            while (keyToken.type === utils_1.AST_TOKEN_TYPES.Keyword &&
+                            // if current token is a keyword like `static` or `public`, or the `override` modifier, then skip it
+                            while ((keyToken.type === utils_1.AST_TOKEN_TYPES.Keyword ||
+                                (keyToken.type === utils_1.AST_TOKEN_TYPES.Identifier &&
+                                    keyToken.value === 'override')) &&
                                 keyToken.range[0] < method.key.range[0]) {
-                                keyToken = (0, util_1.nullThrows)(context.sourceCode.getTokenAfter(keyToken), util_1.NullThrowsReasons.MissingToken('token', 'keyword'));
+                                keyToken = (0, util_1.nullThrows)(context.sourceCode.getTokenAfter(keyToken), util_1.NullThrowsReasons.MissingToken('token', 'modifier keyword'));
                             }
                             // check if there is a space between key and previous token
                             const insertSpace = !context.sourceCode.isSpaceBetween((0, util_1.nullThrows)(context.sourceCode.getTokenBefore(keyToken), util_1.NullThrowsReasons.MissingToken('token', 'keyword')), keyToken);

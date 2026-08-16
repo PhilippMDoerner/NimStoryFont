@@ -44,14 +44,16 @@ function isNullishType(type) {
     return tsutils.isTypeFlagSet(type, nullishFlag);
 }
 function isAlwaysNullish(type) {
-    return tsutils.unionTypeParts(type).every(isNullishType);
+    return tsutils.unionConstituents(type).every(isNullishType);
 }
 /**
  * Note that this differs from {@link isNullableType} in that it doesn't consider
  * `any` or `unknown` to be nullable.
  */
 function isPossiblyNullish(type) {
-    return tsutils.unionTypeParts(type).some(isNullishType);
+    return tsutils
+        .unionConstituents(type)
+        .some(t => isNullishType(t) || (0, util_1.isTypeFlagSet)(t, ts.TypeFlags.Void));
 }
 function toStaticValue(type) {
     // type.isLiteral() only covers numbers/bigints and strings, hence the rest of the branches.
@@ -123,7 +125,7 @@ exports.default = (0, util_1.createRule)({
             recommended: 'strict',
             requiresTypeChecking: true,
         },
-        fixable: 'code',
+        hasSuggestions: true,
         messages: {
             alwaysFalsy: 'Unnecessary conditional, value is always falsy.',
             alwaysFalsyFunc: 'This callback should return a conditional, but return is always falsy.',
@@ -136,6 +138,7 @@ exports.default = (0, util_1.createRule)({
             neverOptionalChain: 'Unnecessary optional chain on a non-nullish value.',
             noOverlapBooleanExpression: 'Unnecessary conditional, the types have no overlap.',
             noStrictNullCheck: 'This rule requires the `strictNullChecks` compiler option to be turned on to function correctly.',
+            suggestRemoveOptionalChain: 'Remove unnecessary optional chain',
             typeGuardAlreadyIsType: 'Unnecessary conditional, expression already has the type being checked by the {{typeGuardOrAssertionFunction}}.',
         },
         schema: [
@@ -148,9 +151,11 @@ exports.default = (0, util_1.createRule)({
                         oneOf: [
                             {
                                 type: 'boolean',
+                                description: 'Always ignore or not ignore the loop conditions',
                             },
                             {
                                 type: 'string',
+                                description: 'Which situations to ignore constant conditions in.',
                                 enum: ['always', 'never', 'only-allowed-literals'],
                             },
                         ],
@@ -197,13 +202,13 @@ exports.default = (0, util_1.createRule)({
         function nodeIsArrayType(node) {
             const nodeType = (0, util_1.getConstrainedTypeAtLocation)(services, node);
             return tsutils
-                .unionTypeParts(nodeType)
+                .unionConstituents(nodeType)
                 .some(part => checker.isArrayType(part));
         }
         function nodeIsTupleType(node) {
             const nodeType = (0, util_1.getConstrainedTypeAtLocation)(services, node);
             return tsutils
-                .unionTypeParts(nodeType)
+                .unionConstituents(nodeType)
                 .some(part => checker.isTupleType(part));
         }
         function isArrayIndexExpression(node) {
@@ -222,7 +227,7 @@ exports.default = (0, util_1.createRule)({
         //    `any` or `unknown` or a naked type variable
         function isConditionalAlwaysNecessary(type) {
             return tsutils
-                .unionTypeParts(type)
+                .unionConstituents(type)
                 .some(part => (0, util_1.isTypeAnyType)(part) ||
                 (0, util_1.isTypeUnknownType)(part) ||
                 (0, util_1.isTypeFlagSet)(part, ts.TypeFlags.TypeVariable));
@@ -258,7 +263,7 @@ exports.default = (0, util_1.createRule)({
             // Since typescript array index signature types don't represent the
             //  possibility of out-of-bounds access, if we're indexing into an array
             //  just skip the check, to avoid false positives
-            if (isArrayIndexExpression(expression)) {
+            if (!isNoUncheckedIndexedAccess && isArrayIndexExpression(expression)) {
                 return;
             }
             // When checking logical expressions, only check the right side
@@ -308,10 +313,11 @@ exports.default = (0, util_1.createRule)({
                 // Since typescript array index signature types don't represent the
                 //  possibility of out-of-bounds access, if we're indexing into an array
                 //  just skip the check, to avoid false positives
-                if (!isArrayIndexExpression(node) &&
-                    !(node.type === utils_1.AST_NODE_TYPES.ChainExpression &&
-                        node.expression.type !== utils_1.AST_NODE_TYPES.TSNonNullExpression &&
-                        optionChainContainsOptionArrayIndex(node.expression))) {
+                if (isNoUncheckedIndexedAccess ||
+                    (!isArrayIndexExpression(node) &&
+                        !(node.type === utils_1.AST_NODE_TYPES.ChainExpression &&
+                            node.expression.type !== utils_1.AST_NODE_TYPES.TSNonNullExpression &&
+                            optionChainContainsOptionArrayIndex(node.expression)))) {
                     messageId = 'neverNullish';
                 }
             }
@@ -392,20 +398,17 @@ exports.default = (0, util_1.createRule)({
             // The right side will be checked if the LogicalExpression is used in a conditional context
             checkNode(node.left);
         }
-        function checkIfWhileLoopIsNecessaryConditional(node) {
-            if (allowConstantLoopConditionsOption === 'only-allowed-literals' &&
-                node.test.type === utils_1.AST_NODE_TYPES.Literal &&
-                constantLoopConditionsAllowedLiterals.has(node.test.value)) {
-                return;
-            }
-            checkIfLoopIsNecessaryConditional(node);
-        }
         /**
          * Checks that a testable expression of a loop is necessarily conditional, reports otherwise.
          */
         function checkIfLoopIsNecessaryConditional(node) {
             if (node.test == null) {
                 // e.g. `for(;;)`
+                return;
+            }
+            if (allowConstantLoopConditionsOption === 'only-allowed-literals' &&
+                node.test.type === utils_1.AST_NODE_TYPES.Literal &&
+                constantLoopConditionsAllowedLiterals.has(node.test.value)) {
                 return;
             }
             if (allowConstantLoopConditionsOption === 'always' &&
@@ -423,7 +426,19 @@ exports.default = (0, util_1.createRule)({
                 const typeGuardAssertedArgument = (0, assertionFunctionUtils_1.findTypeGuardAssertedArgument)(services, node);
                 if (typeGuardAssertedArgument != null) {
                     const typeOfArgument = (0, util_1.getConstrainedTypeAtLocation)(services, typeGuardAssertedArgument.argument);
-                    if (typeOfArgument === typeGuardAssertedArgument.type) {
+                    if (
+                    // Skip `any` — it is assignable to everything, producing
+                    // false positives for meaningful runtime type guards.
+                    !tsutils.isTypeFlagSet(typeOfArgument, ts.TypeFlags.Any | ts.TypeFlags.Unknown) &&
+                        checker.isTypeAssignableTo(typeOfArgument, typeGuardAssertedArgument.type) &&
+                        // Only flag if the types are mutually assignable (i.e. equivalent,
+                        // like Narrower ↔ Wider with optional props) or the predicate type
+                        // is a union that the argument is a strict subtype of.  This avoids
+                        // false positives with structural subtypes whose extra members are
+                        // all optional in the *predicate* type (e.g. custom MappedType
+                        // interfaces extending ts.Type).
+                        (checker.isTypeAssignableTo(typeGuardAssertedArgument.type, typeOfArgument) ||
+                            typeGuardAssertedArgument.type.isUnion())) {
                         context.report({
                             node: typeGuardAssertedArgument.argument,
                             messageId: 'typeGuardAlreadyIsType',
@@ -598,7 +613,8 @@ exports.default = (0, util_1.createRule)({
             // Since typescript array index signature types don't represent the
             //  possibility of out-of-bounds access, if we're indexing into an array
             //  just skip the check, to avoid false positives
-            if (optionChainContainsOptionArrayIndex(node)) {
+            if (!isNoUncheckedIndexedAccess &&
+                optionChainContainsOptionArrayIndex(node)) {
                 return;
             }
             const nodeToCheck = node.type === utils_1.AST_NODE_TYPES.CallExpression ? node.callee : node.object;
@@ -610,9 +626,14 @@ exports.default = (0, util_1.createRule)({
                 loc: questionDotOperator.loc,
                 node,
                 messageId: 'neverOptionalChain',
-                fix(fixer) {
-                    return fixer.replaceText(questionDotOperator, fix);
-                },
+                suggest: [
+                    {
+                        messageId: 'suggestRemoveOptionalChain',
+                        fix(fixer) {
+                            return fixer.replaceText(questionDotOperator, fix);
+                        },
+                    },
+                ],
             });
         }
         function checkOptionalMemberExpression(node) {
@@ -653,7 +674,7 @@ exports.default = (0, util_1.createRule)({
                     checkIfBoolExpressionIsNecessaryConditional(test, parent.discriminant, test, '===');
                 }
             },
-            WhileStatement: checkIfWhileLoopIsNecessaryConditional,
+            WhileStatement: checkIfLoopIsNecessaryConditional,
         };
     },
 });

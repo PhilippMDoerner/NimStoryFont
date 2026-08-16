@@ -51,7 +51,6 @@ const path = __importStar(require("node:path"));
 const node_worker_threads_1 = require("node:worker_threads");
 const environment_options_1 = require("./environment-options");
 const error_1 = require("./error");
-const load_esm_1 = require("./load-esm");
 // Lazy loaded webpack-sources object
 // Webpack is only imported if needed during the processing
 let webpackSources;
@@ -73,34 +72,27 @@ let localizeToolsModule;
  * This module must be dynamically loaded as it is an ESM module and this file is CommonJS.
  */
 async function loadLocalizeTools() {
-    if (localizeToolsModule !== undefined) {
-        return localizeToolsModule;
-    }
-    // Load ESM `@angular/localize/tools` using the TypeScript dynamic import workaround.
-    // Once TypeScript provides support for keeping the dynamic import this workaround can be
-    // changed to a direct dynamic import.
-    return (0, load_esm_1.loadEsmModule)('@angular/localize/tools');
+    localizeToolsModule ??= await Promise.resolve().then(() => __importStar(require('@angular/localize/tools')));
+    return localizeToolsModule;
 }
 async function createI18nPlugins(locale, translation, missingTranslation, shouldInline, localeDataContent) {
     const { Diagnostics, makeEs2015TranslatePlugin, makeLocalePlugin } = await loadLocalizeTools();
     const plugins = [];
     const diagnostics = new Diagnostics();
     if (shouldInline) {
-        plugins.push(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        makeEs2015TranslatePlugin(diagnostics, (translation || {}), {
+        plugins.push(makeEs2015TranslatePlugin(diagnostics, translation || {}, {
             missingTranslation: translation === undefined ? 'ignore' : missingTranslation,
         }));
     }
     plugins.push(makeLocalePlugin(locale));
     if (localeDataContent) {
-        plugins.push({
+        plugins.push(() => ({
             visitor: {
                 Program(path) {
                     path.unshiftContainer('body', core_1.template.ast(localeDataContent));
                 },
             },
-        });
+        }));
     }
     return { diagnostics, plugins };
 }
@@ -133,7 +125,9 @@ async function inlineLocales(options) {
         // Which makes it hard to find the actual error message.
         const index = error.message.indexOf(')\n');
         const msg = index !== -1 ? error.message.slice(0, index + 1) : error.message;
-        throw new Error(`${msg}\nAn error occurred inlining file "${options.filename}"`);
+        throw new Error(`${msg}\nAn error occurred inlining file "${options.filename}"`, {
+            cause: error,
+        });
     }
     if (!ast) {
         throw new Error(`Unknown error occurred inlining file "${options.filename}"`);
@@ -205,7 +199,8 @@ async function inlineLocalesDirect(ast, options) {
     const { ConcatSource, OriginalSource, ReplaceSource, SourceMapSource } = webpackSources;
     for (const locale of i18n.inlineLocales) {
         const content = new ReplaceSource(inputMap
-            ? new SourceMapSource(options.code, options.filename, inputMap)
+            ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                new SourceMapSource(options.code, options.filename, inputMap)
             : new OriginalSource(options.code, options.filename));
         const isSourceLocale = locale === i18n.sourceLocale;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -213,6 +208,7 @@ async function inlineLocalesDirect(ast, options) {
         for (const position of positions) {
             const translated = localizeDiag.translate(diagnostics, translations, position.messageParts, position.expressions, isSourceLocale ? 'ignore' : options.missingTranslation || 'warning');
             const expression = localizeDiag.buildLocalizeReplacement(translated[0], translated[1]);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const { code } = generate(expression);
             content.replace(position.start, position.end - 1, code);
         }
@@ -282,8 +278,12 @@ function findLocalizePositions(ast, options, utils) {
     return positions;
 }
 function unwrapTemplateLiteral(path, utils) {
-    const [messageParts] = utils.unwrapMessagePartsFromTemplateLiteral(path.get('quasi').get('quasis'));
-    const [expressions] = utils.unwrapExpressionsFromTemplateLiteral(path.get('quasi'));
+    const [messageParts] = utils.unwrapMessagePartsFromTemplateLiteral(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    path.get('quasi').get('quasis'));
+    const [expressions] = utils.unwrapExpressionsFromTemplateLiteral(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    path.get('quasi'));
     return [messageParts, expressions];
 }
 async function loadLocaleData(path, optimize) {
@@ -301,7 +301,6 @@ async function loadLocaleData(path, optimize) {
             [
                 require.resolve('@babel/preset-env'),
                 {
-                    bugfixes: true,
                     targets: { esmodules: true },
                 },
             ],
@@ -315,3 +314,4 @@ async function loadLocaleData(path, optimize) {
     }
     return transformResult.code;
 }
+//# sourceMappingURL=process-bundle.js.map

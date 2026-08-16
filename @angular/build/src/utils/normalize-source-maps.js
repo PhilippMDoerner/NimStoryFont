@@ -22,3 +22,4 @@ function normalizeSourceMaps(sourceMap) {
         sourcesContent,
     };
 }
+//# sourceMappingURL=normalize-source-maps.js.map

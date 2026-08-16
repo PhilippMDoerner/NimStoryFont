@@ -1,10 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RULE_NAME = void 0;
+exports.RULE_DOCS_EXTENSION = exports.RULE_NAME = void 0;
 const utils_1 = require("@angular-eslint/utils");
 const create_eslint_rule_1 = require("../utils/create-eslint-rule");
 exports.RULE_NAME = 'component-max-inline-declarations';
-const STYLE_GUIDE_LINK = 'https://angular.dev/style-guide#style-05-04';
 const NEW_LINE_REGEXP = /\r\n|\r|\n/;
 const DEFAULT_TEMPLATE_LIMIT = 3;
 const DEFAULT_STYLES_LIMIT = 3;
@@ -23,7 +22,7 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
     meta: {
         type: 'suggestion',
         docs: {
-            description: `Enforces a maximum number of lines in inline template, styles and animations. See more at ${STYLE_GUIDE_LINK}`,
+            description: `Enforces a maximum number of lines in inline template, styles and animations.`,
         },
         schema: [
             {
@@ -37,7 +36,7 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
             },
         ],
         messages: {
-            componentMaxInlineDeclarations: `\`{{propertyType}}\` has too many lines ({{lineCount}}). Maximum allowed is {{max}} (${STYLE_GUIDE_LINK})`,
+            componentMaxInlineDeclarations: `\`{{propertyType}}\` has too many lines ({{lineCount}}). Maximum allowed is {{max}}`,
         },
     },
     defaultOptions: [
@@ -103,3 +102,6 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
         };
     },
 });
+exports.RULE_DOCS_EXTENSION = {
+    rationale: `When templates or styles exceed a few lines, keeping them inline makes components harder to read and maintain. Inline templates and styles cannot be syntax-highlighted as effectively as separate files, complicate code reviews, and make it difficult to quickly understand a component's structure. Moving larger templates and styles to separate files improves readability, enables better IDE support, and follows the separation of concerns principle.`,
+};

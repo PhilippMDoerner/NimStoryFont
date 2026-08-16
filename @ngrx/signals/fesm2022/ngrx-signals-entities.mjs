@@ -137,6 +137,21 @@ function updateEntitiesMutably(state, idsOrPredicate, changes, selectId) {
     return didMutate;
 }
 
+/**
+ * @description
+ *
+ * Adds an entity to the collection.
+ * Does not override if entity with same ID exists.
+ *
+ * @usageNotes
+ *
+ * ```ts
+ * import { patchState } from '@ngrx/signals';
+ * import { addEntity } from '@ngrx/signals/entities';
+ *
+ * patchState(store, addEntity(todo));
+ * ```
+ */
 function addEntity(entity, config) {
     const selectId = getEntityIdSelector(config);
     const stateKeys = getEntityStateKeys(config);
@@ -147,6 +162,21 @@ function addEntity(entity, config) {
     };
 }
 
+/**
+ * @description
+ *
+ * Adds multiple entities to the collection.
+ * Does not override existing entities with same IDs.
+ *
+ * @usageNotes
+ *
+ * ```ts
+ * import { patchState } from '@ngrx/signals';
+ * import { addEntities } from '@ngrx/signals/entities';
+ *
+ * patchState(store, addEntities([todo1, todo2]));
+ * ```
+ */
 function addEntities(entities, config) {
     const selectId = getEntityIdSelector(config);
     const stateKeys = getEntityStateKeys(config);
@@ -157,6 +187,21 @@ function addEntities(entities, config) {
     };
 }
 
+/**
+ * @description
+ *
+ * Adds an entity to the beginning of the collection.
+ * Does not add if entity with same ID exists.
+ *
+ * @usageNotes
+ *
+ * ```ts
+ * import { patchState } from '@ngrx/signals';
+ * import { prependEntity } from '@ngrx/signals/entities';
+ *
+ * patchState(store, prependEntity(todo));
+ * ```
+ */
 function prependEntity(entity, config) {
     const selectId = getEntityIdSelector(config);
     const stateKeys = getEntityStateKeys(config);
@@ -167,6 +212,21 @@ function prependEntity(entity, config) {
     };
 }
 
+/**
+ * @description
+ *
+ * Adds multiple entities to the beginning of the collection.
+ * Does not add existing entities with same IDs.
+ *
+ * @usageNotes
+ *
+ * ```ts
+ * import { patchState } from '@ngrx/signals';
+ * import { prependEntities } from '@ngrx/signals/entities';
+ *
+ * patchState(store, prependEntities([todo1, todo2]));
+ * ```
+ */
 function prependEntities(entities, config) {
     const selectId = getEntityIdSelector(config);
     const stateKeys = getEntityStateKeys(config);
@@ -186,6 +246,20 @@ function prependEntities(entities, config) {
     };
 }
 
+/**
+ * @description
+ *
+ * Removes an entity from the collection by ID.
+ *
+ * @usageNotes
+ *
+ * ```ts
+ * import { patchState } from '@ngrx/signals';
+ * import { removeEntity } from '@ngrx/signals/entities';
+ *
+ * patchState(store, removeEntity(1));
+ * ```
+ */
 function removeEntity(id, config) {
     const stateKeys = getEntityStateKeys(config);
     return (state) => {
@@ -195,6 +269,24 @@ function removeEntity(id, config) {
     };
 }
 
+/**
+ * @description
+ *
+ * Removes multiple entities from the collection by IDs or predicate.
+ *
+ * @usageNotes
+ *
+ * ```ts
+ * import { patchState } from '@ngrx/signals';
+ * import { removeEntities } from '@ngrx/signals/entities';
+ *
+ * // Remove by IDs
+ * patchState(store, removeEntities([1, 2, 3]));
+ *
+ * // Remove by predicate
+ * patchState(store, removeEntities((todo) => todo.completed));
+ * ```
+ */
 function removeEntities(idsOrPredicate, config) {
     const stateKeys = getEntityStateKeys(config);
     return (state) => {
@@ -204,6 +296,20 @@ function removeEntities(idsOrPredicate, config) {
     };
 }
 
+/**
+ * @description
+ *
+ * Removes all entities from the collection.
+ *
+ * @usageNotes
+ *
+ * ```ts
+ * import { patchState } from '@ngrx/signals';
+ * import { removeAllEntities } from '@ngrx/signals/entities';
+ *
+ * patchState(store, removeAllEntities());
+ * ```
+ */
 function removeAllEntities(config) {
     const stateKeys = getEntityStateKeys(config);
     return () => ({
@@ -212,6 +318,20 @@ function removeAllEntities(config) {
     });
 }
 
+/**
+ * @description
+ *
+ * Adds or replaces an entity in the collection.
+ *
+ * @usageNotes
+ *
+ * ```ts
+ * import { patchState } from '@ngrx/signals';
+ * import { setEntity } from '@ngrx/signals/entities';
+ *
+ * patchState(store, setEntity(todo));
+ * ```
+ */
 function setEntity(entity, config) {
     const selectId = getEntityIdSelector(config);
     const stateKeys = getEntityStateKeys(config);
@@ -222,6 +342,20 @@ function setEntity(entity, config) {
     };
 }
 
+/**
+ * @description
+ *
+ * Adds or replaces multiple entities in the collection.
+ *
+ * @usageNotes
+ *
+ * ```ts
+ * import { patchState } from '@ngrx/signals';
+ * import { setEntities } from '@ngrx/signals/entities';
+ *
+ * patchState(store, setEntities([todo1, todo2]));
+ * ```
+ */
 function setEntities(entities, config) {
     const selectId = getEntityIdSelector(config);
     const stateKeys = getEntityStateKeys(config);
@@ -232,6 +366,20 @@ function setEntities(entities, config) {
     };
 }
 
+/**
+ * @description
+ *
+ * Replaces the entire entity collection with the provided entities.
+ *
+ * @usageNotes
+ *
+ * ```ts
+ * import { patchState } from '@ngrx/signals';
+ * import { setAllEntities } from '@ngrx/signals/entities';
+ *
+ * patchState(store, setAllEntities([todo1, todo2, todo3]));
+ * ```
+ */
 function setAllEntities(entities, config) {
     const selectId = getEntityIdSelector(config);
     const stateKeys = getEntityStateKeys(config);
@@ -245,6 +393,20 @@ function setAllEntities(entities, config) {
     };
 }
 
+/**
+ * @description
+ *
+ * Updates an entity in the collection by ID. Supports partial updates.
+ *
+ * @usageNotes
+ *
+ * ```ts
+ * import { patchState } from '@ngrx/signals';
+ * import { updateEntity } from '@ngrx/signals/entities';
+ *
+ * patchState(store, updateEntity({ id: 1, changes: { completed: true } }));
+ * ```
+ */
 function updateEntity(update, config) {
     const selectId = getEntityIdSelector(config);
     const stateKeys = getEntityStateKeys(config);
@@ -255,6 +417,34 @@ function updateEntity(update, config) {
     };
 }
 
+/**
+ * @description
+ *
+ * Updates multiple entities in the collection by IDs or predicate.
+ * Supports partial updates.
+ *
+ * @usageNotes
+ *
+ * ```ts
+ * import { patchState } from '@ngrx/signals';
+ * import { updateEntities } from '@ngrx/signals/entities';
+ *
+ * // Update by IDs
+ * patchState(
+ *   store,
+ *   updateEntities({ ids: [1, 2], changes: { completed: true } })
+ * );
+ *
+ * // Update by predicate
+ * patchState(
+ *   store,
+ *   updateEntities({
+ *     predicate: (todo) => !todo.completed,
+ *     changes: { text: '' },
+ *   })
+ * );
+ * ```
+ */
 function updateEntities(update, config) {
     const selectId = getEntityIdSelector(config);
     const stateKeys = getEntityStateKeys(config);
@@ -266,6 +456,20 @@ function updateEntities(update, config) {
     };
 }
 
+/**
+ * @description
+ *
+ * Updates all entities in the collection. Supports partial updates.
+ *
+ * @usageNotes
+ *
+ * ```ts
+ * import { patchState } from '@ngrx/signals';
+ * import { updateAllEntities } from '@ngrx/signals/entities';
+ *
+ * patchState(store, updateAllEntities({ completed: false }));
+ * ```
+ */
 function updateAllEntities(changes, config) {
     const selectId = getEntityIdSelector(config);
     const stateKeys = getEntityStateKeys(config);
@@ -276,6 +480,21 @@ function updateAllEntities(changes, config) {
     };
 }
 
+/**
+ * @description
+ *
+ * Adds or updates an entity in the collection.
+ * When updating, merges with existing entity.
+ *
+ * @usageNotes
+ *
+ * ```ts
+ * import { patchState } from '@ngrx/signals';
+ * import { upsertEntity } from '@ngrx/signals/entities';
+ *
+ * patchState(store, upsertEntity(todo));
+ * ```
+ */
 function upsertEntity(entity, config) {
     const selectId = getEntityIdSelector(config);
     const stateKeys = getEntityStateKeys(config);
@@ -286,6 +505,21 @@ function upsertEntity(entity, config) {
     };
 }
 
+/**
+ * @description
+ *
+ * Adds or updates multiple entities in the collection.
+ * When updating, merges with existing entities.
+ *
+ * @usageNotes
+ *
+ * ```ts
+ * import { patchState } from '@ngrx/signals';
+ * import { upsertEntities } from '@ngrx/signals/entities';
+ *
+ * patchState(store, upsertEntities([todo1, todo2]));
+ * ```
+ */
 function upsertEntities(entities, config) {
     const selectId = getEntityIdSelector(config);
     const stateKeys = getEntityStateKeys(config);
@@ -296,10 +530,58 @@ function upsertEntities(entities, config) {
     };
 }
 
+/**
+ * @description
+ *
+ * Creates a custom entity configuration and ensures strong typing.
+ * Allows defining named entity collections and a custom id selector.
+ *
+ * @usageNotes
+ *
+ * ```ts
+ * import { signalStore, type, withMethods } from '@ngrx/signals';
+ * import { addEntity, entityConfig, withEntities } from '@ngrx/signals/entities';
+ *
+ * type Todo = { key: number; text: string };
+ *
+ * const todoConfig = entityConfig({
+ *   entity: type<Todo>(),
+ *   collection: 'todo',
+ *   selectId: (todo) => todo.key,
+ * });
+ *
+ * export const TodosStore = signalStore(
+ *   // 👇 Adds `todoEntityMap`, `todoIds`, and `todoEntities` signals to the store.
+ *   withEntities(todoConfig),
+ *   withMethods((store) => ({
+ *     addTodo(todo: Todo): void {
+ *       patchState(store, addEntity(todo, todoConfig));
+ *     },
+ *   }))
+ * );
+ * ```
+ */
 function entityConfig(config) {
     return config;
 }
 
+/**
+ * @description
+ *
+ * Provides entity management capabilities to the SignalStore.
+ * Adds `entityMap`, `ids`, and `entities` signals to the store.
+ *
+ * @usageNotes
+ *
+ * ```ts
+ * import { signalStore } from '@ngrx/signals';
+ * import { withEntities } from '@ngrx/signals/entities';
+ *
+ * type Todo = { id: number; text: string; completed: boolean };
+ *
+ * export const TodosStore = signalStore(withEntities<Todo>());
+ * ```
+ */
 function withEntities(config) {
     const { entityMapKey, idsKey, entitiesKey } = getEntityStateKeys(config);
     return signalStoreFeature(withState({

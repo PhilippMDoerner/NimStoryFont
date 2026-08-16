@@ -1,0 +1,65 @@
+"use strict";
+/**
+ * @license
+ * Copyright Google LLC All Rights Reserved.
+ *
+ * Use of this source code is governed by an MIT-style license that can be
+ * found in the LICENSE file at https://angular.dev/license
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.toPosixPath = toPosixPath;
+exports.isSubDirectory = isSubDirectory;
+exports.canonicalizePath = canonicalizePath;
+const node_path_1 = require("node:path");
+const node_process_1 = require("node:process");
+const WINDOWS_PATH_SEPERATOR_REGEXP = /\\/g;
+/**
+ * Converts a Windows-style file path to a POSIX-compliant path.
+ *
+ * This function replaces all backslashes (`\`) with forward slashes (`/`).
+ * It is a no-op on POSIX systems (e.g., Linux, macOS), as the conversion
+ * only runs on Windows (`win32`).
+ *
+ * @param path - The file path to convert.
+ * @returns The POSIX-compliant file path.
+ *
+ * @example
+ * ```ts
+ * // On a Windows system:
+ * toPosixPath('C:\\Users\\Test\\file.txt');
+ * // => 'C:/Users/Test/file.txt'
+ *
+ * // On a POSIX system (Linux/macOS):
+ * toPosixPath('/home/user/file.txt');
+ * // => '/home/user/file.txt'
+ * ```
+ */
+function toPosixPath(path) {
+    return node_process_1.platform === 'win32' ? path.replace(WINDOWS_PATH_SEPERATOR_REGEXP, node_path_1.posix.sep) : path;
+}
+/**
+ * Determines if a path is a subdirectory or file within a parent directory.
+ *
+ * @param parent - The parent directory path.
+ * @param child - The child path to check.
+ * @returns `true` if the child path is within the parent directory, `false` otherwise.
+ */
+function isSubDirectory(parent, child) {
+    const resolvedParent = (0, node_path_1.resolve)(parent);
+    const resolvedChild = (0, node_path_1.resolve)(parent, child);
+    const relativePath = toPosixPath((0, node_path_1.relative)(resolvedParent, resolvedChild));
+    return relativePath !== '..' && !relativePath.startsWith('../') && !(0, node_path_1.isAbsolute)(relativePath);
+}
+/**
+ * Canonicalizes a file path by normalising Windows drive-letter casing to uppercase.
+ *
+ * @param pathString - The file path to canonicalize.
+ * @returns The canonicalized file path.
+ */
+function canonicalizePath(pathString) {
+    if (node_process_1.platform === 'win32' && /^[a-z]:/.test(pathString)) {
+        return pathString[0].toUpperCase() + pathString.slice(1);
+    }
+    return pathString;
+}
+//# sourceMappingURL=path.js.map

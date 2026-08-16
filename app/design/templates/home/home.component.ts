@@ -1,3 +1,4 @@
+import { NgOptimizedImage } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -9,30 +10,28 @@ import {
   signal,
   untracked,
 } from '@angular/core';
-import { CampaignOverview } from 'src/app/_models/campaign';
+import { componentId } from '../../../../utils/DOM';
+import { withViewTransition } from '../../../../utils/animation';
+import { CampaignOverview } from '../../../_models/campaign';
 import {
   ARTICLE_ICONS,
   ArticleKind,
   OverviewItem,
   VisitedState,
-} from 'src/app/_models/overview';
-import { PageContainerComponent } from '../../organisms/page-container/page-container.component';
-
-import { NgOptimizedImage } from '@angular/common';
-import { OnlineService } from 'src/app/_services/online.service';
-import { Icon } from 'src/app/design/atoms/_models/icon';
-import { PlaceholderComponent } from 'src/app/design/atoms/placeholder/placeholder.component';
-import { IconCardEntry } from 'src/app/design/organisms/_model/icon-card-list';
-import { ContentScrollEvent, GlobalStore } from 'src/app/global.store';
-import { withViewTransition } from 'src/utils/animation';
-import { componentId } from 'src/utils/DOM';
+} from '../../../_models/overview';
+import { OnlineService } from '../../../_services/online.service';
+import { ContentScrollEvent, GlobalStore } from '../../../global.store';
+import { Icon } from '../../atoms/_models/icon';
 import { ButtonComponent } from '../../atoms/button/button.component';
 import { HtmlTextComponent } from '../../atoms/html-text/html-text.component';
 import { IconComponent } from '../../atoms/icon/icon.component';
+import { PlaceholderComponent } from '../../atoms/placeholder/placeholder.component';
 import { SwitchComponent } from '../../atoms/switch/switch.component';
 import { MenuItem } from '../../molecules/_models/menu';
 import { ContextMenuComponent } from '../../molecules/context-menu/context-menu.component';
+import { IconCardEntry } from '../../organisms/_model/icon-card-list';
 import { IconCardListComponent } from '../../organisms/icon-card-list/icon-card-list.component';
+import { PageContainerComponent } from '../../organisms/page-container/page-container.component';
 
 const FILTER_MODES = ['NONE', '1WEEK', '1DAY'] as const;
 type FilterMode = (typeof FILTER_MODES)[number];
@@ -65,23 +64,23 @@ const FILTER_ICON: { [key in FilterMode]: Icon | undefined } = {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class HomeComponent {
-  globalStore = inject(GlobalStore);
-  PAGE_BOTTOM_MIN_DISTANCE_FOR_PAGE_LOAD = 400;
-  DEFAULT_ICON = 'assets/icons/icon-512x512.webp';
-  ARTICLE_ICON_MAP = ARTICLE_ICONS;
+  readonly globalStore = inject(GlobalStore);
+  readonly PAGE_BOTTOM_MIN_DISTANCE_FOR_PAGE_LOAD = 400;
+  readonly DEFAULT_ICON = 'assets/icons/icon-512x512.webp';
+  readonly ARTICLE_ICON_MAP = ARTICLE_ICONS;
 
-  serverUrl = input.required<string>();
-  campaignData = input.required<CampaignOverview | undefined>();
-  articles = input.required<OverviewItem[] | undefined>();
-  isLoading = input.required<boolean>();
-  hasMoreArticles = input.required<boolean>();
+  readonly serverUrl = input.required<string>();
+  readonly campaignData = input.required<CampaignOverview | undefined>();
+  readonly articles = input.required<OverviewItem[] | undefined>();
+  readonly isLoading = input.required<boolean>();
+  readonly hasMoreArticles = input.required<boolean>();
 
   readonly appSearch = output<string>();
   readonly loadArticlePage = output<number>();
 
-  isOnline$ = inject(OnlineService).online$;
+  readonly isOnline$ = inject(OnlineService).online$;
 
-  timeFilterOptions = computed<MenuItem[]>(() => {
+  readonly timeFilterOptions = computed<MenuItem[]>(() => {
     return FILTER_MODES.map((mode) => ({
       actionName: mode,
       kind: 'BUTTON',
@@ -91,8 +90,8 @@ export class HomeComponent {
     }));
   });
 
-  timeFilter = signal<FilterMode>('NONE');
-  filterDate = computed<Date | undefined>(() => {
+  readonly timeFilter = signal<FilterMode>('NONE');
+  readonly filterDate = computed<Date | undefined>(() => {
     const now = new Date().getTime();
     switch (this.timeFilter()) {
       case 'NONE':
@@ -107,7 +106,7 @@ export class HomeComponent {
       }
     }
   });
-  canLoadMore = computed(() => {
+  readonly canLoadMore = computed(() => {
     if (!this.hasMoreArticles()) return false;
     if (this.isLoading()) return false;
 
@@ -125,9 +124,11 @@ export class HomeComponent {
 
     return hasMoreArticlesInFilter;
   });
-  feedMode = signal<'INFINITY_SCROLL' | 'BUTTON_LOAD'>('INFINITY_SCROLL');
+  readonly feedMode = signal<'INFINITY_SCROLL' | 'BUTTON_LOAD'>(
+    'INFINITY_SCROLL',
+  );
 
-  articleEntries = computed<IconCardEntry[]>(() => {
+  readonly articleEntries = computed<IconCardEntry[]>(() => {
     const filterDate = this.filterDate();
     const articles = this.articles() ?? [];
     if (!filterDate) return articles.map((art) => this.toIconCardEntry(art));
@@ -141,8 +142,8 @@ export class HomeComponent {
       .slice(0, firstArticleOutOfTimeframeIndex)
       .map((art) => this.toIconCardEntry(art));
   });
-  pageNumber = signal(0);
-  id = componentId();
+  readonly pageNumber = signal(0);
+  readonly id = componentId();
 
   constructor() {
     effect(() => {

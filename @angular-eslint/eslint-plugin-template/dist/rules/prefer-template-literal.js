@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RULE_NAME = void 0;
+exports.RULE_DOCS_EXTENSION = exports.RULE_NAME = void 0;
 const bundled_angular_compiler_1 = require("@angular-eslint/bundled-angular-compiler");
 const utils_1 = require("@angular-eslint/utils");
 const create_eslint_rule_1 = require("../utils/create-eslint-rule");
@@ -8,6 +8,73 @@ const literal_primitive_1 = require("../utils/literal-primitive");
 const unwrap_parenthesized_expression_1 = require("../utils/unwrap-parenthesized-expression");
 const messageId = 'preferTemplateLiteral';
 exports.RULE_NAME = 'prefer-template-literal';
+/**
+ * Check if this node is part of a larger Binary + chain.
+ * If so, we should skip and let the topmost node handle it.
+ */
+function isPartOfLargerBinaryChain(node) {
+    if (!('parent' in node))
+        return false;
+    const parent = node.parent;
+    // If parent is a Binary +, we're part of a larger chain
+    return parent instanceof bundled_angular_compiler_1.Binary && parent.operation === '+';
+}
+/**
+ * Check if a Binary + chain contains at least one string literal anywhere.
+ * This recursively checks the entire tree.
+ */
+function chainContainsString(node) {
+    const unwrapped = (0, unwrap_parenthesized_expression_1.unwrapParenthesizedExpression)(node);
+    if ((0, literal_primitive_1.isStringLiteralPrimitive)(unwrapped) ||
+        unwrapped instanceof bundled_angular_compiler_1.TemplateLiteral) {
+        return true;
+    }
+    if (unwrapped instanceof bundled_angular_compiler_1.Binary && unwrapped.operation === '+') {
+        return (chainContainsString(unwrapped.left) ||
+            chainContainsString(unwrapped.right));
+    }
+    return false;
+}
+/**
+ * Flatten a Binary + tree into a list of parts.
+ * This recursively collects all operands in a left-to-right order.
+ */
+function flattenBinaryConcat(node) {
+    const unwrapped = (0, unwrap_parenthesized_expression_1.unwrapParenthesizedExpression)(node);
+    if (unwrapped instanceof bundled_angular_compiler_1.Binary &&
+        unwrapped.operation === '+' &&
+        chainContainsString(unwrapped)) {
+        // Recursively flatten both sides
+        return [
+            ...flattenBinaryConcat(unwrapped.left),
+            ...flattenBinaryConcat(unwrapped.right),
+        ];
+    }
+    if (unwrapped instanceof bundled_angular_compiler_1.TemplateLiteral) {
+        // Flatten template literals by interleaving string elements and expressions
+        const parts = [];
+        for (let i = 0; i < unwrapped.elements.length; i++) {
+            // Add the string part from the element's text
+            if (unwrapped.elements[i].text) {
+                parts.push({ type: 'literal', value: unwrapped.elements[i].text });
+            }
+            // Add the expression part (if exists)
+            if (i < unwrapped.expressions.length) {
+                parts.push({ type: 'expression', node: unwrapped.expressions[i] });
+            }
+        }
+        return parts;
+    }
+    if ((0, literal_primitive_1.isLiteralPrimitive)(unwrapped)) {
+        // Convert the literal to a string
+        const value = typeof unwrapped.value === 'string'
+            ? unwrapped.value
+            : String(unwrapped.value);
+        return [{ type: 'literal', value }];
+    }
+    // Any other expression - use the unwrapped node (without parentheses)
+    return [{ type: 'expression', node: unwrapped }];
+}
 exports.default = (0, create_eslint_rule_1.createESLintRule)({
     name: exports.RULE_NAME,
     meta: {
@@ -23,42 +90,63 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
     },
     defaultOptions: [],
     create(context) {
+        // When the template is defined inline in a component, the template will
+        // usually be defined as a template string, which means if template
+        // literals were to be used within the template, the backticks would
+        // need to be escaped. Escaping them causes errors when we parse the
+        // template. What this ultimately means is that template literals cannot
+        // be used in inline templates, so we'll just skip this entire template
+        // if it looks like it is an inline template.
+        //
+        // See https://github.com/angular-eslint/angular-eslint/issues/2906
+        //
+        // This pattern needs to match what is used in
+        // `packages/eslint-plugin-template/src/processors.ts`.
+        if (/inline-template-[^/\\]+-\d+\.component\.html$/.test(context.filename)) {
+            return {};
+        }
         (0, utils_1.ensureTemplateParser)(context);
         const { sourceCode } = context;
         return {
             'Binary[operation="+"]'(node) {
-                const originalLeft = node.left;
-                const originalRight = node.right;
-                const left = (0, unwrap_parenthesized_expression_1.unwrapParenthesizedExpression)(originalLeft);
-                const right = (0, unwrap_parenthesized_expression_1.unwrapParenthesizedExpression)(originalRight);
-                const isLeftString = (0, literal_primitive_1.isStringLiteralPrimitive)(left) || left instanceof bundled_angular_compiler_1.TemplateLiteral;
-                const isRightString = (0, literal_primitive_1.isStringLiteralPrimitive)(right) || right instanceof bundled_angular_compiler_1.TemplateLiteral;
-                // If both sides are not strings, we don't report anything
-                if (!isLeftString && !isRightString) {
+                // Skip if this node is part of a larger Binary + chain
+                // Let the topmost node handle the entire chain
+                if (isPartOfLargerBinaryChain(node)) {
+                    return;
+                }
+                // Check if this Binary + chain contains at least one string
+                // This handles cases where the immediate operands aren't strings,
+                // but nested operands are (e.g., x.type + "" + y)
+                if (!chainContainsString(node)) {
                     return;
                 }
                 const { sourceSpan: { start, end }, } = node;
                 const parentIsTemplateLiteral = 'parent' in node && node.parent instanceof bundled_angular_compiler_1.TemplateLiteral;
+                // Flatten the entire concatenation chain
+                const parts = flattenBinaryConcat(node);
+                const allLiterals = parts.every((p) => p.type === 'literal');
                 function getQuote() {
                     if (parentIsTemplateLiteral) {
                         return '';
                     }
-                    // If either side is not a literal primitive, we need to use backticks for interpolation
-                    if (!(0, literal_primitive_1.isLiteralPrimitive)(left) || !(0, literal_primitive_1.isLiteralPrimitive)(right)) {
+                    // If there are any expression parts, we need backticks
+                    if (!allLiterals) {
                         return '`';
                     }
-                    if (left instanceof bundled_angular_compiler_1.LiteralPrimitive &&
-                        right instanceof bundled_angular_compiler_1.LiteralPrimitive) {
-                        const leftValue = sourceCode.text.at(left.sourceSpan.start);
-                        if (leftValue === "'" || leftValue === '"') {
-                            return leftValue;
+                    // All parts are literals - try to preserve the original quote style
+                    // Search the source for the first string literal quote
+                    const sourceText = sourceCode.text.slice(start, end);
+                    for (const char of sourceText) {
+                        if (char === "'" || char === '"') {
+                            return char;
                         }
-                        const rightValue = sourceCode.text.at(right.sourceSpan.start);
-                        if (rightValue === "'" || rightValue === '"') {
-                            return rightValue;
+                        if (char === '`') {
+                            // If original had template literal, keep backticks
+                            return '`';
                         }
                     }
-                    return '`';
+                    // No string quotes found (all numbers/booleans/etc) - use single quote
+                    return "'";
                 }
                 context.report({
                     loc: {
@@ -77,35 +165,25 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
                                 node.sourceSpan.start,
                             ]));
                         }
-                        // If both sides are literals, we remove the `+` sign, escape if necessary and concatenate them
-                        if (left instanceof bundled_angular_compiler_1.LiteralPrimitive &&
-                            right instanceof bundled_angular_compiler_1.LiteralPrimitive) {
-                            fixes.push(fixer.replaceTextRange([start, end], parentIsTemplateLiteral
-                                ? `${(0, literal_primitive_1.getLiteralPrimitiveStringValue)(left, '`')}${(0, literal_primitive_1.getLiteralPrimitiveStringValue)(right, '`')}`
-                                : `${quote}${(0, literal_primitive_1.getLiteralPrimitiveStringValue)(left, quote)}${(0, literal_primitive_1.getLiteralPrimitiveStringValue)(right, quote)}${quote}`));
-                        }
-                        else {
-                            // Fix the left side - handle parenthesized expressions specially
-                            if (originalLeft instanceof bundled_angular_compiler_1.ParenthesizedExpression) {
-                                fixes.push(...getLeftSideFixesForParenthesized(fixer, left, originalLeft, quote));
+                        // Build the replacement string from all parts
+                        const effectiveQuote = quote === '' ? '`' : quote;
+                        let replacement = '';
+                        for (const part of parts) {
+                            if (part.type === 'literal') {
+                                // Escape the quote character in the value
+                                replacement += part.value.replaceAll(effectiveQuote, `\\${effectiveQuote}`);
                             }
                             else {
-                                fixes.push(...getLeftSideFixes(fixer, left, quote));
-                            }
-                            // Remove the `+` sign (including surrounding whitespace)
-                            fixes.push(fixer.removeRange([
-                                originalLeft.sourceSpan.end,
-                                originalRight.sourceSpan.start,
-                            ]));
-                            // Fix the right side - handle parenthesized expressions specially
-                            if (originalRight instanceof bundled_angular_compiler_1.ParenthesizedExpression) {
-                                // For parenthesized expressions, we want to replace the whole thing including parens
-                                fixes.push(...getRightSideFixesForParenthesized(fixer, right, originalRight, quote));
-                            }
-                            else {
-                                fixes.push(...getRightSideFixes(fixer, right, quote));
+                                // Expression - wrap in ${}
+                                const exprText = sourceCode.text.slice(part.node.sourceSpan.start, part.node.sourceSpan.end);
+                                replacement += `\${${exprText}}`;
                             }
                         }
+                        // Add quotes if not inside a template literal
+                        if (!parentIsTemplateLiteral) {
+                            replacement = `${quote}${replacement}${quote}`;
+                        }
+                        fixes.push(fixer.replaceTextRange([start, end], replacement));
                         // If the parent is a template literal, remove the `}` sign
                         if (parentIsTemplateLiteral) {
                             const templateInterpolationEndIndex = sourceCode.text.indexOf('}', node.sourceSpan.end);
@@ -121,101 +199,6 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
         };
     },
 });
-function getLeftSideFixes(fixer, left, quote) {
-    const { start, end } = left.sourceSpan;
-    if (left instanceof bundled_angular_compiler_1.TemplateLiteral) {
-        // Remove the end ` sign from the left side
-        return [
-            fixer.replaceTextRange([start, start + 1], quote),
-            fixer.removeRange([end - 1, end]),
-        ];
-    }
-    if ((0, literal_primitive_1.isLiteralPrimitive)(left)) {
-        // Transform left side to template literal
-        return [
-            fixer.replaceTextRange([start, end], quote === ''
-                ? `${(0, literal_primitive_1.getLiteralPrimitiveStringValue)(left, '`')}`
-                : `${quote}${(0, literal_primitive_1.getLiteralPrimitiveStringValue)(left, quote)}`),
-        ];
-    }
-    // Transform left side to template literal
-    return [
-        fixer.insertTextBeforeRange([start, end], `${quote}\${`),
-        fixer.insertTextAfterRange([start, end], '}'),
-    ];
-}
-function getLeftSideFixesForParenthesized(fixer, innerExpression, parenthesizedExpression, quote) {
-    const parenthesizedStart = parenthesizedExpression.sourceSpan.start;
-    const parenthesizedEnd = parenthesizedExpression.sourceSpan.end;
-    const innerStart = innerExpression.sourceSpan.start;
-    const innerEnd = innerExpression.sourceSpan.end;
-    if (innerExpression instanceof bundled_angular_compiler_1.TemplateLiteral) {
-        // Remove the end ` sign from the inner expression and remove the parentheses
-        return [
-            fixer.replaceTextRange([parenthesizedStart, innerStart + 1], quote), // Replace opening paren and backtick with quote
-            fixer.removeRange([innerEnd - 1, parenthesizedEnd]), // Remove closing backtick and paren
-        ];
-    }
-    if ((0, literal_primitive_1.isLiteralPrimitive)(innerExpression)) {
-        // Transform to template literal and remove parentheses
-        return [
-            fixer.replaceTextRange([parenthesizedStart, parenthesizedEnd], quote === ''
-                ? `${(0, literal_primitive_1.getLiteralPrimitiveStringValue)(innerExpression, '`')}`
-                : `${quote}${(0, literal_primitive_1.getLiteralPrimitiveStringValue)(innerExpression, quote)}`),
-        ];
-    }
-    // Transform parenthesized expression to template literal by removing parens and wrapping in ${}
-    return [
-        fixer.replaceTextRange([parenthesizedStart, innerStart], `${quote}\${`), // Replace opening paren with quote${
-        fixer.replaceTextRange([innerEnd, parenthesizedEnd], '}'), // Replace closing paren with }
-    ];
-}
-function getRightSideFixes(fixer, right, quote) {
-    const { start, end } = right.sourceSpan;
-    if (right instanceof bundled_angular_compiler_1.TemplateLiteral) {
-        // Remove the start ` sign from the right side
-        return [
-            fixer.removeRange([start, start + 1]),
-            fixer.replaceTextRange([end - 1, end], quote),
-        ];
-    }
-    if ((0, literal_primitive_1.isLiteralPrimitive)(right)) {
-        // Transform right side to template literal if it's a string
-        return [
-            fixer.replaceTextRange([start, end], quote === ''
-                ? `${(0, literal_primitive_1.getLiteralPrimitiveStringValue)(right, '`')}`
-                : `${(0, literal_primitive_1.getLiteralPrimitiveStringValue)(right, quote)}${quote}`),
-        ];
-    }
-    // Transform right side to template literal
-    return [
-        fixer.insertTextBeforeRange([start, end], '${'),
-        fixer.insertTextAfterRange([start, end], `}${quote}`),
-    ];
-}
-function getRightSideFixesForParenthesized(fixer, innerExpression, parenthesizedExpression, quote) {
-    const parenthesizedStart = parenthesizedExpression.sourceSpan.start;
-    const parenthesizedEnd = parenthesizedExpression.sourceSpan.end;
-    const innerStart = innerExpression.sourceSpan.start;
-    const innerEnd = innerExpression.sourceSpan.end;
-    if (innerExpression instanceof bundled_angular_compiler_1.TemplateLiteral) {
-        // Remove the start ` sign from the inner expression and remove the parentheses
-        return [
-            fixer.removeRange([parenthesizedStart, innerStart + 1]), // Remove opening paren and backtick
-            fixer.replaceTextRange([innerEnd - 1, parenthesizedEnd], quote), // Replace closing backtick and paren with quote
-        ];
-    }
-    if ((0, literal_primitive_1.isLiteralPrimitive)(innerExpression)) {
-        // Transform to template literal and remove parentheses
-        return [
-            fixer.replaceTextRange([parenthesizedStart, parenthesizedEnd], quote === ''
-                ? `${(0, literal_primitive_1.getLiteralPrimitiveStringValue)(innerExpression, '`')}`
-                : `${(0, literal_primitive_1.getLiteralPrimitiveStringValue)(innerExpression, quote)}${quote}`),
-        ];
-    }
-    // Transform parenthesized expression to template literal by removing parens and wrapping in ${}
-    return [
-        fixer.replaceTextRange([parenthesizedStart, innerStart], '${'), // Replace opening paren with ${
-        fixer.replaceTextRange([innerEnd, parenthesizedEnd], `}${quote}`), // Replace closing paren with }quote
-    ];
-}
+exports.RULE_DOCS_EXTENSION = {
+    rationale: 'Template literals (backticks with ${} syntax) are more modern, readable, and maintainable than string concatenation with the + operator. String concatenation like "Hello " + name + "!" is harder to read and error-prone (easy to forget spaces or quotes) compared to the template literal `Hello ${name}!`. Template literals make string composition clearer, especially with multiple expressions. This is a widely accepted JavaScript/TypeScript best practice that should be followed in Angular templates for consistency. Angular templates have supported template literal syntax since v19.2. Using template literals throughout your codebase creates a consistent style and makes complex string building much more readable.\n\nℹ This rule is not checked in inline templates due to the common use of backticks to define the inline template.',
+};

@@ -1,7 +1,6 @@
-import { LoaderContext } from 'webpack';
+import { LoaderContext } from "webpack";
 
-declare function load(this: LoaderContext<{
-    unpluginName: string;
-}>, source: string, map: any): Promise<void>;
-
+//#region src/webpack/loaders/load.d.ts
+declare function load(this: LoaderContext<any>, source: string, map: any): Promise<void>;
+//#endregion
 export { load as default };

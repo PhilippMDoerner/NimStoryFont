@@ -2,8 +2,8 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable, map } from 'rxjs';
-import { Location, LocationRaw } from 'src/app/_models/location';
-import { OverviewItem } from 'src/app/_models/overview';
+import { Location, LocationRaw } from '../../_models/location';
+import { OverviewItem } from '../../_models/overview';
 import { BaseService } from '../base.service';
 import { RoutingService } from '../routing.service';
 

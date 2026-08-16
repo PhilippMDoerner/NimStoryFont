@@ -9,12 +9,12 @@ import { toObservable } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { FormlyModule } from '@ngx-formly/core';
 import { filter, map, Observable, pairwise } from 'rxjs';
-import { Login, SpecialLoginState } from 'src/app/_models/login';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { MailService } from 'src/app/_services/utils/mail.service';
-import { AuthStore } from 'src/app/auth.store';
-import { LoginComponent } from 'src/app/design//templates/login/login.component';
-import { takeOnceOrUntilDestroyed } from 'src/utils/rxjs-operators';
+import { takeOnceOrUntilDestroyed } from '../../../../utils/rxjs-operators';
+import { Login, SpecialLoginState } from '../../../_models/login';
+import { RoutingService } from '../../../_services/routing.service';
+import { MailService } from '../../../_services/utils/mail.service';
+import { AuthStore } from '../../../auth.store';
+import { LoginComponent } from '../../../design/templates/login/login.component';
 import { LoginPageStore } from './login-page.store';
 
 @Component({
@@ -28,14 +28,15 @@ import { LoginPageStore } from './login-page.store';
 export class LoginPageComponent {
   public readonly authStore = inject(AuthStore);
   public readonly store = inject(LoginPageStore);
-  specialLoginState$: Observable<SpecialLoginState> = this.route.paramMap.pipe(
-    map((params) => {
-      return (params.get('state') as SpecialLoginState) ?? undefined;
-    }),
-  );
+  readonly specialLoginState$: Observable<SpecialLoginState> =
+    this.route.paramMap.pipe(
+      map((params) => {
+        return (params.get('state') as SpecialLoginState) ?? undefined;
+      }),
+    );
 
-  private destroyRef = inject(DestroyRef);
-  private loginSucceededEvent$ = toObservable(
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly loginSucceededEvent$ = toObservable(
     this.authStore.authDataQueryState,
   ).pipe(
     pairwise(),

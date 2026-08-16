@@ -1,6 +1,9 @@
 # thingies
 
-Useful TypeScript utilities. [__Documentation__](https://streamich.github.io/thingies).
+Useful TypeScript utilities.
+
+- [__Code reference__](https://streamich.github.io/thingies).
+- [__Test coverage__](https://streamich.github.io/thingies/coverage/lcov-report).
 
 
 ## Menu
@@ -20,17 +23,28 @@ Useful TypeScript utilities. [__Documentation__](https://streamich.github.io/thi
 
 ---
 
+- `@debug` &mdash; a class method or function decorator, which logs
+  the input and output of the function in non-production environments.
+
+---
+
 - `hash` &mdash; a fast and simple utility, which hashes a string to an integer. Useful
   for generating a shard index of a record based on its ID.
 
 ---
 
 - `LruMap` &mdash; tiny and fast *Least Recently Used Cache* implemented on top of the `Map` class.
+  The default limit is around 1 billion items (2^30 - 1).
 
 ---
 
 - `LruTtlMap` &mdash; tiny and fast *Least Recently Used Cache* with expiration timestamp
   stored for each entry implemented on top of the `LruMap` class.
+
+---
+
+- `LruCache` &mdash; a *Least Recently Used Cache* implemented using `Object` and doubly linked list.
+  The default limit is around 1 billion items (2^30 - 1).
 
 ---
 
@@ -131,6 +145,18 @@ a specific key for a specified duration.
 ---
 
 - `hasKeys` &mdash; returns `true` if an object has at lest on key.
+
+---
+
+- `Value` and `Computed` &mdash; reactive synchronous state primitives compatible with
+  React's `useSyncExternalStore`. `Value` holds a single value and notifies subscribers
+  on change. `Computed` derives a cached value from one or more `Value` dependencies and
+  recomputes automatically when they change. Factory helpers: `val()` and `comp()`.
+
+---
+
+- `timeout` &mdash; waits for async code to complete within a given time frame,
+  otherwise throws an error.
 
 
 ## License

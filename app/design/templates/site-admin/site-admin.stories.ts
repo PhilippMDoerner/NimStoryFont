@@ -1,17 +1,17 @@
 import { CommonModule } from '@angular/common';
 import { RouterTestingModule } from '@angular/router/testing';
 import { NgbModule } from '@ng-bootstrap/ng-bootstrap';
-import { action } from 'storybook/actions';
 import { Meta, StoryFn, moduleMetadata } from '@storybook/angular';
-import { dummyGroups } from 'src/app/_services/article/group.service.mock';
-import { dummyUsers } from 'src/app/_services/article/user.mock.service';
+import { action } from 'storybook/actions';
+import { dummyGroups } from '../../../_services/article/group.service.mock';
+import { dummyUsers } from '../../../_services/article/user.mock.service';
 import {
   dummyCampaigns,
   dummyStatistics,
-} from 'src/app/_services/utils/campaign.mock.service';
+} from '../../../_services/utils/campaign.mock.service';
 
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { FORMLY_MODULE } from 'src/app/_modules/formly_constants';
+import { FORMLY_MODULE } from '../../../_modules/formly_constants';
 import { SiteAdminComponent } from './site-admin.component';
 
 export default {

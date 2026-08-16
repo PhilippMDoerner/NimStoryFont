@@ -205,3 +205,4 @@ function loadTranslations(locale, desc, workspaceRoot, loader, logger, usedForma
     }
     desc.translation = translations;
 }
+//# sourceMappingURL=i18n-options.js.map

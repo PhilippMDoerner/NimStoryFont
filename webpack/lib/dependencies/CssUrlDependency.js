@@ -5,27 +5,27 @@
 
 "use strict";
 
+const { ASSET_URL_TYPE } = require("../ModuleSourceTypeConstants");
 const RawDataUrlModule = require("../asset/RawDataUrlModule");
 const makeSerializable = require("../util/makeSerializable");
 const memoize = require("../util/memoize");
 const ModuleDependency = require("./ModuleDependency");
 
 /** @typedef {import("webpack-sources").ReplaceSource} ReplaceSource */
-/** @typedef {import("../ChunkGraph")} ChunkGraph */
 /** @typedef {import("../CodeGenerationResults")} CodeGenerationResults */
-/** @typedef {import("../Dependency")} Dependency */
 /** @typedef {import("../Dependency").UpdateHashContext} UpdateHashContext */
-/** @typedef {import("../DependencyTemplate").DependencyTemplateContext} DependencyTemplateContext */
+/** @typedef {import("../Dependency")} Dependency */
+/** @typedef {import("../DependencyTemplate").CssDependencyTemplateContext} DependencyTemplateContext */
 /** @typedef {import("../Module")} Module */
+/** @typedef {import("../Module").BuildInfo} BuildInfo */
 /** @typedef {import("../Module").CodeGenerationResult} CodeGenerationResult */
-/** @typedef {import("../ModuleGraph")} ModuleGraph */
-/** @typedef {import("../ModuleGraphConnection")} ModuleGraphConnection */
-/** @typedef {import("../ModuleGraphConnection").ConnectionState} ConnectionState */
+/** @typedef {import("../Module").CodeGenerationResultData} CodeGenerationResultData */
 /** @typedef {import("../javascript/JavascriptParser").Range} Range */
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext} ObjectDeserializerContext */
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext} ObjectSerializerContext */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext<["string" | "url" | "src", true | undefined, true | undefined, ("high" | "low" | "auto" | undefined), string | undefined, string | undefined, string | undefined]>} ObjectDeserializerContext */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext<["string" | "url" | "src", true | undefined, true | undefined, ("high" | "low" | "auto" | undefined), string | undefined, string | undefined, string | undefined]>} ObjectSerializerContext */
 /** @typedef {import("../util/Hash")} Hash */
 /** @typedef {import("../util/runtime").RuntimeSpec} RuntimeSpec */
+/** @typedef {import("../NormalModule").NormalModuleBuildInfo} NormalModuleBuildInfo */
 
 const getIgnoredRawDataUrlModule = memoize(
 	() => new RawDataUrlModule("data:,", "ignored-asset", "(ignored asset)")
@@ -33,6 +33,7 @@ const getIgnoredRawDataUrlModule = memoize(
 
 class CssUrlDependency extends ModuleDependency {
 	/**
+	 * Creates an instance of CssUrlDependency.
 	 * @param {string} request request
 	 * @param {Range} range range of the argument
 	 * @param {"string" | "url" | "src"} urlType dependency type e.g. url() or string
@@ -41,6 +42,18 @@ class CssUrlDependency extends ModuleDependency {
 		super(request);
 		this.range = range;
 		this.urlType = urlType;
+		/** @type {true | undefined} */
+		this.prefetch = undefined;
+		/** @type {true | undefined} */
+		this.preload = undefined;
+		/** @type {"low" | "high" | "auto" | undefined} */
+		this.fetchPriority = undefined;
+		/** @type {string | undefined} */
+		this.asAttribute = undefined;
+		/** @type {string | undefined} */
+		this.typeAttribute = undefined;
+		/** @type {string | undefined} */
+		this.mediaAttribute = undefined;
 	}
 
 	get type() {
@@ -52,6 +65,7 @@ class CssUrlDependency extends ModuleDependency {
 	}
 
 	/**
+	 * Creates an ignored module.
 	 * @param {string} context context directory
 	 * @returns {Module} ignored module
 	 */
@@ -60,29 +74,83 @@ class CssUrlDependency extends ModuleDependency {
 	}
 
 	/**
+	 * Updates the hash with the data contributed by this instance.
+	 * @param {Hash} hash hash to be updated
+	 * @param {UpdateHashContext} context context
+	 * @returns {void}
+	 */
+	updateHash(hash, context) {
+		// The dependency template substitutes the referenced asset's hashed
+		// filename into the rendered CSS at code-generation time. Folding the
+		// asset module's content hash into the dependency hash ensures the
+		// CSS module's hash invalidates — and the CSS chunk's contenthash
+		// updates — whenever the referenced asset's content changes.
+		const { chunkGraph } = context;
+		const module = chunkGraph.moduleGraph.getModule(this);
+		if (!module) return;
+		const buildInfo = /** @type {NormalModuleBuildInfo | undefined} */ (
+			module.buildInfo
+		);
+		if (buildInfo && buildInfo.hash) {
+			hash.update(/** @type {string} */ (buildInfo.hash));
+		}
+	}
+
+	/**
+	 * Serializes this instance into the provided serializer context.
 	 * @param {ObjectSerializerContext} context context
 	 */
 	serialize(context) {
-		const { write } = context;
-		write(this.urlType);
+		context
+			.write(this.urlType)
+			.write(this.prefetch)
+			.write(this.preload)
+			.write(this.fetchPriority)
+			.write(this.asAttribute)
+			.write(this.typeAttribute)
+			.write(this.mediaAttribute);
 		super.serialize(context);
 	}
 
 	/**
+	 * Restores this instance from the provided deserializer context.
 	 * @param {ObjectDeserializerContext} context context
 	 */
 	deserialize(context) {
-		const { read } = context;
-		this.urlType = read();
-		super.deserialize(context);
+		this.urlType = context.read();
+		const c1 = context.rest;
+		this.prefetch = c1.read();
+		const c2 = c1.rest;
+		this.preload = c2.read();
+		const c3 = c2.rest;
+		this.fetchPriority = c3.read();
+		const c4 = c3.rest;
+		this.asAttribute = c4.read();
+		const c5 = c4.rest;
+		this.typeAttribute = c5.read();
+		const c6 = c5.rest;
+		this.mediaAttribute = c6.read();
+		super.deserialize(c6.rest);
 	}
 }
 
+// Hoisted out of `cssEscapeString` so the patterns + replacer aren't
+// recompiled/reallocated per `url()` / `src()` reference at code-gen.
+const CSS_ESCAPE_UNQUOTED_REGEXP = /[\n\t ()'"\\]/g;
+const CSS_ESCAPE_DOUBLE_REGEXP = /[\n"\\]/g;
+const CSS_ESCAPE_SINGLE_REGEXP = /[\n'\\]/g;
 /**
+ * @param {string} m matched character
+ * @returns {string} the character backslash-escaped
+ */
+const cssEscapeReplacer = (m) => `\\${m}`;
+
+/**
+ * Returns string in quotes if needed.
  * @param {string} str string
  * @returns {string} string in quotes if needed
  */
-const cssEscapeString = str => {
+const cssEscapeString = (str) => {
 	let countWhiteOrBracket = 0;
 	let countQuotation = 0;
 	let countApostrophe = 0;
@@ -105,17 +173,18 @@ const cssEscapeString = str => {
 		}
 	}
 	if (countWhiteOrBracket < 2) {
-		return str.replace(/[\n\t ()'"\\]/g, m => `\\${m}`);
+		return str.replace(CSS_ESCAPE_UNQUOTED_REGEXP, cssEscapeReplacer);
 	} else if (countQuotation <= countApostrophe) {
-		return `"${str.replace(/[\n"\\]/g, m => `\\${m}`)}"`;
+		return `"${str.replace(CSS_ESCAPE_DOUBLE_REGEXP, cssEscapeReplacer)}"`;
 	}
-	return `'${str.replace(/[\n'\\]/g, m => `\\${m}`)}'`;
+	return `'${str.replace(CSS_ESCAPE_SINGLE_REGEXP, cssEscapeReplacer)}'`;
 };
 
 CssUrlDependency.Template = class CssUrlDependencyTemplate extends (
 	ModuleDependency.Template
 ) {
 	/**
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Dependency} dependency the dependency for which the template should be applied
 	 * @param {ReplaceSource} source the current replace source which can be modified
 	 * @param {DependencyTemplateContext} templateContext the context object
@@ -124,8 +193,9 @@ CssUrlDependency.Template = class CssUrlDependencyTemplate extends (
 	apply(
 		dependency,
 		source,
-		{ moduleGraph, runtimeTemplate, codeGenerationResults }
+		{ type, moduleGraph, runtimeTemplate, codeGenerationResults }
 	) {
+		if (type === "javascript") return;
 		const dep = /** @type {CssUrlDependency} */ (dependency);
 		const module = /** @type {Module} */ (moduleGraph.getModule(dep));
 
@@ -167,6 +237,7 @@ CssUrlDependency.Template = class CssUrlDependencyTemplate extends (
 	}
 
 	/**
+	 * Returns the url of the asset.
 	 * @param {object} options options object
 	 * @param {Module} options.module the module
 	 * @param {RuntimeSpec=} options.runtime runtime
@@ -178,18 +249,14 @@ CssUrlDependency.Template = class CssUrlDependencyTemplate extends (
 			return "data:,";
 		}
 		const codeGen = codeGenerationResults.get(module, runtime);
-		const data =
-			/** @type {NonNullable<CodeGenerationResult["data"]>} */
-			(codeGen.data);
+		const data = codeGen.data;
 		if (!data) return "data:,";
 		const url = data.get("url");
-		if (!url || !url["css-url"]) return "data:,";
-		return url["css-url"];
+		if (!url || !url[ASSET_URL_TYPE]) return "data:,";
+		return url[ASSET_URL_TYPE];
 	}
 };
 
 makeSerializable(CssUrlDependency, "webpack/lib/dependencies/CssUrlDependency");
-
-CssUrlDependency.PUBLIC_PATH_AUTO = "__WEBPACK_CSS_PUBLIC_PATH_AUTO__";
 
 module.exports = CssUrlDependency;

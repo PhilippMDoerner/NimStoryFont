@@ -5,9 +5,9 @@ import {
   computed,
   input,
 } from '@angular/core';
-import { Icon } from 'src/app/design/atoms/_models/icon';
-import { IconComponent } from 'src/app/design/atoms/icon/icon.component';
-import { capitalize } from 'src/utils/string';
+import { capitalize } from '../../../../utils/string';
+import { Icon } from '../../atoms/_models/icon';
+import { IconComponent } from '../../atoms/icon/icon.component';
 
 @Component({
   selector: 'app-icon-card',
@@ -20,11 +20,11 @@ import { capitalize } from 'src/utils/string';
   },
 })
 export class IconCardComponent {
-  icon = input.required<Icon>();
-  title = input.required<string>();
-  subText = input.required<string>();
-  updateDatetime = input.required<string>();
-  decoration = input<string>();
+  readonly icon = input.required<Icon>();
+  readonly title = input.required<string>();
+  readonly subText = input.required<string>();
+  readonly updateDatetime = input.required<string>();
+  readonly decoration = input<string>();
 
-  _title = computed(() => capitalize(this.title()));
+  readonly _title = computed(() => capitalize(this.title()));
 }

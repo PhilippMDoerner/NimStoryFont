@@ -39,3 +39,4 @@ function angularHtmlFallbackMiddleware(req, _res, next) {
     }
     next();
 }
+//# sourceMappingURL=html-fallback-middleware.js.map

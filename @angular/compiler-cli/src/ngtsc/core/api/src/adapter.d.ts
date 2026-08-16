@@ -12,7 +12,7 @@ import { ExtendedTsCompilerHost, UnifiedModulesHost } from './interfaces';
  * Names of methods from `ExtendedTsCompilerHost` that need to be provided by the
  * `NgCompilerAdapter`.
  */
-export type ExtendedCompilerHostMethods = 'getCanonicalFileName' | 'resolveModuleNames' | 'getCurrentDirectory' | 'getModifiedResourceFiles' | 'readResource' | 'resourceNameToFileName' | 'transformResource';
+export type ExtendedCompilerHostMethods = 'getCanonicalFileName' | 'getSourceFile' | 'resolveModuleNames' | 'getCurrentDirectory' | 'getModifiedResourceFiles' | 'readResource' | 'resourceNameToFileName' | 'transformResource';
 /**
  * Adapter for `NgCompiler` that allows it to be used in various circumstances, such as
  * command-line `ngc`, as a plugin to `ts_library` in Bazel, or from the Language Service.

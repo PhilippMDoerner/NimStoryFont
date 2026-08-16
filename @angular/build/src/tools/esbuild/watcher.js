@@ -32,7 +32,7 @@ class ChangedFiles {
 exports.ChangedFiles = ChangedFiles;
 function createWatcher(options) {
     const watcher = new watchpack_1.default({
-        poll: options?.polling ? options?.interval ?? true : false,
+        poll: options?.polling ? (options?.interval ?? true) : false,
         ignored: options?.ignored,
         followSymlinks: options?.followSymlinks,
         aggregateTimeout: 250,
@@ -116,3 +116,4 @@ function createWatcher(options) {
         },
     };
 }
+//# sourceMappingURL=watcher.js.map

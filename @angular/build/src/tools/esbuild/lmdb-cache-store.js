@@ -7,10 +7,10 @@
  * found in the LICENSE file at https://angular.dev/license
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.LmbdCacheStore = void 0;
+exports.LmdbCacheStore = void 0;
 const lmdb_1 = require("lmdb");
 const cache_1 = require("./cache");
-class LmbdCacheStore {
+class LmdbCacheStore {
     cachePath;
     #cacheFileUrl;
     #db;
@@ -51,4 +51,5 @@ class LmbdCacheStore {
         }
     }
 }
-exports.LmbdCacheStore = LmbdCacheStore;
+exports.LmdbCacheStore = LmdbCacheStore;
+//# sourceMappingURL=lmdb-cache-store.js.map

@@ -1,0 +1,708 @@
+"use strict";
+/**
+ * @license
+ * Copyright Google LLC All Rights Reserved.
+ *
+ * Use of this source code is governed by an MIT-style license that can be
+ * found in the LICENSE file at https://angular.dev/license
+ */
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.PackageManager = exports.MANIFEST_FIELDS = void 0;
+/**
+ * @fileoverview This file contains the `PackageManager` class, which is the
+ * core execution engine for all package manager commands. It is designed to be
+ * a flexible and secure abstraction over the various package managers.
+ */
+const node_path_1 = require("node:path");
+const npm_package_arg_1 = __importDefault(require("npm-package-arg"));
+const semver_1 = require("semver");
+const error_1 = require("./error");
+/**
+ * The fields to request from the registry for package metadata.
+ * This is a performance optimization to avoid downloading the full manifest
+ * when only summary data (like versions and tags) is needed.
+ */
+const METADATA_FIELDS = ['name', 'dist-tags', 'versions', 'time'];
+/**
+ * The fields to request from the registry for a package's manifest.
+ * This is a performance optimization to avoid downloading unnecessary data.
+ * These fields are the ones required by the CLI for operations like `ng add` and `ng update`.
+ */
+exports.MANIFEST_FIELDS = [
+    'name',
+    'version',
+    'deprecated',
+    'dependencies',
+    'peerDependencies',
+    'devDependencies',
+    'homepage',
+    'schematics',
+    'ng-add',
+    'ng-update',
+];
+/**
+ * A class that provides a high-level, package-manager-agnostic API for
+ * interacting with a project's dependencies.
+ *
+ * This class is an implementation of the Strategy design pattern. It is
+ * instantiated with a `PackageManagerDescriptor` that defines the specific
+ * commands and flags for a given package manager.
+ */
+class PackageManager {
+    host;
+    cwd;
+    descriptor;
+    options;
+    #manifestCache = new Map();
+    #metadataCache = new Map();
+    #initializationError;
+    #dependencyCache = null;
+    #version;
+    #minimumReleaseAge;
+    #activeTasks = 0;
+    #pendingTasks = [];
+    #maxConcurrent = 5;
+    /**
+     * Creates a new `PackageManager` instance.
+     * @param host A `Host` instance for interacting with the file system and running commands.
+     * @param cwd The absolute path to the project's working directory.
+     * @param descriptor A `PackageManagerDescriptor` that defines the commands for a specific package manager.
+     * @param options An options object to configure the instance.
+     */
+    constructor(host, cwd, descriptor, options = {}) {
+        this.host = host;
+        this.cwd = cwd;
+        this.descriptor = descriptor;
+        this.options = options;
+        if (this.options.dryRun && !this.options.logger) {
+            throw new Error('A logger must be provided when dryRun is enabled.');
+        }
+        this.#version = options.version;
+        this.#initializationError = options.initializationError;
+    }
+    /**
+     * The name of the package manager's binary.
+     */
+    get name() {
+        return this.descriptor.binary;
+    }
+    /**
+     * Ensures that the package manager is installed and available in the PATH.
+     * If it is not, this method will throw an error with instructions on how to install it.
+     *
+     * @throws {Error} If the package manager is not installed.
+     */
+    ensureInstalled() {
+        if (this.#initializationError) {
+            throw this.#initializationError;
+        }
+    }
+    /**
+     * A private method to lazily populate the dependency cache.
+     * This is a performance optimization to avoid running `npm list` multiple times.
+     * @returns A promise that resolves to the dependency cache map.
+     */
+    async #populateDependencyCache() {
+        if (this.#dependencyCache !== null) {
+            return this.#dependencyCache;
+        }
+        const args = this.descriptor.listDependenciesCommand;
+        const workspacePackageName = await this.getCurrentPackageName();
+        const dependencies = await this.#fetchAndParse(args, (stdout, logger) => this.descriptor.outputParsers.listDependencies(stdout, logger, { workspacePackageName }));
+        return (this.#dependencyCache = dependencies ?? new Map());
+    }
+    /**
+     * A private method to run a command using the package manager's binary.
+     * @param args The arguments to pass to the command.
+     * @param options Options for the child process.
+     * @returns A promise that resolves with the standard output and standard error of the command.
+     */
+    async #runWithThrottle(action) {
+        if (this.#activeTasks >= this.#maxConcurrent) {
+            await new Promise((resolve) => {
+                this.#pendingTasks.push(resolve);
+            });
+        }
+        else {
+            this.#activeTasks++;
+        }
+        try {
+            return await action();
+        }
+        finally {
+            const next = this.#pendingTasks.shift();
+            if (next) {
+                next();
+            }
+            else {
+                this.#activeTasks--;
+            }
+        }
+    }
+    async #run(args, options = {}) {
+        return this.#runWithThrottle(async () => {
+            this.ensureInstalled();
+            const { registry, cwd, ...runOptions } = options;
+            const finalArgs = [...args];
+            let finalEnv;
+            if (registry) {
+                const registryOptions = this.descriptor.getRegistryOptions?.(registry);
+                if (!registryOptions) {
+                    throw new Error(`The configured package manager, '${this.descriptor.binary}', does not support a custom registry.`);
+                }
+                if (registryOptions.args) {
+                    finalArgs.push(...registryOptions.args);
+                }
+                if (registryOptions.env) {
+                    finalEnv = registryOptions.env;
+                }
+            }
+            const executionDirectory = cwd ?? this.cwd;
+            if (this.options.dryRun) {
+                this.options.logger?.info(`[DRY RUN] Would execute in [${executionDirectory}]: ${this.descriptor.binary} ${finalArgs.join(' ')}`);
+                return { stdout: '', stderr: '' };
+            }
+            const commandResult = await this.host.runCommand(this.descriptor.binary, finalArgs, {
+                ...runOptions,
+                cwd: executionDirectory,
+                stdio: 'pipe',
+                env: finalEnv,
+            });
+            return { stdout: commandResult.stdout.trim(), stderr: commandResult.stderr.trim() };
+        });
+    }
+    /**
+     * A private, generic method to encapsulate the common logic of running a command,
+     * handling errors, and parsing the output.
+     * @param args The arguments to pass to the command.
+     * @param parser A function that parses the command's stdout.
+     * @param options Options for the command, including caching.
+     * @returns A promise that resolves to the parsed data, or null if not found.
+     */
+    async #fetchAndParse(args, parser, options = {}) {
+        const { cache, cacheKey, bypassCache, ...runOptions } = options;
+        if (!bypassCache && cache && cacheKey && cache.has(cacheKey)) {
+            return cache.get(cacheKey);
+        }
+        let stdout;
+        let stderr;
+        let exitCode;
+        let thrownError;
+        try {
+            ({ stdout, stderr } = await this.#run(args, runOptions));
+            exitCode = 0;
+        }
+        catch (e) {
+            thrownError = e;
+            if (e instanceof error_1.PackageManagerError) {
+                stdout = e.stdout;
+                stderr = e.stderr;
+                exitCode = e.exitCode;
+            }
+            else {
+                // Re-throw unexpected errors
+                throw e;
+            }
+        }
+        // Yarn classic can exit with code 0 even when an error occurs.
+        // To ensure we capture these cases, we will always attempt to parse a
+        // structured error from the output, regardless of the exit code.
+        const getError = this.descriptor.outputParsers.getError;
+        const parsedError = getError?.(stdout, this.options.logger) ?? getError?.(stderr, this.options.logger) ?? null;
+        if (parsedError) {
+            this.options.logger?.debug(`[${this.descriptor.binary}] Structured error (code: ${parsedError.code}): ${parsedError.summary}`);
+            // Special case for 'not found' errors (e.g., E404). Return null for these.
+            if (this.descriptor.isNotFound(parsedError)) {
+                if (cache && cacheKey) {
+                    cache.set(cacheKey, null);
+                }
+                return null;
+            }
+            else {
+                // For all other structured errors, throw a more informative error.
+                throw new error_1.PackageManagerError(parsedError.summary, stdout, stderr, exitCode);
+            }
+        }
+        // If an error was originally thrown and we didn't parse a more specific
+        // structured error, re-throw the original error now.
+        if (thrownError) {
+            throw thrownError;
+        }
+        // If we reach this point, the command succeeded and no structured error was found.
+        // We can now safely parse the successful output.
+        try {
+            const result = parser(stdout, this.options.logger);
+            if (cache && cacheKey) {
+                cache.set(cacheKey, result);
+            }
+            return result;
+        }
+        catch (e) {
+            const message = `Failed to parse package manager output: ${e instanceof Error ? e.message : ''}`;
+            throw new error_1.PackageManagerError(message, stdout, stderr, exitCode);
+        }
+    }
+    /**
+     * Adds a package to the project's dependencies.
+     * @param packageName The name of the package to add.
+     * @param save The save strategy to use.
+     * - `exact`: The package will be saved with an exact version.
+     * - `tilde`: The package will be saved with a tilde version range (`~`).
+     * - `none`: The package will be saved with the default version range (`^`).
+     * @param asDevDependency Whether to install the package as a dev dependency.
+     * @param noLockfile Whether to skip updating the lockfile.
+     * @param options Extra options for the command.
+     * @returns A promise that resolves when the command is complete.
+     */
+    async add(packageName, save, asDevDependency, noLockfile, ignoreScripts, options = {}) {
+        const flags = [
+            asDevDependency ? this.descriptor.saveDevFlag : '',
+            save === 'exact' ? this.descriptor.saveExactFlag : '',
+            save === 'tilde' ? this.descriptor.saveTildeFlag : '',
+            noLockfile ? this.descriptor.noLockfileFlag : '',
+            ignoreScripts ? this.descriptor.ignoreScriptsFlag : '',
+        ].filter((flag) => flag);
+        const specifier = this.host.requiresQuoting ? `"${packageName}"` : packageName;
+        const args = [this.descriptor.addCommand, specifier, ...flags];
+        await this.#run(args, options);
+        this.#dependencyCache = null;
+    }
+    /**
+     * Installs all dependencies in the project.
+     * @param options Options for the installation.
+     * @param options.timeout The maximum time in milliseconds to wait for the command to complete.
+     * @param options.force If true, forces a clean install, potentially overwriting existing modules.
+     * @param options.registry The registry to use for the installation.
+     * @param options.ignoreScripts If true, prevents lifecycle scripts from being executed.
+     * @returns A promise that resolves when the command is complete.
+     */
+    async install(options = { ignoreScripts: true }) {
+        const flags = [
+            options.force ? this.descriptor.forceFlag : '',
+            options.ignoreScripts ? this.descriptor.ignoreScriptsFlag : '',
+            options.ignorePeerDependencies ? (this.descriptor.ignorePeerDependenciesFlag ?? '') : '',
+        ].filter((flag) => flag);
+        const args = [...this.descriptor.installCommand, ...flags];
+        await this.#run(args, options);
+        this.#dependencyCache = null;
+    }
+    /**
+     * Gets the name of the package in the current project.
+     */
+    async getCurrentPackageName() {
+        if (this.descriptor.getPackageNameCommand) {
+            try {
+                const { stdout } = await this.#run(this.descriptor.getPackageNameCommand);
+                if (stdout) {
+                    return JSON.parse(stdout);
+                }
+            }
+            catch {
+                // Fall back to reading file if command fails
+            }
+        }
+        try {
+            const content = await this.host.readFile((0, node_path_1.join)(this.cwd, 'package.json'));
+            const pkgJson = JSON.parse(content);
+            return pkgJson.name;
+        }
+        catch {
+            return undefined;
+        }
+    }
+    /**
+     * Gets the version of the package manager binary.
+     */
+    async getVersion() {
+        if (this.#version) {
+            return this.#version;
+        }
+        const { stdout } = await this.#run(this.descriptor.versionCommand);
+        this.#version = stdout.trim();
+        if (!(0, semver_1.valid)(this.#version)) {
+            throw new Error(`Invalid semver version for ${this.name}: "${this.#version}"`);
+        }
+        return this.#version;
+    }
+    /**
+     * Gets the installed details of a package from the project's dependencies.
+     * @param packageName The name of the package to check.
+     * @returns A promise that resolves to the installed package details, or `null` if the package is not installed.
+     */
+    async getInstalledPackage(packageName) {
+        const cache = await this.#populateDependencyCache();
+        return cache.get(packageName) ?? null;
+    }
+    /**
+     * Gets a map of all top-level dependencies installed in the project.
+     * @returns A promise that resolves to a map of package names to their installed package details.
+     */
+    async getProjectDependencies() {
+        const cache = await this.#populateDependencyCache();
+        // Return a copy to prevent external mutations of the cache.
+        return new Map(cache);
+    }
+    /**
+     * Fetches the registry metadata for a package. This is the full metadata,
+     * including all versions and distribution tags.
+     * @param packageName The name of the package to fetch the metadata for.
+     * @param options Options for the fetch.
+     * @param options.timeout The maximum time in milliseconds to wait for the command to complete.
+     * @param options.registry The registry to use for the fetch.
+     * @param options.bypassCache If true, ignores the in-memory cache and fetches fresh data.
+     * @returns A promise that resolves to the `PackageMetadata` object, or `null` if the package is not found.
+     */
+    async getRegistryMetadata(packageName, options = {}) {
+        const cacheKey = options.registry ? `${packageName}|${options.registry}` : packageName;
+        if (!options.bypassCache) {
+            const cached = this.#metadataCache.get(cacheKey);
+            if (cached !== undefined) {
+                return cached;
+            }
+        }
+        let metadata;
+        if (this.descriptor.getRegistryMetadata) {
+            metadata = await this.descriptor.getRegistryMetadata(packageName, (args, parser) => this.#fetchAndParse(args, parser, options));
+        }
+        else {
+            const commandArgs = [...this.descriptor.getManifestCommand, packageName];
+            const formatter = this.descriptor.viewCommandFieldArgFormatter;
+            if (formatter) {
+                commandArgs.push(...formatter(METADATA_FIELDS));
+            }
+            metadata = await this.#fetchAndParse(commandArgs, (stdout, logger) => this.descriptor.outputParsers.getRegistryMetadata(stdout, logger), options);
+        }
+        this.#metadataCache.set(cacheKey, metadata);
+        return metadata;
+    }
+    /**
+     * Fetches the registry manifest for a specific version of a package.
+     * The manifest is similar to the package's `package.json` file.
+     * @param packageName The name of the package to fetch the manifest for.
+     * @param version The version of the package to fetch the manifest for.
+     * @param options Options for the fetch.
+     * @param options.timeout The maximum time in milliseconds to wait for the command to complete.
+     * @param options.registry The registry to use for the fetch.
+     * @param options.bypassCache If true, ignores the in-memory cache and fetches fresh data.
+     * @returns A promise that resolves to the `PackageManifest` object, or `null` if the package is not found.
+     */
+    async getRegistryManifest(packageName, version, options = {}) {
+        const specifier = this.host.requiresQuoting
+            ? `"${packageName}@${version}"`
+            : `${packageName}@${version}`;
+        const commandArgs = [...this.descriptor.getManifestCommand, specifier];
+        const formatter = this.descriptor.viewCommandFieldArgFormatter;
+        if (formatter) {
+            commandArgs.push(...formatter(exports.MANIFEST_FIELDS));
+        }
+        const cacheKey = options.registry ? `${specifier}|${options.registry}` : specifier;
+        const manifest = await this.#fetchAndParse(commandArgs, (stdout, logger) => this.descriptor.outputParsers.getRegistryManifest(stdout, logger), { ...options, cache: this.#manifestCache, cacheKey });
+        // If the provided version was not a specific version, also cache the specific fetched version
+        if (manifest && manifest.version !== version) {
+            const manifestSpecifier = `${manifest.name}@${manifest.version}`;
+            const manifestCacheKey = options.registry
+                ? `${manifestSpecifier}|${options.registry}`
+                : manifestSpecifier;
+            this.#manifestCache.set(manifestCacheKey, manifest);
+        }
+        return manifest;
+    }
+    /**
+     * Fetches the manifest for a package.
+     *
+     * This method can resolve manifests for packages from the registry, as well
+     * as those specified by file paths, directory paths, and remote tarballs.
+     * Caching is only supported for registry packages.
+     *
+     * @param specifier The package specifier to resolve the manifest for.
+     * @param options Options for the fetch.
+     * @returns A promise that resolves to the `PackageManifest` object, or `null` if the package is not found.
+     */
+    async getManifest(specifier, options = {}) {
+        const { name, type, fetchSpec } = typeof specifier === 'string' ? (0, npm_package_arg_1.default)(specifier) : specifier;
+        switch (type) {
+            case 'range':
+            case 'version':
+            case 'tag': {
+                if (!name) {
+                    throw new Error(`Could not parse package name from specifier: ${specifier}`);
+                }
+                // `fetchSpec` is the version, range, or tag.
+                let versionSpec = fetchSpec ?? 'latest';
+                if (this.descriptor.requiresManifestVersionLookup) {
+                    if (type === 'tag' || !fetchSpec) {
+                        const metadata = await this.getRegistryMetadata(name, options);
+                        if (!metadata) {
+                            return null;
+                        }
+                        versionSpec = metadata['dist-tags'][versionSpec];
+                    }
+                    else if (type === 'range') {
+                        const metadata = await this.getRegistryMetadata(name, options);
+                        if (!metadata) {
+                            return null;
+                        }
+                        versionSpec = (0, semver_1.maxSatisfying)(metadata.versions, fetchSpec) ?? '';
+                    }
+                    if (!versionSpec) {
+                        return null;
+                    }
+                }
+                return this.getRegistryManifest(name, versionSpec, options);
+            }
+            case 'directory': {
+                if (!fetchSpec) {
+                    throw new Error(`Could not parse directory path from specifier: ${specifier}`);
+                }
+                const manifestPath = (0, node_path_1.join)(fetchSpec, 'package.json');
+                const manifest = await this.host.readFile(manifestPath);
+                return JSON.parse(manifest);
+            }
+            case 'file':
+            case 'remote':
+            case 'git': {
+                if (!fetchSpec) {
+                    throw new Error(`Could not parse location from specifier: ${specifier}`);
+                }
+                // Caching is not supported for non-registry specifiers.
+                const { workingDirectory, cleanup } = await this.acquireTempPackage(fetchSpec, {
+                    ...options,
+                    ignoreScripts: true,
+                });
+                try {
+                    // Discover the package name by reading the temporary `package.json` file.
+                    // The package manager will have added the package to the `dependencies`.
+                    const tempManifest = await this.host.readFile((0, node_path_1.join)(workingDirectory, 'package.json'));
+                    const { dependencies } = JSON.parse(tempManifest);
+                    const packageName = dependencies && Object.keys(dependencies)[0];
+                    if (!packageName) {
+                        throw new Error(`Could not determine package name for specifier: ${specifier}`);
+                    }
+                    // The package will be installed in `<temp>/node_modules/<name>`.
+                    const packagePath = (0, node_path_1.join)(workingDirectory, 'node_modules', packageName);
+                    const manifestPath = (0, node_path_1.join)(packagePath, 'package.json');
+                    const manifest = await this.host.readFile(manifestPath);
+                    return JSON.parse(manifest);
+                }
+                finally {
+                    await cleanup();
+                }
+            }
+            default:
+                throw new Error(`Unsupported package specifier type: ${type}`);
+        }
+    }
+    async getTemporaryDirectory() {
+        const { tempDirectory } = this.options;
+        if (tempDirectory && !(0, node_path_1.relative)(this.cwd, tempDirectory).startsWith('..')) {
+            try {
+                await this.host.stat(tempDirectory);
+            }
+            catch {
+                // If the cache directory doesn't exist, create it.
+                await this.host.mkdir(tempDirectory, { recursive: true });
+            }
+            return tempDirectory;
+        }
+        const tempOptions = ['node_modules'];
+        for (const tempOption of tempOptions) {
+            try {
+                const directory = (0, node_path_1.resolve)(this.cwd, tempOption);
+                if ((await this.host.stat(directory)).isDirectory()) {
+                    return directory;
+                }
+            }
+            catch { }
+        }
+    }
+    /**
+     * Acquires a package by installing it into a temporary directory. The caller is
+     * responsible for managing the lifecycle of the temporary directory by calling
+     * the returned `cleanup` function.
+     *
+     * @param specifier The specifier of the package to install.
+     * @param options Options for the installation.
+     * @returns A promise that resolves to an object containing the temporary path
+     *   and a cleanup function.
+     */
+    async acquireTempPackage(specifier, options = {}) {
+        const workingDirectory = await this.host.createTempDirectory(await this.getTemporaryDirectory());
+        const cleanup = () => this.host.deleteDirectory(workingDirectory);
+        // Some package managers, like yarn classic, do not write a package.json when adding a package.
+        // This can cause issues with subsequent `require.resolve` calls.
+        // Writing a package.json file beforehand prevents this. To ensure corepack
+        // resolves the correct package manager version, copy the project's packageManager field.
+        let packageManagerVersion;
+        try {
+            packageManagerVersion = await this.getVersion();
+        }
+        catch {
+            // Ignore version lookup errors.
+        }
+        const tempPackageJson = packageManagerVersion
+            ? { packageManager: `${this.name}@${packageManagerVersion}` }
+            : {};
+        await this.host.writeFile((0, node_path_1.join)(workingDirectory, 'package.json'), JSON.stringify(tempPackageJson, null, 2));
+        // To prevent pnpm from traversing up the directory tree and modifying the project's workspace lockfile,
+        // copy the project's `pnpm-workspace.yaml` (excluding monorepo local overrides/packages)
+        // to the temporary directory if it exists, or write an empty one to act as a workspace boundary.
+        if (this.name === 'pnpm') {
+            try {
+                const workspaceConfigPath = (0, node_path_1.join)(this.cwd, 'pnpm-workspace.yaml');
+                const content = await this.host.readFile(workspaceConfigPath);
+                await this.host.writeFile((0, node_path_1.join)(workingDirectory, 'pnpm-workspace.yaml'), sanitizePnpmWorkspace(content));
+            }
+            catch {
+                await this.host.writeFile((0, node_path_1.join)(workingDirectory, 'pnpm-workspace.yaml'), "packages:\n  - '.'\n");
+            }
+        }
+        // Copy configuration files if the package manager requires it (e.g., bun, yarn).
+        if (this.descriptor.copyConfigFromProject) {
+            for (const configFile of this.descriptor.configFiles) {
+                try {
+                    const configPath = (0, node_path_1.join)(this.cwd, configFile);
+                    let content = await this.host.readFile(configPath);
+                    if (this.name === 'yarn') {
+                        content = sanitizeYarnRc(content);
+                    }
+                    await this.host.writeFile((0, node_path_1.join)(workingDirectory, configFile), content);
+                }
+                catch {
+                    // Ignore missing config files.
+                }
+            }
+        }
+        const flags = [options.ignoreScripts ? this.descriptor.ignoreScriptsFlag : ''].filter((flag) => flag);
+        const args = [this.descriptor.addCommand, specifier, ...flags];
+        try {
+            await this.#run(args, { ...options, cwd: workingDirectory });
+        }
+        catch (e) {
+            // If the command fails, clean up the temporary directory immediately.
+            await cleanup();
+            throw e;
+        }
+        return { workingDirectory, cleanup };
+    }
+    /**
+     * Gets the active release age gate limit in milliseconds.
+     * @returns A promise that resolves to the limit in milliseconds, or `0` if not set.
+     */
+    async getMinimumReleaseAge() {
+        if (this.#minimumReleaseAge === undefined) {
+            this.#minimumReleaseAge = this.#resolveMinimumReleaseAge();
+        }
+        return this.#minimumReleaseAge;
+    }
+    /**
+     * Resolves the active minimum release age by querying the package manager configuration
+     * and parsing the resulting setting.
+     * @returns A promise that resolves to the limit in milliseconds, or `0` if not set.
+     */
+    async #resolveMinimumReleaseAge() {
+        if (this.descriptor.getReleaseAgeConfigCommand && this.descriptor.outputParsers.getReleaseAge) {
+            try {
+                const { stdout } = await this.#run(this.descriptor.getReleaseAgeConfigCommand);
+                const version = await this.getVersion();
+                return this.descriptor.outputParsers.getReleaseAge(stdout, version);
+            }
+            catch {
+                // Ignore failures and fallback to 0
+            }
+        }
+        return 0;
+    }
+}
+exports.PackageManager = PackageManager;
+/**
+ * Sanitizes a `pnpm-workspace.yaml` file content to be safely used inside
+ * a temporary installation directory.
+ *
+ * This function removes monorepo-specific settings that would fail or cause
+ * unintended behaviors in a standalone, temporary project environment:
+ * 1. Removes the `overrides:` block, as it may contain `workspace:` protocol
+ *    resolutions which cannot be resolved in a standalone folder.
+ * 2. Rewrites the `packages:` block to include only the current directory (`'.'`),
+ *    isolating the temporary installation from other projects in the monorepo.
+ *
+ * All other settings (such as `minimumReleaseAge`, package extensions, etc.)
+ * are preserved intact.
+ *
+ * @param content The original `pnpm-workspace.yaml` content.
+ * @returns The sanitized YAML content.
+ */
+function sanitizePnpmWorkspace(content) {
+    const lines = content.split(/\r?\n/);
+    const result = [];
+    let inBlockToRemove = false;
+    let blockIndent = 0;
+    for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) {
+            result.push(line);
+            continue;
+        }
+        // Determine the current line's indentation level.
+        const indent = line.length - line.trimStart().length;
+        // If we are currently parsing a block to remove, skip any lines with larger indentation.
+        if (inBlockToRemove) {
+            if (indent > blockIndent) {
+                continue;
+            }
+            inBlockToRemove = false;
+        }
+        // Identify blocks we want to remove or customize (e.g. 'overrides' or 'packages').
+        if (trimmed.startsWith('overrides:') || trimmed.startsWith('packages:')) {
+            inBlockToRemove = true;
+            blockIndent = indent;
+            if (trimmed.startsWith('packages:')) {
+                // Replace packages list to restrict it strictly to the current standalone folder.
+                result.push(line.replace(/packages:.*/, "packages:\n  - '.'"));
+            }
+            continue;
+        }
+        result.push(line);
+    }
+    return result.join('\n');
+}
+/**
+ * Sanitizes the contents of `.yarnrc.yml` or `.yarnrc.yaml` for temporary package installation.
+ * It removes `yarnPath`, `plugins`, and `nodeLinker` fields, and appends `nodeLinker: node-modules`.
+ * @param content The original Yarn configuration content.
+ * @returns The sanitized Yarn configuration content.
+ */
+function sanitizeYarnRc(content) {
+    const lines = content.split(/\r?\n/);
+    const result = [];
+    let inBlockToRemove = false;
+    let blockIndent = 0;
+    for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) {
+            result.push(line);
+            continue;
+        }
+        const indent = line.length - line.trimStart().length;
+        if (inBlockToRemove) {
+            if (indent > blockIndent) {
+                continue;
+            }
+            inBlockToRemove = false;
+        }
+        if (indent === 0 &&
+            (trimmed.startsWith('yarnPath:') ||
+                trimmed.startsWith('nodeLinker:') ||
+                trimmed.startsWith('plugins:'))) {
+            inBlockToRemove = true;
+            blockIndent = indent;
+            continue;
+        }
+        result.push(line);
+    }
+    result.push('nodeLinker: node-modules');
+    return result.join('\n');
+}
+//# sourceMappingURL=package-manager.js.map

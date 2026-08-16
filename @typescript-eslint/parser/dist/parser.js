@@ -24,8 +24,11 @@ function getLib(compilerOptions) {
             .map(lib => LIB_FILENAME_REGEX.exec(lib.toLowerCase())?.[1])
             .filter((lib) => !!lib);
     }
-    const target = compilerOptions.target ?? typescript_1.ScriptTarget.ES5;
-    // https://github.com/microsoft/TypeScript/blob/ae582a22ee1bb052e19b7c1bc4cac60509b574e0/src/compiler/utilitiesPublic.ts#L13-L36
+    const defaultTarget = typescript_estree_1.typescriptVersionIsAtLeast['6.0']
+        ? typescript_1.ScriptTarget.LatestStandard
+        : typescript_1.ScriptTarget.ES5; // eslint-disable-line @typescript-eslint/no-deprecated -- Deprecated in TS 6 but we support TS < 6
+    const target = compilerOptions.target ?? defaultTarget;
+    // https://github.com/microsoft/TypeScript/blob/35ff23d4b0cc715691323ebe54f523c16fe6e3a5/src/compiler/utilitiesPublic.ts#L312-L346
     switch (target) {
         case typescript_1.ScriptTarget.ES2015:
             return ['es6'];
@@ -47,6 +50,8 @@ function getLib(compilerOptions) {
             return ['es2023.full'];
         case typescript_1.ScriptTarget.ES2024:
             return ['es2024.full'];
+        case typescript_1.ScriptTarget.ES2025:
+            return ['es2025.full'];
         case typescript_1.ScriptTarget.ESNext:
             return ['esnext.full'];
         default:
@@ -72,15 +77,20 @@ function parseForESLint(code, parserOptions) {
     if (typeof parserOptions.ecmaFeatures !== 'object') {
         parserOptions.ecmaFeatures = {};
     }
-    /**
-     * Allow the user to suppress the warning from typescript-estree if they are using an unsupported
-     * version of TypeScript
-     */
-    const warnOnUnsupportedTypeScriptVersion = validateBoolean(parserOptions.warnOnUnsupportedTypeScriptVersion, true);
+    if (parserOptions.onUnsupportedTypeScriptVersion != null &&
+        // eslint-disable-next-line @typescript-eslint/no-deprecated -- read for backwards compatibility
+        parserOptions.warnOnUnsupportedTypeScriptVersion != null) {
+        throw new Error('Cannot use both the `onUnsupportedTypeScriptVersion` and the deprecated `warnOnUnsupportedTypeScriptVersion` options. Please use only `onUnsupportedTypeScriptVersion`.');
+    }
+    const onUnsupportedTypeScriptVersion = parserOptions.onUnsupportedTypeScriptVersion ??
+        // eslint-disable-next-line @typescript-eslint/no-deprecated -- read for backwards compatibility
+        (validateBoolean(parserOptions.warnOnUnsupportedTypeScriptVersion, true)
+            ? 'warn'
+            : 'ignore');
     const tsestreeOptions = {
         jsx: validateBoolean(parserOptions.ecmaFeatures.jsx),
-        ...(!warnOnUnsupportedTypeScriptVersion && { loggerFn: false }),
         ...parserOptions,
+        onUnsupportedTypeScriptVersion,
         // Override errorOnTypeScriptSyntacticAndSemanticIssues and set it to false to prevent use from user config
         // https://github.com/typescript-eslint/typescript-eslint/issues/8681#issuecomment-2000411834
         errorOnTypeScriptSyntacticAndSemanticIssues: false,

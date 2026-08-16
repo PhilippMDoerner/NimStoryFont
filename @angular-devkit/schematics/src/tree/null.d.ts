@@ -21,8 +21,11 @@ export declare class NullTreeDirEntry implements DirEntry {
     file(_name: PathFragment): null;
     visit(): void;
 }
+export interface NullTree {
+}
 export declare class NullTree implements Tree {
-    [TreeSymbol]: () => this;
+    [TreeSymbol]: () => NullTree;
+    constructor();
     branch(): Tree;
     merge(_other: Tree, _strategy?: MergeStrategy): void;
     readonly root: DirEntry;

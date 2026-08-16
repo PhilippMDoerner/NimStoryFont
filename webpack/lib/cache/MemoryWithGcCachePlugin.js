@@ -7,13 +7,12 @@
 
 const Cache = require("../Cache");
 
-/** @typedef {import("webpack-sources").Source} Source */
 /** @typedef {import("../Cache").Data} Data */
 /** @typedef {import("../Cache").Etag} Etag */
 /** @typedef {import("../Compiler")} Compiler */
-/** @typedef {import("../Module")} Module */
 
 /**
+ * Defines the memory with gc cache plugin options type used by this module.
  * @typedef {object} MemoryWithGcCachePluginOptions
  * @property {number} maxGenerations max generations
  */
@@ -22,14 +21,16 @@ const PLUGIN_NAME = "MemoryWithGcCachePlugin";
 
 class MemoryWithGcCachePlugin {
 	/**
+	 * Creates an instance of MemoryWithGcCachePlugin.
 	 * @param {MemoryWithGcCachePluginOptions} options options
 	 */
 	constructor({ maxGenerations }) {
+		/** @type {number} */
 		this._maxGenerations = maxGenerations;
 	}
 
 	/**
-	 * Apply the plugin
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Compiler} compiler the compiler instance
 	 * @returns {void}
 	 */
@@ -45,6 +46,7 @@ class MemoryWithGcCachePlugin {
 		compiler.hooks.afterDone.tap(PLUGIN_NAME, () => {
 			generation++;
 			let clearedEntries = 0;
+			/** @type {undefined | string} */
 			let lastClearedIdentifier;
 			// Avoid coverage problems due indirect changes
 			/* istanbul ignore next */
@@ -139,4 +141,5 @@ class MemoryWithGcCachePlugin {
 		);
 	}
 }
+
 module.exports = MemoryWithGcCachePlugin;

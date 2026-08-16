@@ -16,9 +16,11 @@ exports.AbortError = AbortError;
 function onabort(abortSignal, listener) {
     if ('addEventListener' in abortSignal) {
         abortSignal.addEventListener('abort', listener, { once: true });
+        return () => abortSignal.removeEventListener('abort', listener);
     }
     else {
         abortSignal.once('abort', listener);
+        return () => abortSignal.removeListener('abort', listener);
     }
 }
 //# sourceMappingURL=abort.js.map

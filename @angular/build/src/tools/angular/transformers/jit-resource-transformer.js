@@ -141,7 +141,7 @@ function visitComponentMetadata(nodeFactory, node, styleReplacements, resourceIm
 function createResourceImport(nodeFactory, url, resourceImportDeclarations) {
     const urlLiteral = nodeFactory.createStringLiteral(url);
     const importName = nodeFactory.createIdentifier(`__NG_CLI_RESOURCE__${resourceImportDeclarations.length}`);
-    resourceImportDeclarations.push(nodeFactory.createImportDeclaration(undefined, nodeFactory.createImportClause(false, importName, undefined), urlLiteral));
+    resourceImportDeclarations.push(nodeFactory.createImportDeclaration(undefined, nodeFactory.createImportClause(undefined, importName, undefined), urlLiteral));
     return importName;
 }
 function getDecoratorOrigin(decorator, typeChecker) {
@@ -184,3 +184,4 @@ function getDecoratorOrigin(decorator, typeChecker) {
     }
     return null;
 }
+//# sourceMappingURL=jit-resource-transformer.js.map

@@ -104,3 +104,4 @@ var EventCustomMetric;
     EventCustomMetric["LibraryProjectsCount"] = "epn.libs_projects_count";
     EventCustomMetric["ApplicationProjectsCount"] = "epn.apps_projects_count";
 })(EventCustomMetric || (exports.EventCustomMetric = EventCustomMetric = {}));
+//# sourceMappingURL=analytics-parameters.js.map

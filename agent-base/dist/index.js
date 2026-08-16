@@ -1,38 +1,9 @@
-"use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-var __exportStar = (this && this.__exportStar) || function(m, exports) {
-    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.Agent = void 0;
-const net = __importStar(require("net"));
-const http = __importStar(require("http"));
-const https_1 = require("https");
-__exportStar(require("./helpers"), exports);
+import * as net from 'net';
+import * as http from 'http';
+import { Agent as HttpsAgent } from 'https';
+export * from './helpers.js';
 const INTERNAL = Symbol('AgentBaseInternalState');
-class Agent extends http.Agent {
+export class Agent extends http.Agent {
     constructor(opts) {
         super(opts);
         this[INTERNAL] = {};
@@ -111,14 +82,10 @@ class Agent extends http.Agent {
     // In order to properly update the socket pool, we need to call `getName()` on
     // the core `https.Agent` if it is a secureEndpoint.
     getName(options) {
-        const secureEndpoint = typeof options.secureEndpoint === 'boolean'
-            ? options.secureEndpoint
-            : this.isSecureEndpoint(options);
+        const secureEndpoint = this.isSecureEndpoint(options);
         if (secureEndpoint) {
-            // @ts-expect-error `getName()` isn't defined in `@types/node`
-            return https_1.Agent.prototype.getName.call(this, options);
+            return HttpsAgent.prototype.getName.call(this, options);
         }
-        // @ts-expect-error `getName()` isn't defined in `@types/node`
         return super.getName(options);
     }
     createSocket(req, options, cb) {
@@ -132,9 +99,9 @@ class Agent extends http.Agent {
             .then(() => this.connect(req, connectOpts))
             .then((socket) => {
             this.decrementSockets(name, fakeSocket);
-            if (socket instanceof http.Agent) {
+            if (typeof socket
+                .addRequest === 'function') {
                 try {
-                    // @ts-expect-error `addRequest()` isn't defined in `@types/node`
                     return socket.addRequest(req, connectOpts);
                 }
                 catch (err) {
@@ -176,5 +143,4 @@ class Agent extends http.Agent {
         }
     }
 }
-exports.Agent = Agent;
 //# sourceMappingURL=index.js.map

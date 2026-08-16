@@ -7,7 +7,7 @@
  */
 import { ErrorCode } from './error_code';
 /**
- * Contains a set of error messages that have detailed guides at angular.io.
+ * Contains a set of error messages that have detailed guides at angular.dev.
  * Full list of available error guides can be found at https://angular.dev/errors
  */
 export declare const COMPILER_ERRORS_WITH_GUIDES: Set<ErrorCode>;

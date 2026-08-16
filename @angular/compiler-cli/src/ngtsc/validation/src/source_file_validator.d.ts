@@ -5,10 +5,11 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.dev/license
  */
+import { TypeCheckingConfig } from '@angular/compiler';
 import ts from 'typescript';
 import { ImportedSymbolsTracker } from '../../imports';
 import { ReflectionHost } from '../../reflection';
-import { TemplateTypeChecker, TypeCheckingConfig } from '../../typecheck/api';
+import { TemplateTypeChecker } from '../../typecheck/api';
 /**
  * Validates that TypeScript files match a specific set of rules set by the Angular compiler.
  */

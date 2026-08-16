@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.IonEncoderFast = void 0;
-const Writer_1 = require("@jsonjoy.com/util/lib/buffers/Writer");
+const Writer_1 = require("@jsonjoy.com/buffers/lib/Writer");
 const ast_1 = require("./ast");
 const Import_1 = require("./Import");
 const symbols_1 = require("./symbols");
@@ -192,6 +192,7 @@ class IonEncoderFast {
             writer.u8(128 + 14);
             this.writeVUint(length);
         }
+        writer.ensureCapacity(length * 4);
         writer.utf8(str);
     }
     writeBin(node) {

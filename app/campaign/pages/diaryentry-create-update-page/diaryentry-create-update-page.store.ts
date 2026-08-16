@@ -4,17 +4,17 @@ import { toObservable } from '@angular/core/rxjs-interop';
 import { patchState, signalStore, withMethods, withState } from '@ngrx/signals';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
 import { pipe, shareReplay, switchMap, take, tap } from 'rxjs';
-import { DiaryEntry, DiaryEntryRaw } from 'src/app/_models/diaryentry';
-import { SessionRaw } from 'src/app/_models/session';
-import { DiaryentryService } from 'src/app/_services/article/diaryentry.service';
-import { SessionService } from 'src/app/_services/article/session.service';
-import { UserService } from 'src/app/_services/article/user.service';
-import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
-import { GlobalStore } from 'src/app/global.store';
-import { filterNil } from 'src/utils/rxjs-operators';
-import { handleError } from 'src/utils/store/toServerModel';
-import { withQueries } from 'src/utils/store/withQueries';
-import { withUpdates } from 'src/utils/store/withUpdates';
+import { filterNil } from '../../../../utils/rxjs-operators';
+import { handleError } from '../../../../utils/store/toServerModel';
+import { withQueries } from '../../../../utils/store/withQueries';
+import { withUpdates } from '../../../../utils/store/withUpdates';
+import { DiaryEntry, DiaryEntryRaw } from '../../../_models/diaryentry';
+import { SessionRaw } from '../../../_models/session';
+import { DiaryentryService } from '../../../_services/article/diaryentry.service';
+import { SessionService } from '../../../_services/article/session.service';
+import { UserService } from '../../../_services/article/user.service';
+import { ToastService } from '../../../design/organisms/toast-overlay/toast.service';
+import { GlobalStore } from '../../../global.store';
 
 interface DiaryEntryCreateUpdateState {
   serverModel: DiaryEntryRaw | undefined;

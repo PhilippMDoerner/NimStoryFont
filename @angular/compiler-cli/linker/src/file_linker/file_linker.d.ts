@@ -5,11 +5,11 @@ export declare const NO_STATEMENTS: Readonly<any[]>;
 /**
  * This class is responsible for linking all the partial declarations found in a single file.
  */
-export declare class FileLinker<TConstantScope, TStatement, TExpression> {
+export declare class FileLinker<TConstantScope, TStatement, TExpression, TType> {
     private linkerEnvironment;
     private linkerSelector;
     private emitScopes;
-    constructor(linkerEnvironment: LinkerEnvironment<TStatement, TExpression>, sourceUrl: AbsoluteFsPath, code: string);
+    constructor(linkerEnvironment: LinkerEnvironment<TStatement, TExpression, TType>, sourceUrl: AbsoluteFsPath, code: string);
     /**
      * Return true if the given callee name matches a partial declaration that can be linked.
      */

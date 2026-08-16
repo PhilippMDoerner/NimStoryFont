@@ -1730,8 +1730,14 @@ var Parser = function Parser(context, imports, fileInfo, currentIndex) {
                 var e;
                 var p;
                 var rangeP;
+                var spacing = false;
                 parserInput.save();
                 do {
+                    parserInput.save();
+                    if (parserInput.$re(/^[0-9a-z-]*\s+\(/)) {
+                        spacing = true;
+                    }
+                    parserInput.restore();
                     e = entities.declarationCall.bind(this)() || entities.keyword() || entities.variable() || entities.mixinLookup();
                     if (e) {
                         nodes.push(e);
@@ -1759,9 +1765,14 @@ var Parser = function Parser(context, imports, fileInfo, currentIndex) {
                             }
                             else if (p && e) {
                                 nodes.push(new (tree_1.default.Paren)(new (tree_1.default.Declaration)(p, e, null, null, parserInput.i + currentIndex, fileInfo, true)));
+                                if (!spacing) {
+                                    nodes[nodes.length - 1].noSpacing = true;
+                                }
+                                spacing = false;
                             }
                             else if (e) {
                                 nodes.push(new (tree_1.default.Paren)(e));
+                                spacing = false;
                             }
                             else {
                                 error('badly formed media feature definition');
@@ -1788,6 +1799,9 @@ var Parser = function Parser(context, imports, fileInfo, currentIndex) {
                         if (!parserInput.$char(',')) {
                             break;
                         }
+                        else if (!features[features.length - 1].noSpacing) {
+                            features[features.length - 1].noSpacing = false;
+                        }
                     }
                     else {
                         e = entities.variable() || entities.mixinLookup();
@@ -1795,6 +1809,9 @@ var Parser = function Parser(context, imports, fileInfo, currentIndex) {
                             features.push(e);
                             if (!parserInput.$char(',')) {
                                 break;
+                            }
+                            else if (!features[features.length - 1].noSpacing) {
+                                features[features.length - 1].noSpacing = false;
                             }
                         }
                     }
@@ -1883,6 +1900,48 @@ var Parser = function Parser(context, imports, fileInfo, currentIndex) {
                     return null;
                 }
             },
+            atruleUnknown: function (value, name, hasBlock) {
+                value = this.permissiveValue(/^[{;]/);
+                hasBlock = (parserInput.currentChar() === '{');
+                if (!value) {
+                    if (!hasBlock && parserInput.currentChar() !== ';') {
+                        error(''.concat(name, ' rule is missing block or ending semi-colon'));
+                    }
+                }
+                else if (!value.value) {
+                    value = null;
+                }
+                return [value, hasBlock];
+            },
+            atruleBlock: function (rules, value, isRooted, isKeywordList) {
+                rules = this.blockRuleset();
+                parserInput.save();
+                if (!rules && !isRooted) {
+                    value = this.entity();
+                    rules = this.blockRuleset();
+                }
+                if (!rules && !isRooted) {
+                    parserInput.restore();
+                    var e = [];
+                    value = this.entity();
+                    while (parserInput.$char(',')) {
+                        e.push(value);
+                        value = this.entity();
+                    }
+                    if (value && e.length > 0) {
+                        e.push(value);
+                        value = e;
+                        isKeywordList = true;
+                    }
+                    else {
+                        rules = this.blockRuleset();
+                    }
+                }
+                else {
+                    parserInput.forget();
+                }
+                return [rules, value, isKeywordList];
+            },
             //
             // A CSS AtRule
             //
@@ -1899,6 +1958,7 @@ var Parser = function Parser(context, imports, fileInfo, currentIndex) {
                 var hasUnknown;
                 var hasBlock = true;
                 var isRooted = true;
+                var isKeywordList = false;
                 if (parserInput.currentChar() !== '@') {
                     return;
                 }
@@ -1936,6 +1996,9 @@ var Parser = function Parser(context, imports, fileInfo, currentIndex) {
                     case '@starting-style':
                         isRooted = false;
                         break;
+                    case '@layer':
+                        isRooted = false;
+                        break;
                     default:
                         hasUnknown = true;
                         break;
@@ -1954,21 +2017,30 @@ var Parser = function Parser(context, imports, fileInfo, currentIndex) {
                     }
                 }
                 else if (hasUnknown) {
-                    value = this.permissiveValue(/^[{;]/);
-                    hasBlock = (parserInput.currentChar() === '{');
-                    if (!value) {
-                        if (!hasBlock && parserInput.currentChar() !== ';') {
-                            error("".concat(name, " rule is missing block or ending semi-colon"));
-                        }
-                    }
-                    else if (!value.value) {
-                        value = null;
-                    }
+                    var unknownPackage = this.atruleUnknown(value, name, hasBlock);
+                    value = unknownPackage[0];
+                    hasBlock = unknownPackage[1];
                 }
                 if (hasBlock) {
-                    rules = this.blockRuleset();
+                    var blockPackage = this.atruleBlock(rules, value, isRooted, isKeywordList);
+                    rules = blockPackage[0];
+                    value = blockPackage[1];
+                    isKeywordList = blockPackage[2];
+                    if (!rules && !hasUnknown) {
+                        parserInput.restore();
+                        name = parserInput.$re(/^@[a-z-]+/);
+                        var unknownPackage = this.atruleUnknown(value, name, hasBlock);
+                        value = unknownPackage[0];
+                        hasBlock = unknownPackage[1];
+                        if (hasBlock) {
+                            blockPackage = this.atruleBlock(rules, value, isRooted, isKeywordList);
+                            rules = blockPackage[0];
+                            value = blockPackage[1];
+                            isKeywordList = blockPackage[2];
+                        }
+                    }
                 }
-                if (rules || (!hasBlock && value && parserInput.$char(';'))) {
+                if (rules || isKeywordList || (!hasBlock && value && parserInput.$char(';'))) {
                     parserInput.forget();
                     return new (tree_1.default.AtRule)(name, value, rules, index + currentIndex, fileInfo, context.dumpLineNumbers ? getDebugInfo(index) : null, isRooted);
                 }
@@ -2018,6 +2090,15 @@ var Parser = function Parser(context, imports, fileInfo, currentIndex) {
                     }
                     parserInput.restore('Expected \')\'');
                     return;
+                }
+                parserInput.restore();
+            },
+            colorOperand: function () {
+                parserInput.save();
+                // hsl or rgb or lch operand
+                var match = parserInput.$re(/^[lchrgbs]\s+/);
+                if (match) {
+                    return new tree_1.default.Keyword(match[0]);
                 }
                 parserInput.restore();
             },
@@ -2282,7 +2363,7 @@ var Parser = function Parser(context, imports, fileInfo, currentIndex) {
                     entities.color() || entities.variable() ||
                     entities.property() || entities.call() ||
                     entities.quoted(true) || entities.colorKeyword() ||
-                    entities.mixinLookup();
+                    this.colorOperand() || entities.mixinLookup();
                 if (negate) {
                     o.parensInOp = true;
                     o = new (tree_1.default.Negative)(o);

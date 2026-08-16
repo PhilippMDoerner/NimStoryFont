@@ -1,161 +1,183 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.HttpProxyMiddleware = void 0;
-const httpProxy = require("http-proxy");
-const configuration_1 = require("./configuration");
-const get_plugins_1 = require("./get-plugins");
-const path_filter_1 = require("./path-filter");
-const PathRewriter = require("./path-rewriter");
-const Router = require("./router");
-const debug_1 = require("./debug");
-const function_1 = require("./utils/function");
-const logger_1 = require("./logger");
-class HttpProxyMiddleware {
+import { createProxyServer } from 'httpxy';
+import { verifyConfig } from './configuration.js';
+import { Debug as debug } from './debug.js';
+import { getPlugins } from './get-plugins.js';
+import { getLogger } from './logger.js';
+import { matchPathFilter } from './path-filter.js';
+import { createPathRewriter } from './path-rewriter.js';
+import { getTarget } from './router.js';
+import { getFunctionName } from './utils/function.js';
+import { normalizeIPv6LiteralTargets } from './utils/ipv6.js';
+export class HttpProxyMiddleware {
+    wsInternalSubscribedServers = new WeakSet();
+    activeServers = new Set();
+    proxyOptions;
+    proxy;
+    pathRewriter;
+    logger;
     constructor(options) {
-        this.wsInternalSubscribed = false;
-        this.serverOnCloseSubscribed = false;
-        // https://github.com/Microsoft/TypeScript/wiki/'this'-in-TypeScript#red-flags-for-this
-        this.middleware = (async (req, res, next) => {
-            if (this.shouldProxy(this.proxyOptions.pathFilter, req)) {
-                try {
-                    const activeProxyOptions = await this.prepareProxyRequest(req);
-                    (0, debug_1.Debug)(`proxy request to target: %O`, activeProxyOptions.target);
-                    this.proxy.web(req, res, activeProxyOptions);
-                }
-                catch (err) {
-                    next?.(err);
-                }
-            }
-            else {
-                next?.();
-            }
-            /**
-             * Get the server object to subscribe to server events;
-             * 'upgrade' for websocket and 'close' for graceful shutdown
-             *
-             * NOTE:
-             * req.socket: node >= 13
-             * req.connection: node < 13 (Remove this when node 12/13 support is dropped)
-             */
-            const server = (req.socket ?? req.connection)?.server;
-            if (server && !this.serverOnCloseSubscribed) {
-                server.on('close', () => {
-                    (0, debug_1.Debug)('server close signal received: closing proxy server');
-                    this.proxy.close();
-                });
-                this.serverOnCloseSubscribed = true;
-            }
-            if (this.proxyOptions.ws === true) {
-                // use initial request to access the server object to subscribe to http upgrade event
-                this.catchUpgradeRequest(server);
-            }
-        });
-        this.catchUpgradeRequest = (server) => {
-            if (!this.wsInternalSubscribed) {
-                (0, debug_1.Debug)('subscribing to server upgrade event');
-                server.on('upgrade', this.handleUpgrade);
-                // prevent duplicate upgrade handling;
-                // in case external upgrade is also configured
-                this.wsInternalSubscribed = true;
-            }
-        };
-        this.handleUpgrade = async (req, socket, head) => {
-            try {
-                if (this.shouldProxy(this.proxyOptions.pathFilter, req)) {
-                    const activeProxyOptions = await this.prepareProxyRequest(req);
-                    this.proxy.ws(req, socket, head, activeProxyOptions);
-                    (0, debug_1.Debug)('server upgrade event received. Proxying WebSocket');
-                }
-            }
-            catch (err) {
-                // This error does not include the URL as the fourth argument as we won't
-                // have the URL if `this.prepareProxyRequest` throws an error.
-                this.proxy.emit('error', err, req, socket);
-            }
-        };
-        /**
-         * Determine whether request should be proxied.
-         */
-        this.shouldProxy = (pathFilter, req) => {
-            try {
-                return (0, path_filter_1.matchPathFilter)(pathFilter, req.url, req);
-            }
-            catch (err) {
-                (0, debug_1.Debug)('Error: matchPathFilter() called with request url: ', `"${req.url}"`);
-                this.logger.error(err);
-                return false;
-            }
-        };
-        /**
-         * Apply option.router and option.pathRewrite
-         * Order matters:
-         *    Router uses original path for routing;
-         *    NOT the modified path, after it has been rewritten by pathRewrite
-         * @param {Object} req
-         * @return {Object} proxy options
-         */
-        this.prepareProxyRequest = async (req) => {
-            /**
-             * Incorrect usage confirmed: https://github.com/expressjs/express/issues/4854#issuecomment-1066171160
-             * Temporary restore req.url patch for {@link src/legacy/create-proxy-middleware.ts legacyCreateProxyMiddleware()}
-             * FIXME: remove this patch in future release
-             */
-            if (this.middleware.__LEGACY_HTTP_PROXY_MIDDLEWARE__) {
-                req.url = req.originalUrl || req.url;
-            }
-            const newProxyOptions = Object.assign({}, this.proxyOptions);
-            // Apply in order:
-            // 1. option.router
-            // 2. option.pathRewrite
-            await this.applyRouter(req, newProxyOptions);
-            await this.applyPathRewrite(req, this.pathRewriter);
-            return newProxyOptions;
-        };
-        // Modify option.target when router present.
-        this.applyRouter = async (req, options) => {
-            let newTarget;
-            if (options.router) {
-                newTarget = await Router.getTarget(req, options);
-                if (newTarget) {
-                    (0, debug_1.Debug)('router new target: "%s"', newTarget);
-                    options.target = newTarget;
-                }
-            }
-        };
-        // rewrite path
-        this.applyPathRewrite = async (req, pathRewriter) => {
-            if (pathRewriter) {
-                const path = await pathRewriter(req.url, req);
-                if (typeof path === 'string') {
-                    (0, debug_1.Debug)('pathRewrite new path: %s', req.url);
-                    req.url = path;
-                }
-                else {
-                    (0, debug_1.Debug)('pathRewrite: no rewritten path found: %s', req.url);
-                }
-            }
-        };
-        (0, configuration_1.verifyConfig)(options);
+        verifyConfig(options);
         this.proxyOptions = options;
-        this.logger = (0, logger_1.getLogger)(options);
-        (0, debug_1.Debug)(`create proxy server`);
-        this.proxy = httpProxy.createProxyServer({});
+        this.logger = getLogger(options);
+        debug(`create proxy server`);
+        this.proxy = createProxyServer({});
         this.registerPlugins(this.proxy, this.proxyOptions);
-        this.pathRewriter = PathRewriter.createPathRewriter(this.proxyOptions.pathRewrite); // returns undefined when "pathRewrite" is not provided
+        this.pathRewriter = createPathRewriter(this.proxyOptions.pathRewrite); // returns undefined when "pathRewrite" is not provided
         // https://github.com/chimurai/http-proxy-middleware/issues/19
         // expose function to upgrade externally
         this.middleware.upgrade = (req, socket, head) => {
-            if (!this.wsInternalSubscribed) {
+            const server = this.#getServer(req);
+            if (server && !this.wsInternalSubscribedServers.has(server)) {
                 this.handleUpgrade(req, socket, head);
             }
         };
     }
+    #getServer(req) {
+        return req.socket?.server;
+    }
+    // https://github.com/Microsoft/TypeScript/wiki/'this'-in-TypeScript#red-flags-for-this
+    middleware = (async (req, res, next) => {
+        if (this.shouldProxy(this.proxyOptions.pathFilter, req)) {
+            let activeProxyOptions;
+            try {
+                // Preparation Phase: Apply router and path rewriter.
+                activeProxyOptions = await this.prepareProxyRequest(req, res);
+                // [Smoking Gun] httpxy is inconsistent with error handling:
+                // 1. If target is missing (here), it emits 'error' but returns a boolean (bypassing our catch/next).
+                // 2. If a network error occurs (in proxy.web), it rejects the promise but SKIPS emitting 'error'.
+                // We manually throw here to force Case 1 into the catch block so next(err) is called for Express.
+                if (!activeProxyOptions.target && !activeProxyOptions.forward) {
+                    throw new Error('Must provide a proper URL as target');
+                }
+            }
+            catch (err) {
+                next?.(err);
+                return;
+            }
+            try {
+                // Proxying Phase: Handle the actual web request.
+                debug(`proxy request to target: %O`, activeProxyOptions.target);
+                await this.proxy.web(req, res, activeProxyOptions);
+            }
+            catch (err) {
+                // Manually emit 'error' event because httpxy's promise-based API does not emit it automatically.
+                // This is crucial for backward compatibility with HPM plugins (like error-response-plugin)
+                // and custom listeners registered via the 'on: { error: ... }' option.
+                this.proxy.emit('error', err, req, res, activeProxyOptions.target);
+                next?.(err);
+            }
+        }
+        else {
+            next?.();
+        }
+        /**
+         * Get the server object to subscribe to server events;
+         * 'upgrade' for websocket and 'close' for graceful shutdown
+         */
+        const server = this.#getServer(req);
+        if (server && !this.activeServers.has(server)) {
+            debug('registering server close listener');
+            this.activeServers.add(server);
+            server.on('close', () => {
+                debug('server close signal received.');
+                this.activeServers.delete(server);
+                if (this.activeServers.size > 0) {
+                    debug(`proxy server not closed: ${this.activeServers.size} server(s) still active`);
+                    return;
+                }
+                else {
+                    debug('closing proxy server');
+                    this.proxy.close(() => debug('proxy server closed'));
+                }
+            });
+        }
+        if (this.proxyOptions.ws === true && server) {
+            // use initial request to access the server object to subscribe to http upgrade event
+            this.catchUpgradeRequest(server);
+        }
+    });
     registerPlugins(proxy, options) {
-        const plugins = (0, get_plugins_1.getPlugins)(options);
+        const plugins = getPlugins(options);
         plugins.forEach((plugin) => {
-            (0, debug_1.Debug)(`register plugin: "${(0, function_1.getFunctionName)(plugin)}"`);
+            debug(`register plugin: "${getFunctionName(plugin)}"`);
             plugin(proxy, options);
         });
     }
+    catchUpgradeRequest = (server) => {
+        if (!this.wsInternalSubscribedServers.has(server)) {
+            debug('subscribing to server upgrade event');
+            server.on('upgrade', this.handleUpgrade);
+            this.wsInternalSubscribedServers.add(server);
+        }
+    };
+    handleUpgrade = async (req, socket, head) => {
+        try {
+            if (this.shouldProxy(this.proxyOptions.pathFilter, req)) {
+                // No HTTP response object exists during WebSocket upgrades, so pass undefined.
+                const activeProxyOptions = await this.prepareProxyRequest(req, undefined);
+                await this.proxy.ws(req, socket, activeProxyOptions, head);
+                debug('server upgrade event received. Proxying WebSocket');
+            }
+        }
+        catch (err) {
+            // This error does not include the URL as the fourth argument as we won't
+            // have the URL if `this.prepareProxyRequest` throws an error.
+            this.proxy.emit('error', err, req, socket);
+        }
+    };
+    /**
+     * Determine whether request should be proxied.
+     */
+    shouldProxy = (pathFilter, req) => {
+        try {
+            return matchPathFilter(pathFilter, req.url, req);
+        }
+        catch (err) {
+            debug('Error: matchPathFilter() called with request url: ', `"${req.url}"`);
+            this.logger.error(err);
+            return false;
+        }
+    };
+    /**
+     * Apply option.router and option.pathRewrite
+     * Order matters:
+     *    Router uses original path for routing;
+     *    NOT the modified path, after it has been rewritten by pathRewrite
+     * @param {Object} req
+     * @return {Object} proxy options
+     */
+    prepareProxyRequest = async (req, res) => {
+        const newProxyOptions = Object.assign({}, this.proxyOptions);
+        // Apply in order:
+        // 1. option.router
+        // 2. option.pathRewrite
+        await this.applyRouter(req, res, newProxyOptions);
+        normalizeIPv6LiteralTargets(newProxyOptions);
+        await this.applyPathRewrite(req, res, this.pathRewriter, newProxyOptions);
+        return newProxyOptions;
+    };
+    // Modify option.target when router present.
+    applyRouter = async (req, res, options) => {
+        let newTarget;
+        if (options.router) {
+            newTarget = await getTarget(req, res, options);
+            if (newTarget) {
+                debug('router new target: "%s"', newTarget);
+                options.target = newTarget;
+            }
+        }
+    };
+    // rewrite path
+    applyPathRewrite = async (req, res, pathRewriter, options) => {
+        if (req.url && pathRewriter) {
+            const path = await pathRewriter(req.url, req, res, options);
+            if (typeof path === 'string') {
+                debug('pathRewrite new path: %s', path);
+                req.url = path;
+            }
+            else {
+                debug('pathRewrite: no rewritten path found: %s', req.url);
+            }
+        }
+    };
 }
-exports.HttpProxyMiddleware = HttpProxyMiddleware;

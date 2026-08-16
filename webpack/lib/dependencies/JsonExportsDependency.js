@@ -8,18 +8,18 @@
 const makeSerializable = require("../util/makeSerializable");
 const NullDependency = require("./NullDependency");
 
-/** @typedef {import("../ChunkGraph")} ChunkGraph */
 /** @typedef {import("../Dependency").ExportSpec} ExportSpec */
 /** @typedef {import("../Dependency").ExportsSpec} ExportsSpec */
 /** @typedef {import("../Dependency").UpdateHashContext} UpdateHashContext */
 /** @typedef {import("../ModuleGraph")} ModuleGraph */
 /** @typedef {import("../json/JsonData")} JsonData */
 /** @typedef {import("../json/JsonData").JsonValue} JsonValue */
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext} ObjectDeserializerContext */
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext} ObjectSerializerContext */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext<[JsonData, number]>} ObjectDeserializerContext */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext<[JsonData, number]>} ObjectSerializerContext */
 /** @typedef {import("../util/Hash")} Hash */
 
 /**
+ * Defines the get exports from data fn callback.
  * @callback GetExportsFromDataFn
  * @param {JsonValue} data raw json data
  * @param {number=} curDepth current depth
@@ -27,10 +27,11 @@ const NullDependency = require("./NullDependency");
  */
 
 /**
+ * Gets exports with depth.
  * @param {number} exportsDepth exportsDepth
  * @returns {GetExportsFromDataFn} value
  */
-const getExportsWithDepth = exportsDepth =>
+const getExportsWithDepth = (exportsDepth) =>
 	/** @type {GetExportsFromDataFn} */
 	function getExportsFromData(data, curDepth = 1) {
 		if (curDepth > exportsDepth) {
@@ -55,7 +56,12 @@ const getExportsWithDepth = exportsDepth =>
 				exports.push({
 					name: key,
 					canMangle: true,
-					exports: getExportsFromData(data[key], curDepth + 1) || undefined
+					exports:
+						getExportsFromData(
+							/** @type {JsonValue} */
+							(data[key]),
+							curDepth + 1
+						) || undefined
 				});
 			}
 
@@ -67,12 +73,15 @@ const getExportsWithDepth = exportsDepth =>
 
 class JsonExportsDependency extends NullDependency {
 	/**
+	 * Creates an instance of JsonExportsDependency.
 	 * @param {JsonData} data json data
 	 * @param {number} exportsDepth the depth of json exports to analyze
 	 */
 	constructor(data, exportsDepth) {
 		super();
+		/** @type {JsonData} */
 		this.data = data;
+		/** @type {number} */
 		this.exportsDepth = exportsDepth;
 	}
 
@@ -95,7 +104,7 @@ class JsonExportsDependency extends NullDependency {
 	}
 
 	/**
-	 * Update the hash
+	 * Updates the hash with the data contributed by this instance.
 	 * @param {Hash} hash hash to be updated
 	 * @param {UpdateHashContext} context context
 	 * @returns {void}
@@ -105,23 +114,23 @@ class JsonExportsDependency extends NullDependency {
 	}
 
 	/**
+	 * Serializes this instance into the provided serializer context.
 	 * @param {ObjectSerializerContext} context context
 	 */
 	serialize(context) {
-		const { write } = context;
-		write(this.data);
-		write(this.exportsDepth);
+		context.write(this.data).write(this.exportsDepth);
 		super.serialize(context);
 	}
 
 	/**
+	 * Restores this instance from the provided deserializer context.
 	 * @param {ObjectDeserializerContext} context context
 	 */
 	deserialize(context) {
-		const { read } = context;
-		this.data = read();
-		this.exportsDepth = read();
-		super.deserialize(context);
+		this.data = context.read();
+		const c1 = context.rest;
+		this.exportsDepth = c1.read();
+		super.deserialize(c1.rest);
 	}
 }
 

@@ -18,12 +18,12 @@ import { Translator } from '../translator';
  *
  * This implementation will emit the definition and the constant statements separately.
  */
-export declare class EmitScope<TStatement, TExpression> {
+export declare class EmitScope<TStatement, TExpression, TType> {
     protected readonly ngImport: TExpression;
-    protected readonly translator: Translator<TStatement, TExpression>;
+    protected readonly translator: Translator<TStatement, TExpression, TType>;
     private readonly factory;
     readonly constantPool: ConstantPool;
-    constructor(ngImport: TExpression, translator: Translator<TStatement, TExpression>, factory: AstFactory<TStatement, TExpression>);
+    constructor(ngImport: TExpression, translator: Translator<TStatement, TExpression, TType>, factory: AstFactory<TStatement, TExpression, TType>);
     /**
      * Translate the given Output AST definition expression into a generic `TExpression`.
      *

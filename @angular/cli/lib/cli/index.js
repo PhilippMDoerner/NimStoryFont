@@ -16,17 +16,15 @@ const command_runner_1 = require("../../src/command-builder/command-runner");
 const color_1 = require("../../src/utilities/color");
 const environment_options_1 = require("../../src/utilities/environment-options");
 const log_file_1 = require("../../src/utilities/log-file");
+const node_version_1 = require("../../src/utilities/node-version");
 var version_1 = require("../../src/utilities/version");
 Object.defineProperty(exports, "VERSION", { enumerable: true, get: function () { return version_1.VERSION; } });
-const MIN_NODEJS_VERSION = [20, 19];
 /* eslint-disable no-console */
 async function default_1(options) {
     // This node version check ensures that the requirements of the project instance of the CLI are met
-    const [major, minor] = process.versions.node.split('.').map((part) => Number(part));
-    if (major < MIN_NODEJS_VERSION[0] ||
-        (major === MIN_NODEJS_VERSION[0] && minor < MIN_NODEJS_VERSION[1])) {
+    if (!(0, node_version_1.isNodeVersionMinSupported)()) {
         process.stderr.write(`Node.js version ${process.version} detected.\n` +
-            `The Angular CLI requires a minimum of v${MIN_NODEJS_VERSION[0]}.${MIN_NODEJS_VERSION[1]}.\n\n` +
+            `The Angular CLI requires a minimum of v${node_version_1.supportedNodeVersions[0]}.\n\n` +
             'Please update your Node.js version or visit https://nodejs.org/ for additional instructions.\n');
         return 3;
     }
@@ -39,6 +37,7 @@ async function default_1(options) {
     };
     const logger = new core_1.logging.IndentLogger('cli-main-logger');
     const logInfo = console.log;
+    const logWarn = console.warn;
     const logError = console.error;
     const useColor = (0, color_1.supportColor)();
     const loggerFinished = logger.forEach((entry) => {
@@ -104,5 +103,11 @@ async function default_1(options) {
     finally {
         logger.complete();
         await loggerFinished;
+        // Restore original console methods so that late consumers
+        // (e.g. process.on('exit') handlers) still produce output.
+        console.log = console.info = logInfo;
+        console.warn = logWarn;
+        console.error = logError;
     }
 }
+//# sourceMappingURL=index.js.map

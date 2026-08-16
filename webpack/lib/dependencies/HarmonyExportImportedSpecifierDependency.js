@@ -8,71 +8,95 @@
 const ConditionalInitFragment = require("../ConditionalInitFragment");
 const Dependency = require("../Dependency");
 const { UsageState } = require("../ExportsInfo");
-const HarmonyLinkingError = require("../HarmonyLinkingError");
 const InitFragment = require("../InitFragment");
 const RuntimeGlobals = require("../RuntimeGlobals");
 const Template = require("../Template");
-const { countIterable } = require("../util/IterableHelpers");
-const { first, combine } = require("../util/SetHelpers");
-const makeSerializable = require("../util/makeSerializable");
-const propertyAccess = require("../util/propertyAccess");
-const { propertyName } = require("../util/propertyName");
 const {
+	InlinedUsedName,
+	isExportInlined,
+	isInlineEnabled
+} = require("../optimize/InlineExports");
+const {
+	getMakeDeferredNamespaceModeFromExportsType
+} = require("../runtime/MakeDeferredNamespaceObjectRuntime");
+const { countIterable } = require("../util/IterableHelpers");
+const { combine, first } = require("../util/SetHelpers");
+const makeSerializable = require("../util/makeSerializable");
+const { propertyAccess, propertyName } = require("../util/property");
+const {
+	filterRuntime,
 	getRuntimeKey,
-	keyToRuntime,
-	filterRuntime
+	keyToRuntime
 } = require("../util/runtime");
 const HarmonyExportInitFragment = require("./HarmonyExportInitFragment");
 const HarmonyImportDependency = require("./HarmonyImportDependency");
+const HarmonyLinkingError = require("./HarmonyLinkingError");
+const { ImportPhaseUtils } = require("./ImportPhase");
 const processExportInfo = require("./processExportInfo");
 
 /** @typedef {import("webpack-sources").ReplaceSource} ReplaceSource */
 /** @typedef {import("../ChunkGraph")} ChunkGraph */
 /** @typedef {import("../Dependency").ExportsSpec} ExportsSpec */
 /** @typedef {import("../Dependency").GetConditionFn} GetConditionFn */
-/** @typedef {import("../Dependency").ReferencedExport} ReferencedExport */
+/** @typedef {import("../Dependency").LazyUntil} LazyUntil */
+/** @typedef {import("../Dependency").RawReferencedExports} RawReferencedExports */
+/** @typedef {import("../Dependency").ReferencedExports} ReferencedExports */
 /** @typedef {import("../Dependency").TRANSITIVE} TRANSITIVE */
-/** @typedef {import("../Dependency").UpdateHashContext} UpdateHashContext */
 /** @typedef {import("../DependencyTemplate").DependencyTemplateContext} DependencyTemplateContext */
 /** @typedef {import("../ExportsInfo")} ExportsInfo */
 /** @typedef {import("../ExportsInfo").ExportInfo} ExportInfo */
+/** @typedef {import("../ExportsInfo").ExportInfoName} ExportInfoName */
 /** @typedef {import("../ExportsInfo").UsedName} UsedName */
 /** @typedef {import("../Generator").GenerateContext} GenerateContext */
 /** @typedef {import("../Module")} Module */
 /** @typedef {import("../Module").BuildMeta} BuildMeta */
 /** @typedef {import("../Module").RuntimeRequirements} RuntimeRequirements */
+/** @typedef {import("../Module").ExportsType} ExportsType */
 /** @typedef {import("../ModuleGraph")} ModuleGraph */
 /** @typedef {import("../ModuleGraphConnection")} ModuleGraphConnection */
 /** @typedef {import("../ModuleGraphConnection").ConnectionState} ConnectionState */
 /** @typedef {import("../RuntimeTemplate")} RuntimeTemplate */
-/** @typedef {import("../WebpackError")} WebpackError */
+/** @typedef {import("../errors/WebpackError")} WebpackError */
 /** @typedef {import("../javascript/JavascriptParser").ImportAttributes} ImportAttributes */
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext} ObjectDeserializerContext */
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext} ObjectSerializerContext */
-/** @typedef {import("../util/Hash")} Hash */
+/** @typedef {[Ids, string | null, Set<string>, ReadonlyArray<HarmonyExportImportedSpecifierDependency> | null, ExportPresenceMode, HarmonyStarExportsList | null]} SerializedData */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext<SerializedData>} ObjectDeserializerContext */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext<SerializedData>} ObjectSerializerContext */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext<[HarmonyExportImportedSpecifierDependency[]]>} StarListDeserializerContext */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext<[HarmonyExportImportedSpecifierDependency[]]>} StarListSerializerContext */
 /** @typedef {import("../util/runtime").RuntimeSpec} RuntimeSpec */
+/** @typedef {import("./HarmonyImportDependency").Ids} Ids */
 /** @typedef {import("./HarmonyImportDependency").ExportPresenceMode} ExportPresenceMode */
-/** @typedef {import("./processExportInfo").ReferencedExports} ReferencedExports */
+/** @typedef {import("./HarmonyExportInitFragment").ExportMap} ExportMap */
+/** @typedef {import("../dependencies/ImportPhase").ImportPhaseType} ImportPhaseType */
+/** @typedef {import("../javascript/JavascriptModule").JavascriptModuleBuildMeta} JavascriptModuleBuildMeta */
 
-/** @typedef {"missing"|"unused"|"empty-star"|"reexport-dynamic-default"|"reexport-named-default"|"reexport-namespace-object"|"reexport-fake-namespace-object"|"reexport-undefined"|"normal-reexport"|"dynamic-reexport"} ExportModeType */
+/** @typedef {"missing" | "unused" | "empty-star" | "reexport-dynamic-default" | "reexport-named-default" | "reexport-namespace-object" | "reexport-fake-namespace-object" | "reexport-undefined" | "normal-reexport" | "dynamic-reexport"} ExportModeType */
 
 const { ExportPresenceModes } = HarmonyImportDependency;
 
-const idsSymbol = Symbol("HarmonyExportImportedSpecifierDependency.ids");
+const idsSymbol = /** @type {symbol} */ (
+	Symbol("HarmonyExportImportedSpecifierDependency.ids")
+);
 
 class NormalReexportItem {
 	/**
+	 * Creates an instance of NormalReexportItem.
 	 * @param {string} name export name
-	 * @param {string[]} ids reexported ids from other module
+	 * @param {Ids} ids reexported ids from other module
 	 * @param {ExportInfo} exportInfo export info from other module
 	 * @param {boolean} checked true, if it should be checked at runtime if this export exists
 	 * @param {boolean} hidden true, if it is hidden behind another active export in the same module
 	 */
 	constructor(name, ids, exportInfo, checked, hidden) {
+		/** @type {string} */
 		this.name = name;
+		/** @type {Ids} */
 		this.ids = ids;
+		/** @type {ExportInfo} */
 		this.exportInfo = exportInfo;
+		/** @type {boolean} */
 		this.checked = checked;
+		/** @type {boolean} */
 		this.hidden = hidden;
 	}
 }
@@ -82,6 +106,7 @@ class NormalReexportItem {
 
 class ExportMode {
 	/**
+	 * Creates an instance of ExportMode.
 	 * @param {ExportModeType} type type of the mode
 	 */
 	constructor(type) {
@@ -116,27 +141,110 @@ class ExportMode {
 	}
 }
 
-/** @typedef {string[]} Names */
 /** @typedef {number[]} DependencyIndices */
 
+const RETURNS_TRUE = () => true;
+
 /**
+ * Detect a per-name cycle when collecting `export *` contributions from
+ * `exportInfo`'s module into `parentModule`. The TC39 `ResolveExport`
+ * algorithm tracks a `resolveSet` of `(module, exportName)` pairs and
+ * returns null when an entry is revisited — letting the `StarExportEntries`
+ * loop fall through to a non-cyclic source. Webpack's static export graph
+ * does not run that resolution algorithm, so we approximate it: if the
+ * imported module's same-named export ultimately re-exports from
+ * `parentModule` under the same name, the star contribution is cyclic and
+ * must be skipped. The non-cyclic alternative (a sibling `export *` that
+ * provides a real binding) then wins.
+ *
+ * We walk the target chain one hop at a time using `findTarget` with a
+ * "match anything" filter so we can guard against namespace targets
+ * (`export * as ns from`, where `target.export` is undefined) and against
+ * unrelated cycles in the graph that would otherwise loop forever inside
+ * `_findTarget`.
+ * @param {ModuleGraph} moduleGraph the module graph
+ * @param {ExportInfo} exportInfo export info on the imported module
+ * @param {Module} parentModule the module that contains the star reexport
+ * @returns {boolean} true when this export reexports back to the parent module under the same name
+ */
+const isStarReexportBackToParent = (moduleGraph, exportInfo, parentModule) => {
+	// Fast path: probe the first hop directly. The overwhelmingly common case
+	// in real builds is a terminal local binding (no `_target`) — `findTarget`
+	// returns `undefined` and we exit without allocating a `visited` set.
+	const firstTarget = exportInfo.findTarget(moduleGraph, RETURNS_TRUE);
+	if (!firstTarget || typeof firstTarget !== "object") return false;
+	const name = exportInfo.name;
+	if (
+		firstTarget.module === parentModule &&
+		Array.isArray(firstTarget.export) &&
+		firstTarget.export.length === 1 &&
+		firstTarget.export[0] === name
+	) {
+		return true;
+	}
+	if (!Array.isArray(firstTarget.export) || firstTarget.export.length === 0) {
+		return false;
+	}
+	// Multi-hop chain — allocate visited tracking now. The set protects against
+	// unrelated cycles in the graph that would otherwise spin inside
+	// `_findTarget` (its `alreadyVisited` is only seeded for the entry node).
+	let current = moduleGraph
+		.getExportsInfo(firstTarget.module)
+		.getReadOnlyExportInfo(firstTarget.export[0]);
+	// Allocated lazily: a single-extra-hop chain that terminates (the common
+	// `barrel -> leaf local binding` case) returns before `next` is ever
+	// computed, so the visited set is pure waste there.
+	/** @type {Set<ExportInfo> | undefined} */
+	let visited;
+	for (;;) {
+		const target = current.findTarget(moduleGraph, RETURNS_TRUE);
+		if (!target || typeof target !== "object") return false;
+		if (
+			target.module === parentModule &&
+			Array.isArray(target.export) &&
+			target.export.length === 1 &&
+			target.export[0] === name
+		) {
+			return true;
+		}
+		if (!Array.isArray(target.export) || target.export.length === 0) {
+			return false;
+		}
+		const next = moduleGraph
+			.getExportsInfo(target.module)
+			.getReadOnlyExportInfo(target.export[0]);
+		if (visited === undefined) visited = new Set([exportInfo, current]);
+		if (visited.has(next)) return false;
+		visited.add(next);
+		current = next;
+	}
+};
+
+/**
+ * Determine export assignments.
  * @param {ModuleGraph} moduleGraph module graph
  * @param {HarmonyExportImportedSpecifierDependency[]} dependencies dependencies
- * @param {TODO=} additionalDependency additional dependency
- * @returns {{ names: Names, dependencyIndices: DependencyIndices }} result
+ * @param {HarmonyExportImportedSpecifierDependency=} additionalDependency additional dependency
+ * @returns {{ names: ExportInfoName[], dependencyIndices: DependencyIndices }} result
  */
 const determineExportAssignments = (
 	moduleGraph,
 	dependencies,
 	additionalDependency
 ) => {
+	/** @type {Set<ExportInfoName>} */
 	const names = new Set();
-	/** @type {number[]} */
+	/** @type {DependencyIndices} */
 	const dependencyIndices = [];
 
 	if (additionalDependency) {
-		dependencies = dependencies.concat(additionalDependency);
+		dependencies = [...dependencies, additionalDependency];
 	}
+
+	const referenceDep = dependencies[0] || additionalDependency;
+	const parentModule = referenceDep
+		? moduleGraph.getParentModule(referenceDep)
+		: null;
 
 	for (const dep of dependencies) {
 		const i = dependencyIndices.length;
@@ -148,7 +256,11 @@ const determineExportAssignments = (
 				if (
 					exportInfo.provided === true &&
 					exportInfo.name !== "default" &&
-					!names.has(exportInfo.name)
+					!names.has(exportInfo.name) &&
+					!(
+						parentModule &&
+						isStarReexportBackToParent(moduleGraph, exportInfo, parentModule)
+					)
 				) {
 					names.add(exportInfo.name);
 					dependencyIndices[i] = names.size;
@@ -158,15 +270,16 @@ const determineExportAssignments = (
 	}
 	dependencyIndices.push(names.size);
 
-	return { names: Array.from(names), dependencyIndices };
+	return { names: [...names], dependencyIndices };
 };
 
 /**
+ * Finds dependency for name.
  * @param {object} options options
- * @param {Names} options.names names
+ * @param {ExportInfoName[]} options.names names
  * @param {DependencyIndices} options.dependencyIndices dependency indices
  * @param {string} name name
- * @param {Iterable<HarmonyExportImportedSpecifierDependency>} dependencies dependencies
+ * @param {ReadonlyArray<HarmonyExportImportedSpecifierDependency>} dependencies dependencies
  * @returns {HarmonyExportImportedSpecifierDependency | undefined} found dependency or nothing
  */
 const findDependencyForName = (
@@ -191,6 +304,7 @@ const findDependencyForName = (
 };
 
 /**
+ * Returns the export mode.
  * @param {ModuleGraph} moduleGraph the module graph
  * @param {HarmonyExportImportedSpecifierDependency} dep the dependency
  * @param {string} runtimeKey the runtime key
@@ -258,6 +372,7 @@ const getMode = (moduleGraph, dep, runtimeKey) => {
 
 	// reexporting with a fixed name
 	if (name) {
+		/** @type {ExportMode} */
 		let mode;
 		const exportInfo = exportsInfo.getReadOnlyExportInfo(name);
 
@@ -302,7 +417,6 @@ const getMode = (moduleGraph, dep, runtimeKey) => {
 	}
 
 	// Star reexporting
-
 	const { ignoredExports, exports, checked, hidden } = dep.getStarReexports(
 		moduleGraph,
 		runtime,
@@ -331,12 +445,12 @@ const getMode = (moduleGraph, dep, runtimeKey) => {
 
 	mode.items = Array.from(
 		exports,
-		exportName =>
+		(exportName) =>
 			new NormalReexportItem(
 				exportName,
 				[exportName],
 				exportsInfo.getReadOnlyExportInfo(exportName),
-				/** @type {Set<string>} */
+				/** @type {Checked} */
 				(checked).has(exportName),
 				false
 			)
@@ -358,7 +472,6 @@ const getMode = (moduleGraph, dep, runtimeKey) => {
 	return mode;
 };
 
-/** @typedef {string[]} Ids */
 /** @typedef {Set<string>} Exports */
 /** @typedef {Set<string>} Checked */
 /** @typedef {Set<string>} Hidden */
@@ -366,14 +479,16 @@ const getMode = (moduleGraph, dep, runtimeKey) => {
 
 class HarmonyExportImportedSpecifierDependency extends HarmonyImportDependency {
 	/**
+	 * Creates an instance of HarmonyExportImportedSpecifierDependency.
 	 * @param {string} request the request string
 	 * @param {number} sourceOrder the order in the original source file
 	 * @param {Ids} ids the requested export name of the imported module
 	 * @param {string | null} name the export name of for this module
 	 * @param {Set<string>} activeExports other named exports in the module
-	 * @param {ReadonlyArray<HarmonyExportImportedSpecifierDependency> | Iterable<HarmonyExportImportedSpecifierDependency> | null} otherStarExports other star exports in the module before this import
+	 * @param {ReadonlyArray<HarmonyExportImportedSpecifierDependency> | null} otherStarExports other star exports in the module before this import
 	 * @param {ExportPresenceMode} exportPresenceMode mode of checking export names
 	 * @param {HarmonyStarExportsList | null} allStarExports all star exports in the module
+	 * @param {ImportPhaseType} phase import phase
 	 * @param {ImportAttributes=} attributes import attributes
 	 */
 	constructor(
@@ -385,19 +500,26 @@ class HarmonyExportImportedSpecifierDependency extends HarmonyImportDependency {
 		otherStarExports,
 		exportPresenceMode,
 		allStarExports,
+		phase,
 		attributes
 	) {
-		super(request, sourceOrder, attributes);
+		super(request, sourceOrder, phase, attributes);
 
+		/** @type {Ids} */
 		this.ids = ids;
+		/** @type {string | null} */
 		this.name = name;
+		/** @type {Set<string>} */
 		this.activeExports = activeExports;
 		this.otherStarExports = otherStarExports;
+		/** @type {ExportPresenceMode} */
 		this.exportPresenceMode = exportPresenceMode;
+		/** @type {HarmonyStarExportsList | null} */
 		this.allStarExports = allStarExports;
 	}
 
 	/**
+	 * Could affect referencing module.
 	 * @returns {boolean | TRANSITIVE} true, when changes to the referenced module could affect the referencing module; TRANSITIVE, when changes to the referenced module could affect referencing modules of the referencing module
 	 */
 	couldAffectReferencingModule() {
@@ -405,16 +527,28 @@ class HarmonyExportImportedSpecifierDependency extends HarmonyImportDependency {
 	}
 
 	// TODO webpack 6 remove
+	/**
+	 * Returns id.
+	 * @deprecated
+	 */
 	get id() {
 		throw new Error("id was renamed to ids and type changed to string[]");
 	}
 
 	// TODO webpack 6 remove
+	/**
+	 * Returns id.
+	 * @deprecated
+	 */
 	getId() {
 		throw new Error("id was renamed to ids and type changed to string[]");
 	}
 
 	// TODO webpack 6 remove
+	/**
+	 * Updates id.
+	 * @deprecated
+	 */
 	setId() {
 		throw new Error("id was renamed to ids and type changed to string[]");
 	}
@@ -424,6 +558,33 @@ class HarmonyExportImportedSpecifierDependency extends HarmonyImportDependency {
 	}
 
 	/**
+	 * Returns the export name this dependency requests from its target module (lazy barrel optimization).
+	 * @returns {string | true | null} export name, true for all exports, null for none
+	 */
+	getForwardId() {
+		return this.ids.length > 0 ? this.ids[0] : true;
+	}
+
+	/**
+	 * Returns how this dependency may be deferred when its parent module is side-effect-free (lazy barrel optimization).
+	 * @returns {LazyUntil | null} lazy classification, null when it must be processed eagerly
+	 */
+	getLazyUntil() {
+		return this.name !== null
+			? Dependency.LAZY_UNTIL_ID
+			: Dependency.LAZY_UNTIL_FALLBACK;
+	}
+
+	/**
+	 * Returns the export name for a `LAZY_UNTIL_LOCAL`/`LAZY_UNTIL_ID` classification (lazy barrel optimization).
+	 * @returns {string | null} export name, null when not applicable
+	 */
+	getLazyName() {
+		return this.name;
+	}
+
+	/**
+	 * Returns the imported id.
 	 * @param {ModuleGraph} moduleGraph the module graph
 	 * @returns {Ids} the imported id
 	 */
@@ -432,6 +593,7 @@ class HarmonyExportImportedSpecifierDependency extends HarmonyImportDependency {
 	}
 
 	/**
+	 * Updates ids using the provided module graph.
 	 * @param {ModuleGraph} moduleGraph the module graph
 	 * @param {Ids} ids the imported ids
 	 * @returns {void}
@@ -441,6 +603,7 @@ class HarmonyExportImportedSpecifierDependency extends HarmonyImportDependency {
 	}
 
 	/**
+	 * Returns the export mode.
 	 * @param {ModuleGraph} moduleGraph the module graph
 	 * @param {RuntimeSpec} runtime the runtime
 	 * @returns {ExportMode} the export mode
@@ -454,11 +617,12 @@ class HarmonyExportImportedSpecifierDependency extends HarmonyImportDependency {
 	}
 
 	/**
+	 * Gets star reexports.
 	 * @param {ModuleGraph} moduleGraph the module graph
 	 * @param {RuntimeSpec} runtime the runtime
 	 * @param {ExportsInfo} exportsInfo exports info about the current module (optional)
 	 * @param {Module} importedModule the imported module (optional)
-	 * @returns {{exports?: Exports, checked?: Checked, ignoredExports: IgnoredExports, hidden?: Hidden}} information
+	 * @returns {{ exports?: Exports, checked?: Checked, ignoredExports: IgnoredExports, hidden?: Hidden }} information
 	 */
 	getStarReexports(
 		moduleGraph,
@@ -474,8 +638,11 @@ class HarmonyExportImportedSpecifierDependency extends HarmonyImportDependency {
 		const noExtraImports =
 			exportsInfo.otherExportsInfo.getUsed(runtime) === UsageState.Unused;
 
-		const ignoredExports = new Set(["default", ...this.activeExports]);
+		/** @type {IgnoredExports} */
+		const ignoredExports = new Set(this.activeExports);
+		ignoredExports.add("default");
 
+		/** @type {Hidden | undefined} */
 		let hiddenExports;
 		const otherStarExports =
 			this._discoverActiveExportsFromOtherStarExports(moduleGraph);
@@ -501,6 +668,10 @@ class HarmonyExportImportedSpecifierDependency extends HarmonyImportDependency {
 		/** @type {Hidden | undefined} */
 		const hidden = hiddenExports !== undefined ? new Set() : undefined;
 
+		const parentModule = /** @type {Module} */ (
+			moduleGraph.getParentModule(this)
+		);
+
 		if (noExtraImports) {
 			for (const exportInfo of exportsInfo.orderedExports) {
 				const name = exportInfo.name;
@@ -510,8 +681,20 @@ class HarmonyExportImportedSpecifierDependency extends HarmonyImportDependency {
 					importedExportsInfo.getReadOnlyExportInfo(name);
 				if (importedExportInfo.provided === false) continue;
 				if (hiddenExports !== undefined && hiddenExports.has(name)) {
-					/** @type {Set<string>} */
+					// Earlier star deps already provided this name non-cyclically
+					// (`determineExportAssignments` filters cyclic candidates), so
+					// the cycle check below would be wasted work.
+					/** @type {Hidden} */
 					(hidden).add(name);
+					continue;
+				}
+				if (
+					isStarReexportBackToParent(
+						moduleGraph,
+						importedExportInfo,
+						parentModule
+					)
+				) {
 					continue;
 				}
 				exports.add(name);
@@ -530,6 +713,15 @@ class HarmonyExportImportedSpecifierDependency extends HarmonyImportDependency {
 					(hidden).add(name);
 					continue;
 				}
+				if (
+					isStarReexportBackToParent(
+						moduleGraph,
+						importedExportInfo,
+						parentModule
+					)
+				) {
+					continue;
+				}
 				exports.add(name);
 				if (importedExportInfo.provided === true) continue;
 				checked.add(name);
@@ -540,17 +732,36 @@ class HarmonyExportImportedSpecifierDependency extends HarmonyImportDependency {
 	}
 
 	/**
+	 * Returns function to determine if the connection is active.
 	 * @param {ModuleGraph} moduleGraph module graph
 	 * @returns {null | false | GetConditionFn} function to determine if the connection is active
 	 */
 	getCondition(moduleGraph) {
 		return (connection, runtime) => {
 			const mode = this.getMode(moduleGraph, runtime);
-			return mode.type !== "unused" && mode.type !== "empty-star";
+			const active = mode.type !== "unused" && mode.type !== "empty-star";
+			if (!active) return active;
+
+			const module = connection.module;
+			if (!isInlineEnabled(module)) return true;
+			if (mode.type !== "normal-reexport") return true;
+			const exportsInfo = moduleGraph.getExportsInfo(module);
+			if (exportsInfo.otherExportsInfo.getUsed(runtime) !== UsageState.Unused) {
+				return true;
+			}
+			for (const item of /** @type {NormalReexportItem[]} */ (mode.items)) {
+				// Hidden/checked items can't be statically inlined away
+				if (item.hidden || item.checked) return true;
+				if (!isExportInlined(moduleGraph, module, item.ids, runtime)) {
+					return true;
+				}
+			}
+			return false;
 		};
 	}
 
 	/**
+	 * Gets module evaluation side effects state.
 	 * @param {ModuleGraph} moduleGraph the module graph
 	 * @returns {ConnectionState} how this dependency connects the module to referencing modules
 	 */
@@ -562,7 +773,7 @@ class HarmonyExportImportedSpecifierDependency extends HarmonyImportDependency {
 	 * Returns list of exports referenced by this dependency
 	 * @param {ModuleGraph} moduleGraph module graph
 	 * @param {RuntimeSpec} runtime the runtime for which the module is analysed
-	 * @returns {(string[] | ReferencedExport)[]} referenced exports
+	 * @returns {ReferencedExports} referenced exports
 	 */
 	getReferencedExports(moduleGraph, runtime) {
 		const mode = this.getMode(moduleGraph, runtime);
@@ -578,9 +789,10 @@ class HarmonyExportImportedSpecifierDependency extends HarmonyImportDependency {
 				return Dependency.EXPORTS_OBJECT_REFERENCED;
 
 			case "reexport-named-default": {
-				if (!mode.partialNamespaceExportInfo)
+				if (!mode.partialNamespaceExportInfo) {
 					return Dependency.EXPORTS_OBJECT_REFERENCED;
-				/** @type {ReferencedExports} */
+				}
+				/** @type {RawReferencedExports} */
 				const referencedExports = [];
 				processExportInfo(
 					runtime,
@@ -593,9 +805,10 @@ class HarmonyExportImportedSpecifierDependency extends HarmonyImportDependency {
 
 			case "reexport-namespace-object":
 			case "reexport-fake-namespace-object": {
-				if (!mode.partialNamespaceExportInfo)
+				if (!mode.partialNamespaceExportInfo) {
 					return Dependency.EXPORTS_OBJECT_REFERENCED;
-				/** @type {ReferencedExports} */
+				}
+				/** @type {RawReferencedExports} */
 				const referencedExports = [];
 				processExportInfo(
 					runtime,
@@ -611,7 +824,7 @@ class HarmonyExportImportedSpecifierDependency extends HarmonyImportDependency {
 				return Dependency.EXPORTS_OBJECT_REFERENCED;
 
 			case "normal-reexport": {
-				/** @type {ReferencedExports} */
+				/** @type {RawReferencedExports} */
 				const referencedExports = [];
 				for (const {
 					ids,
@@ -630,8 +843,9 @@ class HarmonyExportImportedSpecifierDependency extends HarmonyImportDependency {
 	}
 
 	/**
+	 * Discover active exports from other star exports.
 	 * @param {ModuleGraph} moduleGraph the module graph
-	 * @returns {{ names: Names, namesSlice: number, dependencyIndices: DependencyIndices, dependencyIndex: number } | undefined} exported names and their origin dependency
+	 * @returns {{ names: ExportInfoName[], namesSlice: number, dependencyIndices: DependencyIndices, dependencyIndex: number } | undefined} exported names and their origin dependency
 	 */
 	_discoverActiveExportsFromOtherStarExports(moduleGraph) {
 		if (!this.otherStarExports) return;
@@ -658,7 +872,8 @@ class HarmonyExportImportedSpecifierDependency extends HarmonyImportDependency {
 
 		const { names, dependencyIndices } = moduleGraph.cached(
 			determineExportAssignments,
-			this.otherStarExports,
+			/** @type {HarmonyExportImportedSpecifierDependency[]} */
+			(this.otherStarExports),
 			this
 		);
 
@@ -713,7 +928,7 @@ class HarmonyExportImportedSpecifierDependency extends HarmonyImportDependency {
 				return {
 					exports: Array.from(
 						/** @type {NormalReexportItem[]} */ (mode.items),
-						item => ({
+						(item) => ({
 							name: item.name,
 							from,
 							export: item.ids,
@@ -807,12 +1022,14 @@ class HarmonyExportImportedSpecifierDependency extends HarmonyImportDependency {
 	}
 
 	/**
+	 * Get effective export presence level.
 	 * @param {ModuleGraph} moduleGraph module graph
 	 * @returns {ExportPresenceMode} effective mode
 	 */
 	_getEffectiveExportPresenceLevel(moduleGraph) {
-		if (this.exportPresenceMode !== ExportPresenceModes.AUTO)
+		if (this.exportPresenceMode !== ExportPresenceModes.AUTO) {
 			return this.exportPresenceMode;
+		}
 		const module = /** @type {Module} */ (moduleGraph.getParentModule(this));
 		return /** @type {BuildMeta} */ (module.buildMeta).strictHarmonyModule
 			? ExportPresenceModes.ERROR
@@ -820,7 +1037,7 @@ class HarmonyExportImportedSpecifierDependency extends HarmonyImportDependency {
 	}
 
 	/**
-	 * Returns warnings
+	 * Returns warnings.
 	 * @param {ModuleGraph} moduleGraph module graph
 	 * @returns {WebpackError[] | null | undefined} warnings
 	 */
@@ -833,7 +1050,7 @@ class HarmonyExportImportedSpecifierDependency extends HarmonyImportDependency {
 	}
 
 	/**
-	 * Returns errors
+	 * Returns errors.
 	 * @param {ModuleGraph} moduleGraph module graph
 	 * @returns {WebpackError[] | null | undefined} errors
 	 */
@@ -846,6 +1063,7 @@ class HarmonyExportImportedSpecifierDependency extends HarmonyImportDependency {
 	}
 
 	/**
+	 * Returns errors.
 	 * @param {ModuleGraph} moduleGraph module graph
 	 * @returns {WebpackError[] | undefined} errors
 	 */
@@ -871,7 +1089,7 @@ class HarmonyExportImportedSpecifierDependency extends HarmonyImportDependency {
 				const importedModule = moduleGraph.getModule(this);
 				if (importedModule) {
 					const exportsInfo = moduleGraph.getExportsInfo(importedModule);
-					/** @type {Map<string, string[]>} */
+					/** @type {Map<string, ExportInfoName[]>} */
 					const conflicts = new Map();
 					for (const exportInfo of exportsInfo.orderedExports) {
 						if (exportInfo.provided !== true) continue;
@@ -884,7 +1102,7 @@ class HarmonyExportImportedSpecifierDependency extends HarmonyImportDependency {
 							this.allStarExports
 								? this.allStarExports.dependencies
 								: [
-										.../** @type {Iterable<HarmonyExportImportedSpecifierDependency>} */
+										.../** @type {ReadonlyArray<HarmonyExportImportedSpecifierDependency>} */
 										(this.otherStarExports),
 										this
 									]
@@ -920,7 +1138,7 @@ class HarmonyExportImportedSpecifierDependency extends HarmonyImportDependency {
 								}' contains conflicting star exports for the ${
 									exports.length > 1 ? "names" : "name"
 								} ${exports
-									.map(e => `'${e}'`)
+									.map((e) => `'${e}'`)
 									.join(", ")} with the previous requested module '${request}'`
 							)
 						);
@@ -932,37 +1150,41 @@ class HarmonyExportImportedSpecifierDependency extends HarmonyImportDependency {
 	}
 
 	/**
+	 * Serializes this instance into the provided serializer context.
 	 * @param {ObjectSerializerContext} context context
 	 */
 	serialize(context) {
-		const { write, setCircularReference } = context;
-
-		setCircularReference(this);
-		write(this.ids);
-		write(this.name);
-		write(this.activeExports);
-		write(this.otherStarExports);
-		write(this.exportPresenceMode);
-		write(this.allStarExports);
+		context.setCircularReference(this);
+		context
+			.write(this.ids)
+			.write(this.name)
+			.write(this.activeExports)
+			.write(this.otherStarExports)
+			.write(this.exportPresenceMode)
+			.write(this.allStarExports);
 
 		super.serialize(context);
 	}
 
 	/**
+	 * Restores this instance from the provided deserializer context.
 	 * @param {ObjectDeserializerContext} context context
 	 */
 	deserialize(context) {
-		const { read, setCircularReference } = context;
+		context.setCircularReference(this);
+		this.ids = context.read();
+		const c1 = context.rest;
+		this.name = c1.read();
+		const c2 = c1.rest;
+		this.activeExports = c2.read();
+		const c3 = c2.rest;
+		this.otherStarExports = c3.read();
+		const c4 = c3.rest;
+		this.exportPresenceMode = c4.read();
+		const c5 = c4.rest;
+		this.allStarExports = c5.read();
 
-		setCircularReference(this);
-		this.ids = read();
-		this.name = read();
-		this.activeExports = read();
-		this.otherStarExports = read();
-		this.exportPresenceMode = read();
-		this.allStarExports = read();
-
-		super.deserialize(context);
+		super.deserialize(c5.rest);
 	}
 }
 
@@ -971,12 +1193,11 @@ makeSerializable(
 	"webpack/lib/dependencies/HarmonyExportImportedSpecifierDependency"
 );
 
-module.exports = HarmonyExportImportedSpecifierDependency;
-
 HarmonyExportImportedSpecifierDependency.Template = class HarmonyExportImportedSpecifierDependencyTemplate extends (
 	HarmonyImportDependency.Template
 ) {
 	/**
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Dependency} dependency the dependency for which the template should be applied
 	 * @param {ReplaceSource} source the current replace source which can be modified
 	 * @param {DependencyTemplateContext} templateContext the context object
@@ -1011,6 +1232,7 @@ HarmonyExportImportedSpecifierDependency.Template = class HarmonyExportImportedS
 				mode,
 				templateContext.module,
 				moduleGraph,
+				templateContext.chunkGraph,
 				runtime,
 				templateContext.runtimeTemplate,
 				templateContext.runtimeRequirements
@@ -1019,11 +1241,13 @@ HarmonyExportImportedSpecifierDependency.Template = class HarmonyExportImportedS
 	}
 
 	/**
+	 * Add export fragments.
 	 * @param {InitFragment<GenerateContext>[]} initFragments target array for init fragments
 	 * @param {HarmonyExportImportedSpecifierDependency} dep dependency
 	 * @param {ExportMode} mode the export mode
 	 * @param {Module} module the current module
 	 * @param {ModuleGraph} moduleGraph the module graph
+	 * @param {ChunkGraph} chunkGraph the chunk graph
 	 * @param {RuntimeSpec} runtime the runtime
 	 * @param {RuntimeTemplate} runtimeTemplate the runtime template
 	 * @param {RuntimeRequirements} runtimeRequirements runtime requirements
@@ -1035,13 +1259,41 @@ HarmonyExportImportedSpecifierDependency.Template = class HarmonyExportImportedS
 		mode,
 		module,
 		moduleGraph,
+		chunkGraph,
 		runtime,
 		runtimeTemplate,
 		runtimeRequirements
 	) {
 		const importedModule = /** @type {Module} */ (moduleGraph.getModule(dep));
 		const importVar = dep.getImportVar(moduleGraph);
+		const isDeferred =
+			ImportPhaseUtils.isDefer(dep.phase) &&
+			!(/** @type {BuildMeta} */ (importedModule.buildMeta).async);
 
+		if (
+			(mode.type === "reexport-namespace-object" ||
+				mode.type === "reexport-fake-namespace-object") &&
+			isDeferred
+		) {
+			initFragments.push(
+				...this.getReexportDeferredNamespaceObjectFragments(
+					importedModule,
+					chunkGraph,
+					moduleGraph
+						.getExportsInfo(module)
+						.getUsedName(mode.name ? mode.name : [], runtime),
+					importVar,
+					importedModule.getExportsType(
+						moduleGraph,
+						module.buildMeta &&
+							/** @type {JavascriptModuleBuildMeta} */ (module.buildMeta)
+								.strictHarmonyModule
+					),
+					runtimeRequirements
+				)
+			);
+			return;
+		}
 		switch (mode.type) {
 			case "missing":
 			case "empty-star":
@@ -1140,7 +1392,12 @@ HarmonyExportImportedSpecifierDependency.Template = class HarmonyExportImportedS
 				);
 				break;
 
-			case "normal-reexport":
+			case "normal-reexport": {
+				// loop-invariants hoisted out of the per-item loop below (a barrel
+				// re-exporting N names otherwise repeats these lookups N times)
+				const connection = moduleGraph.getConnection(dep);
+				const selfExportsInfo = moduleGraph.getExportsInfo(module);
+				const importedExportsInfo = moduleGraph.getExportsInfo(importedModule);
 				for (const {
 					name,
 					ids,
@@ -1149,12 +1406,11 @@ HarmonyExportImportedSpecifierDependency.Template = class HarmonyExportImportedS
 				} of /** @type {NormalReexportItem[]} */ (mode.items)) {
 					if (hidden) continue;
 					if (checked) {
-						const connection = moduleGraph.getConnection(dep);
 						const key = `harmony reexport (checked) ${importVar} ${name}`;
 						const runtimeCondition = dep.weak
 							? false
 							: connection
-								? filterRuntime(runtime, r => connection.isTargetActive(r))
+								? filterRuntime(runtime, (r) => connection.isTargetActive(r))
 								: true;
 						initFragments.push(
 							new ConditionalInitFragment(
@@ -1168,7 +1424,7 @@ HarmonyExportImportedSpecifierDependency.Template = class HarmonyExportImportedS
 								moduleGraph.isAsync(importedModule)
 									? InitFragment.STAGE_ASYNC_HARMONY_IMPORTS
 									: InitFragment.STAGE_HARMONY_IMPORTS,
-								dep.sourceOrder,
+								/** @type {number} */ (dep.sourceOrder),
 								key,
 								runtimeCondition
 							)
@@ -1178,17 +1434,17 @@ HarmonyExportImportedSpecifierDependency.Template = class HarmonyExportImportedS
 							this.getReexportFragment(
 								module,
 								"reexport safe",
-								moduleGraph.getExportsInfo(module).getUsedName(name, runtime),
+								selfExportsInfo.getUsedName(name, runtime),
 								importVar,
-								moduleGraph
-									.getExportsInfo(importedModule)
-									.getUsedName(ids, runtime),
-								runtimeRequirements
+								importedExportsInfo.getUsedName(ids, runtime),
+								runtimeRequirements,
+								ids
 							)
 						);
 					}
 				}
 				break;
+			}
 
 			case "dynamic-reexport": {
 				const ignored = mode.hidden
@@ -1198,21 +1454,16 @@ HarmonyExportImportedSpecifierDependency.Template = class HarmonyExportImportedS
 							mode.hidden
 						)
 					: /** @type {ExportModeIgnored} */ (mode.ignored);
-				const modern =
-					runtimeTemplate.supportsConst() &&
-					runtimeTemplate.supportsArrowFunction();
 				let content =
 					"/* harmony reexport (unknown) */ var __WEBPACK_REEXPORT_OBJECT__ = {};\n" +
-					`/* harmony reexport (unknown) */ for(${
-						modern ? "const" : "var"
-					} __WEBPACK_IMPORT_KEY__ in ${importVar}) `;
+					`/* harmony reexport (unknown) */ for(${runtimeTemplate.renderConst()} __WEBPACK_IMPORT_KEY__ in ${importVar}) `;
 
 				// Filter out exports which are defined by other exports
 				// and filter out default export because it cannot be reexported with *
 				if (ignored.size > 1) {
-					content += `if(${JSON.stringify(
-						Array.from(ignored)
-					)}.indexOf(__WEBPACK_IMPORT_KEY__) < 0) `;
+					content += `if(${JSON.stringify([
+						...ignored
+					])}.indexOf(__WEBPACK_IMPORT_KEY__) < 0) `;
 				} else if (ignored.size === 1) {
 					content += `if(__WEBPACK_IMPORT_KEY__ !== ${JSON.stringify(
 						first(ignored)
@@ -1220,9 +1471,11 @@ HarmonyExportImportedSpecifierDependency.Template = class HarmonyExportImportedS
 				}
 
 				content += "__WEBPACK_REEXPORT_OBJECT__[__WEBPACK_IMPORT_KEY__] = ";
-				content += modern
-					? `() => ${importVar}[__WEBPACK_IMPORT_KEY__]`
-					: `function(key) { return ${importVar}[key]; }.bind(0, __WEBPACK_IMPORT_KEY__)`;
+				content +=
+					runtimeTemplate.supportsArrowFunction() &&
+					runtimeTemplate.supportsConst()
+						? `() => ${importVar}[__WEBPACK_IMPORT_KEY__]`
+						: `function(key) { return ${importVar}[key]; }.bind(0, __WEBPACK_IMPORT_KEY__)`;
 
 				runtimeRequirements.add(RuntimeGlobals.exports);
 				runtimeRequirements.add(RuntimeGlobals.definePropertyGetters);
@@ -1234,7 +1487,7 @@ HarmonyExportImportedSpecifierDependency.Template = class HarmonyExportImportedS
 						moduleGraph.isAsync(importedModule)
 							? InitFragment.STAGE_ASYNC_HARMONY_IMPORTS
 							: InitFragment.STAGE_HARMONY_IMPORTS,
-						dep.sourceOrder
+						/** @type {number} */ (dep.sourceOrder)
 					)
 				);
 				break;
@@ -1246,12 +1499,14 @@ HarmonyExportImportedSpecifierDependency.Template = class HarmonyExportImportedS
 	}
 
 	/**
+	 * Gets reexport fragment.
 	 * @param {Module} module the current module
 	 * @param {string} comment comment
 	 * @param {UsedName} key key
 	 * @param {string} name name
-	 * @param {string | string[] | null | false} valueKey value key
+	 * @param {UsedName | null} valueKey value key
 	 * @param {RuntimeRequirements} runtimeRequirements runtime requirements
+	 * @param {string[]=} ids original ids on the imported side (for inline-rendering comment)
 	 * @returns {HarmonyExportInitFragment} harmony export init fragment
 	 */
 	getReexportFragment(
@@ -1260,13 +1515,15 @@ HarmonyExportImportedSpecifierDependency.Template = class HarmonyExportImportedS
 		key,
 		name,
 		valueKey,
-		runtimeRequirements
+		runtimeRequirements,
+		ids
 	) {
-		const returnValue = this.getReturnValue(name, valueKey);
+		const returnValue = this.getReturnValue(name, valueKey, ids);
 
 		runtimeRequirements.add(RuntimeGlobals.exports);
 		runtimeRequirements.add(RuntimeGlobals.definePropertyGetters);
 
+		/** @type {ExportMap} */
 		const map = new Map();
 		map.set(key, `/* ${comment} */ ${returnValue}`);
 
@@ -1274,8 +1531,9 @@ HarmonyExportImportedSpecifierDependency.Template = class HarmonyExportImportedS
 	}
 
 	/**
+	 * Gets reexport fake namespace object fragments.
 	 * @param {Module} module module
-	 * @param {string | string[] | false} key key
+	 * @param {UsedName} key key
 	 * @param {string} name name
 	 * @param {number} fakeType fake type
 	 * @param {RuntimeRequirements} runtimeRequirements runtime requirements
@@ -1292,6 +1550,7 @@ HarmonyExportImportedSpecifierDependency.Template = class HarmonyExportImportedS
 		runtimeRequirements.add(RuntimeGlobals.definePropertyGetters);
 		runtimeRequirements.add(RuntimeGlobals.createFakeNamespaceObject);
 
+		/** @type {ExportMap} */
 		const map = new Map();
 		map.set(
 			key,
@@ -1312,6 +1571,49 @@ HarmonyExportImportedSpecifierDependency.Template = class HarmonyExportImportedS
 	}
 
 	/**
+	 * Gets reexport deferred namespace object fragments.
+	 * @param {Module} module module
+	 * @param {ChunkGraph} chunkGraph chunkGraph
+	 * @param {UsedName} key key
+	 * @param {string} name name
+	 * @param {ExportsType} exportsType exportsType
+	 * @param {RuntimeRequirements} runtimeRequirements runtimeRequirements
+	 * @returns {InitFragment<GenerateContext>[]} fragments
+	 */
+	getReexportDeferredNamespaceObjectFragments(
+		module,
+		chunkGraph,
+		key,
+		name,
+		exportsType,
+		runtimeRequirements
+	) {
+		runtimeRequirements.add(RuntimeGlobals.exports);
+		runtimeRequirements.add(RuntimeGlobals.definePropertyGetters);
+		runtimeRequirements.add(RuntimeGlobals.makeDeferredNamespaceObject);
+
+		/** @type {ExportMap} */
+		const map = new Map();
+		const moduleId = JSON.stringify(chunkGraph.getModuleId(module));
+		const mode = getMakeDeferredNamespaceModeFromExportsType(exportsType);
+		map.set(
+			key,
+			`/* reexport deferred namespace object */ ${name}_deferred_namespace_cache || (${name}_deferred_namespace_cache = ${RuntimeGlobals.makeDeferredNamespaceObject}(${moduleId}, ${mode}))`
+		);
+
+		return [
+			new InitFragment(
+				`var ${name}_deferred_namespace_cache;\n`,
+				InitFragment.STAGE_CONSTANTS,
+				-1,
+				`${name}_deferred_namespace_cache`
+			),
+			new HarmonyExportInitFragment(module.exportsArgument, map)
+		];
+	}
+
+	/**
+	 * Gets conditional reexport statement.
 	 * @param {Module} module module
 	 * @param {string} key key
 	 * @param {string} name name
@@ -1347,11 +1649,13 @@ HarmonyExportImportedSpecifierDependency.Template = class HarmonyExportImportedS
 	}
 
 	/**
+	 * Returns value.
 	 * @param {string} name name
-	 * @param {null | false | string | string[]} valueKey value key
+	 * @param {null | false | string | string[] | import("../optimize/InlineExports").InlinedUsedName} valueKey value key
+	 * @param {string[]=} ids original imported ids (for inline-rendering comment)
 	 * @returns {string | undefined} value
 	 */
-	getReturnValue(name, valueKey) {
+	getReturnValue(name, valueKey, ids) {
 		if (valueKey === null) {
 			return `${name}_default.a`;
 		}
@@ -1364,7 +1668,14 @@ HarmonyExportImportedSpecifierDependency.Template = class HarmonyExportImportedS
 			return "/* unused export */ undefined";
 		}
 
-		return `${name}${propertyAccess(valueKey)}`;
+		if (valueKey instanceof InlinedUsedName) {
+			// Re-export forwards the source export's inlined literal as its own runtime value
+			return valueKey.render(
+				Template.toNormalComment(`inlined export ${propertyAccess(ids || [])}`)
+			);
+		}
+
+		return `${name}${propertyAccess(Array.isArray(valueKey) ? valueKey : [valueKey])}`;
 	}
 };
 
@@ -1375,6 +1686,7 @@ class HarmonyStarExportsList {
 	}
 
 	/**
+	 * Processes the provided dep.
 	 * @param {HarmonyExportImportedSpecifierDependency} dep dependency
 	 * @returns {void}
 	 */
@@ -1383,11 +1695,12 @@ class HarmonyStarExportsList {
 	}
 
 	slice() {
-		return this.dependencies.slice();
+		return [...this.dependencies];
 	}
 
 	/**
-	 * @param {ObjectSerializerContext} context context
+	 * Serializes this instance into the provided serializer context.
+	 * @param {StarListSerializerContext} context context
 	 */
 	serialize({ write, setCircularReference }) {
 		setCircularReference(this);
@@ -1395,7 +1708,8 @@ class HarmonyStarExportsList {
 	}
 
 	/**
-	 * @param {ObjectDeserializerContext} context context
+	 * Restores this instance from the provided deserializer context.
+	 * @param {StarListDeserializerContext} context context
 	 */
 	deserialize({ read, setCircularReference }) {
 		setCircularReference(this);
@@ -1409,4 +1723,6 @@ makeSerializable(
 	"HarmonyStarExportsList"
 );
 
+module.exports = HarmonyExportImportedSpecifierDependency;
 module.exports.HarmonyStarExportsList = HarmonyStarExportsList;
+module.exports.idsSymbol = idsSymbol;

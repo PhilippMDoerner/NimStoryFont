@@ -7,62 +7,69 @@
 
 const Parser = require("../Parser");
 const JsonExportsDependency = require("../dependencies/JsonExportsDependency");
-const memoize = require("../util/memoize");
+const parseJson = require("../util/parseJson");
 const JsonData = require("./JsonData");
 
-/** @typedef {import("../../declarations/plugins/JsonModulesPluginParser").JsonModulesPluginParserOptions} JsonModulesPluginParserOptions */
-/** @typedef {import("../Module").BuildInfo} BuildInfo */
+/** @typedef {import("../../declarations/WebpackOptions").JsonParserOptions} JsonParserOptions */
+/** @typedef {import("./JsonModule").JsonModuleBuildInfo} JsonModuleBuildInfo */
 /** @typedef {import("../Module").BuildMeta} BuildMeta */
 /** @typedef {import("../Parser").ParserState} ParserState */
 /** @typedef {import("../Parser").PreparsedAst} PreparsedAst */
-/** @typedef {import("./JsonModulesPlugin").JsonValue} JsonValue */
+/** @typedef {import("../util/fs").JsonValue} JsonValue */
 
-const getParseJson = memoize(() => require("json-parse-even-better-errors"));
+/** @typedef {(input: string) => Buffer | JsonValue} ParseFn */
+
+/**
+ * Defines the function returning type used by this module.
+ * @template T
+ * @typedef {import("../util/memoize").FunctionReturning<T>} FunctionReturning
+ */
 
 class JsonParser extends Parser {
 	/**
-	 * @param {JsonModulesPluginParserOptions} options parser options
+	 * Creates an instance of JsonParser.
+	 * @param {JsonParserOptions} options parser options
 	 */
-	constructor(options) {
+	constructor(options = {}) {
 		super();
-		this.options = options || {};
+		/** @type {JsonParserOptions} */
+		this.options = options;
 	}
 
 	/**
+	 * Parses the provided source and updates the parser state.
 	 * @param {string | Buffer | PreparsedAst} source the source to parse
 	 * @param {ParserState} state the parser state
 	 * @returns {ParserState} the parser state
 	 */
 	parse(source, state) {
 		if (Buffer.isBuffer(source)) {
-			source = source.toString("utf-8");
+			source = source.toString("utf8");
 		}
 
-		/** @type {NonNullable<JsonModulesPluginParserOptions["parse"]>} */
 		const parseFn =
-			typeof this.options.parse === "function"
-				? this.options.parse
-				: getParseJson();
+			typeof this.options.parse === "function" ? this.options.parse : parseJson;
 		/** @type {Buffer | JsonValue | undefined} */
-		let data;
-		try {
-			data =
-				typeof source === "object"
-					? source
-					: parseFn(source[0] === "\uFEFF" ? source.slice(1) : source);
-		} catch (err) {
-			throw new Error(
-				`Cannot parse JSON: ${/** @type {Error} */ (err).message}`
-			);
-		}
+		const data =
+			typeof source === "object"
+				? source
+				: parseFn(source[0] === "\uFEFF" ? source.slice(1) : source);
 		const jsonData = new JsonData(/** @type {Buffer | JsonValue} */ (data));
-		const buildInfo = /** @type {BuildInfo} */ (state.module.buildInfo);
+		const buildInfo = /** @type {JsonModuleBuildInfo} */ (
+			state.module.buildInfo
+		);
 		buildInfo.jsonData = jsonData;
 		buildInfo.strict = true;
 		const buildMeta = /** @type {BuildMeta} */ (state.module.buildMeta);
 		buildMeta.exportsType = "default";
 		buildMeta.defaultObject =
-			typeof data === "object" ? "redirect-warn" : false;
+			typeof data === "object"
+				? this.options.namedExports === false
+					? false
+					: this.options.namedExports === true
+						? "redirect"
+						: "redirect-warn"
+				: false;
 		state.module.addDependency(
 			new JsonExportsDependency(
 				jsonData,

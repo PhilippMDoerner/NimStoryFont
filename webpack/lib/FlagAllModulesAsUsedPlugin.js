@@ -14,21 +14,23 @@ const { getEntryRuntime, mergeRuntimeOwned } = require("./util/runtime");
 const PLUGIN_NAME = "FlagAllModulesAsUsedPlugin";
 class FlagAllModulesAsUsedPlugin {
 	/**
+	 * Creates an instance of FlagAllModulesAsUsedPlugin.
 	 * @param {string} explanation explanation
 	 */
 	constructor(explanation) {
+		/** @type {string} */
 		this.explanation = explanation;
 	}
 
 	/**
-	 * Apply the plugin
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Compiler} compiler the compiler instance
 	 * @returns {void}
 	 */
 	apply(compiler) {
-		compiler.hooks.compilation.tap(PLUGIN_NAME, compilation => {
+		compiler.hooks.compilation.tap(PLUGIN_NAME, (compilation) => {
 			const moduleGraph = compilation.moduleGraph;
-			compilation.hooks.optimizeDependencies.tap(PLUGIN_NAME, modules => {
+			compilation.hooks.optimizeDependencies.tap(PLUGIN_NAME, (modules) => {
 				/** @type {RuntimeSpec} */
 				let runtime;
 				for (const [name, { options }] of compilation.entries) {
@@ -41,11 +43,6 @@ class FlagAllModulesAsUsedPlugin {
 					const exportsInfo = moduleGraph.getExportsInfo(module);
 					exportsInfo.setUsedInUnknownWay(runtime);
 					moduleGraph.addExtraReason(module, this.explanation);
-					if (module.factoryMeta === undefined) {
-						module.factoryMeta = {};
-					}
-					/** @type {FactoryMeta} */
-					(module.factoryMeta).sideEffectFree = false;
 				}
 			});
 		});

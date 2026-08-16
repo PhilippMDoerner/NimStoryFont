@@ -21,7 +21,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getTestEntrypoints = exports.findTests = exports.assertCompatibleAngularVersion = exports.getSupportedBrowsers = exports.generateBuildStatsTable = exports.augmentAppWithServiceWorker = exports.purgeStaleBuildCache = exports.createTranslationLoader = exports.loadProxyConfiguration = exports.InlineCriticalCssProcessor = exports.IndexHtmlGenerator = exports.loadTranslations = exports.createI18nOptions = exports.deleteOutputDir = exports.checkPort = exports.JavaScriptTransformer = exports.createJitResourceTransformer = exports.SourceFileCache = exports.SassWorkerImplementation = exports.transformSupportedBrowsersToTargets = exports.emitFilesToDisk = exports.executeKarmaInternal = exports.serveWithVite = exports.ResultKind = exports.buildApplicationInternal = void 0;
+exports.loadPostcssConfiguration = exports.generateSearchDirectories = exports.findTailwindConfiguration = exports.getTestEntrypoints = exports.findTests = exports.assertCompatibleAngularVersion = exports.getSupportedBrowsers = exports.generateBuildStatsTable = exports.augmentAppWithServiceWorker = exports.purgeStaleBuildCache = exports.createTranslationLoader = exports.loadProxyConfiguration = exports.InlineCriticalCssProcessor = exports.IndexHtmlGenerator = exports.loadTranslations = exports.createI18nOptions = exports.deleteOutputDir = exports.checkPort = exports.ComponentStylesheetBundler = exports.createAngularCompilation = exports.DiagnosticModes = exports.JavaScriptTransformer = exports.createJitResourceTransformer = exports.Cache = exports.SourceFileCache = exports.SassWorkerImplementation = exports.transformSupportedBrowsersToTargets = exports.emitFilesToDisk = exports.normalizeDevServerOptions = exports.serveWithVite = exports.ResultKind = exports.buildApplicationInternal = void 0;
 exports.createCompilerPlugin = createCompilerPlugin;
 /**
  * @fileoverview
@@ -30,6 +30,7 @@ exports.createCompilerPlugin = createCompilerPlugin;
  * their existence may change in any future version.
  */
 const compilation_1 = require("./tools/angular/compilation");
+Object.defineProperty(exports, "createAngularCompilation", { enumerable: true, get: function () { return compilation_1.createAngularCompilation; } });
 const compiler_plugin_1 = require("./tools/esbuild/angular/compiler-plugin");
 const component_stylesheets_1 = require("./tools/esbuild/angular/component-stylesheets");
 // Builders
@@ -37,10 +38,10 @@ var application_1 = require("./builders/application");
 Object.defineProperty(exports, "buildApplicationInternal", { enumerable: true, get: function () { return application_1.buildApplicationInternal; } });
 var results_1 = require("./builders/application/results");
 Object.defineProperty(exports, "ResultKind", { enumerable: true, get: function () { return results_1.ResultKind; } });
-var vite_server_1 = require("./builders/dev-server/vite-server");
-Object.defineProperty(exports, "serveWithVite", { enumerable: true, get: function () { return vite_server_1.serveWithVite; } });
-var application_builder_1 = require("./builders/karma/application_builder");
-Object.defineProperty(exports, "executeKarmaInternal", { enumerable: true, get: function () { return application_builder_1.execute; } });
+var vite_1 = require("./builders/dev-server/vite");
+Object.defineProperty(exports, "serveWithVite", { enumerable: true, get: function () { return vite_1.serveWithVite; } });
+var options_1 = require("./builders/dev-server/options");
+Object.defineProperty(exports, "normalizeDevServerOptions", { enumerable: true, get: function () { return options_1.normalizeOptions; } });
 // Tools
 __exportStar(require("./tools/babel/plugins"), exports);
 var utils_1 = require("./tools/esbuild/utils");
@@ -51,6 +52,8 @@ var sass_service_1 = require("./tools/sass/sass-service");
 Object.defineProperty(exports, "SassWorkerImplementation", { enumerable: true, get: function () { return sass_service_1.SassWorkerImplementation; } });
 var source_file_cache_1 = require("./tools/esbuild/angular/source-file-cache");
 Object.defineProperty(exports, "SourceFileCache", { enumerable: true, get: function () { return source_file_cache_1.SourceFileCache; } });
+var cache_1 = require("./tools/esbuild/cache");
+Object.defineProperty(exports, "Cache", { enumerable: true, get: function () { return cache_1.Cache; } });
 var jit_resource_transformer_1 = require("./tools/angular/transformers/jit-resource-transformer");
 Object.defineProperty(exports, "createJitResourceTransformer", { enumerable: true, get: function () { return jit_resource_transformer_1.createJitResourceTransformer; } });
 var javascript_transformer_1 = require("./tools/esbuild/javascript-transformer");
@@ -60,6 +63,10 @@ function createCompilerPlugin(pluginOptions, styleOptions) {
         ? new compilation_1.NoopCompilation()
         : () => (0, compilation_1.createAngularCompilation)(!!pluginOptions.jit, !!pluginOptions.browserOnlyBuild), new component_stylesheets_1.ComponentStylesheetBundler(styleOptions, styleOptions.inlineStyleLanguage, pluginOptions.incremental));
 }
+var compilation_2 = require("./tools/angular/compilation");
+Object.defineProperty(exports, "DiagnosticModes", { enumerable: true, get: function () { return compilation_2.DiagnosticModes; } });
+var component_stylesheets_2 = require("./tools/esbuild/angular/component-stylesheets");
+Object.defineProperty(exports, "ComponentStylesheetBundler", { enumerable: true, get: function () { return component_stylesheets_2.ComponentStylesheetBundler; } });
 // Utilities
 __exportStar(require("./utils/bundle-calculator"), exports);
 var check_port_1 = require("./utils/check-port");
@@ -90,3 +97,8 @@ Object.defineProperty(exports, "assertCompatibleAngularVersion", { enumerable: t
 var find_tests_1 = require("./builders/karma/find-tests");
 Object.defineProperty(exports, "findTests", { enumerable: true, get: function () { return find_tests_1.findTests; } });
 Object.defineProperty(exports, "getTestEntrypoints", { enumerable: true, get: function () { return find_tests_1.getTestEntrypoints; } });
+var postcss_configuration_1 = require("./utils/postcss-configuration");
+Object.defineProperty(exports, "findTailwindConfiguration", { enumerable: true, get: function () { return postcss_configuration_1.findTailwindConfiguration; } });
+Object.defineProperty(exports, "generateSearchDirectories", { enumerable: true, get: function () { return postcss_configuration_1.generateSearchDirectories; } });
+Object.defineProperty(exports, "loadPostcssConfiguration", { enumerable: true, get: function () { return postcss_configuration_1.loadPostcssConfiguration; } });
+//# sourceMappingURL=private.js.map

@@ -50,13 +50,12 @@
                   [kind]="'SECONDARY'"
                   [icon]="'pencil'"
                   [size]="'SMALL'"
-                  [tabIndex]="context.isInFocus ? 0 : -1"
+                  [tabIndex]="-1"
                   [attr.aria-label]="
                     'Edit shortcut for action \'' +
                     context.data.actionLabel +
                     '\''
                   "
-                  (clicked)="$event.stopPropagation()"
                 ></button>
               </div>
             </div>

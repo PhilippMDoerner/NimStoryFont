@@ -13,39 +13,60 @@ const ArrayQueue = require("./util/ArrayQueue");
 const TupleQueue = require("./util/TupleQueue");
 const { getEntryRuntime, mergeRuntimeOwned } = require("./util/runtime");
 
-/** @typedef {import("./Chunk")} Chunk */
-/** @typedef {import("./ChunkGroup")} ChunkGroup */
 /** @typedef {import("./Compiler")} Compiler */
 /** @typedef {import("./DependenciesBlock")} DependenciesBlock */
 /** @typedef {import("./Dependency").ReferencedExport} ReferencedExport */
+/** @typedef {import("./Dependency").ReferencedExports} ReferencedExports */
 /** @typedef {import("./ExportsInfo")} ExportsInfo */
 /** @typedef {import("./Module")} Module */
 /** @typedef {import("./util/runtime").RuntimeSpec} RuntimeSpec */
 
-const { NO_EXPORTS_REFERENCED, EXPORTS_OBJECT_REFERENCED } = Dependency;
+const {
+	NO_EXPORTS_REFERENCED,
+	EXPORTS_OBJECT_REFERENCED,
+	EXPORTS_OBJECT_REFERENCED_MANGLEABLE
+} = Dependency;
 
 const PLUGIN_NAME = "FlagDependencyUsagePlugin";
 const PLUGIN_LOGGER_NAME = `webpack.${PLUGIN_NAME}`;
 
+// Hoisted stateless predicates for setUsedConditionally on the innermost
+// used-export loop, so they aren't re-allocated per export.
+/**
+ * @param {import("./ExportsInfo").UsageStateType} used usage state
+ * @returns {boolean} whether unused
+ */
+const IS_UNUSED = (used) => used === UsageState.Unused;
+/**
+ * @param {import("./ExportsInfo").UsageStateType} used usage state
+ * @returns {boolean} whether not used
+ */
+const IS_NOT_USED = (used) => used !== UsageState.Used;
+
 class FlagDependencyUsagePlugin {
 	/**
+	 * Creates an instance of FlagDependencyUsagePlugin.
 	 * @param {boolean} global do a global analysis instead of per runtime
+	 * @param {boolean=} mangleEscapingNamespaces keep exports mangleable when a module's namespace object escapes
 	 */
-	constructor(global) {
+	constructor(global, mangleEscapingNamespaces = false) {
+		/** @type {boolean} */
 		this.global = global;
+		/** @type {boolean} */
+		this.mangleEscapingNamespaces = mangleEscapingNamespaces;
 	}
 
 	/**
-	 * Apply the plugin
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Compiler} compiler the compiler instance
 	 * @returns {void}
 	 */
 	apply(compiler) {
-		compiler.hooks.compilation.tap(PLUGIN_NAME, compilation => {
+		compiler.hooks.compilation.tap(PLUGIN_NAME, (compilation) => {
 			const moduleGraph = compilation.moduleGraph;
 			compilation.hooks.optimizeDependencies.tap(
 				{ name: PLUGIN_NAME, stage: STAGE_DEFAULT },
-				modules => {
+				(modules) => {
 					if (compilation.moduleMemCaches) {
 						throw new Error(
 							"optimization.usedExports can't be used with cacheUnaffected as export usage is a global effect"
@@ -60,8 +81,9 @@ class FlagDependencyUsagePlugin {
 					const queue = new TupleQueue();
 
 					/**
+					 * Process referenced module.
 					 * @param {Module} module module to process
-					 * @param {(string[] | ReferencedExport)[]} usedExports list of used exports
+					 * @param {ReferencedExports} usedExports list of used exports
 					 * @param {RuntimeSpec} runtime part of which runtime
 					 * @param {boolean} forceSideEffects always apply side effects
 					 * @returns {void}
@@ -73,6 +95,42 @@ class FlagDependencyUsagePlugin {
 						forceSideEffects
 					) => {
 						const exportsInfo = moduleGraph.getExportsInfo(module);
+						if (usedExports === EXPORTS_OBJECT_REFERENCED_MANGLEABLE) {
+							// The whole namespace object escapes via a reference that codegen
+							// can materialize as a decoupled namespace object. When all exports
+							// are statically known we keep them mangleable instead of marking
+							// them used-in-unknown-way.
+							if (
+								this.mangleEscapingNamespaces &&
+								module.buildMeta &&
+								module.buildMeta.exportsType === "namespace" &&
+								exportsInfo.otherExportsInfo.provided === false
+							) {
+								let changed = exportsInfo.setAllKnownExportsUsed(runtime);
+								// The whole namespace object is observed as a value, so the
+								// module must stay a real ES module namespace at runtime
+								// (keep __esModule / the namespace object, i.e. `r()`).
+								if (
+									exportsInfo
+										.getExportInfo("__esModule")
+										.setUsed(UsageState.Used, runtime)
+								) {
+									changed = true;
+								}
+								// Exports must keep a real binding (not be inlined) so member
+								// access on the namespace has ES namespace semantics, e.g.
+								// `delete ns.x` hits a non-configurable property and throws.
+								for (const exportInfo of exportsInfo.ownedExports) {
+									exportInfo.canInlineUse = false;
+								}
+								if (changed) {
+									queue.enqueue(module, runtime);
+								}
+							} else if (exportsInfo.setUsedInUnknownWay(runtime)) {
+								queue.enqueue(module, runtime);
+							}
+							return;
+						}
 						if (usedExports.length > 0) {
 							if (!module.buildMeta || !module.buildMeta.exportsType) {
 								if (exportsInfo.setUsedWithoutInfo(runtime)) {
@@ -81,13 +139,16 @@ class FlagDependencyUsagePlugin {
 								return;
 							}
 							for (const usedExportInfo of usedExports) {
+								/** @type {string[]} */
 								let usedExport;
 								let canMangle = true;
+								let canInline = true;
 								if (Array.isArray(usedExportInfo)) {
 									usedExport = usedExportInfo;
 								} else {
 									usedExport = usedExportInfo.name;
 									canMangle = usedExportInfo.canMangle !== false;
+									canInline = usedExportInfo.canInline !== false;
 								}
 								if (usedExport.length === 0) {
 									if (exportsInfo.setUsedInUnknownWay(runtime)) {
@@ -102,13 +163,19 @@ class FlagDependencyUsagePlugin {
 										if (canMangle === false) {
 											exportInfo.canMangleUse = false;
 										}
+
+										if (exportInfo.canInlineUse === undefined) {
+											exportInfo.canInlineUse = canInline;
+										} else if (!canInline) {
+											exportInfo.canInlineUse = false;
+										}
 										const lastOne = i === usedExport.length - 1;
 										if (!lastOne) {
 											const nestedInfo = exportInfo.getNestedExportsInfo();
 											if (nestedInfo) {
 												if (
 													exportInfo.setUsedConditionally(
-														used => used === UsageState.Unused,
+														IS_UNUSED,
 														UsageState.OnlyPropertiesUsed,
 														runtime
 													)
@@ -127,7 +194,7 @@ class FlagDependencyUsagePlugin {
 										}
 										if (
 											exportInfo.setUsedConditionally(
-												v => v !== UsageState.Used,
+												IS_NOT_USED,
 												UsageState.Used,
 												runtime
 											)
@@ -162,14 +229,22 @@ class FlagDependencyUsagePlugin {
 					};
 
 					/**
+					 * Processes the provided module.
 					 * @param {DependenciesBlock} module the module
 					 * @param {RuntimeSpec} runtime part of which runtime
 					 * @param {boolean} forceSideEffects always apply side effects
 					 * @returns {void}
 					 */
 					const processModule = (module, runtime, forceSideEffects) => {
-						/** @type {Map<Module, (string[] | ReferencedExport)[] | Map<string, string[] | ReferencedExport>>} */
+						/** @typedef {Map<string, string[] | ReferencedExport>} ExportMaps */
+						/** @type {Map<Module, ReferencedExports | ExportMaps>} */
 						const map = new Map();
+						// Modules whose whole namespace object escapes in a mangleable way.
+						// Tracked separately so specific member references are still merged
+						// (and marked used) instead of being dropped by the escape marker.
+						// Lazily allocated — usually empty.
+						/** @type {Set<Module> | undefined} */
+						let mangleableEscapeModules;
 
 						/** @type {ArrayQueue<DependenciesBlock>} */
 						const queue = new ArrayQueue();
@@ -178,14 +253,12 @@ class FlagDependencyUsagePlugin {
 							const block = queue.dequeue();
 							if (block === undefined) break;
 							for (const b of block.blocks) {
-								if (
-									!this.global &&
-									b.groupOptions &&
-									b.groupOptions.entryOptions
-								) {
+								if (b.groupOptions && b.groupOptions.entryOptions) {
 									processModule(
 										b,
-										b.groupOptions.entryOptions.runtime || undefined,
+										this.global
+											? undefined
+											: b.groupOptions.entryOptions.runtime || undefined,
 										true
 									);
 								} else {
@@ -210,10 +283,32 @@ class FlagDependencyUsagePlugin {
 								}
 								const referencedExports =
 									compilation.getDependencyReferencedExports(dep, runtime);
+								// The non-mangleable whole-object reference is the most
+								// conservative result and always wins.
+								if (referencedExports === EXPORTS_OBJECT_REFERENCED) {
+									map.set(module, EXPORTS_OBJECT_REFERENCED);
+									if (mangleableEscapeModules) {
+										mangleableEscapeModules.delete(module);
+									}
+									continue;
+								}
+								// A mangleable whole-object escape keeps the module's exports
+								// mangleable (applied after the merge). Unlike the conservative
+								// marker it must not drop specific member references: those still
+								// need their own (possibly non-existent) export marked used so
+								// they render as a qualified access, not a bare `undefined`.
+								if (
+									referencedExports === EXPORTS_OBJECT_REFERENCED_MANGLEABLE
+								) {
+									if (mangleableEscapeModules === undefined) {
+										mangleableEscapeModules = new Set();
+									}
+									mangleableEscapeModules.add(module);
+									continue;
+								}
 								if (
 									oldReferencedExports === undefined ||
-									oldReferencedExports === NO_EXPORTS_REFERENCED ||
-									referencedExports === EXPORTS_OBJECT_REFERENCED
+									oldReferencedExports === NO_EXPORTS_REFERENCED
 								) {
 									map.set(module, referencedExports);
 								} else if (
@@ -222,6 +317,7 @@ class FlagDependencyUsagePlugin {
 								) {
 									continue;
 								} else {
+									/** @type {undefined | ExportMaps} */
 									let exportsMap;
 									if (Array.isArray(oldReferencedExports)) {
 										exportsMap = new Map();
@@ -254,7 +350,8 @@ class FlagDependencyUsagePlugin {
 											} else {
 												exportsMap.set(key, {
 													name: item.name,
-													canMangle: item.canMangle && oldItem.canMangle
+													canMangle: item.canMangle && oldItem.canMangle,
+													canInline: item.canInline && oldItem.canInline
 												});
 											}
 										}
@@ -274,7 +371,17 @@ class FlagDependencyUsagePlugin {
 							} else {
 								processReferencedModule(
 									module,
-									Array.from(referencedExports.values()),
+									[...referencedExports.values()],
+									runtime,
+									forceSideEffects
+								);
+							}
+						}
+						if (mangleableEscapeModules) {
+							for (const module of mangleableEscapeModules) {
+								processReferencedModule(
+									module,
+									EXPORTS_OBJECT_REFERENCED_MANGLEABLE,
 									runtime,
 									forceSideEffects
 								);
@@ -293,6 +400,7 @@ class FlagDependencyUsagePlugin {
 					logger.time("trace exports usage in graph");
 
 					/**
+					 * Process entry dependency.
 					 * @param {Dependency} dep dependency
 					 * @param {RuntimeSpec} runtime runtime
 					 */

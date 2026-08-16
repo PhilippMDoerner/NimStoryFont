@@ -72,7 +72,7 @@ class TestProjectHost extends node_1.NodeJsSyncHost {
         Object.keys(files).forEach((fileName) => {
             let content = files[fileName];
             if (typeof content == 'string') {
-                content = core_1.virtualFs.stringToFileBuffer(content);
+                content = new TextEncoder().encode(content).buffer;
             }
             else if (content instanceof Buffer) {
                 content = content.buffer.slice(content.byteOffset, content.byteOffset + content.byteLength);
@@ -81,12 +81,12 @@ class TestProjectHost extends node_1.NodeJsSyncHost {
         });
     }
     replaceInFile(path, match, replacement) {
-        const content = core_1.virtualFs.fileBufferToString(this.scopedSync().read((0, core_1.normalize)(path)));
-        this.scopedSync().write((0, core_1.normalize)(path), core_1.virtualFs.stringToFileBuffer(content.replace(match, replacement)));
+        const content = new TextDecoder().decode(this.scopedSync().read((0, core_1.normalize)(path)));
+        this.scopedSync().write((0, core_1.normalize)(path), new TextEncoder().encode(content.replace(match, replacement)).buffer);
     }
     appendToFile(path, str) {
-        const content = core_1.virtualFs.fileBufferToString(this.scopedSync().read((0, core_1.normalize)(path)));
-        this.scopedSync().write((0, core_1.normalize)(path), core_1.virtualFs.stringToFileBuffer(content.concat(str)));
+        const content = new TextDecoder().decode(this.scopedSync().read((0, core_1.normalize)(path)));
+        this.scopedSync().write((0, core_1.normalize)(path), new TextEncoder().encode(content.concat(str)).buffer);
     }
     fileMatchExists(dir, regex) {
         const [fileName] = this.scopedSync()
@@ -107,3 +107,4 @@ class TestProjectHost extends node_1.NodeJsSyncHost {
     }
 }
 exports.TestProjectHost = TestProjectHost;
+//# sourceMappingURL=test-project-host.js.map

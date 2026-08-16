@@ -35,7 +35,7 @@ export declare class IncrementalCompilation implements IncrementalBuild<ClassRec
     /**
      * Begin a fresh `IncrementalCompilation`.
      */
-    static fresh(program: ts.Program, versions: Map<AbsoluteFsPath, string> | null): IncrementalCompilation;
+    static fresh(versions: Map<AbsoluteFsPath, string> | null): IncrementalCompilation;
     static incremental(program: ts.Program, newVersions: Map<AbsoluteFsPath, string> | null, oldProgram: ts.Program, oldState: IncrementalState, modifiedResourceFiles: Set<AbsoluteFsPath> | null, perf: PerfRecorder): IncrementalCompilation;
     get state(): IncrementalState;
     get semanticDepGraphUpdater(): SemanticDepGraphUpdater;

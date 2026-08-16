@@ -5,7 +5,7 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.dev/license
  */
-import type ng from '@angular/compiler-cli';
+import type * as ng from '@angular/compiler-cli';
 import ts from 'typescript';
 /**
  * Analyzes one or more modified files for changes to determine if any

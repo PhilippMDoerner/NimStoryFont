@@ -186,3 +186,4 @@ class GenerateCommandModule extends schematics_command_module_1.SchematicsComman
     }
 }
 exports.default = GenerateCommandModule;
+//# sourceMappingURL=cli.js.map

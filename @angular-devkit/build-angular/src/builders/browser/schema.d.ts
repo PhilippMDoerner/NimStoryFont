@@ -12,7 +12,8 @@ export type Schema = {
      */
     aot?: boolean;
     /**
-     * List of static application assets.
+     * Define the assets to be copied to the output directory. These assets are copied as-is
+     * without any further processing or hashing.
      */
     assets?: AssetPattern[];
     /**
@@ -95,6 +96,12 @@ export type Schema = {
     optimization?: OptimizationUnion;
     /**
      * Define the output filename cache-busting hashing mode.
+     *
+     * - `none`: No hashing.
+     * - `all`: Hash for all output bundles.
+     * - `media`: Hash for all output media (e.g., images, fonts, etc. that are referenced in
+     * CSS files).
+     * - `bundles`: Hash for output of lazy and main bundles.
      */
     outputHashing?: OutputHashing;
     /**
@@ -300,7 +307,7 @@ export declare enum InlineStyleLanguage {
 /**
  * Translate the bundles in one or more locales.
  */
-export type Localize = string[] | boolean;
+export type Localize = [string, ...string[]] | boolean;
 /**
  * Enables optimization of the build output. Including minification of scripts and styles,
  * tree-shaking, dead-code elimination, inlining of critical CSS and fonts inlining. For
@@ -353,6 +360,12 @@ export type StylesClass = {
 };
 /**
  * Define the output filename cache-busting hashing mode.
+ *
+ * - `none`: No hashing.
+ * - `all`: Hash for all output bundles.
+ * - `media`: Hash for all output media (e.g., images, fonts, etc. that are referenced in
+ * CSS files).
+ * - `bundles`: Hash for output of lazy and main bundles.
  */
 export declare enum OutputHashing {
     All = "all",

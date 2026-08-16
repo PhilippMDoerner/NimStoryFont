@@ -4,16 +4,6 @@ The `@inquirer/core` package is the library enabling the creation of Inquirer pr
 
 It aims to implements a lightweight API similar to React hooks - but without JSX.
 
-# Special Thanks
-
-<div align="center" markdown="1">
-
-[![Graphite](https://github.com/user-attachments/assets/53db40ca-2254-481a-a094-6597f8716e29)](https://graphite.dev/?utm_source=npmjs&utm_medium=repo&utm_campaign=inquirerjs)<br>
-
-### [Graphite is the AI developer productivity platform helping teams on GitHub ship higher quality software, faster](https://graphite.dev/?utm_source=npmjs&utm_medium=repo&utm_campaign=inquirerjs)
-
-</div>
-
 # Installation
 
 <table>
@@ -258,6 +248,8 @@ Listening for keypress events inside an inquirer prompt is a very common pattern
 - `isDownKey()` - Note: this utility will handle vim and emacs keybindings (down, `j`, and `ctrl+n`)
 - `isNumberKey()` one of 1, 2, 3, 4, 5, 6, 7, 8, 9, 0
 
+Set `INQUIRER_KEYBINDINGS=vim`, `INQUIRER_KEYBINDINGS=emacs`, or `INQUIRER_KEYBINDINGS=vim,emacs` to enable alternative navigation keybindings globally. Prompt-level `theme.keybindings` values override the environment variable.
+
 ## Theming
 
 Theming utilities will allow you to expose customization of the prompt style. Inquirer also has a few standard theme values shared across all the official prompts.
@@ -315,6 +307,7 @@ type DefaultTheme = {
     interval: number;
     frames: string[];
   };
+  keybindings: readonly ('emacs' | 'vim')[];
   style: {
     answer: (text: string) => string;
     message: (text: string, status: 'idle' | 'done' | 'loading') => string;
@@ -341,7 +334,7 @@ You can refer to any `@inquirer/prompts` prompts for real examples:
 - [Expand Prompt](https://github.com/SBoudrias/Inquirer.js/blob/main/packages/expand/src/index.ts)
 
 ```ts
-import colors from 'yoctocolors';
+import { styleText } from 'node:util';
 import {
   createPrompt,
   useState,
@@ -371,12 +364,12 @@ const confirm = createPrompt<boolean, { message: string; default?: boolean }>(
     let formattedValue = value;
     let defaultValue = '';
     if (status === 'done') {
-      formattedValue = colors.cyan(value);
+      formattedValue = styleText('cyan', value);
     } else {
-      defaultValue = colors.dim(config.default === false ? ' (y/N)' : ' (Y/n)');
+      defaultValue = styleText('dim', config.default === false ? ' (y/N)' : ' (Y/n)');
     }
 
-    const message = colors.bold(config.message);
+    const message = styleText('bold', config.message);
     return `${prefix} ${message}${defaultValue} ${formattedValue}`;
   },
 );

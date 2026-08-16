@@ -1,1 +1,1 @@
-export declare const toBuf: (str: string) => Uint8Array;
+export * from '@jsonjoy.com/buffers/lib/toBuf';

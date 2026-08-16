@@ -6,7 +6,7 @@
  * found in the LICENSE file at https://angular.dev/license
  */
 import { BaseException } from '@angular-devkit/core';
-import MagicString from 'magic-string';
+import { MagicString } from 'magic-string';
 import { FileEntry, UpdateRecorder } from './interface';
 export declare class IndexOutOfBoundException extends BaseException {
     constructor(index: number, min: number, max?: number);

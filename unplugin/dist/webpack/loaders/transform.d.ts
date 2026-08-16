@@ -1,7 +1,6 @@
-import { LoaderContext } from 'webpack';
+import { LoaderContext } from "webpack";
 
-declare function transform(this: LoaderContext<{
-    unpluginName: string;
-}>, source: string, map: any): Promise<void>;
-
+//#region src/webpack/loaders/transform.d.ts
+declare function transform(this: LoaderContext<any>, source: string, map: any): Promise<void>;
+//#endregion
 export { transform as default };

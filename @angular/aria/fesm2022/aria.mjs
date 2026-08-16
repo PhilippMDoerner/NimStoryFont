@@ -1,0 +1,6 @@
+import { Version } from '@angular/core';
+
+const VERSION = new Version('22.1.1');
+
+export { VERSION };
+//# sourceMappingURL=aria.mjs.map

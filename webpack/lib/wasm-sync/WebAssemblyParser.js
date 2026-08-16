@@ -14,20 +14,20 @@ const WebAssemblyExportImportedDependency = require("../dependencies/WebAssembly
 const WebAssemblyImportDependency = require("../dependencies/WebAssemblyImportDependency");
 
 /** @typedef {import("@webassemblyjs/ast").ModuleImport} ModuleImport */
-/** @typedef {import("@webassemblyjs/ast").NumberLiteral} NumberLiteral */
-/** @typedef {import("../Module")} Module */
 /** @typedef {import("../Module").BuildInfo} BuildInfo */
 /** @typedef {import("../Module").BuildMeta} BuildMeta */
+/** @typedef {import("./SyncWasmModule").SyncWasmModuleBuildMeta} SyncWasmModuleBuildMeta */
 /** @typedef {import("../Parser").ParserState} ParserState */
 /** @typedef {import("../Parser").PreparsedAst} PreparsedAst */
 
 const JS_COMPAT_TYPES = new Set(["i32", "i64", "f32", "f64", "externref"]);
 
 /**
+ * Gets js incompatible type.
  * @param {t.Signature} signature the func signature
  * @returns {null | string} the type incompatible with js types
  */
-const getJsIncompatibleType = signature => {
+const getJsIncompatibleType = (signature) => {
 	for (const param of signature.params) {
 		if (!JS_COMPAT_TYPES.has(param.valtype)) {
 			return `${param.valtype} as parameter`;
@@ -40,11 +40,12 @@ const getJsIncompatibleType = signature => {
 };
 
 /**
- * TODO why are there two different Signature types?
+ * Same check for the other `@webassemblyjs` signature shape: imports carry the
+ * AST `Signature` node (above), the module context uses plain `FuncSignature`.
  * @param {t.FuncSignature} signature the func signature
  * @returns {null | string} the type incompatible with js types
  */
-const getJsIncompatibleTypeOfFuncSignature = signature => {
+const getJsIncompatibleTypeOfFuncSignature = (signature) => {
 	for (const param of signature.args) {
 		if (!JS_COMPAT_TYPES.has(param)) {
 			return `${param} as parameter`;
@@ -66,15 +67,7 @@ const decoderOpts = {
 
 class WebAssemblyParser extends Parser {
 	/**
-	 * @param {{}=} options parser options
-	 */
-	constructor(options) {
-		super();
-		this.hooks = Object.freeze({});
-		this.options = options;
-	}
-
-	/**
+	 * Parses the provided source and updates the parser state.
 	 * @param {string | Buffer | PreparsedAst} source the source to parse
 	 * @param {ParserState} state the parser state
 	 * @returns {ParserState} the parser state
@@ -99,11 +92,14 @@ class WebAssemblyParser extends Parser {
 		// extract imports and exports
 		/** @type {string[]} */
 		const exports = [];
-		const buildMeta = /** @type {BuildMeta} */ (state.module.buildMeta);
+		const buildMeta = /** @type {SyncWasmModuleBuildMeta} */ (
+			state.module.buildMeta
+		);
 		/** @type {Record<string, string> | undefined} */
 		let jsIncompatibleExports = (buildMeta.jsIncompatibleExports = undefined);
 
-		/** @type {(ModuleImport | null)[]} */
+		/** @typedef {ModuleImport | null} ImportNode */
+		/** @type {ImportNode[]} */
 		const importedGlobals = [];
 
 		t.traverse(module, {
@@ -122,7 +118,7 @@ class WebAssemblyParser extends Parser {
 					if (incompatibleType) {
 						if (jsIncompatibleExports === undefined) {
 							jsIncompatibleExports =
-								/** @type {BuildMeta} */
+								/** @type {SyncWasmModuleBuildMeta} */
 								(state.module.buildMeta).jsIncompatibleExports = {};
 						}
 						jsIncompatibleExports[node.name] = incompatibleType;
@@ -132,8 +128,7 @@ class WebAssemblyParser extends Parser {
 				exports.push(node.name);
 
 				if (node.descr && node.descr.exportType === "Global") {
-					const refNode =
-						importedGlobals[/** @type {NumberLiteral} */ (node.descr.id).value];
+					const refNode = importedGlobals[node.descr.id.value];
 					if (refNode) {
 						const dep = new WebAssemblyExportImportedDependency(
 							node.name,
@@ -151,6 +146,7 @@ class WebAssemblyParser extends Parser {
 			Global({ node }) {
 				const init = node.init[0];
 
+				/** @type {ImportNode} */
 				let importNode = null;
 
 				if (init.id === "get_global") {

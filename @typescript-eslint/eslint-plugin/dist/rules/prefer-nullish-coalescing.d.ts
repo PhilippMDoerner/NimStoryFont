@@ -4,17 +4,19 @@ export type Options = [
         allowRuleToRunWithoutStrictNullChecksIKnowWhatIAmDoing?: boolean;
         ignoreBooleanCoercion?: boolean;
         ignoreConditionalTests?: boolean;
+        ignoreIfStatements?: boolean;
         ignoreMixedLogicalExpressions?: boolean;
-        ignorePrimitives?: {
+        ignorePrimitives?: true | {
             bigint?: boolean;
             boolean?: boolean;
             number?: boolean;
             string?: boolean;
-        } | true;
+        };
         ignoreTernaryTests?: boolean;
     }
 ];
-export type MessageIds = 'noStrictNullCheck' | 'preferNullishOverOr' | 'preferNullishOverTernary' | 'suggestNullish';
-declare const _default: TSESLint.RuleModule<MessageIds, Options, import("../../rules").ESLintPluginDocs, TSESLint.RuleListener>;
+export type MessageIds = 'noStrictNullCheck' | 'preferNullishOverAssignment' | 'preferNullishOverOr' | 'preferNullishOverTernary' | 'suggestNullish';
+declare const _default: TSESLint.RuleModule<MessageIds, Options, import("../../rules").ESLintPluginDocs, TSESLint.RuleListener> & {
+    name: string;
+};
 export default _default;
-//# sourceMappingURL=prefer-nullish-coalescing.d.ts.map

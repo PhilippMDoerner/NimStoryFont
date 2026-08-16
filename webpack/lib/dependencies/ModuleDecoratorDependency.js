@@ -12,30 +12,33 @@ const makeSerializable = require("../util/makeSerializable");
 const NullDependency = require("./NullDependency");
 
 /** @typedef {import("webpack-sources").ReplaceSource} ReplaceSource */
-/** @typedef {import("../ChunkGraph")} ChunkGraph */
-/** @typedef {import("../Dependency").ReferencedExport} ReferencedExport */
+/** @typedef {import("../Dependency").ReferencedExports} ReferencedExports */
 /** @typedef {import("../Dependency").UpdateHashContext} UpdateHashContext */
 /** @typedef {import("../DependencyTemplate").DependencyTemplateContext} DependencyTemplateContext */
-/** @typedef {import("../DependencyTemplates")} DependencyTemplates */
 /** @typedef {import("../ModuleGraph")} ModuleGraph */
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext} ObjectDeserializerContext */
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext} ObjectSerializerContext */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext<[string, boolean]>} ObjectDeserializerContext */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext<[string, boolean]>} ObjectSerializerContext */
 /** @typedef {import("../util/Hash")} Hash */
 /** @typedef {import("../util/runtime").RuntimeSpec} RuntimeSpec */
 
 class ModuleDecoratorDependency extends NullDependency {
 	/**
+	 * Creates an instance of ModuleDecoratorDependency.
 	 * @param {string} decorator the decorator requirement
 	 * @param {boolean} allowExportsAccess allow to access exports from module
 	 */
 	constructor(decorator, allowExportsAccess) {
 		super();
+		/** @type {string} */
 		this.decorator = decorator;
+		/** @type {boolean} */
 		this.allowExportsAccess = allowExportsAccess;
+		/** @type {undefined | string} */
 		this._hashUpdate = undefined;
 	}
 
 	/**
+	 * Returns a display name for the type of dependency.
 	 * @returns {string} a display name for the type of dependency
 	 */
 	get type() {
@@ -47,6 +50,7 @@ class ModuleDecoratorDependency extends NullDependency {
 	}
 
 	/**
+	 * Returns an identifier to merge equal requests.
 	 * @returns {string | null} an identifier to merge equal requests
 	 */
 	getResourceIdentifier() {
@@ -57,7 +61,7 @@ class ModuleDecoratorDependency extends NullDependency {
 	 * Returns list of exports referenced by this dependency
 	 * @param {ModuleGraph} moduleGraph module graph
 	 * @param {RuntimeSpec} runtime the runtime for which the module is analysed
-	 * @returns {(string[] | ReferencedExport)[]} referenced exports
+	 * @returns {ReferencedExports} referenced exports
 	 */
 	getReferencedExports(moduleGraph, runtime) {
 		return this.allowExportsAccess
@@ -66,7 +70,7 @@ class ModuleDecoratorDependency extends NullDependency {
 	}
 
 	/**
-	 * Update the hash
+	 * Updates the hash with the data contributed by this instance.
 	 * @param {Hash} hash hash to be updated
 	 * @param {UpdateHashContext} context context
 	 * @returns {void}
@@ -79,23 +83,23 @@ class ModuleDecoratorDependency extends NullDependency {
 	}
 
 	/**
+	 * Serializes this instance into the provided serializer context.
 	 * @param {ObjectSerializerContext} context context
 	 */
 	serialize(context) {
-		const { write } = context;
-		write(this.decorator);
-		write(this.allowExportsAccess);
+		context.write(this.decorator).write(this.allowExportsAccess);
 		super.serialize(context);
 	}
 
 	/**
+	 * Restores this instance from the provided deserializer context.
 	 * @param {ObjectDeserializerContext} context context
 	 */
 	deserialize(context) {
-		const { read } = context;
-		this.decorator = read();
-		this.allowExportsAccess = read();
-		super.deserialize(context);
+		this.decorator = context.read();
+		const c1 = context.rest;
+		this.allowExportsAccess = c1.read();
+		super.deserialize(c1.rest);
 	}
 }
 
@@ -108,6 +112,7 @@ ModuleDecoratorDependency.Template = class ModuleDecoratorDependencyTemplate ext
 	NullDependency.Template
 ) {
 	/**
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Dependency} dependency the dependency for which the template should be applied
 	 * @param {ReplaceSource} source the current replace source which can be modified
 	 * @param {DependencyTemplateContext} templateContext the context object

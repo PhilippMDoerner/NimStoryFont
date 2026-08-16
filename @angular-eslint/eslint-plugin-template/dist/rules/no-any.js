@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RULE_NAME = void 0;
+exports.RULE_DOCS_EXTENSION = exports.RULE_NAME = void 0;
 const bundled_angular_compiler_1 = require("@angular-eslint/bundled-angular-compiler");
 const utils_1 = require("@angular-eslint/utils");
 const create_eslint_rule_1 = require("../utils/create-eslint-rule");
@@ -33,8 +33,8 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
             }
             if (!(
             // this.$any() is also valid usage of the native Angular $any()
-            (node.receiver.receiver instanceof bundled_angular_compiler_1.ThisReceiver ||
-                node.receiver.receiver instanceof bundled_angular_compiler_1.ImplicitReceiver))) {
+            node.receiver.receiver instanceof bundled_angular_compiler_1.ThisReceiver ||
+                node.receiver.receiver instanceof bundled_angular_compiler_1.ImplicitReceiver)) {
                 return false;
             }
             return true;
@@ -78,9 +78,9 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
                 }
                 reportAnyCall(node);
             },
-            KeyedRead(node) {
-                findAndReportAnyCalls(node);
-            },
         };
     },
 });
+exports.RULE_DOCS_EXTENSION = {
+    rationale: "The $any() type cast function in Angular templates disables TypeScript's type checking for an expression, removing all the benefits of static typing. This means typos, incorrect property access, and invalid method calls won't be caught until runtime. While $any() can be a quick fix for type errors, it's better to properly type your component properties or fix the underlying type issue. Overusing $any() makes templates less safe and can hide real bugs. If you're using $any() frequently, it often indicates that your component's types need improvement. Use $any() sparingly and only when you have a specific reason why TypeScript's type checking isn't applicable.",
+};

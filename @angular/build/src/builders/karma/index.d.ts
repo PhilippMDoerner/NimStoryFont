@@ -8,16 +8,13 @@
 import { type Builder, type BuilderContext, type BuilderOutput } from '@angular-devkit/architect';
 import type { ConfigOptions } from 'karma';
 import type { Schema as KarmaBuilderOptions } from './schema';
-export type KarmaConfigOptions = ConfigOptions & {
-    buildWebpack?: unknown;
-    configFile?: string;
-};
+export interface KarmaBuilderTransformsOptions {
+    karmaOptions?: (options: ConfigOptions) => ConfigOptions | Promise<ConfigOptions>;
+}
 /**
  * @experimental Direct usage of this function is considered experimental.
  */
-export declare function execute(options: KarmaBuilderOptions, context: BuilderContext, transforms?: {
-    karmaOptions?: (options: KarmaConfigOptions) => KarmaConfigOptions;
-}): AsyncIterable<BuilderOutput>;
+export declare function execute(options: KarmaBuilderOptions, context: BuilderContext, transforms?: KarmaBuilderTransformsOptions): AsyncIterable<BuilderOutput>;
 export type { KarmaBuilderOptions };
 declare const builder: Builder<KarmaBuilderOptions>;
 export default builder;

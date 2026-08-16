@@ -1355,7 +1355,7 @@ var AST_Finally = DEFNODE("Finally", null, function AST_Finally(props) {
 
 /* -----[ VAR/CONST ]----- */
 
-var AST_Definitions = DEFNODE("Definitions", "definitions", function AST_Definitions(props) {
+var AST_DefinitionsLike = DEFNODE("DefinitionsLike", "definitions", function AST_DefinitionsLike(props) {
     if (props) {
         this.definitions = props.definitions;
         this.start = props.start;
@@ -1364,9 +1364,9 @@ var AST_Definitions = DEFNODE("Definitions", "definitions", function AST_Definit
 
     this.flags = 0;
 }, {
-    $documentation: "Base class for `var` or `const` nodes (variable declarations/initializations)",
+    $documentation: "Base class for variable definitions and `using`",
     $propdoc: {
-        definitions: "[AST_VarDef*] array of variable definitions"
+        definitions: "[AST_VarDef*|AST_UsingDef*] array of variable definitions"
     },
     _walk: function(visitor) {
         return visitor._visit(this, function() {
@@ -1381,6 +1381,18 @@ var AST_Definitions = DEFNODE("Definitions", "definitions", function AST_Definit
         while (i--) push(this.definitions[i]);
     },
 }, AST_Statement);
+
+var AST_Definitions = DEFNODE("Definitions", null, function AST_Definitions(props) {
+    if (props) {
+        this.definitions = props.definitions;
+        this.start = props.start;
+        this.end = props.end;
+    }
+
+    this.flags = 0;
+}, {
+    $documentation: "Base class for `var` or `const` nodes (variable declarations/initializations)",
+}, AST_DefinitionsLike);
 
 var AST_Var = DEFNODE("Var", null, function AST_Var(props) {
     if (props) {
@@ -1418,7 +1430,23 @@ var AST_Const = DEFNODE("Const", null, function AST_Const(props) {
     $documentation: "A `const` statement"
 }, AST_Definitions);
 
-var AST_VarDef = DEFNODE("VarDef", "name value", function AST_VarDef(props) {
+var AST_Using = DEFNODE("Using", "await", function AST_Using(props) {
+    if (props) {
+        this.await = props.await;
+        this.definitions = props.definitions;
+        this.start = props.start;
+        this.end = props.end;
+    }
+
+    this.flags = 0;
+}, {
+    $documentation: "A `using` statement",
+    $propdoc: {
+        await: "[boolean] Whether it's `await using`"
+    },
+}, AST_DefinitionsLike);
+
+var AST_VarDefLike = DEFNODE("VarDefLike", "name value", function AST_VarDefLike(props) {
     if (props) {
         this.name = props.name;
         this.value = props.value;
@@ -1428,9 +1456,9 @@ var AST_VarDef = DEFNODE("VarDef", "name value", function AST_VarDef(props) {
 
     this.flags = 0;
 }, {
-    $documentation: "A variable declaration; only appears in a AST_Definitions node",
+    $documentation: "A name=value pair in a variable definition statement or `using`",
     $propdoc: {
-        name: "[AST_Destructuring|AST_SymbolConst|AST_SymbolLet|AST_SymbolVar] name of the variable",
+        name: "[AST_Destructuring|AST_SymbolDeclaration] name of the variable",
         value: "[AST_Node?] initializer, or null of there's no initializer"
     },
     _walk: function(visitor) {
@@ -1445,12 +1473,38 @@ var AST_VarDef = DEFNODE("VarDef", "name value", function AST_VarDef(props) {
     },
     declarations_as_names() {
         if (this.name instanceof AST_SymbolDeclaration) {
-            return [this];
+            return [this.name];
         } else {
             return this.name.all_symbols();
         }
     }
 });
+
+var AST_VarDef = DEFNODE("VarDef", null, function AST_VarDef(props) {
+    if (props) {
+        this.name = props.name;
+        this.value = props.value;
+        this.start = props.start;
+        this.end = props.end;
+    }
+
+    this.flags = 0;
+}, {
+    $documentation: "A variable declaration; only appears in a AST_Definitions node",
+}, AST_VarDefLike);
+
+var AST_UsingDef = DEFNODE("UsingDef", null, function AST_UsingDef(props) {
+    if (props) {
+        this.name = props.name;
+        this.value = props.value;
+        this.start = props.start;
+        this.end = props.end;
+    }
+
+    this.flags = 0;
+}, {
+    $documentation: "Like VarDef but specific to AST_Using",
+}, AST_VarDefLike);
 
 var AST_NameMapping = DEFNODE("NameMapping", "foreign_name name", function AST_NameMapping(props) {
     if (props) {
@@ -1481,9 +1535,10 @@ var AST_NameMapping = DEFNODE("NameMapping", "foreign_name name", function AST_N
 
 var AST_Import = DEFNODE(
     "Import",
-    "imported_name imported_names module_name attributes",
+    "phase imported_name imported_names module_name attributes",
     function AST_Import(props) {
         if (props) {
+            this.phase = props.phase;
             this.imported_name = props.imported_name;
             this.imported_names = props.imported_names;
             this.module_name = props.module_name;
@@ -1497,6 +1552,7 @@ var AST_Import = DEFNODE(
     {
         $documentation: "An `import` statement",
         $propdoc: {
+            phase: "[string?] Phase keyword: 'source', 'defer', or null.",
             imported_name: "[AST_SymbolImport] The name of the variable holding the module's default export.",
             imported_names: "[AST_NameMapping*] The names of non-default imported variables",
             module_name: "[AST_String] String literal describing where this module came from",
@@ -1536,6 +1592,40 @@ var AST_ImportMeta = DEFNODE("ImportMeta", null, function AST_ImportMeta(props) 
 }, {
     $documentation: "A reference to import.meta",
 });
+
+var AST_DynamicImport = DEFNODE(
+    "DynamicImport",
+    "phase args",
+    function AST_DynamicImport(props) {
+        if (props) {
+            this.phase = props.phase;
+            this.args = props.args;
+            this.start = props.start;
+            this.end = props.end;
+        }
+
+        this.flags = 0;
+    },
+    {
+        $documentation: "A phased dynamic import expression: `import.source(specifier [, options])` or `import.defer(specifier [, options])`. Plain `import(x)` continues to be parsed as an AST_Call with a synthetic `import` SymbolRef callee.",
+        $propdoc: {
+            phase: "[string] Phase keyword ('source' or 'defer').",
+            args: "[AST_Node*] specifier followed by optional options argument"
+        },
+        _walk: function(visitor) {
+            return visitor._visit(this, function() {
+                var args = this.args;
+                for (var i = 0, len = args.length; i < len; i++) {
+                    args[i]._walk(visitor);
+                }
+            });
+        },
+        _children_backwards(push) {
+            let i = this.args.length;
+            while (i--) push(this.args[i]);
+        },
+    }
+);
 
 var AST_Export = DEFNODE(
     "Export",
@@ -2547,6 +2637,21 @@ var AST_SymbolConst = DEFNODE("SymbolConst", null, function AST_SymbolConst(prop
     $documentation: "A constant declaration"
 }, AST_SymbolBlockDeclaration);
 
+var AST_SymbolUsing = DEFNODE("SymbolUsing", null, function AST_SymbolUsing(props) {
+    if (props) {
+        this.init = props.init;
+        this.scope = props.scope;
+        this.name = props.name;
+        this.thedef = props.thedef;
+        this.start = props.start;
+        this.end = props.end;
+    }
+
+    this.flags = 0;
+}, {
+    $documentation: "A `using` declaration"
+}, AST_SymbolBlockDeclaration);
+
 var AST_SymbolLet = DEFNODE("SymbolLet", null, function AST_SymbolLet(props) {
     if (props) {
         this.init = props.init;
@@ -3286,6 +3391,7 @@ export {
     AST_DefaultAssign,
     AST_DefClass,
     AST_Definitions,
+    AST_DefinitionsLike,
     AST_Defun,
     AST_Destructuring,
     AST_Directive,
@@ -3305,6 +3411,7 @@ export {
     AST_Function,
     AST_Hole,
     AST_If,
+    AST_DynamicImport,
     AST_Import,
     AST_ImportMeta,
     AST_Infinity,
@@ -3363,6 +3470,7 @@ export {
     AST_SymbolLet,
     AST_SymbolMethod,
     AST_SymbolRef,
+    AST_SymbolUsing,
     AST_SymbolVar,
     AST_TemplateSegment,
     AST_TemplateString,
@@ -3378,8 +3486,11 @@ export {
     AST_UnaryPostfix,
     AST_UnaryPrefix,
     AST_Undefined,
+    AST_Using,
+    AST_UsingDef,
     AST_Var,
     AST_VarDef,
+    AST_VarDefLike,
     AST_While,
     AST_With,
     AST_Yield,

@@ -5,9 +5,9 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.dev/license
  */
-import { SchemaMetadata, SelectorMatcher } from '@angular/compiler';
+import { DirectiveMatcher, SchemaMetadata, SelectorlessMatcher } from '@angular/compiler';
 import { Reference } from '../../imports';
-import { DirectiveMeta, HostDirectivesResolver, MetadataReader, PipeMeta } from '../../metadata';
+import { DirectiveMeta, ForeignComponentMeta, HostDirectivesResolver, MetadataReader, PipeMeta } from '../../metadata';
 import { ClassDeclaration } from '../../reflection';
 import { ComponentScopeReader } from './api';
 /**
@@ -15,10 +15,14 @@ import { ComponentScopeReader } from './api';
  */
 export interface TypeCheckScope {
     /**
-     * A `SelectorMatcher` instance that contains the flattened directive metadata of all directives
+     * A `DirectiveMatcher` instance that contains the flattened directive metadata of all directives
      * that are in the compilation scope of the declaring NgModule.
      */
-    matcher: SelectorMatcher<DirectiveMeta[]>;
+    matcher: DirectiveMatcher<DirectiveMeta> | null;
+    /**
+     * A `SelectorlessMatcher` instance that contains matched foreign components.
+     */
+    foreignMatcher: SelectorlessMatcher<ForeignComponentMeta> | null;
     /**
      * All of the directives available in the compilation scope of the declaring NgModule.
      */
@@ -36,6 +40,10 @@ export interface TypeCheckScope {
      * (contained semantic errors during its production).
      */
     isPoisoned: boolean;
+    /**
+     * Directives that have been set on the host of the scope.
+     */
+    directivesOnHost: DirectiveMeta[] | null;
 }
 /**
  * Computes scope information to be used in template type checking.
@@ -59,7 +67,10 @@ export declare class TypeCheckScopeRegistry {
      * contains an error, then 'error' is returned. If the component is not declared in any NgModule,
      * an empty type-check scope is returned.
      */
-    getTypeCheckScope(node: ClassDeclaration): TypeCheckScope;
+    getTypeCheckScope(ref: Reference<ClassDeclaration>): TypeCheckScope;
     getTypeCheckDirectiveMetadata(ref: Reference<ClassDeclaration>): DirectiveMeta | null;
     private applyExplicitlyDeferredFlag;
+    private getSelectorMatcher;
+    private getSelectorlessMatcher;
+    private combineWithHostDirectives;
 }

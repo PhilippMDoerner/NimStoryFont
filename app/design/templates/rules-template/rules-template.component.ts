@@ -7,8 +7,8 @@ import {
   output,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { Rule, RuleRaw } from 'src/app/_models/rule';
-import { RoutingService } from 'src/app/_services/routing.service';
+import { Rule, RuleRaw } from '../../../_models/rule';
+import { RoutingService } from '../../../_services/routing.service';
 import { ButtonLinkComponent } from '../../atoms/button-link/button-link.component';
 import { PageContainerComponent } from '../../organisms/page-container/page-container.component';
 import { RulesComponent } from '../../organisms/rules/rules.component';
@@ -26,21 +26,21 @@ import { RulesComponent } from '../../organisms/rules/rules.component';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RulesTemplateComponent {
-  campaignName = input.required<string>();
-  campaignId = input.required<number>();
-  rules = input.required<Rule[]>();
-  canUpdate = input.required<boolean>();
-  canDelete = input.required<boolean>();
-  canCreate = input.required<boolean>();
-  serverModel = input.required<Rule | undefined>();
+  readonly campaignName = input.required<string>();
+  readonly campaignId = input.required<number>();
+  readonly rules = input.required<Rule[]>();
+  readonly canUpdate = input.required<boolean>();
+  readonly canDelete = input.required<boolean>();
+  readonly canCreate = input.required<boolean>();
+  readonly serverModel = input.required<Rule | undefined>();
 
   readonly ruleDelete = output<Rule>();
   readonly ruleUpdate = output<Rule>();
   readonly ruleCreate = output<RuleRaw>();
 
-  routingService = inject(RoutingService);
+  readonly routingService = inject(RoutingService);
 
-  homeUrl = computed(() =>
+  readonly homeUrl = computed(() =>
     this.routingService.getRoutePath('home', { campaign: this.campaignName() }),
   );
 }

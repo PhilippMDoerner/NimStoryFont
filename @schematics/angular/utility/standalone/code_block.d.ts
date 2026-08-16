@@ -41,12 +41,7 @@ export declare class CodeBlock {
      * @param filePath Path of the file in which the code will be inserted.
      */
     static transformPendingCode(initialCode: PendingCode, filePath: string): {
-        code: {
-            /** Code that will be inserted. */
-            expression: string;
-            /** Imports that need to be added to the file in which the code is inserted. */
-            imports: PendingImports;
-        };
+        code: PendingCode;
         rules: Rule[];
     };
 }

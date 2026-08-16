@@ -1,104 +1,134 @@
-import { loadAllPresets } from 'storybook/internal/common';
-export { getPreviewBodyTemplate, getPreviewHeadTemplate } from 'storybook/internal/common';
-import * as storybook_internal_types from 'storybook/internal/types';
-import { CLIOptions, LoadOptions, BuilderOptions, StorybookConfigRaw, IndexInputStats, NormalizedStoriesSpecifier, Path as Path$1, Indexer, DocsOptions, StoryIndexEntry, DocsIndexEntry, Tag, IndexEntry, StoryIndex, Options, NormalizedProjectAnnotations, ProjectAnnotations, ComposedStoryFn } from 'storybook/internal/types';
-import { EventType } from 'storybook/internal/telemetry';
-import { Channel } from 'storybook/internal/channels';
-import { StoryId } from 'storybook/internal/csf';
+import { $o as StringSchema, As as ServiceInstanceOf, Cs as RuntimeService, Ds as ServiceDescriptor, Es as ServiceDefinition, Go as DescriptionAction, Jo as NumberSchema, Ko as GenericSchema, Ls as Tag, Os as ServiceId, Ps as ServiceSummary, Qi as ModuleGraphServiceState, Qo as SchemaWithPipe, Ts as ServerServiceRegistration, Wo as ArraySchema, Xo as OptionalSchema, Xs as TestProviderStoreById, Yo as ObjectSchema, Ys as TestProviderStateByProviderId, Zo as RecordSchema, Zs as TestProviderStoreEvent, _s as QueryCtx, ac as UniversalStore, c as StatusStoreEvent, co as ImportParser, cs as CommandDefinition, d as StatusesByStoryIdAndTypeId, do as ChangeDetectionAdapter, es as UndefinedSchema, fo as FileChangeEvent, gs as Query, i as Status, is as defineService, js as ServiceRegistrationOptions, ks as ServiceInstance, l as StatusTypeId, lo as ImportParserContext, ms as OperationDescriptor, ns as VoidSchema, o as StatusStore, os as Command, po as ModuleResolveConfig, qo as LiteralSchema, qs as TestProviderId, rc as MockUniversalStore, s as StatusStoreByTypeId$1, so as ImportEdge, ss as CommandCtx, ts as VariantSchema, uo as ParseFileArgs, vs as QueryDefinition, ws as SchemaDescriptor, ys as QueryFunctions } from "../chunk-Cp-ouEY1.js";
+import { t as StorybookError } from "../chunk-CMHAf_uD.js";
+import { n as registerService, t as getService } from "../chunk-BoJt3T-D.js";
+import { ArgTypes, SBType } from "storybook/internal/csf";
+import { BuilderOptions, CLIOptions, DocsIndexEntry, DocsOptions, IndexEntry, IndexInputStats, Indexer, LoadOptions, NormalizedStoriesSpecifier, Options, Path, StatusStoreByTypeId, StatusValue, StoryIndex, StoryIndexEntry, StorybookConfigRaw } from "storybook/internal/types";
+import { CreateNewStoryRequestPayload } from "storybook/internal/core-events";
+import { getPreviewBodyTemplate, getPreviewHeadTemplate, loadAllPresets } from "storybook/internal/common";
+import { EventType } from "storybook/internal/telemetry";
+import { watch } from "node:fs";
+import { readFile, stat } from "node:fs/promises";
 
+//#region code/core/.dts-emit/code/core/src/core-server/build-static.d.ts
 type BuildStaticStandaloneOptions = CLIOptions & LoadOptions & BuilderOptions & {
-    outputDir: string;
+  outputDir: string;
 };
 declare function buildStaticStandalone(options: BuildStaticStandaloneOptions): Promise<void>;
-
+//#endregion
+//#region code/core/.dts-emit/code/core/src/core-server/build-dev.d.ts
+/**
+ * Resolves the initialPath for the browser open URL.
+ * CLI-provided initialPath always wins. If not set and not running in an agent context,
+ * checks the project cache for an `onboarding-pending` entry written by `storybook init`.
+ * If found, returns '/onboarding' and removes the cache entry so it only triggers once.
+ * The cache entry is only written by init when onboarding is known to be supported,
+ * so no further addon check is needed here.
+ */
+declare function resolveOnboardingInitialPath(cliInitialPath: string | undefined): Promise<string | undefined>;
 declare function buildDevStandalone(options: CLIOptions & LoadOptions & BuilderOptions & {
-    storybookVersion?: string;
-    previewConfigPath?: string;
+  storybookVersion?: string;
+  previewConfigPath?: string;
 }): Promise<{
-    port: number;
-    address: string;
-    networkAddress: string;
+  port: number;
+  address: string;
+  networkAddress: string;
 }>;
-
+//#endregion
+//#region code/core/.dts-emit/code/core/src/core-server/build-index.d.ts
 type BuildIndexOptions = CLIOptions & LoadOptions & BuilderOptions;
-declare const buildIndex: (options: BuildIndexOptions) => Promise<storybook_internal_types.StoryIndex>;
+declare const buildIndex: (options: BuildIndexOptions) => Promise<import("storybook/internal/types").StoryIndex>;
 declare const buildIndexStandalone: (options: BuildIndexOptions & {
-    outputFile: string;
+  outputFile: string;
 }) => Promise<void>;
-
+//#endregion
+//#region code/core/.dts-emit/code/core/src/core-server/withTelemetry.d.ts
 type TelemetryOptions = {
-    cliOptions: CLIOptions;
-    presetOptions?: Parameters<typeof loadAllPresets>[0];
-    printError?: (err: any) => void;
-    skipPrompt?: boolean;
+  cliOptions: CLIOptions;
+  presetOptions?: Parameters<typeof loadAllPresets>[0];
+  printError?: (err: any) => void;
+  skipPrompt?: boolean;
+  eventType?: EventType;
+  fallbackTelemetryState?: boolean;
 };
 type ErrorLevel = 'none' | 'error' | 'full';
-declare function getErrorLevel({ cliOptions, presetOptions, skipPrompt, }: TelemetryOptions): Promise<ErrorLevel>;
-declare function sendTelemetryError(_error: unknown, eventType: EventType, options: TelemetryOptions): Promise<void>;
+declare function getErrorLevel({
+  cliOptions,
+  presetOptions,
+  skipPrompt,
+  eventType
+}: TelemetryOptions): Promise<ErrorLevel>;
+declare function sendTelemetryError(_error: unknown, eventType: EventType, options: TelemetryOptions, blocking?: boolean, parent?: StorybookError): Promise<void>;
 declare function withTelemetry<T>(eventType: EventType, options: TelemetryOptions, run: () => Promise<T>): Promise<T | undefined>;
-
+//#endregion
+//#region code/core/.dts-emit/code/core/src/core-server/standalone.d.ts
 declare function build(options?: any, frameworkOptions?: any): Promise<void | {
-    port: number;
-    address: string;
-    networkAddress: string;
+  port: number;
+  address: string;
+  networkAddress: string;
 }>;
-
-declare const mapStaticDir: (staticDir: NonNullable<StorybookConfigRaw["staticDirs"]>[number], configDir: string) => {
-    staticDir: string;
-    staticPath: string;
-    targetDir: string;
-    targetEndpoint: string;
+//#endregion
+//#region code/core/.dts-emit/code/core/src/core-server/utils/server-statics.d.ts
+declare const mapStaticDir: (staticDir: NonNullable<StorybookConfigRaw['staticDirs']>[number], configDir: string) => {
+  staticDir: string;
+  staticPath: string;
+  targetDir: string;
+  targetEndpoint: string;
 };
-
+//#endregion
+//#region node_modules/tsconfig-paths/lib/filesystem.d.ts
 /**
  * A function that json from a file
  */
 interface ReadJsonSync {
-    (packageJsonPath: string): any | undefined;
+  (packageJsonPath: string): any | undefined;
 }
-
+//#endregion
+//#region node_modules/tsconfig-paths/lib/match-path-sync.d.ts
 /**
  * Function that can match a path
  */
 interface MatchPath {
-    (requestedModule: string, readJson?: ReadJsonSync, fileExists?: (name: string) => boolean, extensions?: ReadonlyArray<string>): string | undefined;
+  (requestedModule: string, readJson?: ReadJsonSync, fileExists?: (name: string) => boolean, extensions?: ReadonlyArray<string>): string | undefined;
 }
-
+//#endregion
+//#region code/core/.dts-emit/code/core/src/core-server/utils/IndexingError.d.ts
 declare class IndexingError extends Error {
-    importPaths: string[];
-    constructor(message: string, importPaths: string[], stack?: string);
-    pathsString(): string;
-    toString(): string;
+  importPaths: string[];
+  constructor(message: string, importPaths: string[], stack?: string);
+  pathsString(): string;
+  toString(): string;
 }
-
+//#endregion
+//#region code/core/.dts-emit/code/core/src/core-server/utils/summarizeStats.d.ts
 type IndexStatsSummary = Record<keyof IndexInputStats, number>;
-
+//#endregion
+//#region code/core/.dts-emit/code/core/src/core-server/utils/StoryIndexGenerator.d.ts
 type StoryIndexEntryWithExtra = StoryIndexEntry & {
-    extra: {
-        metaId?: string;
-        stats: IndexInputStats;
-    };
+  extra: {
+    metaId?: string;
+    stats: IndexInputStats;
+  };
 };
 /** A .mdx file will produce a docs entry */
 type DocsCacheEntry = DocsIndexEntry;
 /** A `_.stories._` file will produce a list of stories and possibly a docs entry */
 type StoriesCacheEntry = {
-    entries: (StoryIndexEntryWithExtra | DocsIndexEntry)[];
-    dependents: Path$1[];
-    type: 'stories';
+  entries: (StoryIndexEntryWithExtra | DocsIndexEntry)[];
+  dependents: Path[];
+  type: 'stories';
 };
 type ErrorEntry = {
-    type: 'error';
-    err: IndexingError;
+  type: 'error';
+  err: IndexingError;
 };
 type CacheEntry = false | StoriesCacheEntry | DocsCacheEntry | ErrorEntry;
-type SpecifierStoriesCache = Record<Path$1, CacheEntry>;
+type SpecifierStoriesCache = Record<Path, CacheEntry>;
 type StoryIndexGeneratorOptions = {
-    workingDir: Path$1;
-    configDir: Path$1;
-    indexers: Indexer[];
-    docs: DocsOptions;
-    build?: StorybookConfigRaw['build'];
+  workingDir: Path;
+  configDir: Path;
+  indexers: Indexer[];
+  docs: DocsOptions;
+  build?: StorybookConfigRaw['build'];
 };
 /**
  * The StoryIndexGenerator extracts stories and docs entries for each file matching (one or more)
@@ -123,1120 +153,1539 @@ type StoryIndexGeneratorOptions = {
  * entries are preferred to CSF templates (with warnings).
  */
 declare class StoryIndexGenerator {
-    readonly specifiers: NormalizedStoriesSpecifier[];
-    readonly options: StoryIndexGeneratorOptions;
-    private specifierToCache;
-    /** Cache for findMatchingFiles results */
-    private static findMatchingFilesCache;
-    private lastIndex?;
-    private lastStats?;
-    private lastError?;
-    constructor(specifiers: NormalizedStoriesSpecifier[], options: StoryIndexGeneratorOptions);
-    /** Generate a cache key for findMatchingFiles */
-    private static getFindMatchingFilesCacheKey;
-    /** Clear the findMatchingFiles cache */
-    static clearFindMatchingFilesCache(): void;
-    static findMatchingFiles(specifier: NormalizedStoriesSpecifier, workingDir: Path$1, ignoreWarnings?: boolean): Promise<SpecifierStoriesCache>;
-    static findMatchingFilesForSpecifiers(specifiers: NormalizedStoriesSpecifier[], workingDir: Path$1, ignoreWarnings?: boolean): Promise<Array<readonly [NormalizedStoriesSpecifier, SpecifierStoriesCache]>>;
-    initialize(): Promise<void>;
-    /** Run the updater function over all the empty cache entries */
-    updateExtracted(updater: (specifier: NormalizedStoriesSpecifier, absolutePath: Path$1, existingEntry: CacheEntry) => Promise<CacheEntry>, overwrite?: boolean): Promise<void>;
-    isDocsMdx(absolutePath: Path$1): boolean;
-    ensureExtracted({ projectTags, }: {
-        projectTags?: Tag[];
-    }): Promise<{
-        entries: (IndexEntry | ErrorEntry)[];
-        stats: IndexStatsSummary;
-    }>;
-    findDependencies(absoluteImports: Path$1[]): StoriesCacheEntry[];
-    /**
-     * Try to find the component path from a raw import string and return it in the same format as
-     * `importPath`. Respect tsconfig paths if available.
-     *
-     * If no such file exists, assume that the import is from a package and return the raw
-     */
-    resolveComponentPath(rawComponentPath: Path$1, absolutePath: Path$1, matchPath: MatchPath | undefined): string;
-    extractStories(specifier: NormalizedStoriesSpecifier, absolutePath: Path$1, projectTags?: Tag[]): Promise<StoriesCacheEntry | DocsCacheEntry>;
-    extractDocs(specifier: NormalizedStoriesSpecifier, absolutePath: Path$1, projectTags?: Tag[]): Promise<false | DocsIndexEntry>;
-    chooseDuplicate(firstEntry: IndexEntry, secondEntry: IndexEntry, projectTags: Tag[]): IndexEntry;
-    sortStories(entries: StoryIndex['entries'], storySortParameter: any): Promise<Record<string, IndexEntry>>;
-    getIndex(): Promise<StoryIndex>;
-    getIndexAndStats(): Promise<{
-        storyIndex: StoryIndex;
-        stats: IndexStatsSummary;
-    }>;
-    invalidateAll(): void;
-    invalidate(specifier: NormalizedStoriesSpecifier, importPath: Path$1, removed: boolean): void;
-    getPreviewCode(): Promise<string | undefined>;
-    getProjectTags(previewCode?: string): string[];
-    static storyFileNames(specifierToCache: Map<NormalizedStoriesSpecifier, SpecifierStoriesCache>): string[];
+  readonly specifiers: NormalizedStoriesSpecifier[];
+  readonly options: StoryIndexGeneratorOptions;
+  private specifierToCache;
+  /** Cache for findMatchingFiles results */
+  private static findMatchingFilesCache;
+  private lastIndex?;
+  private lastStats?;
+  private lastError?;
+  private invalidationListeners;
+  constructor(specifiers: NormalizedStoriesSpecifier[], options: StoryIndexGeneratorOptions);
+  /** Generate a cache key for findMatchingFiles */
+  private static getFindMatchingFilesCacheKey;
+  /** Clear the findMatchingFiles cache */
+  static clearFindMatchingFilesCache(): void;
+  static findMatchingFiles(specifier: NormalizedStoriesSpecifier, workingDir: Path, ignoreWarnings?: boolean): Promise<SpecifierStoriesCache>;
+  static findMatchingFilesForSpecifiers(specifiers: NormalizedStoriesSpecifier[], workingDir: Path, ignoreWarnings?: boolean): Promise<Array<readonly [NormalizedStoriesSpecifier, SpecifierStoriesCache]>>;
+  initialize(): Promise<void>;
+  /** Run the updater function over all the empty cache entries */
+  updateExtracted(updater: (specifier: NormalizedStoriesSpecifier, absolutePath: Path, existingEntry: CacheEntry) => Promise<CacheEntry>, overwrite?: boolean): Promise<void>;
+  isDocsMdx(absolutePath: Path): boolean;
+  ensureExtracted({
+    projectTags
+  }: {
+    projectTags?: Tag[];
+  }): Promise<{
+    entries: (IndexEntry | ErrorEntry)[];
+    stats: IndexStatsSummary;
+  }>;
+  findDependencies(absoluteImports: Path[]): StoriesCacheEntry[];
+  /**
+   * Try to find the component path from a raw import string and return it in the same format as
+   * `importPath`. Respect tsconfig paths if available.
+   *
+   * If no such file exists, assume that the import is from a package and return the raw
+   */
+  resolveComponentPath(rawComponentPath: Path, absolutePath: Path, matchPath: MatchPath | undefined): string;
+  extractStories(specifier: NormalizedStoriesSpecifier, absolutePath: Path, projectTags?: Tag[]): Promise<StoriesCacheEntry | DocsCacheEntry>;
+  extractDocs(specifier: NormalizedStoriesSpecifier, absolutePath: Path, projectTags?: Tag[]): Promise<false | DocsIndexEntry>;
+  chooseDuplicate(firstEntry: IndexEntry, secondEntry: IndexEntry, projectTags: Tag[]): IndexEntry;
+  sortStories(entries: StoryIndex['entries'], storySortParameter: any): Promise<Record<string, IndexEntry>>;
+  getIndex(): Promise<StoryIndex>;
+  getIndexAndStats(): Promise<{
+    storyIndex: StoryIndex;
+    stats: IndexStatsSummary;
+  }>;
+  invalidateAll(): void;
+  invalidate(importPath: Path, removed: boolean): void;
+  onInvalidated(listener: () => void): () => void;
+  getPreviewCode(): Promise<string | undefined>;
+  getProjectTags(previewCode?: string): string[];
+  static storyFileNames(specifierToCache: Map<NormalizedStoriesSpecifier, SpecifierStoriesCache>): string[];
 }
-
-declare function loadStorybook(options: CLIOptions & LoadOptions & BuilderOptions & {
-    storybookVersion?: string;
-    previewConfigPath?: string;
-}): Promise<Options>;
-
-type EnvironmentType = (typeof UniversalStore.Environment)[keyof typeof UniversalStore.Environment];
-type StatusType = (typeof UniversalStore.Status)[keyof typeof UniversalStore.Status];
-type StateUpdater<TState> = (prevState: TState) => TState;
-type Actor = {
-    id: string;
-    type: (typeof UniversalStore.ActorType)[keyof typeof UniversalStore.ActorType];
-    environment: EnvironmentType;
-};
-type EventInfo = {
-    actor: Actor;
-    forwardingActor?: Actor;
-};
-type Listener<TEvent> = (event: TEvent, eventInfo: EventInfo) => void;
-type BaseEvent = {
-    type: string;
-    payload?: any;
-};
-interface SetStateEvent<TState> extends BaseEvent {
-    type: typeof UniversalStore.InternalEventType.SET_STATE;
-    payload: {
-        state: TState;
-        previousState: TState;
-    };
-}
-interface ExistingStateRequestEvent extends BaseEvent {
-    type: typeof UniversalStore.InternalEventType.EXISTING_STATE_REQUEST;
-    payload: never;
-}
-interface ExistingStateResponseEvent<TState> extends BaseEvent {
-    type: typeof UniversalStore.InternalEventType.EXISTING_STATE_RESPONSE;
-    payload: TState;
-}
-interface LeaderCreatedEvent extends BaseEvent {
-    type: typeof UniversalStore.InternalEventType.LEADER_CREATED;
-    payload: never;
-}
-interface FollowerCreatedEvent extends BaseEvent {
-    type: typeof UniversalStore.InternalEventType.FOLLOWER_CREATED;
-    payload: never;
-}
-type InternalEvent<TState> = SetStateEvent<TState> | ExistingStateRequestEvent | ExistingStateResponseEvent<TState> | FollowerCreatedEvent | LeaderCreatedEvent;
-type Event<TState, TEvent extends BaseEvent> = TEvent | InternalEvent<TState>;
-type ChannelLike = Pick<Channel, 'on' | 'off' | 'emit'>;
-type StoreOptions<TState> = {
-    id: string;
-    leader?: boolean;
-    initialState?: TState;
-    debug?: boolean;
-};
-type EnvironmentOverrides = {
-    channel: ChannelLike;
-    environment: EnvironmentType;
-};
-
+//#endregion
+//#region code/core/.dts-emit/code/core/src/core-server/utils/get-stories-paths-from-config.d.ts
 /**
- * A universal store implementation that synchronizes state across different environments using a
- * channel-based communication.
- *
- * The store follows a leader-follower pattern where:
- *
- * - Leader: The main store instance that owns and manages the state
- * - Follower: Store instances that mirror the leader's state
- *
- * Features:
- *
- * - State synchronization across environments
- * - Event-based communication
- * - Type-safe state and custom events
- * - Subscription system for state changes and custom events
- *
- * @remarks
- * - The store must be created using the static `create()` method, not the constructor
- * - Follower stores will automatically sync with their leader's state. If they have initial state, it
- *   will be replaced immediately when it has synced with the leader.
+ * Resolves story file paths from a main config's `stories` field without evaluating story files.
  *
  * @example
  *
  * ```typescript
- * interface MyState {
- *   count: number;
- * }
- * interface MyCustomEvent {
- *   type: 'INCREMENT';
- *   payload: number;
- * }
- *
- * // Create a leader store
- * const leaderStore = UniversalStore.create<MyState, MyCustomEvent>({
- *   id: 'my-store',
- *   leader: true,
- *   initialState: { count: 0 },
- * });
- *
- * // Create a follower store
- * const followerStore = UniversalStore.create<MyState, MyCustomEvent>({
- *   id: 'my-store',
- *   leader: false,
+ * const storiesPaths = await getStoriesPathsFromConfig({
+ *   stories: ['src\/**\/*.stories.tsx'],
+ *   configDir: '/path/to/.storybook',
+ *   workingDir: '/path/to/project',
  * });
  * ```
- *
- * @template State - The type of state managed by the store
- * @template CustomEvent - Custom events that can be sent through the store. Must have a `type`
- *   string and optional `payload`
- * @throws {Error} If constructed directly instead of using `create()`
- * @throws {Error} If created without setting a channel first
- * @throws {Error} If a follower is created with initial state
- * @throws {Error} If a follower cannot find its leader within 1 second
  */
-declare class UniversalStore<State, CustomEvent extends {
-    type: string;
-    payload?: any;
-} = {
-    type: string;
-    payload?: any;
-}> {
-    /**
-     * Defines the possible actor types in the store system
-     *
-     * @readonly
-     */
-    static readonly ActorType: {
-        readonly LEADER: "LEADER";
-        readonly FOLLOWER: "FOLLOWER";
-    };
-    /**
-     * Defines the possible environments the store can run in
-     *
-     * @readonly
-     */
-    static readonly Environment: {
-        readonly SERVER: "SERVER";
-        readonly MANAGER: "MANAGER";
-        readonly PREVIEW: "PREVIEW";
-        readonly UNKNOWN: "UNKNOWN";
-        readonly MOCK: "MOCK";
-    };
-    /**
-     * Internal event types used for store synchronization
-     *
-     * @readonly
-     */
-    static readonly InternalEventType: {
-        readonly EXISTING_STATE_REQUEST: "__EXISTING_STATE_REQUEST";
-        readonly EXISTING_STATE_RESPONSE: "__EXISTING_STATE_RESPONSE";
-        readonly SET_STATE: "__SET_STATE";
-        readonly LEADER_CREATED: "__LEADER_CREATED";
-        readonly FOLLOWER_CREATED: "__FOLLOWER_CREATED";
-    };
-    static readonly Status: {
-        readonly UNPREPARED: "UNPREPARED";
-        readonly SYNCING: "SYNCING";
-        readonly READY: "READY";
-        readonly ERROR: "ERROR";
-    };
-    protected static isInternalConstructing: boolean;
-    /**
-     * The preparation construct is used to keep track of all store's preparation state the promise is
-     * resolved when the store is prepared with the static __prepare() method which will also change
-     * the state from PENDING to RESOLVED
-     */
-    private static preparation;
-    private static setupPreparationPromise;
-    /** Enable debug logs for this store */
-    debugging: boolean;
-    /** The actor object representing the store instance with a unique ID and a type */
-    get actor(): Actor;
-    /**
-     * The current state of the store, that signals both if the store is prepared by Storybook and
-     * also - in the case of a follower - if the state has been synced with the leader's state.
-     */
-    get status(): StatusType;
-    /**
-     * A promise that resolves when the store is fully ready. A leader will be ready when the store
-     * has been prepared by Storybook, which is almost instantly.
-     *
-     * A follower will be ready when the state has been synced with the leader's state, within a few
-     * hundred milliseconds.
-     */
-    untilReady(): Promise<[{
-        channel: ChannelLike;
-        environment: EnvironmentType;
-    }, void | undefined]>;
-    /**
-     * The syncing construct is used to keep track of if the instance's state has been synced with the
-     * other instances. A leader will immediately have the promise resolved. A follower will initially
-     * be in a PENDING state, and resolve the the leader has sent the existing state, or reject if no
-     * leader has responded before the timeout.
-     */
-    private syncing?;
-    private channelEventName;
-    private state;
-    private channel?;
-    private environment?;
-    private listeners;
-    private id;
-    private actorId;
-    private actorType;
-    protected constructor(options: StoreOptions<State>, environmentOverrides?: EnvironmentOverrides);
-    /** Creates a new instance of UniversalStore */
-    static create<State = any, CustomEvent extends {
-        type: string;
-        payload?: any;
-    } = {
-        type: string;
-        payload?: any;
-    }>(options: StoreOptions<State>): UniversalStore<State, CustomEvent>;
-    /** Gets the current state */
-    getState: () => State;
-    /**
-     * Updates the store's state
-     *
-     * Either a new state or a state updater function can be passed to the method.
-     */
-    setState(updater: State | StateUpdater<State>): void;
-    /**
-     * Subscribes to store events
-     *
-     * @returns A function to unsubscribe
-     */
-    subscribe: {
-        (listener: Listener<Event<State, CustomEvent>>): () => void;
-        <EventType extends Event<State, CustomEvent>['type']>(eventType: EventType, listener: Listener<Extract<Event<State, CustomEvent>, {
-            type: EventType;
-        }>>): () => void;
-    };
-    /**
-     * Subscribes to state changes
-     *
-     * @returns Unsubscribe function
-     */
-    onStateChange(listener: (state: State, previousState: State, eventInfo: EventInfo) => void): () => void;
-    /** Sends a custom event to the other stores */
-    send: (event: CustomEvent) => void;
-    private emitToChannel;
-    private prepareThis;
-    private emitToListeners;
-    private handleChannelEvents;
-    private debug;
+declare const getStoriesPathsFromConfig: ({
+  stories,
+  configDir,
+  workingDir
+}: {
+  stories: StorybookConfigRaw['stories'];
+  configDir: string;
+  workingDir: string;
+}) => Promise<string[]>;
+//#endregion
+//#region code/core/.dts-emit/code/core/src/core-server/utils/generate-story.d.ts
+interface GenerateStoryResult {
+  success: boolean;
+  storyId?: string;
+  kind?: string;
+  storyFilePath?: string;
+  exportedStoryName?: string;
+  error?: string;
+  errorType?: 'STORY_FILE_EXISTS' | 'UNKNOWN';
 }
-
+interface GenerateStoryOptions {
+  /**
+   * If true, checks if the file exists and returns an error without writing. If false, writes the
+   * file even if it exists (overwrites).
+   *
+   * @default true
+   */
+  checkFileExists?: boolean;
+}
 /**
- * A mock universal store that can be used when testing code that relies on a universal store. It
- * functions exactly like a normal universal store, with a few exceptions:
+ * Generates and writes a new story file for a component.
  *
- * - It is fully isolated, meaning that it doesn't interact with any channel, and it is always a
- *   leader.
+ * This function orchestrates the entire story file creation process:
  *
- * If the second testUtils argument is provided, all the public methods are spied on, so they can be
- * asserted.
- *
- * When a mock store is re-used across tests (eg. in stories), you manually need to reset the state
- * after each test.
+ * 1. Generates the story file path and content based on the component
+ * 2. Optionally checks if the file already exists
+ * 3. Writes the story file to disk
+ * 4. Returns metadata about the created story
  *
  * @example
  *
  * ```ts
- * import * as testUtils from 'storybook/test'; // in stories
- * import { vi as testUtils } from 'vitest'; // ... or in Vitest tests
+ * const result = await generateStoryFile(
+ *   {
+ *     componentFilePath: 'src/components/Button.tsx',
+ *     componentExportName: 'Button',
+ *     componentIsDefaultExport: true,
+ *     componentExportCount: 1,
+ *   },
+ *   options
+ * );
  *
- * const initialState = { ... };
- * const store = new MockUniversalStore({ initialState }, testUtils);
- *
- * export default {
- *   title: 'My story',
- *   beforeEach: () => {
- *     return () => {
- *       store.setState(initialState);
- *     };
- *   }
+ * if (result.success) {
+ *   console.log(`Story created at ${result.storyFilePath}`);
  * }
  * ```
- */
-declare class MockUniversalStore<State, CustomEvent extends {
-    type: string;
-    payload?: any;
-} = {
-    type: string;
-    payload?: any;
-}> extends UniversalStore<State, CustomEvent> {
-    private testUtils;
-    constructor(options: StoreOptions<State>, testUtils?: any);
-    /** Create a mock universal store. This is just an alias for the constructor */
-    static create<State = any, CustomEvent extends {
-        type: string;
-        payload?: any;
-    } = {
-        type: string;
-        payload?: any;
-    }>(options: StoreOptions<State>, testUtils?: any): MockUniversalStore<State, CustomEvent>;
-    unsubscribeAll(): void;
-}
-
-type StatusValue = 'status-value:pending' | 'status-value:success' | 'status-value:error' | 'status-value:warning' | 'status-value:unknown';
-type StatusTypeId = string;
-type StatusByTypeId = Record<StatusTypeId, Status>;
-type StatusesByStoryIdAndTypeId = Record<StoryId, StatusByTypeId>;
-interface Status {
-    value: StatusValue;
-    typeId: StatusTypeId;
-    storyId: StoryId;
-    title: string;
-    description: string;
-    data?: any;
-    sidebarContextMenu?: boolean;
-}
-declare const StatusStoreEventType: {
-    readonly SELECT: "select";
-};
-type StatusStoreEvent = {
-    type: typeof StatusStoreEventType.SELECT;
-    payload: Status[];
-};
-type StatusStore = {
-    getAll: () => StatusesByStoryIdAndTypeId;
-    set: (statuses: Status[]) => void;
-    onAllStatusChange: (listener: (statuses: StatusesByStoryIdAndTypeId, previousStatuses: StatusesByStoryIdAndTypeId) => void) => () => void;
-    onSelect: (listener: (selectedStatuses: Status[]) => void) => () => void;
-    unset: (storyIds?: StoryId[]) => void;
-};
-type StatusStoreByTypeId = StatusStore & {
-    typeId: StatusTypeId;
-};
-
-/**
- * Actions represent the type of change to a location value.
- */
-declare enum Action {
-    /**
-     * A POP indicates a change to an arbitrary index in the history stack, such
-     * as a back or forward navigation. It does not describe the direction of the
-     * navigation, only that the current index changed.
-     *
-     * Note: This is the default action for newly created history objects.
-     */
-    Pop = "POP",
-    /**
-     * A PUSH indicates a new entry being added to the history stack, such as when
-     * a link is clicked and a new page loads. When this happens, all subsequent
-     * entries in the stack are lost.
-     */
-    Push = "PUSH",
-    /**
-     * A REPLACE indicates the entry at the current index in the history stack
-     * being replaced by a new one.
-     */
-    Replace = "REPLACE"
-}
-/**
- * The pathname, search, and hash values of a URL.
- */
-interface Path {
-    /**
-     * A URL pathname, beginning with a /.
-     */
-    pathname: string;
-    /**
-     * A URL search string, beginning with a ?.
-     */
-    search: string;
-    /**
-     * A URL fragment identifier, beginning with a #.
-     */
-    hash: string;
-}
-/**
- * An entry in a history stack. A location contains information about the
- * URL path, as well as possibly some arbitrary state and a key.
- */
-interface Location extends Path {
-    /**
-     * A value of arbitrary data associated with this location.
-     */
-    state: any;
-    /**
-     * A unique string associated with this location. May be used to safely store
-     * and retrieve data in some other storage API, like `localStorage`.
-     *
-     * Note: This value is always "default" on the initial location.
-     */
-    key: string;
-}
-
-/**
- * Map of routeId -> data returned from a loader/action/error
- */
-interface RouteData {
-    [routeId: string]: any;
-}
-declare enum ResultType {
-    data = "data",
-    deferred = "deferred",
-    redirect = "redirect",
-    error = "error"
-}
-/**
- * Successful result from a loader or action
- */
-interface SuccessResult {
-    type: ResultType.data;
-    data: any;
-    statusCode?: number;
-    headers?: Headers;
-}
-/**
- * Successful defer() result from a loader or action
- */
-interface DeferredResult {
-    type: ResultType.deferred;
-    deferredData: DeferredData;
-    statusCode?: number;
-    headers?: Headers;
-}
-/**
- * Redirect result from a loader or action
- */
-interface RedirectResult {
-    type: ResultType.redirect;
-    status: number;
-    location: string;
-    revalidate: boolean;
-    reloadDocument?: boolean;
-}
-/**
- * Unsuccessful result from a loader or action
- */
-interface ErrorResult {
-    type: ResultType.error;
-    error: any;
-    headers?: Headers;
-}
-/**
- * Result from a loader or action - potentially successful or unsuccessful
- */
-type DataResult = SuccessResult | DeferredResult | RedirectResult | ErrorResult;
-type LowerCaseFormMethod = "get" | "post" | "put" | "patch" | "delete";
-type UpperCaseFormMethod = Uppercase<LowerCaseFormMethod>;
-/**
- * Active navigation/fetcher form methods are exposed in lowercase on the
- * RouterState
- */
-type FormMethod = LowerCaseFormMethod;
-/**
- * In v7, active navigation/fetcher form methods are exposed in uppercase on the
- * RouterState.  This is to align with the normalization done via fetch().
- */
-type V7_FormMethod = UpperCaseFormMethod;
-type FormEncType = "application/x-www-form-urlencoded" | "multipart/form-data" | "application/json" | "text/plain";
-type JsonObject = {
-    [Key in string]: JsonValue;
-} & {
-    [Key in string]?: JsonValue | undefined;
-};
-type JsonArray = JsonValue[] | readonly JsonValue[];
-type JsonPrimitive = string | number | boolean | null;
-type JsonValue = JsonPrimitive | JsonObject | JsonArray;
-/**
- * @private
- * Internal interface to pass around for action submissions, not intended for
- * external consumption
- */
-type Submission = {
-    formMethod: FormMethod | V7_FormMethod;
-    formAction: string;
-    formEncType: FormEncType;
-    formData: FormData;
-    json: undefined;
-    text: undefined;
-} | {
-    formMethod: FormMethod | V7_FormMethod;
-    formAction: string;
-    formEncType: FormEncType;
-    formData: undefined;
-    json: JsonValue;
-    text: undefined;
-} | {
-    formMethod: FormMethod | V7_FormMethod;
-    formAction: string;
-    formEncType: FormEncType;
-    formData: undefined;
-    json: undefined;
-    text: string;
-};
-/**
- * @private
- * Arguments passed to route loader/action functions.  Same for now but we keep
- * this as a private implementation detail in case they diverge in the future.
- */
-interface DataFunctionArgs {
-    request: Request;
-    params: Params;
-    context?: any;
-}
-/**
- * Arguments passed to loader functions
- */
-interface LoaderFunctionArgs extends DataFunctionArgs {
-}
-/**
- * Arguments passed to action functions
- */
-interface ActionFunctionArgs extends DataFunctionArgs {
-}
-/**
- * Loaders and actions can return anything except `undefined` (`null` is a
- * valid return value if there is no data to return).  Responses are preferred
- * and will ease any future migration to Remix
- */
-type DataFunctionValue = Response | NonNullable<unknown> | null;
-/**
- * Route loader function signature
- */
-interface LoaderFunction {
-    (args: LoaderFunctionArgs): Promise<DataFunctionValue> | DataFunctionValue;
-}
-/**
- * Route action function signature
- */
-interface ActionFunction {
-    (args: ActionFunctionArgs): Promise<DataFunctionValue> | DataFunctionValue;
-}
-/**
- * Route shouldRevalidate function signature.  This runs after any submission
- * (navigation or fetcher), so we flatten the navigation/fetcher submission
- * onto the arguments.  It shouldn't matter whether it came from a navigation
- * or a fetcher, what really matters is the URLs and the formData since loaders
- * have to re-run based on the data models that were potentially mutated.
- */
-interface ShouldRevalidateFunction {
-    (args: {
-        currentUrl: URL;
-        currentParams: AgnosticDataRouteMatch["params"];
-        nextUrl: URL;
-        nextParams: AgnosticDataRouteMatch["params"];
-        formMethod?: Submission["formMethod"];
-        formAction?: Submission["formAction"];
-        formEncType?: Submission["formEncType"];
-        text?: Submission["text"];
-        formData?: Submission["formData"];
-        json?: Submission["json"];
-        actionResult?: DataResult;
-        defaultShouldRevalidate: boolean;
-    }): boolean;
-}
-/**
- * Keys we cannot change from within a lazy() function. We spread all other keys
- * onto the route. Either they're meaningful to the router, or they'll get
- * ignored.
- */
-type ImmutableRouteKey = "lazy" | "caseSensitive" | "path" | "id" | "index" | "children";
-type RequireOne<T, Key = keyof T> = Exclude<{
-    [K in keyof T]: K extends Key ? Omit<T, K> & Required<Pick<T, K>> : never;
-}[keyof T], undefined>;
-/**
- * lazy() function to load a route definition, which can add non-matching
- * related properties to a route
- */
-interface LazyRouteFunction<R extends AgnosticRouteObject> {
-    (): Promise<RequireOne<Omit<R, ImmutableRouteKey>>>;
-}
-/**
- * Base RouteObject with common props shared by all types of routes
- */
-type AgnosticBaseRouteObject = {
-    caseSensitive?: boolean;
-    path?: string;
-    id?: string;
-    loader?: LoaderFunction;
-    action?: ActionFunction;
-    hasErrorBoundary?: boolean;
-    shouldRevalidate?: ShouldRevalidateFunction;
-    handle?: any;
-    lazy?: LazyRouteFunction<AgnosticBaseRouteObject>;
-};
-/**
- * Index routes must not have children
- */
-type AgnosticIndexRouteObject = AgnosticBaseRouteObject & {
-    children?: undefined;
-    index: true;
-};
-/**
- * Non-index routes may have children, but cannot have index
- */
-type AgnosticNonIndexRouteObject = AgnosticBaseRouteObject & {
-    children?: AgnosticRouteObject[];
-    index?: false;
-};
-/**
- * A route object represents a logical route, with (optionally) its child
- * routes organized in a tree-like structure.
- */
-type AgnosticRouteObject = AgnosticIndexRouteObject | AgnosticNonIndexRouteObject;
-type AgnosticDataIndexRouteObject = AgnosticIndexRouteObject & {
-    id: string;
-};
-type AgnosticDataNonIndexRouteObject = AgnosticNonIndexRouteObject & {
-    children?: AgnosticDataRouteObject[];
-    id: string;
-};
-/**
- * A data route object, which is just a RouteObject with a required unique ID
- */
-type AgnosticDataRouteObject = AgnosticDataIndexRouteObject | AgnosticDataNonIndexRouteObject;
-/**
- * The parameters that were parsed from the URL path.
- */
-type Params<Key extends string = string> = {
-    readonly [key in Key]: string | undefined;
-};
-/**
- * A RouteMatch contains info about how a route matched a URL.
- */
-interface AgnosticRouteMatch<ParamKey extends string = string, RouteObjectType extends AgnosticRouteObject = AgnosticRouteObject> {
-    /**
-     * The names and values of dynamic parameters in the URL.
-     */
-    params: Params<ParamKey>;
-    /**
-     * The portion of the URL pathname that was matched.
-     */
-    pathname: string;
-    /**
-     * The portion of the URL pathname that was matched before child routes.
-     */
-    pathnameBase: string;
-    /**
-     * The route object that was used to match.
-     */
-    route: RouteObjectType;
-}
-interface AgnosticDataRouteMatch extends AgnosticRouteMatch<string, AgnosticDataRouteObject> {
-}
-declare class DeferredData {
-    private pendingKeysSet;
-    private controller;
-    private abortPromise;
-    private unlistenAbortSignal;
-    private subscribers;
-    data: Record<string, unknown>;
-    init?: ResponseInit;
-    deferredKeys: string[];
-    constructor(data: Record<string, unknown>, responseInit?: ResponseInit);
-    private trackPromise;
-    private onSettle;
-    private emit;
-    subscribe(fn: (aborted: boolean, settledKey?: string) => void): () => boolean;
-    cancel(): void;
-    resolveData(signal: AbortSignal): Promise<boolean>;
-    get done(): boolean;
-    get unwrappedData(): {};
-    get pendingKeys(): string[];
-}
-
-/**
- * State maintained internally by the router.  During a navigation, all states
- * reflect the the "old" location unless otherwise noted.
- */
-interface RouterState {
-    /**
-     * The action of the most recent navigation
-     */
-    historyAction: Action;
-    /**
-     * The current location reflected by the router
-     */
-    location: Location;
-    /**
-     * The current set of route matches
-     */
-    matches: AgnosticDataRouteMatch[];
-    /**
-     * Tracks whether we've completed our initial data load
-     */
-    initialized: boolean;
-    /**
-     * Current scroll position we should start at for a new view
-     *  - number -> scroll position to restore to
-     *  - false -> do not restore scroll at all (used during submissions)
-     *  - null -> don't have a saved position, scroll to hash or top of page
-     */
-    restoreScrollPosition: number | false | null;
-    /**
-     * Indicate whether this navigation should skip resetting the scroll position
-     * if we are unable to restore the scroll position
-     */
-    preventScrollReset: boolean;
-    /**
-     * Tracks the state of the current navigation
-     */
-    navigation: Navigation;
-    /**
-     * Tracks any in-progress revalidations
-     */
-    revalidation: RevalidationState;
-    /**
-     * Data from the loaders for the current matches
-     */
-    loaderData: RouteData;
-    /**
-     * Data from the action for the current matches
-     */
-    actionData: RouteData | null;
-    /**
-     * Errors caught from loaders for the current matches
-     */
-    errors: RouteData | null;
-    /**
-     * Map of current fetchers
-     */
-    fetchers: Map<string, Fetcher>;
-    /**
-     * Map of current blockers
-     */
-    blockers: Map<string, Blocker>;
-}
-/**
- * Data that can be passed into hydrate a Router from SSR
- */
-type HydrationState = Partial<Pick<RouterState, "loaderData" | "actionData" | "errors">>;
-/**
- * Potential states for state.navigation
- */
-type NavigationStates = {
-    Idle: {
-        state: "idle";
-        location: undefined;
-        formMethod: undefined;
-        formAction: undefined;
-        formEncType: undefined;
-        formData: undefined;
-        json: undefined;
-        text: undefined;
-    };
-    Loading: {
-        state: "loading";
-        location: Location;
-        formMethod: Submission["formMethod"] | undefined;
-        formAction: Submission["formAction"] | undefined;
-        formEncType: Submission["formEncType"] | undefined;
-        formData: Submission["formData"] | undefined;
-        json: Submission["json"] | undefined;
-        text: Submission["text"] | undefined;
-    };
-    Submitting: {
-        state: "submitting";
-        location: Location;
-        formMethod: Submission["formMethod"];
-        formAction: Submission["formAction"];
-        formEncType: Submission["formEncType"];
-        formData: Submission["formData"];
-        json: Submission["json"];
-        text: Submission["text"];
-    };
-};
-type Navigation = NavigationStates[keyof NavigationStates];
-type RevalidationState = "idle" | "loading";
-/**
- * Potential states for fetchers
- */
-type FetcherStates<TData = any> = {
-    Idle: {
-        state: "idle";
-        formMethod: undefined;
-        formAction: undefined;
-        formEncType: undefined;
-        text: undefined;
-        formData: undefined;
-        json: undefined;
-        data: TData | undefined;
-        " _hasFetcherDoneAnything "?: boolean;
-    };
-    Loading: {
-        state: "loading";
-        formMethod: Submission["formMethod"] | undefined;
-        formAction: Submission["formAction"] | undefined;
-        formEncType: Submission["formEncType"] | undefined;
-        text: Submission["text"] | undefined;
-        formData: Submission["formData"] | undefined;
-        json: Submission["json"] | undefined;
-        data: TData | undefined;
-        " _hasFetcherDoneAnything "?: boolean;
-    };
-    Submitting: {
-        state: "submitting";
-        formMethod: Submission["formMethod"];
-        formAction: Submission["formAction"];
-        formEncType: Submission["formEncType"];
-        text: Submission["text"];
-        formData: Submission["formData"];
-        json: Submission["json"];
-        data: TData | undefined;
-        " _hasFetcherDoneAnything "?: boolean;
-    };
-};
-type Fetcher<TData = any> = FetcherStates<TData>[keyof FetcherStates<TData>];
-interface BlockerBlocked {
-    state: "blocked";
-    reset(): void;
-    proceed(): void;
-    location: Location;
-}
-interface BlockerUnblocked {
-    state: "unblocked";
-    reset: undefined;
-    proceed: undefined;
-    location: undefined;
-}
-interface BlockerProceeding {
-    state: "proceeding";
-    reset: undefined;
-    proceed: undefined;
-    location: Location;
-}
-type Blocker = BlockerUnblocked | BlockerBlocked | BlockerProceeding;
-
-/**
- * NOTE: If you refactor this to split up the modules into separate files,
- * you'll need to update the rollup config for react-router-dom-v5-compat.
- */
-
-declare global {
-    var __staticRouterHydrationData: HydrationState | undefined;
-}
-
-type TestProviderState = 'test-provider-state:pending' | 'test-provider-state:running' | 'test-provider-state:succeeded' | 'test-provider-state:crashed';
-type TestProviderId = string;
-type TestProviderStateByProviderId = Record<TestProviderId, TestProviderState>;
-type TestProviderStoreEventType = 'run-all' | 'clear-all' | 'settings-changed';
-type TestProviderStoreEvent = BaseEvent & {
-    type: TestProviderStoreEventType;
-};
-type BaseTestProviderStore = {
-    /**
-     * Notifies all listeners that settings have changed for test providers. The Storybook UI will
-     * highlight the test providers to tell the user that settings has changed.
-     */
-    settingsChanged: () => void;
-    /**
-     * Subscribe to clicks on the "Run All" button, that is supposed to trigger all test providers to
-     * run. Your test provider should do the "main thing" when this happens, similar to when the user
-     * triggers your test provider specifically.
-     *
-     * @example
-     *
-     * ```typescript
-     * // Subscribe to run-all events
-     * const unsubscribe = myTestProviderStore.onRunAll(() => {
-     *   await runAllMyTests();
-     * });
-     * ```
-     */
-    onRunAll: (listener: () => void) => () => void;
-    /**
-     * Subscribe to clicks on the "Clear All" button, that is supposed to clear all state from test
-     * providers. Storybook already clears all statuses, but if your test provider has more
-     * non-status-based state, you can use this to clear that here.
-     *
-     * @remarks
-     * The purpose of this is _not_ to clear your test provider's settings, only the test results.
-     * @example
-     *
-     * ```typescript
-     * // Subscribe to clear-all events
-     * const unsubscribe = myTestProviderStore.onClearAll(() => {
-     *   clearMyTestResults();
-     * });
-     *
-     * // Later, when no longer needed
-     * unsubscribe();
-     * ```
-     */
-    onClearAll: (listener: () => void) => () => void;
-};
-/**
- * Represents a store for a specific test provider, identified by its unique ID. This store provides
- * methods to manage the state of an individual test provider, including getting and setting its
- * state, running operations with automatic state management, and accessing its unique identifier.
  *
- * Each test provider has its own instance of this store, allowing for independent state management
- * across different test providers in the application.
- *
- * @example
- *
- * ```typescript
- * // Get a store for a specific test provider
- * const grammarStore = getTestProviderStoreById('addon-grammar');
- *
- * // Check the current state
- * if (grammarStore.getState() === 'test-provider-state:pending') {
- *   console.log('Grammar tests are ready to run');
- * }
- *
- * // Run tests with automatic state management
- * grammarStore.runWithState(async () => {
- *   await runGrammarTests();
- * });
- * ```
- *
- * @see {@link TestProviderState} for possible state values
- * @see {@link BaseTestProviderStore} for methods inherited from the base store
+ * @param payload - The component information for which to create a story
+ * @param options - Storybook options for configuration
+ * @param generateOptions - Additional options for story generation behavior
+ * @returns A promise that resolves to the result of the story generation
  */
-type TestProviderStoreById = BaseTestProviderStore & {
-    /**
-     * Gets the current state of this specific test provider
-     *
-     * The state represents the current execution status of the test provider, which can be one of the
-     * following:
-     *
-     * - 'test-provider-state:pending': Tests have not been run yet
-     * - 'test-provider-state:running': Tests are currently running
-     * - 'test-provider-state:succeeded': Tests completed successfully
-     * - 'test-provider-state:crashed': Running tests failed or encountered an error
-     *
-     * Storybook UI will use this state to determine what to show in the UI.
-     *
-     * @remarks
-     * The 'test-provider-state:crashed' is meant to signify that the test run as a whole failed to
-     * execute for some reason. It should _not_ be set just because a number of tests failed, use
-     * statuses and the status store for that. See {@link TestStatusStore} for managing individual test
-     * statuses.
-     * @example
-     *
-     * ```typescript
-     * // Get the current state of a specific test provider
-     * const state = testProviderStore.getState();
-     *
-     * // Conditionally render UI based on the state
-     * const TestStatus = () => {
-     *   const state = testProviderStore.getState();
-     *
-     *   if (state === 'test-provider-state:running') {
-     *     return <Spinner />;
-     *   } else if (state === 'test-provider-state:succeeded') {
-     *     return <SuccessIcon />;
-     *   } else if (state === 'test-provider-state:crashed') {
-     *     return <ErrorIcon />;
-     *   }
-     *
-     *   return <PendingIcon />;
-     * };
-     * ```
-     */
-    getState: () => TestProviderState;
-    /**
-     * Sets the state of this specific test provider
-     *
-     * This method allows you to manually update the execution state of the test provider. It's
-     * typically used when you need to reflect the current status of test execution in the UI or when
-     * you want to programmatically control the test provider's state.
-     *
-     * Common use cases include:
-     *
-     * - Setting to 'running' when tests start
-     * - Setting to 'succeeded' when tests complete successfully
-     * - Setting to 'crashed' when tests fail or encounter errors
-     * - Setting to 'pending' to reset the state
-     *
-     * The state represents the current execution status of the test provider, which can be one of the
-     * following:
-     *
-     * - 'test-provider-state:pending': Tests have not been run yet
-     * - 'test-provider-state:running': Tests are currently running
-     * - 'test-provider-state:succeeded': Tests completed successfully
-     * - 'test-provider-state:crashed': Running tests failed or encountered an error
-     *
-     * Storybook UI will use this state to determine what to show in the UI.
-     *
-     * @remarks
-     * The 'test-provider-state:crashed' is meant to signify that the test run as a whole failed to
-     * execute for some reason. It should _not_ be set just because a number of tests failed, use
-     * statuses and the status store for that. See {@link TestStatusStore} for managing individual test
-     * statuses.
-     *
-     * For most use cases, consider using {@link runWithState} instead, which provides automatic state
-     * management and error handling during test execution.
-     * @example
-     *
-     * ```typescript
-     * // Update the state when tests start running
-     * const startTests = async () => {
-     *   testProviderStore.setState('test-provider-state:running');
-     *   ... run tests ...
-     * };
-     * ```
-     */
-    setState: (state: TestProviderState) => void;
-    /**
-     * Runs a callback and automatically updates the test provider's state with running, succeeded or
-     * crashed, depending on the end result.
-     *
-     * - Immediately changes the state to 'running'
-     * - If the callback returns/resolves, change the state to 'succeeded'.
-     * - If the callback throws an error/rejects, change the state to 'crashed'.
-     *
-     * This approach helps prevent state inconsistencies that might occur if exceptions are thrown
-     * during test execution.
-     *
-     * @example
-     *
-     * ```typescript
-     * // Run tests with automatic state management
-     * const runTests = () => {
-     *   testProviderStore.runWithState(async () => {
-     *     // The state is automatically set to 'running' before this callback
-     *
-     *     // Run tests here...
-     *     const results = await executeTests();
-     *   });
-     * };
-     * ```
-     */
-    runWithState: (callback: () => void | Promise<void>) => Promise<void>;
-    /** The unique identifier for this test provider */
-    testProviderId: TestProviderId;
+declare function generateStoryFile(payload: CreateNewStoryRequestPayload, options: Options, generateOptions?: GenerateStoryOptions): Promise<GenerateStoryResult>;
+//#endregion
+//#region code/core/.dts-emit/code/core/src/core-server/utils/get-dummy-args-from-argtypes.d.ts
+type ComponentArgTypesInfo = {
+  required: boolean;
+  type: SBType;
 };
-
-declare global {
-	interface SymbolConstructor {
-		readonly observable: symbol;
-	}
-}
-
-declare global {
-    var globalProjectAnnotations: NormalizedProjectAnnotations<any>;
-    var defaultProjectAnnotations: ProjectAnnotations<any>;
-}
-type WrappedStoryRef = {
-    __pw_type: 'jsx';
-    props: Record<string, any>;
-} | {
-    __pw_type: 'importRef';
+type ComponentArgTypesData = {
+  props?: Record<string, ComponentArgTypesInfo>;
 };
-type UnwrappedJSXStoryRef = {
-    __pw_type: 'jsx';
-    type: UnwrappedImportStoryRef;
+//#endregion
+//#region code/core/.dts-emit/code/core/src/core-server/load.d.ts
+declare function loadStorybook(options: CLIOptions & LoadOptions & BuilderOptions & {
+  storybookVersion?: string;
+  previewConfigPath?: string;
+}): Promise<Options>;
+//#endregion
+//#region code/core/.dts-emit/code/core/src/core-server/utils/analyze-mdx.d.ts
+type MdxAnalysisResult = {
+  title: string | undefined;
+  of: string | undefined;
+  name: string | undefined;
+  id: string | undefined;
+  summary: string | undefined;
+  isTemplate: boolean;
+  metaTags?: string[];
+  imports: string[];
 };
-type UnwrappedImportStoryRef = ComposedStoryFn;
-declare global {
-    function __pwUnwrapObject(storyRef: WrappedStoryRef): Promise<UnwrappedJSXStoryRef | UnwrappedImportStoryRef>;
+declare const analyzeMdx: (code: string) => Promise<MdxAnalysisResult>;
+//#endregion
+//#region code/core/.dts-emit/code/core/src/core-server/utils/manifests/mdx-manifest.d.ts
+/**
+ * Canonical contract for the MDX docs open service.
+ *
+ * The service implementation lives in `@storybook/addon-docs`, but the data contract (service id,
+ * on-disk/`$ref` layout, payload shapes, and the consumer query handle) lives here in core so the
+ * addon that produces it and the core manifest writer that consumes it share one source of truth.
+ * Mirrors the docgen service contract under `shared/open-service/services/docgen/`.
+ */
+/** A JSON Reference (`{ $ref }`) pointing at a value in another manifest document. */
+type JsonRef = {
+  $ref: string;
+};
+/** Open-service id for the MDX docs service (also the on-disk directory under `services/`). */
+declare const MDX_SERVICE_ID = "addon-docs/mdx";
+/** Free-form error captured while reading or analyzing an MDX doc. */
+interface MdxError {
+  name: string;
+  message: string;
 }
-
+/**
+ * One MDX doc, both as stored in the service and as resolved from a manifest `$ref`.
+ *
+ * `summary` shares `content`'s optionality: it is derived from the doc when available (an explicit
+ * `Meta` summary, falling back to text extracted from the content) and omitted otherwise.
+ */
+interface MdxDocPayload {
+  id: string;
+  name: string;
+  path: string;
+  title: string;
+  content?: string;
+  summary?: string;
+  error?: MdxError;
+  mdx?: never;
+}
+/** Per-component MDX payload: every doc grouped under a single component (or standalone) id. */
+interface MdxPayload {
+  id: string;
+  name: string;
+  docs: Record<string, MdxDocPayload>;
+}
+/** Shallow docs index row: id, name, optional summary, and a `$ref` to the full MDX payload. */
+interface DocsManifestRefEntry {
+  id: string;
+  name: string;
+  summary?: string;
+  mdx: JsonRef;
+  path?: never;
+  title?: never;
+  content?: never;
+  error?: never;
+}
+/** A docs manifest entry is either an inline payload or a shallow `$ref` row. */
+type DocsManifestEntry = MdxDocPayload | DocsManifestRefEntry;
+/** Minimal consumer handle for reading every MDX payload from the live service (dev). */
+interface MdxServiceContract {
+  queries: {
+    mdxForAllComponents: {
+      loaded: () => Promise<Record<string, MdxPayload>>;
+    };
+  };
+}
+/** Relative path segment for one component's static snapshot file (`<id>.json`). */
+declare function mdxQueryStaticPath(id: string): string;
+/** Logical static-store key: `addon-docs/mdx/<id>.json`. */
+declare function mdxStaticStorePath(id: string): string;
+/** `$ref` target for one doc, relative to the `manifests/` directory. */
+declare function mdxManifestRef(componentId: string, docId: string): string;
+//#endregion
+//#region code/core/.dts-emit/code/core/src/shared/open-service/service-registry.d.ts
+/** Returns one summary entry per registered service — the lowest-cost discovery endpoint. */
+declare function listServices(): Promise<ServiceSummary[]>;
+/** Returns the schema-backed descriptor for one registered service. */
+declare function describeService(serviceId: ServiceId): Promise<ServiceDescriptor>;
+//#endregion
+//#region code/core/.dts-emit/code/core/src/core-server/stores/status.d.ts
 declare const fullStatusStore: StatusStore & {
     selectStatuses: (statuses: Status[]) => void;
     typeId: undefined;
+  }, getStatusStoreByTypeId: (typeId: StatusTypeId) => StatusStoreByTypeId$1, universalStatusStore: UniversalStore<StatusesByStoryIdAndTypeId, StatusStoreEvent>;
+//#endregion
+//#region code/core/.dts-emit/code/core/src/core-server/change-detection/errors.d.ts
+declare class ChangeDetectionUnavailableError extends Error {
+  constructor(message: string, options?: ErrorOptions);
+}
+declare class ChangeDetectionFailureError extends Error {
+  constructor(message: string, options?: ErrorOptions);
+}
+//#endregion
+//#region code/core/.dts-emit/code/core/src/core-server/change-detection/readiness.d.ts
+type ChangeDetectionReadiness = {
+  status: 'ready';
+} | {
+  status: 'unavailable';
+  reason: string;
+  error?: Error;
+} | {
+  status: 'error';
+  error: Error;
 };
-declare const getStatusStoreByTypeId: (typeId: StatusTypeId) => StatusStoreByTypeId;
-declare const universalStatusStore: UniversalStore<StatusesByStoryIdAndTypeId, StatusStoreEvent>;
-
+declare function getChangeDetectionReadiness(): Promise<ChangeDetectionReadiness>;
+//#endregion
+//#region code/core/.dts-emit/code/core/src/shared/open-service/services/module-graph/definition.d.ts
+declare const moduleGraphServiceDef: ServiceDefinition<ModuleGraphServiceState, {
+  readonly storiesForFiles: QueryDefinition<ModuleGraphServiceState, ObjectSchema<{
+    readonly files: SchemaWithPipe<readonly [ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Input source file path. Accepts absolute paths, story-index-style relative paths with `./`, or relative paths without `./`.">]>, undefined>, DescriptionAction<string[], "Source files to look up. Output arrays match this input order.">]>;
+  }, undefined>, ArraySchema<ArraySchema<ObjectSchema<{
+    readonly storyFile: SchemaWithPipe<readonly [SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, DescriptionAction<string, "Affected story file, returned in the same `./`-prefixed relative import-path format used by the story index.">]>;
+    readonly depth: SchemaWithPipe<readonly [NumberSchema<undefined>, DescriptionAction<number, "Breadth-first-search depth: the shortest number of import edges between the source file and this story file.">]>;
+  }, undefined>, undefined>, undefined>, {
+    readonly _applyGraphSnapshot: ObjectSchema<{
+      readonly storiesByFile: SchemaWithPipe<readonly [RecordSchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, RecordSchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, SchemaWithPipe<readonly [NumberSchema<undefined>, DescriptionAction<number, "Breadth-first-search depth: the shortest number of import edges between the source file and this story file.">]>, undefined>, undefined>, DescriptionAction<{
+        [x: string]: {
+          [x: string]: number;
+        };
+      }, "Complete relative reverse index keyed by story-index-style source file paths. Values map affected story-index-style story file paths to breadth-first-search depths.">]>;
+    }, undefined>;
+    readonly _applyGraphUpdate: ObjectSchema<{
+      readonly storiesByFile: SchemaWithPipe<readonly [RecordSchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, RecordSchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, SchemaWithPipe<readonly [NumberSchema<undefined>, DescriptionAction<number, "Breadth-first-search depth: the shortest number of import edges between the source file and this story file.">]>, undefined>, undefined>, DescriptionAction<{
+        [x: string]: {
+          [x: string]: number;
+        };
+      }, "Complete relative reverse index keyed by story-index-style source file paths. Values map affected story-index-style story file paths to breadth-first-search depths.">]>;
+      readonly bumpedStoryFiles: SchemaWithPipe<readonly [ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, undefined>, DescriptionAction<string[], "Story files whose graph changed, using story-index-style relative paths. Each listed file has its version incremented.">]>;
+    }, undefined>;
+    readonly _setStatus: VariantSchema<"value", [ObjectSchema<{
+      readonly value: LiteralSchema<"booting", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"ready", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"error", undefined>;
+      readonly error: SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Serializable error describing why the module graph failed unexpectedly.">]>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"unavailable", undefined>;
+      readonly reason: SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Human-readable reason why the current builder/runtime cannot provide module graph functionality.">]>;
+      readonly error: OptionalSchema<SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Optional serializable error reported by the builder adapter.">]>, undefined>;
+    }, undefined>], undefined>;
+    readonly _waitForSettledEngine: UndefinedSchema<undefined>;
+  }, {
+    readonly _applyGraphSnapshot: VoidSchema<undefined>;
+    readonly _applyGraphUpdate: VoidSchema<undefined>;
+    readonly _setStatus: VoidSchema<undefined>;
+    readonly _waitForSettledEngine: VoidSchema<undefined>;
+  }, QueryFunctions<{
+    readonly storiesForFiles: ObjectSchema<{
+      readonly files: SchemaWithPipe<readonly [ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Input source file path. Accepts absolute paths, story-index-style relative paths with `./`, or relative paths without `./`.">]>, undefined>, DescriptionAction<string[], "Source files to look up. Output arrays match this input order.">]>;
+    }, undefined>;
+    readonly status: UndefinedSchema<undefined>;
+    readonly graphRevision: OptionalSchema<ObjectSchema<{
+      readonly storyFiles: ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Story file to scope the watch to. Accepts absolute paths, story-index-style relative paths with `./`, or relative paths without `./`. Pass an empty array to watch nothing (returns 0).">]>, undefined>;
+    }, undefined>, undefined>;
+    readonly latestStoryChanges: UndefinedSchema<undefined>;
+    readonly getStatus: UndefinedSchema<undefined>;
+    readonly getGraphRevision: OptionalSchema<ObjectSchema<{
+      readonly storyFiles: ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Story file to scope the watch to. Accepts absolute paths, story-index-style relative paths with `./`, or relative paths without `./`. Pass an empty array to watch nothing (returns 0).">]>, undefined>;
+    }, undefined>, undefined>;
+  }, {
+    readonly storiesForFiles: ArraySchema<ArraySchema<ObjectSchema<{
+      readonly storyFile: SchemaWithPipe<readonly [SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, DescriptionAction<string, "Affected story file, returned in the same `./`-prefixed relative import-path format used by the story index.">]>;
+      readonly depth: SchemaWithPipe<readonly [NumberSchema<undefined>, DescriptionAction<number, "Breadth-first-search depth: the shortest number of import edges between the source file and this story file.">]>;
+    }, undefined>, undefined>, undefined>;
+    readonly status: VariantSchema<"value", [ObjectSchema<{
+      readonly value: LiteralSchema<"booting", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"ready", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"error", undefined>;
+      readonly error: SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Serializable error describing why the module graph failed unexpectedly.">]>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"unavailable", undefined>;
+      readonly reason: SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Human-readable reason why the current builder/runtime cannot provide module graph functionality.">]>;
+      readonly error: OptionalSchema<SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Optional serializable error reported by the builder adapter.">]>, undefined>;
+    }, undefined>], undefined>;
+    readonly graphRevision: NumberSchema<undefined>;
+    readonly latestStoryChanges: ObjectSchema<{
+      readonly revision: SchemaWithPipe<readonly [NumberSchema<undefined>, DescriptionAction<number, "Graph revision number for this latest story change set.">]>;
+      readonly storyFiles: SchemaWithPipe<readonly [ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, undefined>, DescriptionAction<string[], "Story-index-relative story files touched by the latest module graph change set.">]>;
+    }, undefined>;
+    readonly getStatus: VariantSchema<"value", [ObjectSchema<{
+      readonly value: LiteralSchema<"booting", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"ready", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"error", undefined>;
+      readonly error: SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Serializable error describing why the module graph failed unexpectedly.">]>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"unavailable", undefined>;
+      readonly reason: SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Human-readable reason why the current builder/runtime cannot provide module graph functionality.">]>;
+      readonly error: OptionalSchema<SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Optional serializable error reported by the builder adapter.">]>, undefined>;
+    }, undefined>], undefined>;
+    readonly getGraphRevision: NumberSchema<undefined>;
+  }>> & ({
+    __internal_naming_error: "Operation \"storiesForFiles\" has internal: true but must be prefixed with \"_\"";
+  } | {
+    internal?: false;
+  });
+  readonly status: QueryDefinition<ModuleGraphServiceState, UndefinedSchema<undefined>, VariantSchema<"value", [ObjectSchema<{
+    readonly value: LiteralSchema<"booting", undefined>;
+  }, undefined>, ObjectSchema<{
+    readonly value: LiteralSchema<"ready", undefined>;
+  }, undefined>, ObjectSchema<{
+    readonly value: LiteralSchema<"error", undefined>;
+    readonly error: SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Serializable error describing why the module graph failed unexpectedly.">]>;
+  }, undefined>, ObjectSchema<{
+    readonly value: LiteralSchema<"unavailable", undefined>;
+    readonly reason: SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Human-readable reason why the current builder/runtime cannot provide module graph functionality.">]>;
+    readonly error: OptionalSchema<SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Optional serializable error reported by the builder adapter.">]>, undefined>;
+  }, undefined>], undefined>, {
+    readonly _applyGraphSnapshot: ObjectSchema<{
+      readonly storiesByFile: SchemaWithPipe<readonly [RecordSchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, RecordSchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, SchemaWithPipe<readonly [NumberSchema<undefined>, DescriptionAction<number, "Breadth-first-search depth: the shortest number of import edges between the source file and this story file.">]>, undefined>, undefined>, DescriptionAction<{
+        [x: string]: {
+          [x: string]: number;
+        };
+      }, "Complete relative reverse index keyed by story-index-style source file paths. Values map affected story-index-style story file paths to breadth-first-search depths.">]>;
+    }, undefined>;
+    readonly _applyGraphUpdate: ObjectSchema<{
+      readonly storiesByFile: SchemaWithPipe<readonly [RecordSchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, RecordSchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, SchemaWithPipe<readonly [NumberSchema<undefined>, DescriptionAction<number, "Breadth-first-search depth: the shortest number of import edges between the source file and this story file.">]>, undefined>, undefined>, DescriptionAction<{
+        [x: string]: {
+          [x: string]: number;
+        };
+      }, "Complete relative reverse index keyed by story-index-style source file paths. Values map affected story-index-style story file paths to breadth-first-search depths.">]>;
+      readonly bumpedStoryFiles: SchemaWithPipe<readonly [ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, undefined>, DescriptionAction<string[], "Story files whose graph changed, using story-index-style relative paths. Each listed file has its version incremented.">]>;
+    }, undefined>;
+    readonly _setStatus: VariantSchema<"value", [ObjectSchema<{
+      readonly value: LiteralSchema<"booting", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"ready", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"error", undefined>;
+      readonly error: SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Serializable error describing why the module graph failed unexpectedly.">]>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"unavailable", undefined>;
+      readonly reason: SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Human-readable reason why the current builder/runtime cannot provide module graph functionality.">]>;
+      readonly error: OptionalSchema<SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Optional serializable error reported by the builder adapter.">]>, undefined>;
+    }, undefined>], undefined>;
+    readonly _waitForSettledEngine: UndefinedSchema<undefined>;
+  }, {
+    readonly _applyGraphSnapshot: VoidSchema<undefined>;
+    readonly _applyGraphUpdate: VoidSchema<undefined>;
+    readonly _setStatus: VoidSchema<undefined>;
+    readonly _waitForSettledEngine: VoidSchema<undefined>;
+  }, QueryFunctions<{
+    readonly storiesForFiles: ObjectSchema<{
+      readonly files: SchemaWithPipe<readonly [ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Input source file path. Accepts absolute paths, story-index-style relative paths with `./`, or relative paths without `./`.">]>, undefined>, DescriptionAction<string[], "Source files to look up. Output arrays match this input order.">]>;
+    }, undefined>;
+    readonly status: UndefinedSchema<undefined>;
+    readonly graphRevision: OptionalSchema<ObjectSchema<{
+      readonly storyFiles: ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Story file to scope the watch to. Accepts absolute paths, story-index-style relative paths with `./`, or relative paths without `./`. Pass an empty array to watch nothing (returns 0).">]>, undefined>;
+    }, undefined>, undefined>;
+    readonly latestStoryChanges: UndefinedSchema<undefined>;
+    readonly getStatus: UndefinedSchema<undefined>;
+    readonly getGraphRevision: OptionalSchema<ObjectSchema<{
+      readonly storyFiles: ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Story file to scope the watch to. Accepts absolute paths, story-index-style relative paths with `./`, or relative paths without `./`. Pass an empty array to watch nothing (returns 0).">]>, undefined>;
+    }, undefined>, undefined>;
+  }, {
+    readonly storiesForFiles: ArraySchema<ArraySchema<ObjectSchema<{
+      readonly storyFile: SchemaWithPipe<readonly [SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, DescriptionAction<string, "Affected story file, returned in the same `./`-prefixed relative import-path format used by the story index.">]>;
+      readonly depth: SchemaWithPipe<readonly [NumberSchema<undefined>, DescriptionAction<number, "Breadth-first-search depth: the shortest number of import edges between the source file and this story file.">]>;
+    }, undefined>, undefined>, undefined>;
+    readonly status: VariantSchema<"value", [ObjectSchema<{
+      readonly value: LiteralSchema<"booting", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"ready", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"error", undefined>;
+      readonly error: SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Serializable error describing why the module graph failed unexpectedly.">]>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"unavailable", undefined>;
+      readonly reason: SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Human-readable reason why the current builder/runtime cannot provide module graph functionality.">]>;
+      readonly error: OptionalSchema<SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Optional serializable error reported by the builder adapter.">]>, undefined>;
+    }, undefined>], undefined>;
+    readonly graphRevision: NumberSchema<undefined>;
+    readonly latestStoryChanges: ObjectSchema<{
+      readonly revision: SchemaWithPipe<readonly [NumberSchema<undefined>, DescriptionAction<number, "Graph revision number for this latest story change set.">]>;
+      readonly storyFiles: SchemaWithPipe<readonly [ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, undefined>, DescriptionAction<string[], "Story-index-relative story files touched by the latest module graph change set.">]>;
+    }, undefined>;
+    readonly getStatus: VariantSchema<"value", [ObjectSchema<{
+      readonly value: LiteralSchema<"booting", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"ready", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"error", undefined>;
+      readonly error: SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Serializable error describing why the module graph failed unexpectedly.">]>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"unavailable", undefined>;
+      readonly reason: SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Human-readable reason why the current builder/runtime cannot provide module graph functionality.">]>;
+      readonly error: OptionalSchema<SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Optional serializable error reported by the builder adapter.">]>, undefined>;
+    }, undefined>], undefined>;
+    readonly getGraphRevision: NumberSchema<undefined>;
+  }>> & ({
+    __internal_naming_error: "Operation \"status\" has internal: true but must be prefixed with \"_\"";
+  } | {
+    internal?: false;
+  });
+  readonly graphRevision: QueryDefinition<ModuleGraphServiceState, OptionalSchema<ObjectSchema<{
+    readonly storyFiles: ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Story file to scope the watch to. Accepts absolute paths, story-index-style relative paths with `./`, or relative paths without `./`. Pass an empty array to watch nothing (returns 0).">]>, undefined>;
+  }, undefined>, undefined>, NumberSchema<undefined>, {
+    readonly _applyGraphSnapshot: ObjectSchema<{
+      readonly storiesByFile: SchemaWithPipe<readonly [RecordSchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, RecordSchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, SchemaWithPipe<readonly [NumberSchema<undefined>, DescriptionAction<number, "Breadth-first-search depth: the shortest number of import edges between the source file and this story file.">]>, undefined>, undefined>, DescriptionAction<{
+        [x: string]: {
+          [x: string]: number;
+        };
+      }, "Complete relative reverse index keyed by story-index-style source file paths. Values map affected story-index-style story file paths to breadth-first-search depths.">]>;
+    }, undefined>;
+    readonly _applyGraphUpdate: ObjectSchema<{
+      readonly storiesByFile: SchemaWithPipe<readonly [RecordSchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, RecordSchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, SchemaWithPipe<readonly [NumberSchema<undefined>, DescriptionAction<number, "Breadth-first-search depth: the shortest number of import edges between the source file and this story file.">]>, undefined>, undefined>, DescriptionAction<{
+        [x: string]: {
+          [x: string]: number;
+        };
+      }, "Complete relative reverse index keyed by story-index-style source file paths. Values map affected story-index-style story file paths to breadth-first-search depths.">]>;
+      readonly bumpedStoryFiles: SchemaWithPipe<readonly [ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, undefined>, DescriptionAction<string[], "Story files whose graph changed, using story-index-style relative paths. Each listed file has its version incremented.">]>;
+    }, undefined>;
+    readonly _setStatus: VariantSchema<"value", [ObjectSchema<{
+      readonly value: LiteralSchema<"booting", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"ready", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"error", undefined>;
+      readonly error: SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Serializable error describing why the module graph failed unexpectedly.">]>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"unavailable", undefined>;
+      readonly reason: SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Human-readable reason why the current builder/runtime cannot provide module graph functionality.">]>;
+      readonly error: OptionalSchema<SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Optional serializable error reported by the builder adapter.">]>, undefined>;
+    }, undefined>], undefined>;
+    readonly _waitForSettledEngine: UndefinedSchema<undefined>;
+  }, {
+    readonly _applyGraphSnapshot: VoidSchema<undefined>;
+    readonly _applyGraphUpdate: VoidSchema<undefined>;
+    readonly _setStatus: VoidSchema<undefined>;
+    readonly _waitForSettledEngine: VoidSchema<undefined>;
+  }, QueryFunctions<{
+    readonly storiesForFiles: ObjectSchema<{
+      readonly files: SchemaWithPipe<readonly [ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Input source file path. Accepts absolute paths, story-index-style relative paths with `./`, or relative paths without `./`.">]>, undefined>, DescriptionAction<string[], "Source files to look up. Output arrays match this input order.">]>;
+    }, undefined>;
+    readonly status: UndefinedSchema<undefined>;
+    readonly graphRevision: OptionalSchema<ObjectSchema<{
+      readonly storyFiles: ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Story file to scope the watch to. Accepts absolute paths, story-index-style relative paths with `./`, or relative paths without `./`. Pass an empty array to watch nothing (returns 0).">]>, undefined>;
+    }, undefined>, undefined>;
+    readonly latestStoryChanges: UndefinedSchema<undefined>;
+    readonly getStatus: UndefinedSchema<undefined>;
+    readonly getGraphRevision: OptionalSchema<ObjectSchema<{
+      readonly storyFiles: ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Story file to scope the watch to. Accepts absolute paths, story-index-style relative paths with `./`, or relative paths without `./`. Pass an empty array to watch nothing (returns 0).">]>, undefined>;
+    }, undefined>, undefined>;
+  }, {
+    readonly storiesForFiles: ArraySchema<ArraySchema<ObjectSchema<{
+      readonly storyFile: SchemaWithPipe<readonly [SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, DescriptionAction<string, "Affected story file, returned in the same `./`-prefixed relative import-path format used by the story index.">]>;
+      readonly depth: SchemaWithPipe<readonly [NumberSchema<undefined>, DescriptionAction<number, "Breadth-first-search depth: the shortest number of import edges between the source file and this story file.">]>;
+    }, undefined>, undefined>, undefined>;
+    readonly status: VariantSchema<"value", [ObjectSchema<{
+      readonly value: LiteralSchema<"booting", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"ready", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"error", undefined>;
+      readonly error: SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Serializable error describing why the module graph failed unexpectedly.">]>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"unavailable", undefined>;
+      readonly reason: SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Human-readable reason why the current builder/runtime cannot provide module graph functionality.">]>;
+      readonly error: OptionalSchema<SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Optional serializable error reported by the builder adapter.">]>, undefined>;
+    }, undefined>], undefined>;
+    readonly graphRevision: NumberSchema<undefined>;
+    readonly latestStoryChanges: ObjectSchema<{
+      readonly revision: SchemaWithPipe<readonly [NumberSchema<undefined>, DescriptionAction<number, "Graph revision number for this latest story change set.">]>;
+      readonly storyFiles: SchemaWithPipe<readonly [ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, undefined>, DescriptionAction<string[], "Story-index-relative story files touched by the latest module graph change set.">]>;
+    }, undefined>;
+    readonly getStatus: VariantSchema<"value", [ObjectSchema<{
+      readonly value: LiteralSchema<"booting", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"ready", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"error", undefined>;
+      readonly error: SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Serializable error describing why the module graph failed unexpectedly.">]>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"unavailable", undefined>;
+      readonly reason: SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Human-readable reason why the current builder/runtime cannot provide module graph functionality.">]>;
+      readonly error: OptionalSchema<SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Optional serializable error reported by the builder adapter.">]>, undefined>;
+    }, undefined>], undefined>;
+    readonly getGraphRevision: NumberSchema<undefined>;
+  }>> & ({
+    __internal_naming_error: "Operation \"graphRevision\" has internal: true but must be prefixed with \"_\"";
+  } | {
+    internal?: false;
+  });
+  readonly latestStoryChanges: QueryDefinition<ModuleGraphServiceState, UndefinedSchema<undefined>, ObjectSchema<{
+    readonly revision: SchemaWithPipe<readonly [NumberSchema<undefined>, DescriptionAction<number, "Graph revision number for this latest story change set.">]>;
+    readonly storyFiles: SchemaWithPipe<readonly [ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, undefined>, DescriptionAction<string[], "Story-index-relative story files touched by the latest module graph change set.">]>;
+  }, undefined>, {
+    readonly _applyGraphSnapshot: ObjectSchema<{
+      readonly storiesByFile: SchemaWithPipe<readonly [RecordSchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, RecordSchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, SchemaWithPipe<readonly [NumberSchema<undefined>, DescriptionAction<number, "Breadth-first-search depth: the shortest number of import edges between the source file and this story file.">]>, undefined>, undefined>, DescriptionAction<{
+        [x: string]: {
+          [x: string]: number;
+        };
+      }, "Complete relative reverse index keyed by story-index-style source file paths. Values map affected story-index-style story file paths to breadth-first-search depths.">]>;
+    }, undefined>;
+    readonly _applyGraphUpdate: ObjectSchema<{
+      readonly storiesByFile: SchemaWithPipe<readonly [RecordSchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, RecordSchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, SchemaWithPipe<readonly [NumberSchema<undefined>, DescriptionAction<number, "Breadth-first-search depth: the shortest number of import edges between the source file and this story file.">]>, undefined>, undefined>, DescriptionAction<{
+        [x: string]: {
+          [x: string]: number;
+        };
+      }, "Complete relative reverse index keyed by story-index-style source file paths. Values map affected story-index-style story file paths to breadth-first-search depths.">]>;
+      readonly bumpedStoryFiles: SchemaWithPipe<readonly [ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, undefined>, DescriptionAction<string[], "Story files whose graph changed, using story-index-style relative paths. Each listed file has its version incremented.">]>;
+    }, undefined>;
+    readonly _setStatus: VariantSchema<"value", [ObjectSchema<{
+      readonly value: LiteralSchema<"booting", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"ready", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"error", undefined>;
+      readonly error: SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Serializable error describing why the module graph failed unexpectedly.">]>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"unavailable", undefined>;
+      readonly reason: SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Human-readable reason why the current builder/runtime cannot provide module graph functionality.">]>;
+      readonly error: OptionalSchema<SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Optional serializable error reported by the builder adapter.">]>, undefined>;
+    }, undefined>], undefined>;
+    readonly _waitForSettledEngine: UndefinedSchema<undefined>;
+  }, {
+    readonly _applyGraphSnapshot: VoidSchema<undefined>;
+    readonly _applyGraphUpdate: VoidSchema<undefined>;
+    readonly _setStatus: VoidSchema<undefined>;
+    readonly _waitForSettledEngine: VoidSchema<undefined>;
+  }, QueryFunctions<{
+    readonly storiesForFiles: ObjectSchema<{
+      readonly files: SchemaWithPipe<readonly [ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Input source file path. Accepts absolute paths, story-index-style relative paths with `./`, or relative paths without `./`.">]>, undefined>, DescriptionAction<string[], "Source files to look up. Output arrays match this input order.">]>;
+    }, undefined>;
+    readonly status: UndefinedSchema<undefined>;
+    readonly graphRevision: OptionalSchema<ObjectSchema<{
+      readonly storyFiles: ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Story file to scope the watch to. Accepts absolute paths, story-index-style relative paths with `./`, or relative paths without `./`. Pass an empty array to watch nothing (returns 0).">]>, undefined>;
+    }, undefined>, undefined>;
+    readonly latestStoryChanges: UndefinedSchema<undefined>;
+    readonly getStatus: UndefinedSchema<undefined>;
+    readonly getGraphRevision: OptionalSchema<ObjectSchema<{
+      readonly storyFiles: ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Story file to scope the watch to. Accepts absolute paths, story-index-style relative paths with `./`, or relative paths without `./`. Pass an empty array to watch nothing (returns 0).">]>, undefined>;
+    }, undefined>, undefined>;
+  }, {
+    readonly storiesForFiles: ArraySchema<ArraySchema<ObjectSchema<{
+      readonly storyFile: SchemaWithPipe<readonly [SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, DescriptionAction<string, "Affected story file, returned in the same `./`-prefixed relative import-path format used by the story index.">]>;
+      readonly depth: SchemaWithPipe<readonly [NumberSchema<undefined>, DescriptionAction<number, "Breadth-first-search depth: the shortest number of import edges between the source file and this story file.">]>;
+    }, undefined>, undefined>, undefined>;
+    readonly status: VariantSchema<"value", [ObjectSchema<{
+      readonly value: LiteralSchema<"booting", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"ready", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"error", undefined>;
+      readonly error: SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Serializable error describing why the module graph failed unexpectedly.">]>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"unavailable", undefined>;
+      readonly reason: SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Human-readable reason why the current builder/runtime cannot provide module graph functionality.">]>;
+      readonly error: OptionalSchema<SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Optional serializable error reported by the builder adapter.">]>, undefined>;
+    }, undefined>], undefined>;
+    readonly graphRevision: NumberSchema<undefined>;
+    readonly latestStoryChanges: ObjectSchema<{
+      readonly revision: SchemaWithPipe<readonly [NumberSchema<undefined>, DescriptionAction<number, "Graph revision number for this latest story change set.">]>;
+      readonly storyFiles: SchemaWithPipe<readonly [ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, undefined>, DescriptionAction<string[], "Story-index-relative story files touched by the latest module graph change set.">]>;
+    }, undefined>;
+    readonly getStatus: VariantSchema<"value", [ObjectSchema<{
+      readonly value: LiteralSchema<"booting", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"ready", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"error", undefined>;
+      readonly error: SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Serializable error describing why the module graph failed unexpectedly.">]>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"unavailable", undefined>;
+      readonly reason: SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Human-readable reason why the current builder/runtime cannot provide module graph functionality.">]>;
+      readonly error: OptionalSchema<SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Optional serializable error reported by the builder adapter.">]>, undefined>;
+    }, undefined>], undefined>;
+    readonly getGraphRevision: NumberSchema<undefined>;
+  }>> & ({
+    __internal_naming_error: "Operation \"latestStoryChanges\" has internal: true but must be prefixed with \"_\"";
+  } | {
+    internal?: false;
+  });
+  readonly getStatus: QueryDefinition<ModuleGraphServiceState, UndefinedSchema<undefined>, VariantSchema<"value", [ObjectSchema<{
+    readonly value: LiteralSchema<"booting", undefined>;
+  }, undefined>, ObjectSchema<{
+    readonly value: LiteralSchema<"ready", undefined>;
+  }, undefined>, ObjectSchema<{
+    readonly value: LiteralSchema<"error", undefined>;
+    readonly error: SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Serializable error describing why the module graph failed unexpectedly.">]>;
+  }, undefined>, ObjectSchema<{
+    readonly value: LiteralSchema<"unavailable", undefined>;
+    readonly reason: SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Human-readable reason why the current builder/runtime cannot provide module graph functionality.">]>;
+    readonly error: OptionalSchema<SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Optional serializable error reported by the builder adapter.">]>, undefined>;
+  }, undefined>], undefined>, {
+    readonly _applyGraphSnapshot: ObjectSchema<{
+      readonly storiesByFile: SchemaWithPipe<readonly [RecordSchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, RecordSchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, SchemaWithPipe<readonly [NumberSchema<undefined>, DescriptionAction<number, "Breadth-first-search depth: the shortest number of import edges between the source file and this story file.">]>, undefined>, undefined>, DescriptionAction<{
+        [x: string]: {
+          [x: string]: number;
+        };
+      }, "Complete relative reverse index keyed by story-index-style source file paths. Values map affected story-index-style story file paths to breadth-first-search depths.">]>;
+    }, undefined>;
+    readonly _applyGraphUpdate: ObjectSchema<{
+      readonly storiesByFile: SchemaWithPipe<readonly [RecordSchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, RecordSchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, SchemaWithPipe<readonly [NumberSchema<undefined>, DescriptionAction<number, "Breadth-first-search depth: the shortest number of import edges between the source file and this story file.">]>, undefined>, undefined>, DescriptionAction<{
+        [x: string]: {
+          [x: string]: number;
+        };
+      }, "Complete relative reverse index keyed by story-index-style source file paths. Values map affected story-index-style story file paths to breadth-first-search depths.">]>;
+      readonly bumpedStoryFiles: SchemaWithPipe<readonly [ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, undefined>, DescriptionAction<string[], "Story files whose graph changed, using story-index-style relative paths. Each listed file has its version incremented.">]>;
+    }, undefined>;
+    readonly _setStatus: VariantSchema<"value", [ObjectSchema<{
+      readonly value: LiteralSchema<"booting", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"ready", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"error", undefined>;
+      readonly error: SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Serializable error describing why the module graph failed unexpectedly.">]>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"unavailable", undefined>;
+      readonly reason: SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Human-readable reason why the current builder/runtime cannot provide module graph functionality.">]>;
+      readonly error: OptionalSchema<SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Optional serializable error reported by the builder adapter.">]>, undefined>;
+    }, undefined>], undefined>;
+    readonly _waitForSettledEngine: UndefinedSchema<undefined>;
+  }, {
+    readonly _applyGraphSnapshot: VoidSchema<undefined>;
+    readonly _applyGraphUpdate: VoidSchema<undefined>;
+    readonly _setStatus: VoidSchema<undefined>;
+    readonly _waitForSettledEngine: VoidSchema<undefined>;
+  }, QueryFunctions<{
+    readonly storiesForFiles: ObjectSchema<{
+      readonly files: SchemaWithPipe<readonly [ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Input source file path. Accepts absolute paths, story-index-style relative paths with `./`, or relative paths without `./`.">]>, undefined>, DescriptionAction<string[], "Source files to look up. Output arrays match this input order.">]>;
+    }, undefined>;
+    readonly status: UndefinedSchema<undefined>;
+    readonly graphRevision: OptionalSchema<ObjectSchema<{
+      readonly storyFiles: ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Story file to scope the watch to. Accepts absolute paths, story-index-style relative paths with `./`, or relative paths without `./`. Pass an empty array to watch nothing (returns 0).">]>, undefined>;
+    }, undefined>, undefined>;
+    readonly latestStoryChanges: UndefinedSchema<undefined>;
+    readonly getStatus: UndefinedSchema<undefined>;
+    readonly getGraphRevision: OptionalSchema<ObjectSchema<{
+      readonly storyFiles: ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Story file to scope the watch to. Accepts absolute paths, story-index-style relative paths with `./`, or relative paths without `./`. Pass an empty array to watch nothing (returns 0).">]>, undefined>;
+    }, undefined>, undefined>;
+  }, {
+    readonly storiesForFiles: ArraySchema<ArraySchema<ObjectSchema<{
+      readonly storyFile: SchemaWithPipe<readonly [SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, DescriptionAction<string, "Affected story file, returned in the same `./`-prefixed relative import-path format used by the story index.">]>;
+      readonly depth: SchemaWithPipe<readonly [NumberSchema<undefined>, DescriptionAction<number, "Breadth-first-search depth: the shortest number of import edges between the source file and this story file.">]>;
+    }, undefined>, undefined>, undefined>;
+    readonly status: VariantSchema<"value", [ObjectSchema<{
+      readonly value: LiteralSchema<"booting", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"ready", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"error", undefined>;
+      readonly error: SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Serializable error describing why the module graph failed unexpectedly.">]>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"unavailable", undefined>;
+      readonly reason: SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Human-readable reason why the current builder/runtime cannot provide module graph functionality.">]>;
+      readonly error: OptionalSchema<SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Optional serializable error reported by the builder adapter.">]>, undefined>;
+    }, undefined>], undefined>;
+    readonly graphRevision: NumberSchema<undefined>;
+    readonly latestStoryChanges: ObjectSchema<{
+      readonly revision: SchemaWithPipe<readonly [NumberSchema<undefined>, DescriptionAction<number, "Graph revision number for this latest story change set.">]>;
+      readonly storyFiles: SchemaWithPipe<readonly [ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, undefined>, DescriptionAction<string[], "Story-index-relative story files touched by the latest module graph change set.">]>;
+    }, undefined>;
+    readonly getStatus: VariantSchema<"value", [ObjectSchema<{
+      readonly value: LiteralSchema<"booting", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"ready", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"error", undefined>;
+      readonly error: SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Serializable error describing why the module graph failed unexpectedly.">]>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"unavailable", undefined>;
+      readonly reason: SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Human-readable reason why the current builder/runtime cannot provide module graph functionality.">]>;
+      readonly error: OptionalSchema<SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Optional serializable error reported by the builder adapter.">]>, undefined>;
+    }, undefined>], undefined>;
+    readonly getGraphRevision: NumberSchema<undefined>;
+  }>> & ({
+    __internal_naming_error: "Operation \"getStatus\" has internal: true but must be prefixed with \"_\"";
+  } | {
+    internal?: false;
+  });
+  readonly getGraphRevision: QueryDefinition<ModuleGraphServiceState, OptionalSchema<ObjectSchema<{
+    readonly storyFiles: ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Story file to scope the watch to. Accepts absolute paths, story-index-style relative paths with `./`, or relative paths without `./`. Pass an empty array to watch nothing (returns 0).">]>, undefined>;
+  }, undefined>, undefined>, NumberSchema<undefined>, {
+    readonly _applyGraphSnapshot: ObjectSchema<{
+      readonly storiesByFile: SchemaWithPipe<readonly [RecordSchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, RecordSchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, SchemaWithPipe<readonly [NumberSchema<undefined>, DescriptionAction<number, "Breadth-first-search depth: the shortest number of import edges between the source file and this story file.">]>, undefined>, undefined>, DescriptionAction<{
+        [x: string]: {
+          [x: string]: number;
+        };
+      }, "Complete relative reverse index keyed by story-index-style source file paths. Values map affected story-index-style story file paths to breadth-first-search depths.">]>;
+    }, undefined>;
+    readonly _applyGraphUpdate: ObjectSchema<{
+      readonly storiesByFile: SchemaWithPipe<readonly [RecordSchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, RecordSchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, SchemaWithPipe<readonly [NumberSchema<undefined>, DescriptionAction<number, "Breadth-first-search depth: the shortest number of import edges between the source file and this story file.">]>, undefined>, undefined>, DescriptionAction<{
+        [x: string]: {
+          [x: string]: number;
+        };
+      }, "Complete relative reverse index keyed by story-index-style source file paths. Values map affected story-index-style story file paths to breadth-first-search depths.">]>;
+      readonly bumpedStoryFiles: SchemaWithPipe<readonly [ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, undefined>, DescriptionAction<string[], "Story files whose graph changed, using story-index-style relative paths. Each listed file has its version incremented.">]>;
+    }, undefined>;
+    readonly _setStatus: VariantSchema<"value", [ObjectSchema<{
+      readonly value: LiteralSchema<"booting", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"ready", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"error", undefined>;
+      readonly error: SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Serializable error describing why the module graph failed unexpectedly.">]>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"unavailable", undefined>;
+      readonly reason: SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Human-readable reason why the current builder/runtime cannot provide module graph functionality.">]>;
+      readonly error: OptionalSchema<SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Optional serializable error reported by the builder adapter.">]>, undefined>;
+    }, undefined>], undefined>;
+    readonly _waitForSettledEngine: UndefinedSchema<undefined>;
+  }, {
+    readonly _applyGraphSnapshot: VoidSchema<undefined>;
+    readonly _applyGraphUpdate: VoidSchema<undefined>;
+    readonly _setStatus: VoidSchema<undefined>;
+    readonly _waitForSettledEngine: VoidSchema<undefined>;
+  }, QueryFunctions<{
+    readonly storiesForFiles: ObjectSchema<{
+      readonly files: SchemaWithPipe<readonly [ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Input source file path. Accepts absolute paths, story-index-style relative paths with `./`, or relative paths without `./`.">]>, undefined>, DescriptionAction<string[], "Source files to look up. Output arrays match this input order.">]>;
+    }, undefined>;
+    readonly status: UndefinedSchema<undefined>;
+    readonly graphRevision: OptionalSchema<ObjectSchema<{
+      readonly storyFiles: ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Story file to scope the watch to. Accepts absolute paths, story-index-style relative paths with `./`, or relative paths without `./`. Pass an empty array to watch nothing (returns 0).">]>, undefined>;
+    }, undefined>, undefined>;
+    readonly latestStoryChanges: UndefinedSchema<undefined>;
+    readonly getStatus: UndefinedSchema<undefined>;
+    readonly getGraphRevision: OptionalSchema<ObjectSchema<{
+      readonly storyFiles: ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Story file to scope the watch to. Accepts absolute paths, story-index-style relative paths with `./`, or relative paths without `./`. Pass an empty array to watch nothing (returns 0).">]>, undefined>;
+    }, undefined>, undefined>;
+  }, {
+    readonly storiesForFiles: ArraySchema<ArraySchema<ObjectSchema<{
+      readonly storyFile: SchemaWithPipe<readonly [SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, DescriptionAction<string, "Affected story file, returned in the same `./`-prefixed relative import-path format used by the story index.">]>;
+      readonly depth: SchemaWithPipe<readonly [NumberSchema<undefined>, DescriptionAction<number, "Breadth-first-search depth: the shortest number of import edges between the source file and this story file.">]>;
+    }, undefined>, undefined>, undefined>;
+    readonly status: VariantSchema<"value", [ObjectSchema<{
+      readonly value: LiteralSchema<"booting", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"ready", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"error", undefined>;
+      readonly error: SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Serializable error describing why the module graph failed unexpectedly.">]>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"unavailable", undefined>;
+      readonly reason: SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Human-readable reason why the current builder/runtime cannot provide module graph functionality.">]>;
+      readonly error: OptionalSchema<SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Optional serializable error reported by the builder adapter.">]>, undefined>;
+    }, undefined>], undefined>;
+    readonly graphRevision: NumberSchema<undefined>;
+    readonly latestStoryChanges: ObjectSchema<{
+      readonly revision: SchemaWithPipe<readonly [NumberSchema<undefined>, DescriptionAction<number, "Graph revision number for this latest story change set.">]>;
+      readonly storyFiles: SchemaWithPipe<readonly [ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, undefined>, DescriptionAction<string[], "Story-index-relative story files touched by the latest module graph change set.">]>;
+    }, undefined>;
+    readonly getStatus: VariantSchema<"value", [ObjectSchema<{
+      readonly value: LiteralSchema<"booting", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"ready", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"error", undefined>;
+      readonly error: SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Serializable error describing why the module graph failed unexpectedly.">]>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"unavailable", undefined>;
+      readonly reason: SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Human-readable reason why the current builder/runtime cannot provide module graph functionality.">]>;
+      readonly error: OptionalSchema<SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Optional serializable error reported by the builder adapter.">]>, undefined>;
+    }, undefined>], undefined>;
+    readonly getGraphRevision: NumberSchema<undefined>;
+  }>> & ({
+    __internal_naming_error: "Operation \"getGraphRevision\" has internal: true but must be prefixed with \"_\"";
+  } | {
+    internal?: false;
+  });
+} & {
+  readonly storiesForFiles: {
+    output: ArraySchema<ArraySchema<ObjectSchema<{
+      readonly storyFile: SchemaWithPipe<readonly [SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, DescriptionAction<string, "Affected story file, returned in the same `./`-prefixed relative import-path format used by the story index.">]>;
+      readonly depth: SchemaWithPipe<readonly [NumberSchema<undefined>, DescriptionAction<number, "Breadth-first-search depth: the shortest number of import edges between the source file and this story file.">]>;
+    }, undefined>, undefined>, undefined>;
+  };
+  readonly status: {
+    output: VariantSchema<"value", [ObjectSchema<{
+      readonly value: LiteralSchema<"booting", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"ready", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"error", undefined>;
+      readonly error: SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Serializable error describing why the module graph failed unexpectedly.">]>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"unavailable", undefined>;
+      readonly reason: SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Human-readable reason why the current builder/runtime cannot provide module graph functionality.">]>;
+      readonly error: OptionalSchema<SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Optional serializable error reported by the builder adapter.">]>, undefined>;
+    }, undefined>], undefined>;
+  };
+  readonly graphRevision: {
+    output: NumberSchema<undefined>;
+  };
+  readonly latestStoryChanges: {
+    output: ObjectSchema<{
+      readonly revision: SchemaWithPipe<readonly [NumberSchema<undefined>, DescriptionAction<number, "Graph revision number for this latest story change set.">]>;
+      readonly storyFiles: SchemaWithPipe<readonly [ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, undefined>, DescriptionAction<string[], "Story-index-relative story files touched by the latest module graph change set.">]>;
+    }, undefined>;
+  };
+  readonly getStatus: {
+    output: VariantSchema<"value", [ObjectSchema<{
+      readonly value: LiteralSchema<"booting", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"ready", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"error", undefined>;
+      readonly error: SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Serializable error describing why the module graph failed unexpectedly.">]>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"unavailable", undefined>;
+      readonly reason: SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Human-readable reason why the current builder/runtime cannot provide module graph functionality.">]>;
+      readonly error: OptionalSchema<SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Optional serializable error reported by the builder adapter.">]>, undefined>;
+    }, undefined>], undefined>;
+  };
+  readonly getGraphRevision: {
+    output: NumberSchema<undefined>;
+  };
+}, {
+  readonly _applyGraphSnapshot: CommandDefinition<ModuleGraphServiceState, ObjectSchema<{
+    readonly storiesByFile: SchemaWithPipe<readonly [RecordSchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, RecordSchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, SchemaWithPipe<readonly [NumberSchema<undefined>, DescriptionAction<number, "Breadth-first-search depth: the shortest number of import edges between the source file and this story file.">]>, undefined>, undefined>, DescriptionAction<{
+      [x: string]: {
+        [x: string]: number;
+      };
+    }, "Complete relative reverse index keyed by story-index-style source file paths. Values map affected story-index-style story file paths to breadth-first-search depths.">]>;
+  }, undefined>, VoidSchema<undefined>, {
+    readonly _applyGraphSnapshot: ObjectSchema<{
+      readonly storiesByFile: SchemaWithPipe<readonly [RecordSchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, RecordSchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, SchemaWithPipe<readonly [NumberSchema<undefined>, DescriptionAction<number, "Breadth-first-search depth: the shortest number of import edges between the source file and this story file.">]>, undefined>, undefined>, DescriptionAction<{
+        [x: string]: {
+          [x: string]: number;
+        };
+      }, "Complete relative reverse index keyed by story-index-style source file paths. Values map affected story-index-style story file paths to breadth-first-search depths.">]>;
+    }, undefined>;
+    readonly _applyGraphUpdate: ObjectSchema<{
+      readonly storiesByFile: SchemaWithPipe<readonly [RecordSchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, RecordSchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, SchemaWithPipe<readonly [NumberSchema<undefined>, DescriptionAction<number, "Breadth-first-search depth: the shortest number of import edges between the source file and this story file.">]>, undefined>, undefined>, DescriptionAction<{
+        [x: string]: {
+          [x: string]: number;
+        };
+      }, "Complete relative reverse index keyed by story-index-style source file paths. Values map affected story-index-style story file paths to breadth-first-search depths.">]>;
+      readonly bumpedStoryFiles: SchemaWithPipe<readonly [ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, undefined>, DescriptionAction<string[], "Story files whose graph changed, using story-index-style relative paths. Each listed file has its version incremented.">]>;
+    }, undefined>;
+    readonly _setStatus: VariantSchema<"value", [ObjectSchema<{
+      readonly value: LiteralSchema<"booting", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"ready", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"error", undefined>;
+      readonly error: SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Serializable error describing why the module graph failed unexpectedly.">]>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"unavailable", undefined>;
+      readonly reason: SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Human-readable reason why the current builder/runtime cannot provide module graph functionality.">]>;
+      readonly error: OptionalSchema<SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Optional serializable error reported by the builder adapter.">]>, undefined>;
+    }, undefined>], undefined>;
+    readonly _waitForSettledEngine: UndefinedSchema<undefined>;
+  }, {
+    readonly _applyGraphSnapshot: VoidSchema<undefined>;
+    readonly _applyGraphUpdate: VoidSchema<undefined>;
+    readonly _setStatus: VoidSchema<undefined>;
+    readonly _waitForSettledEngine: VoidSchema<undefined>;
+  }, QueryFunctions<{
+    readonly storiesForFiles: ObjectSchema<{
+      readonly files: SchemaWithPipe<readonly [ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Input source file path. Accepts absolute paths, story-index-style relative paths with `./`, or relative paths without `./`.">]>, undefined>, DescriptionAction<string[], "Source files to look up. Output arrays match this input order.">]>;
+    }, undefined>;
+    readonly status: UndefinedSchema<undefined>;
+    readonly graphRevision: OptionalSchema<ObjectSchema<{
+      readonly storyFiles: ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Story file to scope the watch to. Accepts absolute paths, story-index-style relative paths with `./`, or relative paths without `./`. Pass an empty array to watch nothing (returns 0).">]>, undefined>;
+    }, undefined>, undefined>;
+    readonly latestStoryChanges: UndefinedSchema<undefined>;
+    readonly getStatus: UndefinedSchema<undefined>;
+    readonly getGraphRevision: OptionalSchema<ObjectSchema<{
+      readonly storyFiles: ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Story file to scope the watch to. Accepts absolute paths, story-index-style relative paths with `./`, or relative paths without `./`. Pass an empty array to watch nothing (returns 0).">]>, undefined>;
+    }, undefined>, undefined>;
+  }, {
+    readonly storiesForFiles: ArraySchema<ArraySchema<ObjectSchema<{
+      readonly storyFile: SchemaWithPipe<readonly [SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, DescriptionAction<string, "Affected story file, returned in the same `./`-prefixed relative import-path format used by the story index.">]>;
+      readonly depth: SchemaWithPipe<readonly [NumberSchema<undefined>, DescriptionAction<number, "Breadth-first-search depth: the shortest number of import edges between the source file and this story file.">]>;
+    }, undefined>, undefined>, undefined>;
+    readonly status: VariantSchema<"value", [ObjectSchema<{
+      readonly value: LiteralSchema<"booting", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"ready", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"error", undefined>;
+      readonly error: SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Serializable error describing why the module graph failed unexpectedly.">]>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"unavailable", undefined>;
+      readonly reason: SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Human-readable reason why the current builder/runtime cannot provide module graph functionality.">]>;
+      readonly error: OptionalSchema<SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Optional serializable error reported by the builder adapter.">]>, undefined>;
+    }, undefined>], undefined>;
+    readonly graphRevision: NumberSchema<undefined>;
+    readonly latestStoryChanges: ObjectSchema<{
+      readonly revision: SchemaWithPipe<readonly [NumberSchema<undefined>, DescriptionAction<number, "Graph revision number for this latest story change set.">]>;
+      readonly storyFiles: SchemaWithPipe<readonly [ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, undefined>, DescriptionAction<string[], "Story-index-relative story files touched by the latest module graph change set.">]>;
+    }, undefined>;
+    readonly getStatus: VariantSchema<"value", [ObjectSchema<{
+      readonly value: LiteralSchema<"booting", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"ready", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"error", undefined>;
+      readonly error: SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Serializable error describing why the module graph failed unexpectedly.">]>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"unavailable", undefined>;
+      readonly reason: SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Human-readable reason why the current builder/runtime cannot provide module graph functionality.">]>;
+      readonly error: OptionalSchema<SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Optional serializable error reported by the builder adapter.">]>, undefined>;
+    }, undefined>], undefined>;
+    readonly getGraphRevision: NumberSchema<undefined>;
+  }>> & ({
+    __internal_naming_error: "Operation \"_applyGraphSnapshot\" is prefixed with \"_\" and must set internal: true";
+  } | {
+    internal: true;
+  });
+  readonly _applyGraphUpdate: CommandDefinition<ModuleGraphServiceState, ObjectSchema<{
+    readonly storiesByFile: SchemaWithPipe<readonly [RecordSchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, RecordSchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, SchemaWithPipe<readonly [NumberSchema<undefined>, DescriptionAction<number, "Breadth-first-search depth: the shortest number of import edges between the source file and this story file.">]>, undefined>, undefined>, DescriptionAction<{
+      [x: string]: {
+        [x: string]: number;
+      };
+    }, "Complete relative reverse index keyed by story-index-style source file paths. Values map affected story-index-style story file paths to breadth-first-search depths.">]>;
+    readonly bumpedStoryFiles: SchemaWithPipe<readonly [ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, undefined>, DescriptionAction<string[], "Story files whose graph changed, using story-index-style relative paths. Each listed file has its version incremented.">]>;
+  }, undefined>, VoidSchema<undefined>, {
+    readonly _applyGraphSnapshot: ObjectSchema<{
+      readonly storiesByFile: SchemaWithPipe<readonly [RecordSchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, RecordSchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, SchemaWithPipe<readonly [NumberSchema<undefined>, DescriptionAction<number, "Breadth-first-search depth: the shortest number of import edges between the source file and this story file.">]>, undefined>, undefined>, DescriptionAction<{
+        [x: string]: {
+          [x: string]: number;
+        };
+      }, "Complete relative reverse index keyed by story-index-style source file paths. Values map affected story-index-style story file paths to breadth-first-search depths.">]>;
+    }, undefined>;
+    readonly _applyGraphUpdate: ObjectSchema<{
+      readonly storiesByFile: SchemaWithPipe<readonly [RecordSchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, RecordSchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, SchemaWithPipe<readonly [NumberSchema<undefined>, DescriptionAction<number, "Breadth-first-search depth: the shortest number of import edges between the source file and this story file.">]>, undefined>, undefined>, DescriptionAction<{
+        [x: string]: {
+          [x: string]: number;
+        };
+      }, "Complete relative reverse index keyed by story-index-style source file paths. Values map affected story-index-style story file paths to breadth-first-search depths.">]>;
+      readonly bumpedStoryFiles: SchemaWithPipe<readonly [ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, undefined>, DescriptionAction<string[], "Story files whose graph changed, using story-index-style relative paths. Each listed file has its version incremented.">]>;
+    }, undefined>;
+    readonly _setStatus: VariantSchema<"value", [ObjectSchema<{
+      readonly value: LiteralSchema<"booting", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"ready", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"error", undefined>;
+      readonly error: SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Serializable error describing why the module graph failed unexpectedly.">]>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"unavailable", undefined>;
+      readonly reason: SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Human-readable reason why the current builder/runtime cannot provide module graph functionality.">]>;
+      readonly error: OptionalSchema<SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Optional serializable error reported by the builder adapter.">]>, undefined>;
+    }, undefined>], undefined>;
+    readonly _waitForSettledEngine: UndefinedSchema<undefined>;
+  }, {
+    readonly _applyGraphSnapshot: VoidSchema<undefined>;
+    readonly _applyGraphUpdate: VoidSchema<undefined>;
+    readonly _setStatus: VoidSchema<undefined>;
+    readonly _waitForSettledEngine: VoidSchema<undefined>;
+  }, QueryFunctions<{
+    readonly storiesForFiles: ObjectSchema<{
+      readonly files: SchemaWithPipe<readonly [ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Input source file path. Accepts absolute paths, story-index-style relative paths with `./`, or relative paths without `./`.">]>, undefined>, DescriptionAction<string[], "Source files to look up. Output arrays match this input order.">]>;
+    }, undefined>;
+    readonly status: UndefinedSchema<undefined>;
+    readonly graphRevision: OptionalSchema<ObjectSchema<{
+      readonly storyFiles: ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Story file to scope the watch to. Accepts absolute paths, story-index-style relative paths with `./`, or relative paths without `./`. Pass an empty array to watch nothing (returns 0).">]>, undefined>;
+    }, undefined>, undefined>;
+    readonly latestStoryChanges: UndefinedSchema<undefined>;
+    readonly getStatus: UndefinedSchema<undefined>;
+    readonly getGraphRevision: OptionalSchema<ObjectSchema<{
+      readonly storyFiles: ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Story file to scope the watch to. Accepts absolute paths, story-index-style relative paths with `./`, or relative paths without `./`. Pass an empty array to watch nothing (returns 0).">]>, undefined>;
+    }, undefined>, undefined>;
+  }, {
+    readonly storiesForFiles: ArraySchema<ArraySchema<ObjectSchema<{
+      readonly storyFile: SchemaWithPipe<readonly [SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, DescriptionAction<string, "Affected story file, returned in the same `./`-prefixed relative import-path format used by the story index.">]>;
+      readonly depth: SchemaWithPipe<readonly [NumberSchema<undefined>, DescriptionAction<number, "Breadth-first-search depth: the shortest number of import edges between the source file and this story file.">]>;
+    }, undefined>, undefined>, undefined>;
+    readonly status: VariantSchema<"value", [ObjectSchema<{
+      readonly value: LiteralSchema<"booting", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"ready", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"error", undefined>;
+      readonly error: SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Serializable error describing why the module graph failed unexpectedly.">]>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"unavailable", undefined>;
+      readonly reason: SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Human-readable reason why the current builder/runtime cannot provide module graph functionality.">]>;
+      readonly error: OptionalSchema<SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Optional serializable error reported by the builder adapter.">]>, undefined>;
+    }, undefined>], undefined>;
+    readonly graphRevision: NumberSchema<undefined>;
+    readonly latestStoryChanges: ObjectSchema<{
+      readonly revision: SchemaWithPipe<readonly [NumberSchema<undefined>, DescriptionAction<number, "Graph revision number for this latest story change set.">]>;
+      readonly storyFiles: SchemaWithPipe<readonly [ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, undefined>, DescriptionAction<string[], "Story-index-relative story files touched by the latest module graph change set.">]>;
+    }, undefined>;
+    readonly getStatus: VariantSchema<"value", [ObjectSchema<{
+      readonly value: LiteralSchema<"booting", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"ready", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"error", undefined>;
+      readonly error: SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Serializable error describing why the module graph failed unexpectedly.">]>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"unavailable", undefined>;
+      readonly reason: SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Human-readable reason why the current builder/runtime cannot provide module graph functionality.">]>;
+      readonly error: OptionalSchema<SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Optional serializable error reported by the builder adapter.">]>, undefined>;
+    }, undefined>], undefined>;
+    readonly getGraphRevision: NumberSchema<undefined>;
+  }>> & ({
+    __internal_naming_error: "Operation \"_applyGraphUpdate\" is prefixed with \"_\" and must set internal: true";
+  } | {
+    internal: true;
+  });
+  readonly _setStatus: CommandDefinition<ModuleGraphServiceState, VariantSchema<"value", [ObjectSchema<{
+    readonly value: LiteralSchema<"booting", undefined>;
+  }, undefined>, ObjectSchema<{
+    readonly value: LiteralSchema<"ready", undefined>;
+  }, undefined>, ObjectSchema<{
+    readonly value: LiteralSchema<"error", undefined>;
+    readonly error: SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Serializable error describing why the module graph failed unexpectedly.">]>;
+  }, undefined>, ObjectSchema<{
+    readonly value: LiteralSchema<"unavailable", undefined>;
+    readonly reason: SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Human-readable reason why the current builder/runtime cannot provide module graph functionality.">]>;
+    readonly error: OptionalSchema<SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Optional serializable error reported by the builder adapter.">]>, undefined>;
+  }, undefined>], undefined>, VoidSchema<undefined>, {
+    readonly _applyGraphSnapshot: ObjectSchema<{
+      readonly storiesByFile: SchemaWithPipe<readonly [RecordSchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, RecordSchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, SchemaWithPipe<readonly [NumberSchema<undefined>, DescriptionAction<number, "Breadth-first-search depth: the shortest number of import edges between the source file and this story file.">]>, undefined>, undefined>, DescriptionAction<{
+        [x: string]: {
+          [x: string]: number;
+        };
+      }, "Complete relative reverse index keyed by story-index-style source file paths. Values map affected story-index-style story file paths to breadth-first-search depths.">]>;
+    }, undefined>;
+    readonly _applyGraphUpdate: ObjectSchema<{
+      readonly storiesByFile: SchemaWithPipe<readonly [RecordSchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, RecordSchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, SchemaWithPipe<readonly [NumberSchema<undefined>, DescriptionAction<number, "Breadth-first-search depth: the shortest number of import edges between the source file and this story file.">]>, undefined>, undefined>, DescriptionAction<{
+        [x: string]: {
+          [x: string]: number;
+        };
+      }, "Complete relative reverse index keyed by story-index-style source file paths. Values map affected story-index-style story file paths to breadth-first-search depths.">]>;
+      readonly bumpedStoryFiles: SchemaWithPipe<readonly [ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, undefined>, DescriptionAction<string[], "Story files whose graph changed, using story-index-style relative paths. Each listed file has its version incremented.">]>;
+    }, undefined>;
+    readonly _setStatus: VariantSchema<"value", [ObjectSchema<{
+      readonly value: LiteralSchema<"booting", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"ready", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"error", undefined>;
+      readonly error: SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Serializable error describing why the module graph failed unexpectedly.">]>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"unavailable", undefined>;
+      readonly reason: SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Human-readable reason why the current builder/runtime cannot provide module graph functionality.">]>;
+      readonly error: OptionalSchema<SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Optional serializable error reported by the builder adapter.">]>, undefined>;
+    }, undefined>], undefined>;
+    readonly _waitForSettledEngine: UndefinedSchema<undefined>;
+  }, {
+    readonly _applyGraphSnapshot: VoidSchema<undefined>;
+    readonly _applyGraphUpdate: VoidSchema<undefined>;
+    readonly _setStatus: VoidSchema<undefined>;
+    readonly _waitForSettledEngine: VoidSchema<undefined>;
+  }, QueryFunctions<{
+    readonly storiesForFiles: ObjectSchema<{
+      readonly files: SchemaWithPipe<readonly [ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Input source file path. Accepts absolute paths, story-index-style relative paths with `./`, or relative paths without `./`.">]>, undefined>, DescriptionAction<string[], "Source files to look up. Output arrays match this input order.">]>;
+    }, undefined>;
+    readonly status: UndefinedSchema<undefined>;
+    readonly graphRevision: OptionalSchema<ObjectSchema<{
+      readonly storyFiles: ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Story file to scope the watch to. Accepts absolute paths, story-index-style relative paths with `./`, or relative paths without `./`. Pass an empty array to watch nothing (returns 0).">]>, undefined>;
+    }, undefined>, undefined>;
+    readonly latestStoryChanges: UndefinedSchema<undefined>;
+    readonly getStatus: UndefinedSchema<undefined>;
+    readonly getGraphRevision: OptionalSchema<ObjectSchema<{
+      readonly storyFiles: ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Story file to scope the watch to. Accepts absolute paths, story-index-style relative paths with `./`, or relative paths without `./`. Pass an empty array to watch nothing (returns 0).">]>, undefined>;
+    }, undefined>, undefined>;
+  }, {
+    readonly storiesForFiles: ArraySchema<ArraySchema<ObjectSchema<{
+      readonly storyFile: SchemaWithPipe<readonly [SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, DescriptionAction<string, "Affected story file, returned in the same `./`-prefixed relative import-path format used by the story index.">]>;
+      readonly depth: SchemaWithPipe<readonly [NumberSchema<undefined>, DescriptionAction<number, "Breadth-first-search depth: the shortest number of import edges between the source file and this story file.">]>;
+    }, undefined>, undefined>, undefined>;
+    readonly status: VariantSchema<"value", [ObjectSchema<{
+      readonly value: LiteralSchema<"booting", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"ready", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"error", undefined>;
+      readonly error: SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Serializable error describing why the module graph failed unexpectedly.">]>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"unavailable", undefined>;
+      readonly reason: SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Human-readable reason why the current builder/runtime cannot provide module graph functionality.">]>;
+      readonly error: OptionalSchema<SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Optional serializable error reported by the builder adapter.">]>, undefined>;
+    }, undefined>], undefined>;
+    readonly graphRevision: NumberSchema<undefined>;
+    readonly latestStoryChanges: ObjectSchema<{
+      readonly revision: SchemaWithPipe<readonly [NumberSchema<undefined>, DescriptionAction<number, "Graph revision number for this latest story change set.">]>;
+      readonly storyFiles: SchemaWithPipe<readonly [ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, undefined>, DescriptionAction<string[], "Story-index-relative story files touched by the latest module graph change set.">]>;
+    }, undefined>;
+    readonly getStatus: VariantSchema<"value", [ObjectSchema<{
+      readonly value: LiteralSchema<"booting", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"ready", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"error", undefined>;
+      readonly error: SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Serializable error describing why the module graph failed unexpectedly.">]>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"unavailable", undefined>;
+      readonly reason: SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Human-readable reason why the current builder/runtime cannot provide module graph functionality.">]>;
+      readonly error: OptionalSchema<SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Optional serializable error reported by the builder adapter.">]>, undefined>;
+    }, undefined>], undefined>;
+    readonly getGraphRevision: NumberSchema<undefined>;
+  }>> & ({
+    __internal_naming_error: "Operation \"_setStatus\" is prefixed with \"_\" and must set internal: true";
+  } | {
+    internal: true;
+  });
+  readonly _waitForSettledEngine: CommandDefinition<ModuleGraphServiceState, UndefinedSchema<undefined>, VoidSchema<undefined>, {
+    readonly _applyGraphSnapshot: ObjectSchema<{
+      readonly storiesByFile: SchemaWithPipe<readonly [RecordSchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, RecordSchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, SchemaWithPipe<readonly [NumberSchema<undefined>, DescriptionAction<number, "Breadth-first-search depth: the shortest number of import edges between the source file and this story file.">]>, undefined>, undefined>, DescriptionAction<{
+        [x: string]: {
+          [x: string]: number;
+        };
+      }, "Complete relative reverse index keyed by story-index-style source file paths. Values map affected story-index-style story file paths to breadth-first-search depths.">]>;
+    }, undefined>;
+    readonly _applyGraphUpdate: ObjectSchema<{
+      readonly storiesByFile: SchemaWithPipe<readonly [RecordSchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, RecordSchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, SchemaWithPipe<readonly [NumberSchema<undefined>, DescriptionAction<number, "Breadth-first-search depth: the shortest number of import edges between the source file and this story file.">]>, undefined>, undefined>, DescriptionAction<{
+        [x: string]: {
+          [x: string]: number;
+        };
+      }, "Complete relative reverse index keyed by story-index-style source file paths. Values map affected story-index-style story file paths to breadth-first-search depths.">]>;
+      readonly bumpedStoryFiles: SchemaWithPipe<readonly [ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, undefined>, DescriptionAction<string[], "Story files whose graph changed, using story-index-style relative paths. Each listed file has its version incremented.">]>;
+    }, undefined>;
+    readonly _setStatus: VariantSchema<"value", [ObjectSchema<{
+      readonly value: LiteralSchema<"booting", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"ready", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"error", undefined>;
+      readonly error: SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Serializable error describing why the module graph failed unexpectedly.">]>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"unavailable", undefined>;
+      readonly reason: SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Human-readable reason why the current builder/runtime cannot provide module graph functionality.">]>;
+      readonly error: OptionalSchema<SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Optional serializable error reported by the builder adapter.">]>, undefined>;
+    }, undefined>], undefined>;
+    readonly _waitForSettledEngine: UndefinedSchema<undefined>;
+  }, {
+    readonly _applyGraphSnapshot: VoidSchema<undefined>;
+    readonly _applyGraphUpdate: VoidSchema<undefined>;
+    readonly _setStatus: VoidSchema<undefined>;
+    readonly _waitForSettledEngine: VoidSchema<undefined>;
+  }, QueryFunctions<{
+    readonly storiesForFiles: ObjectSchema<{
+      readonly files: SchemaWithPipe<readonly [ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Input source file path. Accepts absolute paths, story-index-style relative paths with `./`, or relative paths without `./`.">]>, undefined>, DescriptionAction<string[], "Source files to look up. Output arrays match this input order.">]>;
+    }, undefined>;
+    readonly status: UndefinedSchema<undefined>;
+    readonly graphRevision: OptionalSchema<ObjectSchema<{
+      readonly storyFiles: ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Story file to scope the watch to. Accepts absolute paths, story-index-style relative paths with `./`, or relative paths without `./`. Pass an empty array to watch nothing (returns 0).">]>, undefined>;
+    }, undefined>, undefined>;
+    readonly latestStoryChanges: UndefinedSchema<undefined>;
+    readonly getStatus: UndefinedSchema<undefined>;
+    readonly getGraphRevision: OptionalSchema<ObjectSchema<{
+      readonly storyFiles: ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Story file to scope the watch to. Accepts absolute paths, story-index-style relative paths with `./`, or relative paths without `./`. Pass an empty array to watch nothing (returns 0).">]>, undefined>;
+    }, undefined>, undefined>;
+  }, {
+    readonly storiesForFiles: ArraySchema<ArraySchema<ObjectSchema<{
+      readonly storyFile: SchemaWithPipe<readonly [SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, DescriptionAction<string, "Affected story file, returned in the same `./`-prefixed relative import-path format used by the story index.">]>;
+      readonly depth: SchemaWithPipe<readonly [NumberSchema<undefined>, DescriptionAction<number, "Breadth-first-search depth: the shortest number of import edges between the source file and this story file.">]>;
+    }, undefined>, undefined>, undefined>;
+    readonly status: VariantSchema<"value", [ObjectSchema<{
+      readonly value: LiteralSchema<"booting", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"ready", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"error", undefined>;
+      readonly error: SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Serializable error describing why the module graph failed unexpectedly.">]>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"unavailable", undefined>;
+      readonly reason: SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Human-readable reason why the current builder/runtime cannot provide module graph functionality.">]>;
+      readonly error: OptionalSchema<SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Optional serializable error reported by the builder adapter.">]>, undefined>;
+    }, undefined>], undefined>;
+    readonly graphRevision: NumberSchema<undefined>;
+    readonly latestStoryChanges: ObjectSchema<{
+      readonly revision: SchemaWithPipe<readonly [NumberSchema<undefined>, DescriptionAction<number, "Graph revision number for this latest story change set.">]>;
+      readonly storyFiles: SchemaWithPipe<readonly [ArraySchema<SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "A story-index-style relative path such as `./src/Button.stories.tsx`.">]>, undefined>, DescriptionAction<string[], "Story-index-relative story files touched by the latest module graph change set.">]>;
+    }, undefined>;
+    readonly getStatus: VariantSchema<"value", [ObjectSchema<{
+      readonly value: LiteralSchema<"booting", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"ready", undefined>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"error", undefined>;
+      readonly error: SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Serializable error describing why the module graph failed unexpectedly.">]>;
+    }, undefined>, ObjectSchema<{
+      readonly value: LiteralSchema<"unavailable", undefined>;
+      readonly reason: SchemaWithPipe<readonly [StringSchema<undefined>, DescriptionAction<string, "Human-readable reason why the current builder/runtime cannot provide module graph functionality.">]>;
+      readonly error: OptionalSchema<SchemaWithPipe<readonly [GenericSchema, DescriptionAction<unknown, "Optional serializable error reported by the builder adapter.">]>, undefined>;
+    }, undefined>], undefined>;
+    readonly getGraphRevision: NumberSchema<undefined>;
+  }>> & ({
+    __internal_naming_error: "Operation \"_waitForSettledEngine\" is prefixed with \"_\" and must set internal: true";
+  } | {
+    internal: true;
+  });
+} & {
+  readonly _applyGraphSnapshot: {
+    output: VoidSchema<undefined>;
+  };
+  readonly _applyGraphUpdate: {
+    output: VoidSchema<undefined>;
+  };
+  readonly _setStatus: {
+    output: VoidSchema<undefined>;
+  };
+  readonly _waitForSettledEngine: {
+    output: VoidSchema<undefined>;
+  };
+}, "core/module-graph">;
+type ModuleGraphService = ServiceInstanceOf<typeof moduleGraphServiceDef>;
+//#endregion
+//#region code/core/.dts-emit/code/core/src/core-server/change-detection/GitDiffProvider.d.ts
+interface GitDiffResult {
+  changed: Set<string>;
+  new: Set<string>;
+}
+type GitStateChangeCallback = () => void;
+type GitFileSystem = {
+  watch: typeof watch;
+  readFile: typeof readFile;
+  stat: typeof stat;
+};
+declare class GitDiffProvider {
+  private readonly cwd;
+  private readonly fileSystem;
+  private repoRoot;
+  private gitStateCallback;
+  private branchWatcher;
+  private headWatcher;
+  private packedRefsWatcher;
+  private watchingInitialized;
+  private watchingStopped;
+  constructor(cwd?: string, fileSystem?: GitFileSystem);
+  getRepoRoot(): Promise<string>;
+  getChangedFiles(): Promise<GitDiffResult>;
+  getHeadCommit(): Promise<string>;
+  isWorkingTreeClean(): Promise<boolean>;
+  onGitStateChange(callback: GitStateChangeCallback): void;
+  private initializeWatching;
+  private attachWatcher;
+  private configureBranchWatcher;
+  private reconfigureBranchWatcher;
+  dispose(): void;
+  private stopWatching;
+  private getGitDir;
+  private readHeadRef;
+  private runGitCommand;
+  private isEnoentError;
+  private toGitError;
+}
+//#endregion
+//#region code/core/.dts-emit/code/core/src/core-server/change-detection/IndexBaselineService.d.ts
+type BaselineCache = {
+  get: <T = unknown>(key: string) => Promise<T | undefined>;
+  set: <T = unknown>(key: string, value: T) => Promise<void>;
+};
+declare class IndexBaselineService {
+  private readonly options;
+  private baselineEntryIds;
+  private initializePromise;
+  private syncInFlight;
+  private cache;
+  constructor(options: {
+    storyIndexGeneratorPromise: Promise<StoryIndexGenerator>;
+    gitDiffProvider: GitDiffProvider;
+    onBaselineUpdated: () => void;
+    cache?: BaselineCache;
+  });
+  start(): Promise<void>;
+  getBaselineEntryIds(): Promise<Set<string>>;
+  handleGitStateChange(): Promise<void>;
+  private initialize;
+  private refreshBaseline;
+}
+//#endregion
+//#region code/core/.dts-emit/code/core/src/core-server/change-detection/change-detection-service.d.ts
+/**
+ * Publishes change-detection story statuses to the status store. It resolves git-changed files,
+ * maps them to affected stories through the `core/module-graph` open service, and emits
+ * `modified`/`affected`/`new` statuses (plus index-baseline `new` entries).
+ */
+declare class ChangeDetectionService {
+  private readonly options;
+  private disposed;
+  private debounceTimer;
+  private scanInFlight;
+  private rerunAfterCurrentScan;
+  private readinessResolved;
+  private statusPipelineStarted;
+  private changeDetectionEnabled;
+  private previousStatuses;
+  private gitDiffProvider;
+  private indexBaselineService;
+  private unsubscribeModuleGraphStatus;
+  private unsubscribeModuleGraphRevision;
+  private readonly workingDir;
+  private readonly debounceMs;
+  constructor(options: {
+    storyIndexGeneratorPromise: Promise<StoryIndexGenerator>;
+    statusStore: StatusStoreByTypeId;
+    gitDiffProvider?: GitDiffProvider;
+    indexBaselineService?: IndexBaselineService;
+    workingDir?: string;
+    debounceMs?: number;
+  });
+  private getModuleGraph;
+  /** True while the service is live and change-detection status publishing is enabled. */
+  private isActive;
+  private onGraphReady;
+  private onGraphChange;
+  private onGraphError;
+  private onGraphUnavailable;
+  private onModuleGraphStatus;
+  start(enabled: boolean | undefined): void;
+  /**
+   * Wires the git-diff-driven status pipeline. Runs once the dependency graph is ready (so the
+   * initial scan and every git-state-change scan read a populated reverse index).
+   */
+  private startStatusPipeline;
+  dispose(): Promise<void>;
+  private scheduleScan;
+  private scan;
+  private buildStatuses;
+  private getGitDiffProvider;
+  private getIndexBaselineService;
+  private applyStatusStorePatch;
+  private resolveReadiness;
+}
+//#endregion
+//#region code/core/.dts-emit/code/core/src/core-server/stores/test-provider.d.ts
 declare const fullTestProviderStore: {
     settingsChanged: () => void;
     onRunAll: (listener: () => void) => () => void;
     onClearAll: (listener: () => void) => () => void;
-} & {
-    getFullState: UniversalStore<TestProviderStateByProviderId, TestProviderStoreEvent>["getState"];
-    setFullState: UniversalStore<TestProviderStateByProviderId, TestProviderStoreEvent>["setState"];
+  } & {
+    getFullState: UniversalStore<TestProviderStateByProviderId, TestProviderStoreEvent>['getState'];
+    setFullState: UniversalStore<TestProviderStateByProviderId, TestProviderStoreEvent>['setState'];
     onSettingsChanged: (listener: (testProviderId: TestProviderId) => void) => () => void;
     runAll: () => void;
     clearAll: () => void;
-};
-declare const getTestProviderStoreById: (testProviderId: TestProviderId) => TestProviderStoreById;
-declare const universalTestProviderStore: UniversalStore<TestProviderStateByProviderId, TestProviderStoreEvent>;
-
-export { type BuildIndexOptions, type BuildStaticStandaloneOptions, StoryIndexGenerator, build, buildDevStandalone, buildIndex, buildIndexStandalone, buildStaticStandalone, MockUniversalStore as experimental_MockUniversalStore, UniversalStore as experimental_UniversalStore, getStatusStoreByTypeId as experimental_getStatusStore, getTestProviderStoreById as experimental_getTestProviderStore, loadStorybook as experimental_loadStorybook, getErrorLevel, fullStatusStore as internal_fullStatusStore, fullTestProviderStore as internal_fullTestProviderStore, universalStatusStore as internal_universalStatusStore, universalTestProviderStore as internal_universalTestProviderStore, mapStaticDir, sendTelemetryError, withTelemetry };
+  }, getTestProviderStoreById: (testProviderId: TestProviderId) => TestProviderStoreById, universalTestProviderStore: UniversalStore<TestProviderStateByProviderId, TestProviderStoreEvent>;
+//#endregion
+//#region code/core/.dts-emit/code/core/src/core-server/utils/ghost-stories/get-candidates.d.ts
+declare function getComponentCandidates({
+  sampleSize,
+  globPattern,
+  cwd
+}?: {
+  sampleSize?: number;
+  globPattern?: string; /** Working directory for glob. Defaults to process.cwd(). */
+  cwd?: string;
+}): Promise<{
+  candidates: string[];
+  error?: string;
+  globMatchCount: number;
+  analyzedCount?: number;
+  avgComplexity?: number;
+}>;
+//#endregion
+//#region code/core/.dts-emit/code/core/src/shared/utils/test-result-types.d.ts
+interface StoryTestResult {
+  storyId: string;
+  status: 'PASS' | 'FAIL' | 'PENDING';
+  error?: string;
+  stack?: string;
+  /** Whether the story rendered to an empty/invisible DOM element */
+  emptyRender?: boolean;
+}
+/**
+ * A `StoryTestResult` augmented with the timestamp at which it was recorded.
+ * Used by the agent self-healing flow to persist the most recent outcome
+ * per story across runs (in cache only — never sent in telemetry).
+ */
+interface StoryTestResultHistoryEntry extends StoryTestResult {
+  timestamp: number;
+}
+type StoryTestResultHistory = Record<string, StoryTestResultHistoryEntry>;
+interface CategorizedError {
+  category: string;
+  count: number;
+  uniqueCount: number;
+  matchedDependencies: string[];
+}
+/**
+ * Outcome of the `CssCheck` story — a story (id suffix `--css-check`)
+ * whose `play` asserts a component-specific computed style via
+ * `getComputedStyle`. Distinguishes "component mounted" from "the
+ * user's CSS actually loaded".
+ *
+ * - `'pass'`    — a `CssCheck` story ran and passed.
+ * - `'fail'`    — a `CssCheck` story ran and failed.
+ * - `'not-run'` — no pass/fail signal available: either no `CssCheck`
+ *                 story is in the suite, or the story existed but was
+ *                 not executed (skipped, pending, todo, filtered out).
+ *
+ * Only the three-valued enum is emitted — no storyId or component
+ * name — so no user-authored data enters telemetry.
+ */
+type CssCheckOutcome = 'pass' | 'fail' | 'not-run';
+interface TestRunAnalysis {
+  /** Stats for the current run (only stories executed in this run). */
+  total: number;
+  passed: number;
+  passedButEmptyRender: number;
+  successRate: number;
+  successRateWithoutEmptyRender: number;
+  uniqueErrorCount: number;
+  categorizedErrors: Record<string, CategorizedError>;
+  cssCheck: CssCheckOutcome;
+  /**
+   * Stats accumulated across runs: for every story we've ever seen, we
+   * keep the most recent outcome (by timestamp). Only emitted by the
+   * agent self-healing flow, which is the only consumer that persists
+   * a per-story history in the Storybook cache.
+   */
+  cumulativeTotal?: number;
+  cumulativePassed?: number;
+  cumulativePassedButEmptyRender?: number;
+  cumulativeSuccessRate?: number;
+  cumulativeSuccessRateWithoutEmptyRender?: number;
+  cumulativeUniqueErrorCount?: number;
+  cumulativeCategorizedErrors?: Record<string, CategorizedError>;
+  cumulativeCssCheck?: CssCheckOutcome;
+}
+//#endregion
+//#region code/core/.dts-emit/code/core/src/core-server/utils/ghost-stories/types.d.ts
+interface TestRunSummary {
+  duration?: number;
+  summary?: TestRunAnalysis;
+  runError?: string;
+}
+//#endregion
+//#region code/core/.dts-emit/code/core/src/core-server/utils/ghost-stories/run-story-tests.d.ts
+/**
+ * Run ghost stories: execute vitest on component file paths to auto-generate
+ * and test stories that don't exist on disk.
+ *
+ * @param componentFilePaths - Absolute paths to component files to test.
+ * @param options.cwd - Working directory for vitest. Defaults to process.cwd().
+ */
+declare function runStoryTests(componentFilePaths: string[], options?: {
+  cwd?: string;
+  ghostRun?: boolean;
+}): Promise<TestRunSummary>;
+//#endregion
+//#region code/core/.dts-emit/code/core/src/core-server/utils/server-address.d.ts
+interface PortOptions {
+  exactPort?: boolean;
+}
+declare const getServerPort: (port?: number, {
+  exactPort
+}?: PortOptions) => Promise<number>;
+//#endregion
+//#region code/core/.dts-emit/code/core/src/shared/utils/analyze-test-results.d.ts
+/**
+ * Analyze a list of story test results and produce a TestRunAnalysis with pass/fail counts, success
+ * rates, empty render detection, and categorized errors.
+ *
+ * @param results Story results from the current run.
+ * @param cumulativeResults Optional aggregated results across runs (latest outcome per story).
+ *   Only the agent self-healing flow tracks history and passes this; when omitted no
+ *   `cumulative*` fields are emitted.
+ */
+declare function analyzeTestResults(results: StoryTestResult[], cumulativeResults?: StoryTestResult[]): TestRunAnalysis;
+//#endregion
+//#region code/core/.dts-emit/code/core/src/shared/utils/to-story-test-result.d.ts
+interface VitestLikeReport {
+  type: string;
+  result?: {
+    emptyRender?: boolean;
+  } | unknown;
+}
+interface VitestLikeError {
+  message?: string;
+  stack?: string;
+}
+interface VitestLikeInput {
+  storyId: string | undefined;
+  /** Raw vitest status, e.g. 'passed' | 'failed' | 'skipped' | 'pending' | 'running' | ... */
+  statusRaw: string | undefined;
+  errors?: readonly VitestLikeError[];
+  reports?: readonly VitestLikeReport[];
+}
+/**
+ * Convert a Vitest-like input (either a JSON reporter assertion or a runtime TestCase) into a
+ * StoryTestResult. Returns null when the input has no storyId — callers can use this to skip
+ * non-story tests.
+ */
+declare function toStoryTestResult(input: VitestLikeInput): StoryTestResult | null;
+//#endregion
+export { BuildIndexOptions, BuildStaticStandaloneOptions, type ChangeDetectionAdapter, ChangeDetectionFailureError, ChangeDetectionService, ChangeDetectionUnavailableError, type Command, type CommandCtx, type CommandDefinition, type ComponentArgTypesData, type DocsManifestEntry, type DocsManifestRefEntry, type ChangeDetectionReadiness as Experimental_ChangeDetectionReadiness, type FileChangeEvent, type GenerateStoryOptions, type GenerateStoryResult, type ImportEdge, type ImportParser, type ImportParserContext, type JsonRef, MDX_SERVICE_ID, type MdxDocPayload, type MdxError, type MdxPayload, type MdxServiceContract, type ModuleGraphService, type ModuleResolveConfig, type OperationDescriptor, type ParseFileArgs, type Query, type QueryCtx, type QueryDefinition, type RuntimeService, type SchemaDescriptor, type ServerServiceRegistration, type ServiceDefinition, type ServiceDescriptor, type ServiceInstance, type ServiceRegistrationOptions, type ServiceSummary, StoryIndexGenerator, type StoryTestResult, type StoryTestResultHistory, type StoryTestResultHistoryEntry, Tag, analyzeMdx, analyzeTestResults, build, buildDevStandalone, buildIndex, buildIndexStandalone, buildStaticStandalone, describeService, MockUniversalStore as experimental_MockUniversalStore, UniversalStore as experimental_UniversalStore, defineService as experimental_defineService, getChangeDetectionReadiness as experimental_getChangeDetectionReadiness, getStatusStoreByTypeId as experimental_getStatusStore, getTestProviderStoreById as experimental_getTestProviderStore, loadStorybook as experimental_loadStorybook, registerService as experimental_registerService, generateStoryFile, getComponentCandidates, getErrorLevel, getPreviewBodyTemplate, getPreviewHeadTemplate, getServerPort, getService, getStoriesPathsFromConfig, fullStatusStore as internal_fullStatusStore, fullTestProviderStore as internal_fullTestProviderStore, universalStatusStore as internal_universalStatusStore, universalTestProviderStore as internal_universalTestProviderStore, listServices, mapStaticDir, mdxManifestRef, mdxQueryStaticPath, mdxStaticStorePath, type moduleGraphServiceDef, resolveOnboardingInitialPath, runStoryTests, sendTelemetryError, toStoryTestResult, withTelemetry };

@@ -2,6 +2,57 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [5.2.0](https://github.com/piscinajs/piscina/compare/v5.1.4...v5.2.0) (2026-06-12)
+
+
+### Features
+
+* Add idleThreads getter ([#1059](https://github.com/piscinajs/piscina/issues/1059)) ([6beabe0](https://github.com/piscinajs/piscina/commit/6beabe0ef395a4d086a81ce8162f7b77c9a6d180))
+
+
+### Bug Fixes
+
+* eagerly spawn workers up to maxThreads on cold-pool burst ([#1043](https://github.com/piscinajs/piscina/issues/1043)) ([779c640](https://github.com/piscinajs/piscina/commit/779c6402dc09b8746679fae56843d2898c4607ec))
+* include skipQueue in queueSize calculation ([#1030](https://github.com/piscinajs/piscina/issues/1030)) ([b7d4d61](https://github.com/piscinajs/piscina/commit/b7d4d614450bdaf8a833c9fc5ebe7ccd6d81f6f6))
+* interface name and add missing curly brace ([#951](https://github.com/piscinajs/piscina/issues/951)) ([8cd51f2](https://github.com/piscinajs/piscina/commit/8cd51f24437d4a4fa09b63cb12dd284e1d7fe6e0))
+* onWorkerMessage gets skipped in Jest environment  ([#968](https://github.com/piscinajs/piscina/issues/968)) ([54de192](https://github.com/piscinajs/piscina/commit/54de1929e02862f9bb82d84a913b6f09c5e70b09))
+
+### [5.1.4](https://github.com/piscinajs/piscina/compare/v5.1.3...v5.1.4) (2025-11-07)
+
+
+### Bug Fixes
+
+* add provenance ([#885](https://github.com/piscinajs/piscina/issues/885)) ([ca951fe](https://github.com/piscinajs/piscina/commit/ca951febd2fab0b1371d9d2b18e4e0d729846fd5))
+* standardize normalize calculation of stddev ([#924](https://github.com/piscinajs/piscina/issues/924)) ([260a87c](https://github.com/piscinajs/piscina/commit/260a87c6741f5a8ad4ded28735d549e15d62d0ce))
+
+### [5.1.3](https://github.com/piscinajs/piscina/compare/v5.1.2...v5.1.3) (2025-07-09)
+
+
+### Features
+
+* offload drain events to microtask ([#835](https://github.com/piscinajs/piscina/issues/835)) ([76fe7a8](https://github.com/piscinajs/piscina/commit/76fe7a8138089750183836e8db2968337d8a97b0))
+
+### [5.1.2](https://github.com/piscinajs/piscina/compare/v5.1.1...v5.1.2) (2025-06-26)
+
+### [5.1.1](https://github.com/piscinajs/piscina/compare/v5.1.0...v5.1.1) (2025-06-19)
+
+
+### Bug Fixes
+
+* prevent race condition in idle worker cleanup ([#818](https://github.com/piscinajs/piscina/issues/818)) ([cafae5d](https://github.com/piscinajs/piscina/commit/cafae5d17340fa07e03bdb39a801fa4733dfb14f))
+
+## [5.1.0](https://github.com/piscinajs/piscina/compare/v5.0.0...v5.1.0) (2025-06-15)
+
+
+### Features
+
+* add explicit resource management support ([#810](https://github.com/piscinajs/piscina/issues/810)) ([d625bba](https://github.com/piscinajs/piscina/commit/d625bbaf17536ba0a5654383206e4126b01db557))
+
+
+### Bug Fixes
+
+* **#805:** Fix handling of aborted tasks ([#807](https://github.com/piscinajs/piscina/issues/807)) ([5608520](https://github.com/piscinajs/piscina/commit/5608520bd7d812b253a0373d50572005ab863195))
+
 ## [5.0.0](https://github.com/piscinajs/piscina/compare/v5.0.0-alpha.2...v5.0.0) (2025-05-02)
 
 

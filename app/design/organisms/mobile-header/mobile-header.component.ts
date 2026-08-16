@@ -9,9 +9,9 @@ import {
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { NgbModal, NgbTooltipModule } from '@ng-bootstrap/ng-bootstrap';
-import { OnlineService } from 'src/app/_services/online.service';
-import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
-import { SearchModalComponent } from 'src/app/global-components/search/search-modal/search-modal.component';
+import { OnlineService } from '../../../_services/online.service';
+import { SearchModalComponent } from '../../../global-components/search/search-modal/search-modal.component';
+import { ButtonComponent } from '../../atoms/button/button.component';
 import { IconComponent } from '../../atoms/icon/icon.component';
 
 @Component({
@@ -28,16 +28,16 @@ import { IconComponent } from '../../atoms/icon/icon.component';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MobileHeaderComponent {
-  currentCampaignIconUrl = input.required<string | undefined>();
-  title = input.required<string>();
-  titleUrl = input.required<string>();
-  canShowSidebar = input.required<boolean>();
+  readonly currentCampaignIconUrl = input.required<string | undefined>();
+  readonly title = input.required<string>();
+  readonly titleUrl = input.required<string>();
+  readonly canShowSidebar = input.required<boolean>();
 
-  openSidebar = output<void>();
-  serverUrl = '';
+  readonly openSidebar = output<void>();
+  readonly serverUrl = '';
 
-  online$ = inject(OnlineService).online$;
-  modalService = inject(NgbModal);
+  readonly online$ = inject(OnlineService).online$;
+  readonly modalService = inject(NgbModal);
 
   openModal(content: TemplateRef<HTMLElement>) {
     this.modalService.open(content, {

@@ -3,11 +3,11 @@
 {
   "compileOnSave": false,
   "compilerOptions": {<% if (strict) { %>
-    "strict": true,
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,
     "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true,<% } %>
+    "noFallthroughCasesInSwitch": true,<% } else { %>
+    "strict": false,<% } %>
     "skipLibCheck": true,
     "isolatedModules": true,
     "experimentalDecorators": true,
@@ -18,9 +18,8 @@
   "angularCompilerOptions": {
     "enableI18nLegacyMessageIdFormat": false<% if (strict) { %>,
     "strictInjectionParameters": true,
-    "strictInputAccessModifiers": true,
-    "typeCheckHostBindings": true,
-    "strictTemplates": true<% } %>
+    "strictInputAccessModifiers": true<% } else { %>,
+    "strictTemplates": false<% } %>
   },
   "files": []
 }

@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CborEncoderFast = void 0;
-const Writer_1 = require("@jsonjoy.com/util/lib/buffers/Writer");
+const Writer_1 = require("@jsonjoy.com/buffers/lib/Writer");
 const isSafeInteger = Number.isSafeInteger;
 class CborEncoderFast {
     constructor(writer = new Writer_1.Writer()) {

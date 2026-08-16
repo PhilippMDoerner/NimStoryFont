@@ -5,11 +5,11 @@ import {
   linkedSignal,
 } from '@angular/core';
 import { NgbCollapse } from '@ng-bootstrap/ng-bootstrap';
-import { HeadingDirective } from 'src/app/_directives/heading.directive';
-import { IconComponent } from 'src/app/design/atoms/icon/icon.component';
-import { SeparatorComponent } from 'src/app/design/atoms/separator/separator.component';
-import { componentId } from 'src/utils/DOM';
+import { componentId } from '../../../../utils/DOM';
+import { HeadingDirective } from '../../../_directives/heading.directive';
 import { HeadingLevel } from '../../atoms/_models/heading';
+import { IconComponent } from '../../atoms/icon/icon.component';
+import { SeparatorComponent } from '../../atoms/separator/separator.component';
 
 @Component({
   selector: 'app-collapsible-panel',
@@ -24,14 +24,14 @@ import { HeadingLevel } from '../../atoms/_models/heading';
   },
 })
 export class CollapsiblePanelComponent {
-  ariaLevel = input.required<HeadingLevel>();
-  isOpen = input(false);
-  _isOpen = linkedSignal(() => this.isOpen());
+  readonly ariaLevel = input.required<HeadingLevel>();
+  readonly isOpen = input(false);
+  readonly _isOpen = linkedSignal(() => this.isOpen());
 
-  id = componentId();
-  headingId = `heading-${this.id}`;
-  triggerId = `trigger-${this.id}`;
-  contentId = `content-${this.id}`;
+  readonly id = componentId();
+  readonly headingId = `heading-${this.id}`;
+  readonly triggerId = `trigger-${this.id}`;
+  readonly contentId = `content-${this.id}`;
 
   togglePanel() {
     this._isOpen.set(!this._isOpen());

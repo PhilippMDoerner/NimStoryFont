@@ -5,7 +5,7 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.dev/license
  */
-import { BuildOutputFile } from './bundler-context';
+import { type BuildOutputFile } from './bundler-files';
 /**
  * Inlining options that should apply to all transformed code.
  */

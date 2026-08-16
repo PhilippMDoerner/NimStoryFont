@@ -205,13 +205,294 @@ esbuild in this environment because esbuild relies on this invariant. This
 is not a problem with esbuild. You need to fix your environment instead.
 `);
 function readUInt32LE(buffer, offset) {
-  return buffer[offset++] | buffer[offset++] << 8 | buffer[offset++] << 16 | buffer[offset++] << 24;
+  return (buffer[offset++] | buffer[offset++] << 8 | buffer[offset++] << 16 | buffer[offset++] << 24) >>> 0;
 }
 function writeUInt32LE(buffer, value, offset) {
   buffer[offset++] = value;
   buffer[offset++] = value >> 8;
   buffer[offset++] = value >> 16;
   buffer[offset++] = value >> 24;
+}
+
+// lib/shared/uint8array_json_parser.ts
+var fromCharCode = String.fromCharCode;
+function throwSyntaxError(bytes, index, message) {
+  const c = bytes[index];
+  let line = 1;
+  let column = 0;
+  for (let i = 0; i < index; i++) {
+    if (bytes[i] === 10 /* Newline */) {
+      line++;
+      column = 0;
+    } else {
+      column++;
+    }
+  }
+  throw new SyntaxError(
+    message ? message : index === bytes.length ? "Unexpected end of input while parsing JSON" : c >= 32 && c <= 126 ? `Unexpected character ${fromCharCode(c)} in JSON at position ${index} (line ${line}, column ${column})` : `Unexpected byte 0x${c.toString(16)} in JSON at position ${index} (line ${line}, column ${column})`
+  );
+}
+function JSON_parse(bytes) {
+  if (!(bytes instanceof Uint8Array)) {
+    throw new Error(`JSON input must be a Uint8Array`);
+  }
+  const propertyStack = [];
+  const objectStack = [];
+  const stateStack = [];
+  const length = bytes.length;
+  let property = null;
+  let state = 0 /* TopLevel */;
+  let object;
+  let i = 0;
+  while (i < length) {
+    let c = bytes[i++];
+    if (c <= 32 /* Space */) {
+      continue;
+    }
+    let value;
+    if (state === 2 /* Object */ && property === null && c !== 34 /* Quote */ && c !== 125 /* CloseBrace */) {
+      throwSyntaxError(bytes, --i);
+    }
+    switch (c) {
+      // True
+      case 116 /* LowerT */: {
+        if (bytes[i++] !== 114 /* LowerR */ || bytes[i++] !== 117 /* LowerU */ || bytes[i++] !== 101 /* LowerE */) {
+          throwSyntaxError(bytes, --i);
+        }
+        value = true;
+        break;
+      }
+      // False
+      case 102 /* LowerF */: {
+        if (bytes[i++] !== 97 /* LowerA */ || bytes[i++] !== 108 /* LowerL */ || bytes[i++] !== 115 /* LowerS */ || bytes[i++] !== 101 /* LowerE */) {
+          throwSyntaxError(bytes, --i);
+        }
+        value = false;
+        break;
+      }
+      // Null
+      case 110 /* LowerN */: {
+        if (bytes[i++] !== 117 /* LowerU */ || bytes[i++] !== 108 /* LowerL */ || bytes[i++] !== 108 /* LowerL */) {
+          throwSyntaxError(bytes, --i);
+        }
+        value = null;
+        break;
+      }
+      // Number begin
+      case 45 /* Minus */:
+      case 46 /* Dot */:
+      case 48 /* Digit0 */:
+      case 49 /* Digit1 */:
+      case 50 /* Digit2 */:
+      case 51 /* Digit3 */:
+      case 52 /* Digit4 */:
+      case 53 /* Digit5 */:
+      case 54 /* Digit6 */:
+      case 55 /* Digit7 */:
+      case 56 /* Digit8 */:
+      case 57 /* Digit9 */: {
+        let index = i;
+        value = fromCharCode(c);
+        c = bytes[i];
+        while (true) {
+          switch (c) {
+            case 43 /* Plus */:
+            case 45 /* Minus */:
+            case 46 /* Dot */:
+            case 48 /* Digit0 */:
+            case 49 /* Digit1 */:
+            case 50 /* Digit2 */:
+            case 51 /* Digit3 */:
+            case 52 /* Digit4 */:
+            case 53 /* Digit5 */:
+            case 54 /* Digit6 */:
+            case 55 /* Digit7 */:
+            case 56 /* Digit8 */:
+            case 57 /* Digit9 */:
+            case 101 /* LowerE */:
+            case 69 /* UpperE */: {
+              value += fromCharCode(c);
+              c = bytes[++i];
+              continue;
+            }
+          }
+          break;
+        }
+        value = +value;
+        if (isNaN(value)) {
+          throwSyntaxError(bytes, --index, "Invalid number");
+        }
+        break;
+      }
+      // String begin
+      case 34 /* Quote */: {
+        value = "";
+        while (true) {
+          if (i >= length) {
+            throwSyntaxError(bytes, length);
+          }
+          c = bytes[i++];
+          if (c === 34 /* Quote */) {
+            break;
+          } else if (c === 92 /* Backslash */) {
+            switch (bytes[i++]) {
+              // Normal escape sequence
+              case 34 /* Quote */:
+                value += '"';
+                break;
+              case 47 /* Slash */:
+                value += "/";
+                break;
+              case 92 /* Backslash */:
+                value += "\\";
+                break;
+              case 98 /* LowerB */:
+                value += "\b";
+                break;
+              case 102 /* LowerF */:
+                value += "\f";
+                break;
+              case 110 /* LowerN */:
+                value += "\n";
+                break;
+              case 114 /* LowerR */:
+                value += "\r";
+                break;
+              case 116 /* LowerT */:
+                value += "	";
+                break;
+              // Unicode escape sequence
+              case 117 /* LowerU */: {
+                let code = 0;
+                for (let j = 0; j < 4; j++) {
+                  c = bytes[i++];
+                  code <<= 4;
+                  if (c >= 48 /* Digit0 */ && c <= 57 /* Digit9 */) code |= c - 48 /* Digit0 */;
+                  else if (c >= 97 /* LowerA */ && c <= 102 /* LowerF */) code |= c + (10 - 97 /* LowerA */);
+                  else if (c >= 65 /* UpperA */ && c <= 70 /* UpperF */) code |= c + (10 - 65 /* UpperA */);
+                  else throwSyntaxError(bytes, --i);
+                }
+                value += fromCharCode(code);
+                break;
+              }
+              // Invalid escape sequence
+              default:
+                throwSyntaxError(bytes, --i);
+                break;
+            }
+          } else if (c <= 127) {
+            value += fromCharCode(c);
+          } else if ((c & 224) === 192) {
+            value += fromCharCode((c & 31) << 6 | bytes[i++] & 63);
+          } else if ((c & 240) === 224) {
+            value += fromCharCode((c & 15) << 12 | (bytes[i++] & 63) << 6 | bytes[i++] & 63);
+          } else if ((c & 248) == 240) {
+            let codePoint = (c & 7) << 18 | (bytes[i++] & 63) << 12 | (bytes[i++] & 63) << 6 | bytes[i++] & 63;
+            if (codePoint > 65535) {
+              codePoint -= 65536;
+              value += fromCharCode(codePoint >> 10 & 1023 | 55296);
+              codePoint = 56320 | codePoint & 1023;
+            }
+            value += fromCharCode(codePoint);
+          }
+        }
+        value[0];
+        break;
+      }
+      // Array begin
+      case 91 /* OpenBracket */: {
+        value = [];
+        propertyStack.push(property);
+        objectStack.push(object);
+        stateStack.push(state);
+        property = null;
+        object = value;
+        state = 1 /* Array */;
+        continue;
+      }
+      // Object begin
+      case 123 /* OpenBrace */: {
+        value = {};
+        propertyStack.push(property);
+        objectStack.push(object);
+        stateStack.push(state);
+        property = null;
+        object = value;
+        state = 2 /* Object */;
+        continue;
+      }
+      // Array end
+      case 93 /* CloseBracket */: {
+        if (state !== 1 /* Array */) {
+          throwSyntaxError(bytes, --i);
+        }
+        value = object;
+        property = propertyStack.pop();
+        object = objectStack.pop();
+        state = stateStack.pop();
+        break;
+      }
+      // Object end
+      case 125 /* CloseBrace */: {
+        if (state !== 2 /* Object */) {
+          throwSyntaxError(bytes, --i);
+        }
+        value = object;
+        property = propertyStack.pop();
+        object = objectStack.pop();
+        state = stateStack.pop();
+        break;
+      }
+      default: {
+        throwSyntaxError(bytes, --i);
+      }
+    }
+    c = bytes[i];
+    while (c <= 32 /* Space */) {
+      c = bytes[++i];
+    }
+    switch (state) {
+      case 0 /* TopLevel */: {
+        if (i === length) {
+          return value;
+        }
+        break;
+      }
+      case 1 /* Array */: {
+        object.push(value);
+        if (c === 44 /* Comma */) {
+          i++;
+          continue;
+        }
+        if (c === 93 /* CloseBracket */) {
+          continue;
+        }
+        break;
+      }
+      case 2 /* Object */: {
+        if (property === null) {
+          property = value;
+          if (c === 58 /* Colon */) {
+            i++;
+            continue;
+          }
+        } else {
+          object[property] = value;
+          property = null;
+          if (c === 44 /* Comma */) {
+            i++;
+            continue;
+          }
+          if (c === 125 /* CloseBrace */) {
+            continue;
+          }
+        }
+        break;
+      }
+    }
+    break;
+  }
+  throwSyntaxError(bytes, i);
 }
 
 // lib/shared/common.ts
@@ -335,6 +616,7 @@ function pushCommonFlags(flags, options, keys) {
   let keepNames = getFlag(options, keys, "keepNames", mustBeBoolean);
   let platform = getFlag(options, keys, "platform", mustBeString);
   let tsconfigRaw = getFlag(options, keys, "tsconfigRaw", mustBeStringOrObject);
+  let absPaths = getFlag(options, keys, "absPaths", mustBeArrayOfStrings);
   if (legalComments) flags.push(`--legal-comments=${legalComments}`);
   if (sourceRoot !== void 0) flags.push(`--source-root=${sourceRoot}`);
   if (sourcesContent !== void 0) flags.push(`--sources-content=${sourcesContent}`);
@@ -353,6 +635,7 @@ function pushCommonFlags(flags, options, keys) {
   if (ignoreAnnotations) flags.push(`--ignore-annotations`);
   if (drop) for (let what of drop) flags.push(`--drop:${validateStringValue(what, "drop")}`);
   if (dropLabels) flags.push(`--drop-labels=${validateAndJoinStringArray(dropLabels, "drop label")}`);
+  if (absPaths) flags.push(`--abs-paths=${validateAndJoinStringArray(absPaths, "abs paths")}`);
   if (mangleProps) flags.push(`--mangle-props=${jsRegExpToGoRegExp(mangleProps)}`);
   if (reserveProps) flags.push(`--reserve-props=${jsRegExpToGoRegExp(reserveProps)}`);
   if (mangleQuoted !== void 0) flags.push(`--mangle-quoted=${mangleQuoted}`);
@@ -641,8 +924,8 @@ function createChannel(streamIn) {
     if (isFirstPacket) {
       isFirstPacket = false;
       let binaryVersion = String.fromCharCode(...bytes);
-      if (binaryVersion !== "0.25.5") {
-        throw new Error(`Cannot start service: Host version "${"0.25.5"}" does not match binary version ${quote(binaryVersion)}`);
+      if (binaryVersion !== "0.28.1") {
+        throw new Error(`Cannot start service: Host version "${"0.28.1"}" does not match binary version ${quote(binaryVersion)}`);
       }
       return;
     }
@@ -916,7 +1199,7 @@ function buildOrContextImpl(callName, buildKey, sendRequest, sendResponse, refs,
       const originalErrors = result.errors.slice();
       const originalWarnings = result.warnings.slice();
       if (response.outputFiles) result.outputFiles = response.outputFiles.map(convertOutputFiles);
-      if (response.metafile) result.metafile = JSON.parse(response.metafile);
+      if (response.metafile && response.metafile.length) result.metafile = parseJSON(response.metafile);
       if (response.mangleCache) result.mangleCache = response.mangleCache;
       if (response.writeToStdout !== void 0) console.log(decodeUTF8(response.writeToStdout).replace(/\n$/, ""));
       runOnEndCallbacks(result, (onEndErrors, onEndWarnings) => {
@@ -984,11 +1267,13 @@ function buildOrContextImpl(callName, buildKey, sendRequest, sendResponse, refs,
         watch: (options2 = {}) => new Promise((resolve, reject) => {
           if (!streamIn.hasFS) throw new Error(`Cannot use the "watch" API in this environment`);
           const keys = {};
+          const delay = getFlag(options2, keys, "delay", mustBeInteger);
           checkForInvalidFlags(options2, keys, `in watch() call`);
           const request2 = {
             command: "watch",
             key: buildKey
           };
+          if (delay) request2.delay = delay;
           sendRequest(refs, request2, (error2) => {
             if (error2) reject(new Error(error2));
             else resolve(void 0);
@@ -1587,6 +1872,15 @@ function jsRegExpToGoRegExp(regexp) {
   if (regexp.flags) result = `(?${regexp.flags})${result}`;
   return result;
 }
+function parseJSON(bytes) {
+  let text;
+  try {
+    text = decodeUTF8(bytes);
+  } catch {
+    return JSON_parse(bytes);
+  }
+  return JSON.parse(text);
+}
 
 // lib/npm/node-platform.ts
 var fs = require("fs");
@@ -1625,7 +1919,8 @@ var knownUnixlikePackages = {
 };
 var knownWebAssemblyFallbackPackages = {
   "android arm LE": "@esbuild/android-arm",
-  "android x64 LE": "@esbuild/android-x64"
+  "android x64 LE": "@esbuild/android-x64",
+  "openharmony arm64 LE": "@esbuild/openharmony-arm64"
 };
 function pkgAndSubpathForCurrentPlatform() {
   let pkg;
@@ -1765,7 +2060,7 @@ for your current platform.`);
         "node_modules",
         ".cache",
         "esbuild",
-        `pnpapi-${pkg.replace("/", "-")}-${"0.25.5"}-${path.basename(subpath)}`
+        `pnpapi-${pkg.replace("/", "-")}-${"0.28.1"}-${path.basename(subpath)}`
       );
       if (!fs.existsSync(binTargetPath)) {
         fs.mkdirSync(path.dirname(binTargetPath), { recursive: true });
@@ -1800,7 +2095,7 @@ if (process.env.ESBUILD_WORKER_THREADS !== "0") {
   }
 }
 var _a;
-var isInternalWorkerThread = ((_a = worker_threads == null ? void 0 : worker_threads.workerData) == null ? void 0 : _a.esbuildVersion) === "0.25.5";
+var isInternalWorkerThread = ((_a = worker_threads == null ? void 0 : worker_threads.workerData) == null ? void 0 : _a.esbuildVersion) === "0.28.1";
 var esbuildCommandAndArgs = () => {
   if ((!ESBUILD_BINARY_PATH || false) && (path2.basename(__filename) !== "main.js" || path2.basename(__dirname) !== "lib")) {
     throw new Error(
@@ -1867,7 +2162,7 @@ var fsAsync = {
     }
   }
 };
-var version = "0.25.5";
+var version = "0.28.1";
 var build = (options) => ensureServiceIsRunning().build(options);
 var context = (buildOptions) => ensureServiceIsRunning().context(buildOptions);
 var transform = (input, options) => ensureServiceIsRunning().transform(input, options);
@@ -1970,7 +2265,7 @@ var stopService;
 var ensureServiceIsRunning = () => {
   if (longLivedService) return longLivedService;
   let [command, args] = esbuildCommandAndArgs();
-  let child = child_process.spawn(command, args.concat(`--service=${"0.25.5"}`, "--ping"), {
+  let child = child_process.spawn(command, args.concat(`--service=${"0.28.1"}`, "--ping"), {
     windowsHide: true,
     stdio: ["pipe", "pipe", "inherit"],
     cwd: defaultWD
@@ -2074,7 +2369,7 @@ var runServiceSync = (callback) => {
     esbuild: node_exports
   });
   callback(service);
-  let stdout = child_process.execFileSync(command, args.concat(`--service=${"0.25.5"}`), {
+  let stdout = child_process.execFileSync(command, args.concat(`--service=${"0.28.1"}`), {
     cwd: defaultWD,
     windowsHide: true,
     input: stdin,
@@ -2094,7 +2389,7 @@ var workerThreadService = null;
 var startWorkerThreadService = (worker_threads2) => {
   let { port1: mainPort, port2: workerPort } = new worker_threads2.MessageChannel();
   let worker = new worker_threads2.Worker(__filename, {
-    workerData: { workerPort, defaultWD, esbuildVersion: "0.25.5" },
+    workerData: { workerPort, defaultWD, esbuildVersion: "0.28.1" },
     transferList: [workerPort],
     // From node's documentation: https://nodejs.org/api/worker_threads.html
     //

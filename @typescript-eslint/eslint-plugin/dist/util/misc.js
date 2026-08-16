@@ -67,7 +67,7 @@ function isDefinitionFile(fileName) {
             return true;
         }
     }
-    return false;
+    return /\.d\.(ts|cts|mts|.*\.ts)$/.test(lowerFileName);
 }
 /**
  * Upper cases the first character or the string
@@ -91,10 +91,7 @@ function arrayGroupByToMap(array, getKey) {
 }
 function arraysAreEqual(a, b, eq) {
     return (a === b ||
-        (a != null &&
-            b != null &&
-            a.length === b.length &&
-            a.every((x, idx) => eq(x, b[idx]))));
+        (a != null && a.length === b?.length && a.every((x, idx) => eq(x, b[idx]))));
 }
 /** Returns the first non-`undefined` result. */
 function findFirstResult(inputs, getResult) {

@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Organization, OrganizationRaw } from 'src/app/_models/organization';
-import { OverviewItem } from 'src/app/_models/overview';
+import { Organization, OrganizationRaw } from '../../_models/organization';
+import { OverviewItem } from '../../_models/overview';
 import { BaseService } from '../base.service';
 import { RoutingService } from '../routing.service';
 

@@ -9,18 +9,20 @@ const RuntimeModule = require("../RuntimeModule");
 const Template = require("../Template");
 
 /** @typedef {import("../Compilation")} Compilation */
-/** @typedef {import("../RuntimeTemplate")} RuntimeTemplate */
+/** @typedef {import("../Chunk").ChunkChildIdsByOrdersMap} ChunkChildIdsByOrdersMap */
 
 class ChunkPrefetchTriggerRuntimeModule extends RuntimeModule {
 	/**
-	 * @param {Record<string|number, (string|number)[]>} chunkMap map from chunk to
+	 * @param {ChunkChildIdsByOrdersMap} chunkMap map from chunk to
 	 */
 	constructor(chunkMap) {
 		super("chunk prefetch trigger", RuntimeModule.STAGE_TRIGGER);
+		/** @type {ChunkChildIdsByOrdersMap} */
 		this.chunkMap = chunkMap;
 	}
 
 	/**
+	 * Generates runtime code for this runtime module.
 	 * @returns {string | null} runtime code
 	 */
 	generate() {
@@ -37,10 +39,13 @@ class ChunkPrefetchTriggerRuntimeModule extends RuntimeModule {
 				`${
 					RuntimeGlobals.ensureChunkHandlers
 				}.prefetch = ${runtimeTemplate.expressionFunction(
+					// Prefetch is best-effort; silence rejections so a failed chunk
+					// load (e.g. chunkLoadTimeout) doesn't surface as an unhandled
+					// rejection through this dangling Promise.all chain.
 					`Promise.all(promises).then(${runtimeTemplate.basicFunction(
 						"",
 						body
-					)})`,
+					)}, ${runtimeTemplate.basicFunction("", "")})`,
 					"chunkId, promises"
 				)};`
 			])

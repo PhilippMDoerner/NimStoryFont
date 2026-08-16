@@ -6,16 +6,16 @@
 "use strict";
 
 const { SyncWaterfallHook } = require("tapable");
-const Compilation = require("../Compilation");
 const Generator = require("../Generator");
-const { tryRunOrWebpackError } = require("../HookWebpackError");
 const { WEBASSEMBLY_MODULE_TYPE_ASYNC } = require("../ModuleTypeConstants");
 const WebAssemblyImportDependency = require("../dependencies/WebAssemblyImportDependency");
-const { compareModulesByIdOrIdentifier } = require("../util/comparators");
+const { tryRunOrWebpackError } = require("../errors/HookWebpackError");
+const { compareModulesByFullName } = require("../util/comparators");
+const createHooksRegistry = require("../util/createHooksRegistry");
 const memoize = require("../util/memoize");
+const AsyncWasmModule = require("./AsyncWasmModule");
 
 /** @typedef {import("webpack-sources").Source} Source */
-/** @typedef {import("../../declarations/WebpackOptions").OutputNormalized} OutputOptions */
 /** @typedef {import("../Chunk")} Chunk */
 /** @typedef {import("../ChunkGraph")} ChunkGraph */
 /** @typedef {import("../CodeGenerationResults")} CodeGenerationResults */
@@ -24,9 +24,7 @@ const memoize = require("../util/memoize");
 /** @typedef {import("../Module")} Module */
 /** @typedef {import("../ModuleGraph")} ModuleGraph */
 /** @typedef {import("../RuntimeTemplate")} RuntimeTemplate */
-/** @typedef {import("../Template").RenderManifestEntry} RenderManifestEntry */
-/** @typedef {import("../Template").RenderManifestOptions} RenderManifestOptions */
-/** @typedef {import("../WebpackError")} WebpackError */
+/** @typedef {import("../errors/WebpackError")} WebpackError */
 
 const getAsyncWebAssemblyGenerator = memoize(() =>
 	require("./AsyncWebAssemblyGenerator")
@@ -39,6 +37,7 @@ const getAsyncWebAssemblyParser = memoize(() =>
 );
 
 /**
+ * Defines the web assembly render context type used by this module.
  * @typedef {object} WebAssemblyRenderContext
  * @property {Chunk} chunk the chunk
  * @property {DependencyTemplates} dependencyTemplates the dependency templates
@@ -49,54 +48,31 @@ const getAsyncWebAssemblyParser = memoize(() =>
  */
 
 /**
+ * Defines the compilation hooks type used by this module.
  * @typedef {object} CompilationHooks
  * @property {SyncWaterfallHook<[Source, Module, WebAssemblyRenderContext]>} renderModuleContent
  */
 
 /**
+ * Defines the async web assembly modules plugin options type used by this module.
  * @typedef {object} AsyncWebAssemblyModulesPluginOptions
  * @property {boolean=} mangleImports mangle imports
  */
-
-/** @type {WeakMap<Compilation, CompilationHooks>} */
-const compilationHooksMap = new WeakMap();
 
 const PLUGIN_NAME = "AsyncWebAssemblyModulesPlugin";
 
 class AsyncWebAssemblyModulesPlugin {
 	/**
-	 * @param {Compilation} compilation the compilation
-	 * @returns {CompilationHooks} the attached hooks
-	 */
-	static getCompilationHooks(compilation) {
-		if (!(compilation instanceof Compilation)) {
-			throw new TypeError(
-				"The 'compilation' argument must be an instance of Compilation"
-			);
-		}
-		let hooks = compilationHooksMap.get(compilation);
-		if (hooks === undefined) {
-			hooks = {
-				renderModuleContent: new SyncWaterfallHook([
-					"source",
-					"module",
-					"renderContext"
-				])
-			};
-			compilationHooksMap.set(compilation, hooks);
-		}
-		return hooks;
-	}
-
-	/**
+	 * Creates an instance of AsyncWebAssemblyModulesPlugin.
 	 * @param {AsyncWebAssemblyModulesPluginOptions} options options
 	 */
 	constructor(options) {
+		/** @type {AsyncWebAssemblyModulesPluginOptions} */
 		this.options = options;
 	}
 
 	/**
-	 * Apply the plugin
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Compiler} compiler the compiler instance
 	 * @returns {void}
 	 */
@@ -110,6 +86,17 @@ class AsyncWebAssemblyModulesPlugin {
 					WebAssemblyImportDependency,
 					normalModuleFactory
 				);
+
+				normalModuleFactory.hooks.createModuleClass
+					.for(WEBASSEMBLY_MODULE_TYPE_ASYNC)
+					.tap(
+						PLUGIN_NAME,
+						(createData, resolveData) =>
+							new AsyncWasmModule({
+								...createData,
+								phase: resolveData.phase
+							})
+					);
 
 				normalModuleFactory.hooks.createParser
 					.for(WEBASSEMBLY_MODULE_TYPE_ASYNC)
@@ -126,70 +113,64 @@ class AsyncWebAssemblyModulesPlugin {
 						const AsyncWebAssemblyGenerator = getAsyncWebAssemblyGenerator();
 
 						return Generator.byType({
-							javascript: new AsyncWebAssemblyJavascriptGenerator(
-								compilation.outputOptions.webassemblyModuleFilename
-							),
+							javascript: new AsyncWebAssemblyJavascriptGenerator(),
 							webassembly: new AsyncWebAssemblyGenerator(this.options)
 						});
 					});
 
-				compilation.hooks.renderManifest.tap(
-					"WebAssemblyModulesPlugin",
-					(result, options) => {
-						const { moduleGraph, chunkGraph, runtimeTemplate } = compilation;
-						const {
-							chunk,
-							outputOptions,
-							dependencyTemplates,
-							codeGenerationResults
-						} = options;
+				compilation.hooks.renderManifest.tap(PLUGIN_NAME, (result, options) => {
+					const { moduleGraph, chunkGraph, runtimeTemplate } = compilation;
+					const {
+						chunk,
+						outputOptions,
+						dependencyTemplates,
+						codeGenerationResults
+					} = options;
 
-						for (const module of chunkGraph.getOrderedChunkModulesIterable(
-							chunk,
-							compareModulesByIdOrIdentifier(chunkGraph)
-						)) {
-							if (module.type === WEBASSEMBLY_MODULE_TYPE_ASYNC) {
-								const filenameTemplate =
-									/** @type {NonNullable<OutputOptions["webassemblyModuleFilename"]>} */
-									(outputOptions.webassemblyModuleFilename);
+					for (const module of chunkGraph.getOrderedChunkModulesIterable(
+						chunk,
+						compareModulesByFullName(compiler)
+					)) {
+						if (module.type === WEBASSEMBLY_MODULE_TYPE_ASYNC) {
+							const filenameTemplate = outputOptions.webassemblyModuleFilename;
 
-								result.push({
-									render: () =>
-										this.renderModule(
-											module,
-											{
-												chunk,
-												dependencyTemplates,
-												runtimeTemplate,
-												moduleGraph,
-												chunkGraph,
-												codeGenerationResults
-											},
-											hooks
-										),
-									filenameTemplate,
-									pathOptions: {
+							result.push({
+								render: () =>
+									this.renderModule(
 										module,
-										runtime: chunk.runtime,
-										chunkGraph
-									},
-									auxiliary: true,
-									identifier: `webassemblyAsyncModule${chunkGraph.getModuleId(
-										module
-									)}`,
-									hash: chunkGraph.getModuleHash(module, chunk.runtime)
-								});
-							}
+										{
+											chunk,
+											dependencyTemplates,
+											runtimeTemplate,
+											moduleGraph,
+											chunkGraph,
+											codeGenerationResults
+										},
+										hooks
+									),
+								filenameTemplate,
+								pathOptions: {
+									module,
+									runtime: chunk.runtime,
+									chunkGraph
+								},
+								auxiliary: true,
+								identifier: `webassemblyAsyncModule${chunkGraph.getModuleId(
+									module
+								)}`,
+								hash: chunkGraph.getModuleHash(module, chunk.runtime)
+							});
 						}
-
-						return result;
 					}
-				);
+
+					return result;
+				});
 			}
 		);
 	}
 
 	/**
+	 * Renders the newly generated source from rendering.
 	 * @param {Module} module the rendered module
 	 * @param {WebAssemblyRenderContext} renderContext options object
 	 * @param {CompilationHooks} hooks hooks
@@ -214,5 +195,16 @@ class AsyncWebAssemblyModulesPlugin {
 		}
 	}
 }
+
+AsyncWebAssemblyModulesPlugin.getCompilationHooks = createHooksRegistry(
+	() =>
+		/** @type {CompilationHooks} */ ({
+			renderModuleContent: new SyncWaterfallHook([
+				"source",
+				"module",
+				"renderContext"
+			])
+		})
+);
 
 module.exports = AsyncWebAssemblyModulesPlugin;

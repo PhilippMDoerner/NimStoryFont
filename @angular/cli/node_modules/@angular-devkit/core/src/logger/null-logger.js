@@ -28,3 +28,4 @@ class NullLogger extends logger_1.Logger {
     }
 }
 exports.NullLogger = NullLogger;
+//# sourceMappingURL=null-logger.js.map

@@ -13,6 +13,7 @@ const ModuleDependencyTemplateAsId = require("./ModuleDependencyTemplateAsId");
 
 class ModuleHotDeclineDependency extends ModuleDependency {
 	/**
+	 * Creates an instance of ModuleHotDeclineDependency.
 	 * @param {string} request the request string
 	 * @param {Range} range location in source code
 	 */
@@ -20,6 +21,7 @@ class ModuleHotDeclineDependency extends ModuleDependency {
 		super(request);
 
 		this.range = range;
+		/** @type {boolean} */
 		this.weak = true;
 	}
 

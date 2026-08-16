@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.JsonPackExtension = exports.JsonPackValue = exports.MsgPackToJsonConverter = exports.MsgPackDecoderFast = exports.MsgPackEncoderStable = exports.MsgPackEncoder = exports.MsgPackEncoderFast = void 0;
+exports.MessagePackDecoder = exports.MessagePackEncoder = exports.JsonPackExtension = exports.JsonPackValue = exports.MsgPackToJsonConverter = exports.MsgPackDecoderFast = exports.MsgPackDecoder = exports.MsgPackEncoderStable = exports.MsgPackEncoder = exports.MsgPackEncoderFast = void 0;
 const tslib_1 = require("tslib");
 tslib_1.__exportStar(require("./types"), exports);
 var MsgPackEncoderFast_1 = require("./MsgPackEncoderFast");
@@ -9,6 +9,8 @@ var MsgPackEncoder_1 = require("./MsgPackEncoder");
 Object.defineProperty(exports, "MsgPackEncoder", { enumerable: true, get: function () { return MsgPackEncoder_1.MsgPackEncoder; } });
 var MsgPackEncoderStable_1 = require("./MsgPackEncoderStable");
 Object.defineProperty(exports, "MsgPackEncoderStable", { enumerable: true, get: function () { return MsgPackEncoderStable_1.MsgPackEncoderStable; } });
+var MsgPackDecoder_1 = require("./MsgPackDecoder");
+Object.defineProperty(exports, "MsgPackDecoder", { enumerable: true, get: function () { return MsgPackDecoder_1.MsgPackDecoder; } });
 var MsgPackDecoderFast_1 = require("./MsgPackDecoderFast");
 Object.defineProperty(exports, "MsgPackDecoderFast", { enumerable: true, get: function () { return MsgPackDecoderFast_1.MsgPackDecoderFast; } });
 var MsgPackToJsonConverter_1 = require("./MsgPackToJsonConverter");
@@ -17,4 +19,8 @@ var JsonPackValue_1 = require("../JsonPackValue");
 Object.defineProperty(exports, "JsonPackValue", { enumerable: true, get: function () { return JsonPackValue_1.JsonPackValue; } });
 var JsonPackExtension_1 = require("../JsonPackExtension");
 Object.defineProperty(exports, "JsonPackExtension", { enumerable: true, get: function () { return JsonPackExtension_1.JsonPackExtension; } });
+var MsgPackEncoder_2 = require("./MsgPackEncoder");
+Object.defineProperty(exports, "MessagePackEncoder", { enumerable: true, get: function () { return MsgPackEncoder_2.MsgPackEncoder; } });
+var MsgPackDecoder_2 = require("./MsgPackDecoder");
+Object.defineProperty(exports, "MessagePackDecoder", { enumerable: true, get: function () { return MsgPackDecoder_2.MsgPackDecoder; } });
 //# sourceMappingURL=index.js.map

@@ -1,6 +1,6 @@
 {
   "name": "@angular-eslint/builder",
-  "version": "20.1.1",
+  "version": "22.1.0",
   "description": "Angular CLI builder for ESLint",
   "license": "MIT",
   "main": "dist/index.js",
@@ -10,6 +10,7 @@
     "url": "https://github.com/angular-eslint/angular-eslint.git",
     "directory": "packages/builder"
   },
+  "bugs": "https://github.com/angular-eslint/angular-eslint/issues",
   "files": [
     "dist",
     "!**/*.tsbuildinfo",
@@ -19,11 +20,12 @@
     "builders.json"
   ],
   "dependencies": {
-    "@angular-devkit/architect": ">= 0.2000.0 < 0.2100.0",
-    "@angular-devkit/core": ">= 20.0.0 < 21.0.0"
+    "@angular-devkit/architect": ">= 0.2200.0 < 0.2300.0",
+    "@angular-devkit/core": ">= 22.0.0 < 23.0.0"
   },
   "peerDependencies": {
-    "eslint": "^8.57.0 || ^9.0.0",
+    "@angular/cli": ">= 22.0.0 < 23.0.0",
+    "eslint": "^9.0.0 || ^10.0.0",
     "typescript": "*"
   },
   "builders": "./builders.json",

@@ -17,6 +17,7 @@
   &:focus-visible,
   &:hover {
     outline: var(--focus-outline);
+    outline-offset: -2px;
   }
 
   &--part1 {

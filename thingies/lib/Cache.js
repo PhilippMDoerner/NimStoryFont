@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Cache = void 0;
-const tslib_1 = require("tslib");
 const noop = () => { };
 class Cache {
     constructor(method = noop) {
@@ -49,35 +48,31 @@ class Cache {
             }
         }
     }
-    getFromSource(key) {
-        return tslib_1.__awaiter(this, void 0, void 0, function* () {
-            const value = yield this.method(key);
-            this.put(key, value);
-            return value;
-        });
+    async getFromSource(key) {
+        const value = await this.method(key);
+        this.put(key, value);
+        return value;
     }
-    get(key) {
-        return tslib_1.__awaiter(this, void 0, void 0, function* () {
-            const entry = this.map.get(key);
-            if (entry) {
-                const now = Date.now();
-                if (now - entry.t <= this.ttl) {
-                    return entry.value;
-                }
-                else if (now - entry.t <= this.evictionTime) {
-                    this.getFromSource(key).catch(noop);
-                    return entry.value;
-                }
-                else {
-                    this.map.delete(key);
-                    this.entries--;
-                    return yield this.getFromSource(key);
-                }
+    async get(key) {
+        const entry = this.map.get(key);
+        if (entry) {
+            const now = Date.now();
+            if (now - entry.t <= this.ttl) {
+                return entry.value;
+            }
+            else if (now - entry.t <= this.evictionTime) {
+                this.getFromSource(key).catch(noop);
+                return entry.value;
             }
             else {
-                return yield this.getFromSource(key);
+                this.map.delete(key);
+                this.entries--;
+                return await this.getFromSource(key);
             }
-        });
+        }
+        else {
+            return await this.getFromSource(key);
+        }
     }
     getSync(key) {
         const entry = this.map.get(key);

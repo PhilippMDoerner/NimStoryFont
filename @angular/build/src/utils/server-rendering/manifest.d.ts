@@ -7,9 +7,18 @@
  */
 import type { Metafile } from 'esbuild';
 import { NormalizedApplicationBuildOptions } from '../../builders/application/options';
-import { type BuildOutputFile } from '../../tools/esbuild/bundler-context';
+import { type BuildOutputFile } from '../../tools/esbuild/bundler-files';
 export declare const SERVER_APP_MANIFEST_FILENAME = "angular-app-manifest.mjs";
 export declare const SERVER_APP_ENGINE_MANIFEST_FILENAME = "angular-app-engine-manifest.mjs";
+/**
+ * A set of server-generated dependencies that are treated as external.
+ *
+ * These dependencies are marked as external because they are produced by a
+ * separate bundling process and are not included in the primary bundle. This
+ * ensures that these generated files are resolved from an external source rather
+ * than being part of the main bundle.
+ */
+export declare const SERVER_GENERATED_EXTERNALS: Set<string>;
 /**
  * Generates the server manifest for the App Engine environment.
  *
@@ -19,10 +28,11 @@ export declare const SERVER_APP_ENGINE_MANIFEST_FILENAME = "angular-app-engine-m
  *
  * @param i18nOptions - The internationalization options for the application build. This
  * includes settings for inlining locales and determining the output structure.
+ * @param allowedHosts - A list of hosts that are allowed to access the server-side application.
  * @param baseHref - The base HREF for the application. This is used to set the base URL
  * for all relative URLs in the application.
  */
-export declare function generateAngularServerAppEngineManifest(i18nOptions: NormalizedApplicationBuildOptions['i18nOptions'], baseHref: string | undefined): string;
+export declare function generateAngularServerAppEngineManifest(i18nOptions: NormalizedApplicationBuildOptions['i18nOptions'], allowedHosts: string[], baseHref: string | undefined): string;
 /**
  * Generates the server manifest for the standard Node.js environment.
  *

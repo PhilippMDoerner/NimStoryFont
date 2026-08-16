@@ -12,38 +12,38 @@ class AsynchronouslyCreatedResource {
     }
     markAsReady() {
         const listeners = this.onreadyListeners;
-        (0, node_assert_1.default)(listeners !== null);
+        (0, node_assert_1.default)(listeners != null);
         this.onreadyListeners = null;
         for (const listener of listeners) {
             listener();
         }
     }
     isReady() {
-        return this.onreadyListeners === null;
+        return this.onreadyListeners == null;
     }
     onReady(fn) {
-        if (this.onreadyListeners === null) {
+        if (this.onreadyListeners == null) {
             fn(); // Zalgo is okay here.
             return;
         }
         this.onreadyListeners.push(fn);
     }
     onDestroy(fn) {
-        if (this.ondestroyListeners === null) {
+        if (this.ondestroyListeners == null) {
             return;
         }
         this.ondestroyListeners.push(fn);
     }
     markAsDestroyed() {
         const listeners = this.ondestroyListeners;
-        (0, node_assert_1.default)(listeners !== null);
+        (0, node_assert_1.default)(listeners != null);
         this.ondestroyListeners = null;
         for (const listener of listeners) {
             listener();
         }
     }
     isDestroyed() {
-        return this.ondestroyListeners === null;
+        return this.ondestroyListeners == null;
     }
 }
 exports.AsynchronouslyCreatedResource = AsynchronouslyCreatedResource;

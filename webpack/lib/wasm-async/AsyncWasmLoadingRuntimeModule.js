@@ -12,11 +12,15 @@ const Template = require("../Template");
 /** @typedef {import("../Chunk")} Chunk */
 /** @typedef {import("../Compilation")} Compilation */
 
+/** @typedef {(wasmModuleSrcPath: string) => string} GenerateBeforeLoadBinaryCode */
+/** @typedef {(wasmModuleSrcPath: string) => string} GenerateLoadBinaryCode */
+/** @typedef {() => string} GenerateBeforeInstantiateStreaming */
+
 /**
  * @typedef {object} AsyncWasmLoadingRuntimeModuleOptions
- * @property {((wasmModuleSrcPath: string) => string)=} generateBeforeLoadBinaryCode
- * @property {(wasmModuleSrcPath: string) => string} generateLoadBinaryCode
- * @property {(() => string)=} generateBeforeInstantiateStreaming
+ * @property {GenerateLoadBinaryCode} generateLoadBinaryCode
+ * @property {GenerateBeforeLoadBinaryCode=} generateBeforeLoadBinaryCode
+ * @property {GenerateBeforeInstantiateStreaming=} generateBeforeInstantiateStreaming
  * @property {boolean} supportsStreaming
  */
 
@@ -31,27 +35,34 @@ class AsyncWasmLoadingRuntimeModule extends RuntimeModule {
 		supportsStreaming
 	}) {
 		super("wasm loading", RuntimeModule.STAGE_NORMAL);
+		/** @type {GenerateLoadBinaryCode} */
 		this.generateLoadBinaryCode = generateLoadBinaryCode;
+		/** @type {generateBeforeLoadBinaryCode | undefined} */
 		this.generateBeforeLoadBinaryCode = generateBeforeLoadBinaryCode;
+		/** @type {generateBeforeInstantiateStreaming | undefined} */
 		this.generateBeforeInstantiateStreaming =
 			generateBeforeInstantiateStreaming;
+		/** @type {boolean} */
 		this.supportsStreaming = supportsStreaming;
 	}
 
 	/**
+	 * Generates runtime code for this runtime module.
 	 * @returns {string | null} runtime code
 	 */
 	generate() {
 		const compilation = /** @type {Compilation} */ (this.compilation);
 		const chunk = /** @type {Chunk} */ (this.chunk);
 		const { outputOptions, runtimeTemplate } = compilation;
+		// Opt-in fallback to non-streaming when the server serves wasm with a wrong MIME type.
+		const streamingFallback = outputOptions.wasmStreamingFallback;
 		const fn = RuntimeGlobals.instantiateWasm;
 		const wasmModuleSrcPath = compilation.getPath(
 			JSON.stringify(outputOptions.webassemblyModuleFilename),
 			{
 				hash: `" + ${RuntimeGlobals.getFullHash}() + "`,
-				hashWithLength: length =>
-					`" + ${RuntimeGlobals.getFullHash}}().slice(0, ${length}) + "`,
+				hashWithLength: (length) =>
+					`" + ${RuntimeGlobals.getFullHash}().slice(0, ${length}) + "`,
 				module: {
 					id: '" + wasmModuleId + "',
 					hash: '" + wasmModuleHash + "',
@@ -76,7 +87,11 @@ class AsyncWasmLoadingRuntimeModule extends RuntimeModule {
 			)})`
 		];
 		const getStreaming = () => {
-			const concat = (/** @type {string[]} */ ...text) => text.join("");
+			/**
+			 * @param {string[]} text text
+			 * @returns {string} merged text
+			 */
+			const concat = (...text) => text.join("");
 			return [
 				this.generateBeforeLoadBinaryCode
 					? this.generateBeforeLoadBinaryCode(wasmModuleSrcPath)
@@ -94,28 +109,37 @@ class AsyncWasmLoadingRuntimeModule extends RuntimeModule {
 								? this.generateBeforeInstantiateStreaming()
 								: ""
 						),
-						Template.indent([
-							"return WebAssembly.instantiateStreaming(res, importsObj)",
-							Template.indent([
-								".then(",
-								Template.indent([
-									`${runtimeTemplate.returningFunction(
-										"Object.assign(exports, res.instance.exports)",
-										"res"
-									)},`,
-									runtimeTemplate.basicFunction("e", [
-										'if(res.headers.get("Content-Type") !== "application/wasm") {',
+						Template.indent(
+							streamingFallback
+								? [
+										"return WebAssembly.instantiateStreaming(res, importsObj)",
 										Template.indent([
-											'console.warn("`WebAssembly.instantiateStreaming` failed because your server does not serve wasm with `application/wasm` MIME type. Falling back to `WebAssembly.instantiate` which is slower. Original error:\\n", e);',
-											"return fallback();"
-										]),
-										"}",
-										"throw e;"
-									])
-								]),
-								");"
-							])
-						]),
+											".then(",
+											Template.indent([
+												`${runtimeTemplate.returningFunction(
+													"Object.assign(exports, res.instance.exports)",
+													"res"
+												)},`,
+												runtimeTemplate.basicFunction("e", [
+													'if(res.headers.get("Content-Type") !== "application/wasm") {',
+													Template.indent([
+														'console.warn("`WebAssembly.instantiateStreaming` failed because your server does not serve wasm with `application/wasm` MIME type. Falling back to `WebAssembly.instantiate` which is slower. Original error:\\n", e);',
+														"return fallback();"
+													]),
+													"}",
+													"throw e;"
+												])
+											]),
+											");"
+										])
+									]
+								: [
+										`return WebAssembly.instantiateStreaming(res, importsObj).then(${runtimeTemplate.returningFunction(
+											"Object.assign(exports, res.instance.exports)",
+											"res"
+										)});`
+									]
+						),
 						"}",
 						"return fallback();"
 					]),

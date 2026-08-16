@@ -15,12 +15,14 @@ const ConcatenatedModule = require("./optimize/ConcatenatedModule");
 const generateDebugId = require("./util/generateDebugId");
 const { makePathsAbsolute } = require("./util/identifier");
 
+/** @typedef {import("webpack-sources").RawSourceMap} RawSourceMap */
 /** @typedef {import("webpack-sources").Source} Source */
-/** @typedef {import("../declarations/WebpackOptions").DevTool} DevToolOptions */
+/** @typedef {import("../declarations/WebpackOptions").DevtoolNamespace} DevtoolNamespace */
+/** @typedef {import("../declarations/WebpackOptions").DevtoolModuleFilenameTemplate} DevtoolModuleFilenameTemplate */
 /** @typedef {import("../declarations/plugins/SourceMapDevToolPlugin").SourceMapDevToolPluginOptions} SourceMapDevToolPluginOptions */
-/** @typedef {import("./ChunkGraph").ModuleId} ModuleId */
+/** @typedef {import("../declarations/plugins/SourceMapDevToolPlugin").Rules} Rules */
 /** @typedef {import("./Compiler")} Compiler */
-/** @typedef {import("./NormalModule").SourceMap} SourceMap */
+/** @typedef {import("./ChunkGraph").ModuleId} ModuleId */
 
 /** @type {WeakMap<Source, Source>} */
 const cache = new WeakMap();
@@ -39,9 +41,10 @@ const PLUGIN_NAME = "EvalSourceMapDevToolPlugin";
 
 class EvalSourceMapDevToolPlugin {
 	/**
-	 * @param {SourceMapDevToolPluginOptions | string} inputOptions Options object
+	 * Creates an instance of EvalSourceMapDevToolPlugin.
+	 * @param {SourceMapDevToolPluginOptions | string=} inputOptions Options object
 	 */
-	constructor(inputOptions) {
+	constructor(inputOptions = {}) {
 		/** @type {SourceMapDevToolPluginOptions} */
 		let options;
 		if (typeof inputOptions === "string") {
@@ -51,25 +54,29 @@ class EvalSourceMapDevToolPlugin {
 		} else {
 			options = inputOptions;
 		}
+		/** @type {string} */
 		this.sourceMapComment =
 			options.append && typeof options.append !== "function"
 				? options.append
 				: "//# sourceURL=[module]\n//# sourceMappingURL=[url]";
+		/** @type {DevtoolModuleFilenameTemplate} */
 		this.moduleFilenameTemplate =
 			options.moduleFilenameTemplate ||
 			"webpack://[namespace]/[resource-path]?[hash]";
+		/** @type {DevtoolNamespace} */
 		this.namespace = options.namespace || "";
+		/** @type {SourceMapDevToolPluginOptions} */
 		this.options = options;
 	}
 
 	/**
-	 * Apply the plugin
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Compiler} compiler the compiler instance
 	 * @returns {void}
 	 */
 	apply(compiler) {
 		const options = this.options;
-		compiler.hooks.compilation.tap(PLUGIN_NAME, compilation => {
+		compiler.hooks.compilation.tap(PLUGIN_NAME, (compilation) => {
 			const hooks = JavascriptModulesPlugin.getCompilationHooks(compilation);
 			new SourceMapDevToolModuleOptionsPlugin(options).apply(compilation);
 			const matchModule = ModuleFilenameHelpers.matchObject.bind(
@@ -85,26 +92,22 @@ class EvalSourceMapDevToolPlugin {
 					}
 
 					/**
+					 * Returns result.
 					 * @param {Source} r result
 					 * @returns {Source} result
 					 */
-					const result = r => {
+					const result = (r) => {
 						cache.set(source, r);
 						return r;
 					};
 
 					if (m instanceof NormalModule) {
-						const module = /** @type {NormalModule} */ (m);
-						if (!matchModule(module.resource)) {
+						if (!matchModule(m.resource)) {
 							return result(source);
 						}
 					} else if (m instanceof ConcatenatedModule) {
-						const concatModule = /** @type {ConcatenatedModule} */ (m);
-						if (concatModule.rootModule instanceof NormalModule) {
-							const module = /** @type {NormalModule} */ (
-								concatModule.rootModule
-							);
-							if (!matchModule(module.resource)) {
+						if (m.rootModule instanceof NormalModule) {
+							if (!matchModule(m.rootModule.resource)) {
 								return result(source);
 							}
 						} else {
@@ -117,15 +120,16 @@ class EvalSourceMapDevToolPlugin {
 					const namespace = compilation.getPath(this.namespace, {
 						chunk
 					});
-					/** @type {SourceMap} */
+					/** @type {RawSourceMap} */
 					let sourceMap;
+					/** @type {string | Buffer} */
 					let content;
 					if (source.sourceAndMap) {
 						const sourceAndMap = source.sourceAndMap(options);
-						sourceMap = /** @type {SourceMap} */ (sourceAndMap.map);
+						sourceMap = /** @type {RawSourceMap} */ (sourceAndMap.map);
 						content = sourceAndMap.source;
 					} else {
-						sourceMap = /** @type {SourceMap} */ (source.map(options));
+						sourceMap = /** @type {RawSourceMap} */ (source.map(options));
 						content = source.source();
 					}
 					if (!sourceMap) {
@@ -134,15 +138,19 @@ class EvalSourceMapDevToolPlugin {
 
 					// Clone (flat) the sourcemap to ensure that the mutations below do not persist.
 					sourceMap = { ...sourceMap };
-					const context = /** @type {string} */ (compiler.options.context);
+					const context = compiler.context;
 					const root = compiler.root;
-					const modules = sourceMap.sources.map(source => {
+					const cachedAbsolutify = makePathsAbsolute.bindContextCache(
+						context,
+						root
+					);
+					const modules = sourceMap.sources.map((source) => {
 						if (!source.startsWith("webpack://")) return source;
-						source = makePathsAbsolute(context, source.slice(10), root);
+						source = cachedAbsolutify(source.slice(10));
 						const module = compilation.findModule(source);
 						return module || source;
 					});
-					let moduleFilenames = modules.map(module =>
+					let moduleFilenames = modules.map((module) =>
 						ModuleFilenameHelpers.createFilename(
 							module,
 							{
@@ -164,6 +172,24 @@ class EvalSourceMapDevToolPlugin {
 						}
 					);
 					sourceMap.sources = moduleFilenames;
+					if (options.ignoreList) {
+						const ignoreList = sourceMap.sources.reduce(
+							/** @type {(acc: number[], sourceName: string, idx: number) => number[]} */ (
+								(acc, sourceName, idx) => {
+									const rule = /** @type {Rules} */ (options.ignoreList);
+									if (ModuleFilenameHelpers.matchPart(sourceName, rule)) {
+										acc.push(idx);
+									}
+									return acc;
+								}
+							),
+							[]
+						);
+						if (ignoreList.length > 0) {
+							sourceMap.ignoreList = ignoreList;
+						}
+					}
+
 					if (options.noSources) {
 						sourceMap.sourcesContent = undefined;
 					}
@@ -191,21 +217,21 @@ class EvalSourceMapDevToolPlugin {
 							`eval(${
 								compilation.outputOptions.trustedTypes
 									? `${RuntimeGlobals.createScript}(${JSON.stringify(
-											content + footer
+											`{${content + footer}\n}`
 										)})`
-									: JSON.stringify(content + footer)
+									: JSON.stringify(`{${content + footer}\n}`)
 							});`
 						)
 					);
 				}
 			);
 			hooks.inlineInRuntimeBailout.tap(
-				"EvalDevToolModulePlugin",
+				PLUGIN_NAME,
 				() => "the eval-source-map devtool is used."
 			);
 			hooks.render.tap(
 				PLUGIN_NAME,
-				source => new ConcatSource(devtoolWarning, source)
+				(source) => new ConcatSource(devtoolWarning, source)
 			);
 			hooks.chunkHash.tap(PLUGIN_NAME, (chunk, hash) => {
 				hash.update(PLUGIN_NAME);

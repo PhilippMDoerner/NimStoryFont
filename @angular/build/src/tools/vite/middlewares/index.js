@@ -7,7 +7,7 @@
  * found in the LICENSE file at https://angular.dev/license
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createChromeDevtoolsMiddleware = exports.createAngularComponentMiddleware = exports.createAngularHeadersMiddleware = exports.createAngularSsrInternalMiddleware = exports.createAngularSsrExternalMiddleware = exports.createAngularIndexHtmlMiddleware = exports.angularHtmlFallbackMiddleware = exports.createAngularAssetsMiddleware = void 0;
+exports.patchBaseMiddleware = exports.patchHostValidationMiddleware = exports.createChromeDevtoolsMiddleware = exports.createAngularComponentMiddleware = exports.createAngularHeadersMiddleware = exports.createAngularSsrInternalMiddleware = exports.createAngularSsrExternalMiddleware = exports.createAngularIndexHtmlMiddleware = exports.angularHtmlFallbackMiddleware = exports.createAngularAssetsMiddleware = void 0;
 var assets_middleware_1 = require("./assets-middleware");
 Object.defineProperty(exports, "createAngularAssetsMiddleware", { enumerable: true, get: function () { return assets_middleware_1.createAngularAssetsMiddleware; } });
 var html_fallback_middleware_1 = require("./html-fallback-middleware");
@@ -23,3 +23,8 @@ var component_middleware_1 = require("./component-middleware");
 Object.defineProperty(exports, "createAngularComponentMiddleware", { enumerable: true, get: function () { return component_middleware_1.createAngularComponentMiddleware; } });
 var chrome_devtools_middleware_1 = require("./chrome-devtools-middleware");
 Object.defineProperty(exports, "createChromeDevtoolsMiddleware", { enumerable: true, get: function () { return chrome_devtools_middleware_1.createChromeDevtoolsMiddleware; } });
+var host_check_middleware_1 = require("./host-check-middleware");
+Object.defineProperty(exports, "patchHostValidationMiddleware", { enumerable: true, get: function () { return host_check_middleware_1.patchHostValidationMiddleware; } });
+var base_middleware_1 = require("./base-middleware");
+Object.defineProperty(exports, "patchBaseMiddleware", { enumerable: true, get: function () { return base_middleware_1.patchBaseMiddleware; } });
+//# sourceMappingURL=index.js.map

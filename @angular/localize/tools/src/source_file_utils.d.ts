@@ -6,8 +6,8 @@
  * found in the LICENSE file at https://angular.dev/license
  */
 import { PathManipulation } from '@angular/compiler-cli/private/localize';
+import { File, NodePath, types as t } from '@babel/core';
 import { ɵParsedTranslation, ɵSourceLocation } from '../../index';
-import { BabelFile, NodePath, types as t } from '@babel/core';
 import { DiagnosticHandlingStrategy, Diagnostics } from './diagnostics';
 /**
  * Is the given `expression` the global `$localize` identifier?
@@ -141,6 +141,6 @@ export declare class BabelParseError extends Error {
     constructor(node: t.Node, message: string);
 }
 export declare function isBabelParseError(e: any): e is BabelParseError;
-export declare function buildCodeFrameError(fs: PathManipulation, path: NodePath, file: BabelFile, e: BabelParseError): string;
+export declare function buildCodeFrameError(fs: PathManipulation, path: NodePath, file: File, e: BabelParseError): string;
 export declare function getLocation(fs: PathManipulation, startPath: NodePath, endPath?: NodePath): ɵSourceLocation | undefined;
 export declare function serializeLocationPosition(location: ɵSourceLocation): string;

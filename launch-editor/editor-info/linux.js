@@ -5,6 +5,9 @@ module.exports = {
   code: 'code',
   vscodium: 'vscodium',
   codium: 'codium',
+  cursor: 'cursor',
+  trae: 'trae',
+  antigravity: 'antigravity',
   emacs: 'emacs',
   gvim: 'gvim',
   idea: 'idea',
@@ -22,5 +25,6 @@ module.exports = {
   goland: 'goland',
   'goland.sh': 'goland',
   rider: 'rider',
-  'rider.sh': 'rider'
+  'rider.sh': 'rider',
+  zed: 'zed',
 }

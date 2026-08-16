@@ -11,7 +11,8 @@ import {
   NgbSlideEvent,
   NgbTooltip,
 } from '@ng-bootstrap/ng-bootstrap';
-import { Image } from 'src/app/_models/image';
+import { Image } from '../../../_models/image';
+import { ButtonComponent } from '../../atoms/button/button.component';
 import { CardComponent } from '../../atoms/card/card.component';
 import { MenuItem } from '../../molecules/_models/menu';
 import { ContextMenuComponent } from '../../molecules/context-menu/context-menu.component';
@@ -32,6 +33,7 @@ type ImageContextAction =
     NgTemplateOutlet,
     CardComponent,
     ContextMenuComponent,
+    ButtonComponent,
   ],
 })
 export class ImageCarouselComponent {
@@ -48,6 +50,12 @@ export class ImageCarouselComponent {
   readonly slide = output<{ event: NgbSlideEvent; index: number }>();
   readonly slideEnd = output<{ event: NgbSlideEvent; index: number }>();
 
+  protected readonly createEntry = {
+    kind: 'BUTTON',
+    actionName: 'create-image-requested' satisfies ImageContextAction,
+    label: 'Create Image',
+    icon: 'plus-square',
+  } as const;
   protected readonly contextActions = computed<MenuItem[]>(() => {
     const hasImages = this.images()?.length > 0;
     const showCreateEntry = this.canCreate();
@@ -57,12 +65,7 @@ export class ImageCarouselComponent {
     const result: MenuItem[] = [];
 
     if (showCreateEntry) {
-      result.push({
-        kind: 'BUTTON',
-        actionName: 'create-image-requested' satisfies ImageContextAction,
-        label: 'Create Image',
-        icon: 'plus-square',
-      });
+      result.push(this.createEntry);
     }
 
     if (showUpdateEntry) {
@@ -85,9 +88,15 @@ export class ImageCarouselComponent {
 
     return result;
   });
-  protected readonly showContextMenu = computed<boolean>(
-    () => this.contextActions().length > 0,
-  );
+  protected readonly showContextMenu = computed<boolean>(() => {
+    const actions = this.contextActions();
+    const isEmpty = actions.length === 0;
+    if (isEmpty) return false;
+
+    const onlyHasCreateEntry =
+      actions.length === 1 && actions[0] === this.createEntry;
+    return !onlyHasCreateEntry;
+  });
 
   onSlide(event: NgbSlideEvent) {
     const slideIndexStr: string | undefined = event.current.split('-').pop();
@@ -115,7 +124,7 @@ export class ImageCarouselComponent {
     }
   }
 
-  private onImageCreate() {
+  protected onImageCreate() {
     if (!this.canCreate()) {
       return;
     }

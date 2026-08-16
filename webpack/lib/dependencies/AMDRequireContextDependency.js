@@ -9,12 +9,13 @@ const makeSerializable = require("../util/makeSerializable");
 const ContextDependency = require("./ContextDependency");
 
 /** @typedef {import("../javascript/JavascriptParser").Range} Range */
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext} ObjectDeserializerContext */
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext} ObjectSerializerContext */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext<[Range, Range]>} ObjectDeserializerContext */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext<[Range, Range]>} ObjectSerializerContext */
 /** @typedef {import("./ContextDependency").ContextDependencyOptions} ContextDependencyOptions */
 
 class AMDRequireContextDependency extends ContextDependency {
 	/**
+	 * Creates an instance of AMDRequireContextDependency.
 	 * @param {ContextDependencyOptions} options options
 	 * @param {Range} range range
 	 * @param {Range} valueRange value range
@@ -35,27 +36,25 @@ class AMDRequireContextDependency extends ContextDependency {
 	}
 
 	/**
+	 * Serializes this instance into the provided serializer context.
 	 * @param {ObjectSerializerContext} context context
 	 */
 	serialize(context) {
-		const { write } = context;
-
-		write(this.range);
-		write(this.valueRange);
+		context.write(this.range).write(this.valueRange);
 
 		super.serialize(context);
 	}
 
 	/**
+	 * Restores this instance from the provided deserializer context.
 	 * @param {ObjectDeserializerContext} context context
 	 */
 	deserialize(context) {
-		const { read } = context;
+		this.range = context.read();
+		const c1 = context.rest;
+		this.valueRange = c1.read();
 
-		this.range = read();
-		this.valueRange = read();
-
-		super.deserialize(context);
+		super.deserialize(c1.rest);
 	}
 }
 

@@ -14,4 +14,7 @@ export interface SearchDirectory {
 }
 export declare function generateSearchDirectories(roots: string[]): Promise<SearchDirectory[]>;
 export declare function findTailwindConfiguration(searchDirectories: SearchDirectory[]): string | undefined;
-export declare function loadPostcssConfiguration(searchDirectories: SearchDirectory[]): Promise<PostcssConfiguration | undefined>;
+export declare function loadPostcssConfiguration(searchDirectories: SearchDirectory[]): Promise<{
+    configPath: string;
+    config: PostcssConfiguration;
+} | undefined>;

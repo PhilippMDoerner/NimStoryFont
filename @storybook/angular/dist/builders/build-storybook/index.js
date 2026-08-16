@@ -1,83 +1,130 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const common_1 = require("storybook/internal/common");
-const core_server_1 = require("storybook/internal/core-server");
-const telemetry_1 = require("storybook/internal/telemetry");
-const architect_1 = require("@angular-devkit/architect");
-const fd_package_json_1 = require("fd-package-json");
-const find_up_1 = require("find-up");
-const rxjs_1 = require("rxjs");
-const operators_1 = require("rxjs/operators");
-const error_handler_1 = require("../utils/error-handler");
-const run_compodoc_1 = require("../utils/run-compodoc");
-(0, telemetry_1.addToGlobalContext)('cliVersion', common_1.versions.storybook);
-const commandBuilder = (options, context) => {
-    const builder = (0, rxjs_1.from)(setup(options, context)).pipe((0, operators_1.switchMap)(({ tsConfig }) => {
-        const docTSConfig = (0, find_up_1.findUpSync)('tsconfig.doc.json', {
-            cwd: options.configDir,
-            stopAt: (0, common_1.getProjectRoot)(),
-        });
-        const runCompodoc$ = options.compodoc
-            ? (0, run_compodoc_1.runCompodoc)({ compodocArgs: options.compodocArgs, tsconfig: docTSConfig ?? tsConfig }, context).pipe((0, operators_1.mapTo)({ tsConfig }))
-            : (0, rxjs_1.of)({});
-        return runCompodoc$.pipe((0, operators_1.mapTo)({ tsConfig }));
-    }), (0, operators_1.map)(({ tsConfig }) => {
-        (0, common_1.getEnvConfig)(options, {
-            staticDir: 'SBCONFIG_STATIC_DIR',
-            outputDir: 'SBCONFIG_OUTPUT_DIR',
-            configDir: 'SBCONFIG_CONFIG_DIR',
-        });
-        const { browserTarget, stylePreprocessorOptions, styles, configDir, docs, loglevel, test, outputDir, quiet, enableProdMode = true, webpackStatsJson, statsJson, debugWebpack, disableTelemetry, assets, previewUrl, sourceMap = false, preserveSymlinks = false, experimentalZoneless = false, } = options;
-        const standaloneOptions = {
-            packageJson: (0, fd_package_json_1.findPackageSync)(__dirname),
-            configDir,
-            ...(docs ? { docs } : {}),
-            loglevel,
-            outputDir,
-            test,
-            quiet,
-            enableProdMode,
-            disableTelemetry,
-            angularBrowserTarget: browserTarget,
-            angularBuilderContext: context,
-            angularBuilderOptions: {
-                ...(stylePreprocessorOptions ? { stylePreprocessorOptions } : {}),
-                ...(styles ? { styles } : {}),
-                ...(assets ? { assets } : {}),
-                sourceMap,
-                preserveSymlinks,
-                experimentalZoneless,
-            },
-            tsConfig,
-            webpackStatsJson,
-            statsJson,
-            debugWebpack,
-            previewUrl,
-        };
-        return standaloneOptions;
-    }), (0, operators_1.switchMap)((standaloneOptions) => runInstance({ ...standaloneOptions, mode: 'static' })), (0, operators_1.map)(() => {
-        return { success: true };
-    }));
-    return builder;
-};
-exports.default = (0, architect_1.createBuilder)(commandBuilder);
+import CJS_COMPAT_NODE_URL_m3cx8917gnb from 'node:url';
+import CJS_COMPAT_NODE_PATH_m3cx8917gnb from 'node:path';
+import CJS_COMPAT_NODE_MODULE_m3cx8917gnb from "node:module";
+
+var __filename = CJS_COMPAT_NODE_URL_m3cx8917gnb.fileURLToPath(import.meta.url);
+var __dirname = CJS_COMPAT_NODE_PATH_m3cx8917gnb.dirname(__filename);
+var require = CJS_COMPAT_NODE_MODULE_m3cx8917gnb.createRequire(import.meta.url);
+
+// ------------------------------------------------------------
+// end of CJS compatibility banner, injected by Storybook's esbuild configuration
+// ------------------------------------------------------------
+import {
+  errorSummary,
+  printErrorDetails,
+  runCompodoc,
+  up as up2
+} from "../../_node-chunks/chunk-YIJET4JG.js";
+import {
+  up
+} from "../../_node-chunks/chunk-STYMOUJP.js";
+
+// src/builders/build-storybook/index.ts
+import { readFileSync } from "node:fs";
+import { getEnvConfig, getProjectRoot, versions } from "storybook/internal/common";
+import { buildStaticStandalone, withTelemetry } from "storybook/internal/core-server";
+import { addToGlobalContext } from "storybook/internal/telemetry";
+import { logger, logTracker } from "storybook/internal/node-logger";
+import { createBuilder, targetFromTargetString } from "@angular-devkit/architect";
+import { VERSION } from "@angular/core";
+import { Channel } from "storybook/internal/channels";
+addToGlobalContext("cliVersion", versions.storybook);
+var commandBuilder = async (options, context) => {
+  options.loglevel && logger.setLogLevel(options.loglevel), options.logfile && logTracker.enableLogWriting(), logger.intro("Building Storybook");
+  let { tsConfig } = await setup(options, context), docTSConfig = up("tsconfig.doc.json", {
+    cwd: options.configDir,
+    last: getProjectRoot()
+  });
+  options.compodoc && await runCompodoc(
+    { compodocArgs: options.compodocArgs, tsconfig: docTSConfig ?? tsConfig },
+    context
+  ), getEnvConfig(options, {
+    staticDir: "SBCONFIG_STATIC_DIR",
+    outputDir: "SBCONFIG_OUTPUT_DIR",
+    configDir: "SBCONFIG_CONFIG_DIR"
+  });
+  let {
+    browserTarget,
+    stylePreprocessorOptions,
+    styles,
+    configDir,
+    docs,
+    loglevel,
+    test,
+    outputDir,
+    quiet,
+    enableProdMode = !0,
+    webpackStatsJson,
+    statsJson,
+    debugWebpack,
+    disableTelemetry,
+    assets,
+    previewUrl,
+    sourceMap = !1,
+    preserveSymlinks = !1,
+    experimentalZoneless = !!(VERSION.major && Number(VERSION.major) >= 21)
+  } = options, packageJsonPath = up2({ cwd: __dirname }), standaloneOptions = {
+    packageJson: packageJsonPath != null ? JSON.parse(readFileSync(packageJsonPath, "utf8")) : null,
+    configDir,
+    ...docs ? { docs } : {},
+    loglevel,
+    outputDir,
+    test,
+    quiet,
+    enableProdMode,
+    disableTelemetry,
+    angularBrowserTarget: browserTarget,
+    angularBuilderContext: context,
+    angularBuilderOptions: {
+      ...stylePreprocessorOptions ? { stylePreprocessorOptions } : {},
+      ...styles ? { styles } : {},
+      ...assets ? { assets } : {},
+      sourceMap,
+      preserveSymlinks,
+      experimentalZoneless
+    },
+    tsConfig,
+    webpackStatsJson,
+    statsJson,
+    debugWebpack,
+    previewUrl
+  };
+  if (await runInstance({ ...standaloneOptions, mode: "static" }), logTracker.shouldWriteLogsToFile) {
+    let logFile = await logTracker.writeToFile(options.logfile);
+    logger.info(`Debug logs are written to: ${logFile}`);
+  }
+  return logger.outro("Storybook build completed successfully"), { success: !0 };
+}, build_storybook_default = createBuilder(commandBuilder);
 async function setup(options, context) {
-    let browserOptions;
-    let browserTarget;
-    if (options.browserTarget) {
-        browserTarget = (0, architect_1.targetFromTargetString)(options.browserTarget);
-        browserOptions = await context.validateOptions(await context.getTargetOptions(browserTarget), await context.getBuilderNameForTarget(browserTarget));
-    }
-    return {
-        tsConfig: options.tsConfig ??
-            (0, find_up_1.findUpSync)('tsconfig.json', { cwd: options.configDir, stopAt: (0, common_1.getProjectRoot)() }) ??
-            browserOptions.tsConfig,
-    };
+  let browserOptions, browserTarget;
+  return options.browserTarget && (browserTarget = targetFromTargetString(options.browserTarget), browserOptions = await context.validateOptions(
+    await context.getTargetOptions(browserTarget),
+    await context.getBuilderNameForTarget(browserTarget)
+  )), {
+    tsConfig: options.tsConfig ?? up("tsconfig.json", { cwd: options.configDir, last: getProjectRoot() }) ?? browserOptions.tsConfig
+  };
 }
-function runInstance(options) {
-    return (0, rxjs_1.from)((0, core_server_1.withTelemetry)('build', {
+async function runInstance(options) {
+  try {
+    await withTelemetry(
+      "build",
+      {
         cliOptions: options,
-        presetOptions: { ...options, corePresets: [], overridePresets: [] },
-        printError: error_handler_1.printErrorDetails,
-    }, () => (0, core_server_1.buildStaticStandalone)(options))).pipe((0, operators_1.catchError)((error) => (0, rxjs_1.throwError)((0, error_handler_1.errorSummary)(error))));
+        presetOptions: {
+          ...options,
+          corePresets: [],
+          overridePresets: [],
+          channel: new Channel({})
+        },
+        printError: printErrorDetails
+      },
+      async () => await buildStaticStandalone(options)
+    );
+  } catch (error) {
+    let summary = errorSummary(error);
+    throw new Error(summary);
+  }
 }
+export {
+  build_storybook_default as default
+};

@@ -17,3 +17,4 @@ function parseName(path, name) {
         path: (0, core_1.normalize)('/' + namePath),
     };
 }
+//# sourceMappingURL=parse-name.js.map

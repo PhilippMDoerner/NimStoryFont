@@ -9,3 +9,4 @@ import { SchematicsException } from '@angular-devkit/schematics';
 import { ProjectDefinition } from './workspace';
 export declare function targetBuildNotFoundError(): SchematicsException;
 export declare function isUsingApplicationBuilder(project: ProjectDefinition): boolean;
+export declare function isZonelessApp(project: ProjectDefinition): boolean;

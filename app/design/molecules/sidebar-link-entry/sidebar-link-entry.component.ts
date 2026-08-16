@@ -8,7 +8,7 @@ import {
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
-import { OnlineService } from 'src/app/_services/online.service';
+import { OnlineService } from '../../../_services/online.service';
 import { IconComponent } from '../../atoms/icon/icon.component';
 import { SidebarLinkEntry } from '../../organisms/_model/sidebar';
 
@@ -25,8 +25,8 @@ import { SidebarLinkEntry } from '../../organisms/_model/sidebar';
   },
 })
 export class SidebarLinkEntryComponent {
-  online$ = inject(OnlineService).online$;
-  private online = toSignal(this.online$);
-  isOffline = computed(() => this.online() === false);
-  entry = input.required<SidebarLinkEntry>();
+  readonly online$ = inject(OnlineService).online$;
+  private readonly online = toSignal(this.online$);
+  readonly isOffline = computed(() => this.online() === false);
+  readonly entry = input.required<SidebarLinkEntry>();
 }

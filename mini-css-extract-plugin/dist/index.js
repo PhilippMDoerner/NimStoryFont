@@ -1,7 +1,5 @@
 "use strict";
 
-/* eslint-disable class-methods-use-this */
-
 const path = require("path");
 const {
   validate
@@ -11,15 +9,15 @@ const {
 } = require("tapable");
 const schema = require("./plugin-options.json");
 const {
-  trueFn,
-  MODULE_TYPE,
-  AUTO_PUBLIC_PATH,
   ABSOLUTE_PUBLIC_PATH,
+  AUTO_PUBLIC_PATH,
+  BASE_URI,
+  MODULE_TYPE,
   SINGLE_DOT_PATH_SEGMENT,
   compareModulesByIdentifier,
+  compileBooleanMatcher,
   getUndoPath,
-  BASE_URI,
-  compileBooleanMatcher
+  trueFn
 } = require("./utils");
 
 /** @typedef {import("schema-utils/declarations/validate").Schema} Schema */
@@ -27,7 +25,7 @@ const {
 /** @typedef {import("webpack").Compilation} Compilation */
 /** @typedef {import("webpack").ChunkGraph} ChunkGraph */
 /** @typedef {import("webpack").Chunk} Chunk */
-/** @typedef {Parameters<import("webpack").Chunk["isInGroup"]>[0]} ChunkGroup */
+/** @typedef {import("webpack").ChunkGroup} ChunkGroup */
 /** @typedef {import("webpack").Module} Module */
 /** @typedef {import("webpack").Dependency} Dependency */
 /** @typedef {import("webpack").sources.Source} Source */
@@ -36,47 +34,48 @@ const {
 /** @typedef {import("webpack").AssetInfo} AssetInfo */
 /** @typedef {import("./loader.js").Dependency} LoaderDependency */
 
+/** @typedef {NonNullable<Required<Configuration>['output']['filename']>} Filename */
+/** @typedef {NonNullable<Required<Configuration>['output']['chunkFilename']>} ChunkFilename */
+
 /**
- * @typedef {Object} LoaderOptions
- * @property {string | ((resourcePath: string, rootContext: string) => string)} [publicPath]
- * @property {boolean} [emit]
- * @property {boolean} [esModule]
- * @property {string} [layer]
- * @property {boolean} [defaultExport]
+ * @typedef {object} LoaderOptions
+ * @property {string | ((resourcePath: string, rootContext: string) => string)=} publicPath public path
+ * @property {boolean=} emit true when need to emit, otherwise false
+ * @property {boolean=} esModule need to generate ES module syntax
+ * @property {string=} layer a layer
+ * @property {boolean=} defaultExport true when need to use default export, otherwise false
  */
 
 /**
- * @typedef {Object} PluginOptions
- * @property {Required<Configuration>['output']['filename']} [filename]
- * @property {Required<Configuration>['output']['chunkFilename']} [chunkFilename]
- * @property {boolean} [ignoreOrder]
- * @property {string | ((linkTag: HTMLLinkElement) => void)} [insert]
- * @property {Record<string, string>} [attributes]
- * @property {string | false | 'text/css'} [linkType]
- * @property {boolean} [runtime]
- * @property {boolean} [experimentalUseImportModule]
+ * @typedef {object} PluginOptions
+ * @property {Filename=} filename filename
+ * @property {ChunkFilename=} chunkFilename chunk filename
+ * @property {boolean=} ignoreOrder true when need to ignore order, otherwise false
+ * @property {string | ((linkTag: HTMLLinkElement) => void)=} insert link insert place or a custom insert function
+ * @property {Record<string, string>=} attributes link attributes
+ * @property {string | false | "text/css"=} linkType value of a link type attribute
+ * @property {boolean=} runtime true when need to generate runtime code, otherwise false
+ * @property {boolean=} experimentalUseImportModule true when need to use `experimentalUseImportModule` API, otherwise false
  */
 
 /**
- * @typedef {Object} NormalizedPluginOptions
- * @property {Required<Configuration>['output']['filename']} filename
- * @property {Required<Configuration>['output']['chunkFilename']} [chunkFilename]
- * @property {boolean} ignoreOrder
- * @property {string | ((linkTag: HTMLLinkElement) => void)} [insert]
- * @property {Record<string, string>} [attributes]
- * @property {string | false | 'text/css'} [linkType]
- * @property {boolean} runtime
- * @property {boolean} [experimentalUseImportModule]
+ * @typedef {object} NormalizedPluginOptions
+ * @property {Filename=} filename filename
+ * @property {ChunkFilename=} chunkFilename chunk filename
+ * @property {boolean} ignoreOrder true when need to ignore order, otherwise false
+ * @property {string | ((linkTag: HTMLLinkElement) => void)=} insert a link insert place or a custom insert function
+ * @property {Record<string, string>=} attributes link attributes
+ * @property {string | false | "text/css"=} linkType value of a link type attribute
+ * @property {boolean} runtime true when need to generate runtime code, otherwise false
+ * @property {boolean=} experimentalUseImportModule true when need to use `experimentalUseImportModule` API, otherwise false
  */
 
 /**
- * @typedef {Object} RuntimeOptions
- * @property {string | ((linkTag: HTMLLinkElement) => void) | undefined} insert
- * @property {string | false | 'text/css'} linkType
- * @property {Record<string, string> | undefined} attributes
+ * @typedef {object} RuntimeOptions
+ * @property {string | ((linkTag: HTMLLinkElement) => void)=} insert a link insert place or a custom insert function
+ * @property {string | false | "text/css"} linkType value of a link type attribute
+ * @property {Record<string, string>=} attributes link attributes
  */
-
-/** @typedef {any} TODO */
 
 const pluginName = "mini-css-extract-plugin";
 const pluginSymbol = Symbol(pluginName);
@@ -93,29 +92,31 @@ const CODE_GENERATION_RESULT = {
   runtimeRequirements: new Set()
 };
 
-/** @typedef {Module & { content: Buffer, media?: string, sourceMap?: Buffer, supports?: string, layer?: string, assets?: { [key: string]: TODO }, assetsInfo?: Map<string, AssetInfo> }} CssModule */
-/** @typedef {{ context: string | null, identifier: string, identifierIndex: number, content: Buffer, sourceMap?: Buffer, media?: string, supports?: string, layer?: TODO, assetsInfo?: Map<string, AssetInfo>, assets?: { [key: string]: TODO }}} CssModuleDependency */
-/** @typedef {{ new(dependency: CssModuleDependency): CssModule }} CssModuleConstructor */
+// eslint-disable-next-line jsdoc/reject-any-type
+/** @typedef {{ context: string | null, identifier: string, identifierIndex: number, content: Buffer, sourceMap?: Buffer, media?: string, supports?: string, layer?: any, assetsInfo?: Map<string, AssetInfo>, assets?: { [key: string]: Source } }} CssModuleDependency */
+/** @typedef {Module & { content: Buffer, media?: string, sourceMap?: Buffer, supports?: string, layer?: string, assets?: { [key: string]: Source }, assetsInfo?: Map<string, AssetInfo> }} CssModule */
+/** @typedef {{ new (dependency: CssModuleDependency): CssModule }} CssModuleConstructor */
 /** @typedef {Dependency & CssModuleDependency} CssDependency */
 /** @typedef {Omit<LoaderDependency, "context">} CssDependencyOptions */
-/** @typedef {{ new(loaderDependency: CssDependencyOptions, context: string | null, identifierIndex: number): CssDependency }} CssDependencyConstructor */
+/** @typedef {{ new (loaderDependency: CssDependencyOptions, context: string | null, identifierIndex: number): CssDependency }} CssDependencyConstructor */
+
 /**
- * @typedef {Object} VarNames
- * @property {string} tag
- * @property {string} chunkId
- * @property {string} href
- * @property {string} resolve
- * @property {string} reject
- */
-/**
- * @typedef {Object} MiniCssExtractPluginCompilationHooks
- * @property {import("tapable").SyncWaterfallHook<[string, VarNames], string>} beforeTagInsert
- * @property {SyncWaterfallHook<[string, Chunk]>} linkPreload
- * @property {SyncWaterfallHook<[string, Chunk]>} linkPrefetch
+ * @typedef {object} VarNames
+ * @property {string} tag tag
+ * @property {string} chunkId chunk id
+ * @property {string} href href
+ * @property {string} resolve resolve
+ * @property {string} reject reject
  */
 
 /**
- *
+ * @typedef {object} MiniCssExtractPluginCompilationHooks
+ * @property {import("tapable").SyncWaterfallHook<[string, VarNames], string>} beforeTagInsert before tag insert hook
+ * @property {SyncWaterfallHook<[string, Chunk]>} linkPreload link preload hook
+ * @property {SyncWaterfallHook<[string, Chunk]>} linkPrefetch link prefetch hook
+ */
+
+/**
  * @type {WeakMap<Compiler["webpack"], CssModuleConstructor>}
  */
 const cssModuleCache = new WeakMap();
@@ -132,8 +133,8 @@ const registered = new WeakSet();
 const compilationHooksMap = new WeakMap();
 class MiniCssExtractPlugin {
   /**
-   * @param {Compiler["webpack"]} webpack
-   * @returns {CssModuleConstructor}
+   * @param {Compiler["webpack"]} webpack webpack
+   * @returns {CssModuleConstructor} CSS module constructor
    */
   static getCssModule(webpack) {
     /**
@@ -144,7 +145,7 @@ class MiniCssExtractPlugin {
     }
     class CssModule extends webpack.Module {
       /**
-       * @param {CssModuleDependency} dependency
+       * @param {CssModuleDependency} dependency css module dependency
        */
       constructor({
         context,
@@ -158,7 +159,6 @@ class MiniCssExtractPlugin {
         assets,
         assetsInfo
       }) {
-        // @ts-ignore
         super(MODULE_TYPE, /** @type {string | undefined} */context);
         this.id = "";
         this._context = context;
@@ -184,19 +184,15 @@ class MiniCssExtractPlugin {
       }
 
       /**
-       * @param {Parameters<Module["readableIdentifier"]>[0]} requestShortener
-       * @returns {ReturnType<Module["readableIdentifier"]>}
+       * @param {Parameters<Module["readableIdentifier"]>[0]} requestShortener request shortener
+       * @returns {ReturnType<Module["readableIdentifier"]>} readable identifier
        */
       readableIdentifier(requestShortener) {
         return `css ${requestShortener.shorten(this._identifier)}${this._identifierIndex ? ` (${this._identifierIndex})` : ""}${this.layer ? ` (layer ${this.layer})` : ""}${this.supports ? ` (supports ${this.supports})` : ""}${this.media ? ` (media ${this.media})` : ""}`;
       }
-
-      // eslint-disable-next-line class-methods-use-this
       getSourceTypes() {
         return TYPES;
       }
-
-      // eslint-disable-next-line class-methods-use-this
       codeGeneration() {
         return CODE_GENERATION_RESULT;
       }
@@ -205,16 +201,16 @@ class MiniCssExtractPlugin {
         this._identifier.split("!").pop();
         const idx = resource.indexOf("?");
         if (idx >= 0) {
-          return resource.substring(0, idx);
+          return resource.slice(0, Math.max(0, idx));
         }
         return resource;
       }
 
       /**
-       * @param {Module} module
+       * @param {Module} module a module
        */
       updateCacheModule(module) {
-        if (!this.content.equals( /** @type {CssModule} */module.content) || this.layer !== /** @type {CssModule} */module.layer || this.supports !== /** @type {CssModule} */module.supports || this.media !== /** @type {CssModule} */module.media || (this.sourceMap ? !this.sourceMap.equals( /** @type {Uint8Array} **/
+        if (!this.content.equals(/** @type {CssModule} */module.content) || this.layer !== /** @type {CssModule} */module.layer || this.supports !== /** @type {CssModule} */module.supports || this.media !== /** @type {CssModule} */module.media || (this.sourceMap ? !this.sourceMap.equals(/** @type {Uint8Array} * */
         /** @type {CssModule} */module.sourceMap) : false) || this.assets !== /** @type {CssModule} */module.assets || this.assetsInfo !== /** @type {CssModule} */module.assetsInfo) {
           this._needBuild = true;
           this.content = /** @type {CssModule} */module.content;
@@ -226,35 +222,34 @@ class MiniCssExtractPlugin {
           this.assetsInfo = /** @type {CssModule} */module.assetsInfo;
         }
       }
-
-      // eslint-disable-next-line class-methods-use-this
       needRebuild() {
         return this._needBuild;
       }
 
-      // eslint-disable-next-line class-methods-use-this
       /**
        * @param {Parameters<Module["needBuild"]>[0]} context context info
        * @param {Parameters<Module["needBuild"]>[1]} callback callback function, returns true, if the module needs a rebuild
        */
       needBuild(context, callback) {
-        // eslint-disable-next-line no-undefined
         callback(undefined, this._needBuild);
       }
 
       /**
-       * @param {Parameters<Module["build"]>[0]} options
-       * @param {Parameters<Module["build"]>[1]} compilation
-       * @param {Parameters<Module["build"]>[2]} resolver
-       * @param {Parameters<Module["build"]>[3]} fileSystem
-       * @param {Parameters<Module["build"]>[4]} callback
+       * @param {Parameters<Module["build"]>[0]} options options
+       * @param {Parameters<Module["build"]>[1]} compilation compilation
+       * @param {Parameters<Module["build"]>[2]} resolver resolver
+       * @param {Parameters<Module["build"]>[3]} fileSystem file system
+       * @param {Parameters<Module["build"]>[4]} callback callback
        */
       build(options, compilation, resolver, fileSystem, callback) {
         this.buildInfo = {
           assets: this.assets,
           assetsInfo: this.assetsInfo,
           cacheable: true,
-          hash: this._computeHash( /** @type {string} */compilation.outputOptions.hashFunction)
+          hash: (/** @type {string} */
+
+          this._computeHash(/** @type {string} */
+          compilation.outputOptions.hashFunction))
         };
         this.buildMeta = {};
         this._needBuild = false;
@@ -263,8 +258,8 @@ class MiniCssExtractPlugin {
 
       /**
        * @private
-       * @param {string} hashFunction
-       * @returns {string | Buffer}
+       * @param {string} hashFunction hash function
+       * @returns {string | Buffer} hash digest
        */
       _computeHash(hashFunction) {
         const hash = webpack.util.createHash(hashFunction);
@@ -279,16 +274,18 @@ class MiniCssExtractPlugin {
       }
 
       /**
-       * @param {Parameters<Module["updateHash"]>[0]} hash
-       * @param {Parameters<Module["updateHash"]>[1]} context
+       * @param {Parameters<Module["updateHash"]>[0]} hash hash
+       * @param {Parameters<Module["updateHash"]>[1]} context context
        */
       updateHash(hash, context) {
         super.updateHash(hash, context);
-        hash.update( /** @type {NonNullable<Module["buildInfo"]>} */this.buildInfo.hash);
+        hash.update(/** @type {string} */
+        /** @type {NonNullable<Module["buildInfo"]>} */
+        this.buildInfo.hash);
       }
 
       /**
-       * @param {Parameters<Module["serialize"]>[0]} context
+       * @param {Parameters<Module["serialize"]>[0]} context serializer context
        */
       serialize(context) {
         const {
@@ -309,7 +306,7 @@ class MiniCssExtractPlugin {
       }
 
       /**
-       * @param {Parameters<Module["deserialize"]>[0]} context
+       * @param {Parameters<Module["deserialize"]>[0]} context deserializer context
        */
       deserialize(context) {
         this._needBuild = context.read();
@@ -317,9 +314,7 @@ class MiniCssExtractPlugin {
       }
     }
     cssModuleCache.set(webpack, CssModule);
-    webpack.util.serialization.register(CssModule, path.resolve(__dirname, "CssModule"),
-    // @ts-ignore
-    null, {
+    webpack.util.serialization.register(CssModule, path.resolve(__dirname, "CssModule"), null, {
       serialize(instance, context) {
         instance.serialize(context);
       },
@@ -357,23 +352,21 @@ class MiniCssExtractPlugin {
   }
 
   /**
-   * @param {Compiler["webpack"]} webpack
-   * @returns {CssDependencyConstructor}
+   * @param {Compiler["webpack"]} webpack webpack
+   * @returns {CssDependencyConstructor} CSS dependency constructor
    */
   static getCssDependency(webpack) {
     /**
      * Prevent creation of multiple CssDependency classes to allow other integrations to get the current CssDependency.
      */
     if (cssDependencyCache.has(webpack)) {
-      return /** @type {CssDependencyConstructor} */(
-        cssDependencyCache.get(webpack)
-      );
+      return /** @type {CssDependencyConstructor} */cssDependencyCache.get(webpack);
     }
     class CssDependency extends webpack.Dependency {
       /**
-       * @param {CssDependencyOptions} loaderDependency
-       * @param {string | null} context
-       * @param {number} identifierIndex
+       * @param {CssDependencyOptions} loaderDependency loader dependency
+       * @param {string | null} context context
+       * @param {number} identifierIndex identifier index
        */
       constructor({
         identifier,
@@ -393,30 +386,27 @@ class MiniCssExtractPlugin {
         this.sourceMap = sourceMap;
         this.context = context;
         /** @type {{ [key: string]: Source } | undefined}} */
-        // eslint-disable-next-line no-undefined
         this.assets = undefined;
         /** @type {Map<string, AssetInfo> | undefined} */
-        // eslint-disable-next-line no-undefined
         this.assetsInfo = undefined;
       }
 
       /**
-       * @returns {ReturnType<Dependency["getResourceIdentifier"]>}
+       * @returns {ReturnType<Dependency["getResourceIdentifier"]>} a resource identifier
        */
       getResourceIdentifier() {
         return `css-module-${this.identifier}-${this.identifierIndex}`;
       }
 
       /**
-       * @returns {ReturnType<Dependency["getModuleEvaluationSideEffectsState"]>}
+       * @returns {ReturnType<Dependency["getModuleEvaluationSideEffectsState"]>} side effect state
        */
-      // eslint-disable-next-line class-methods-use-this
       getModuleEvaluationSideEffectsState() {
         return webpack.ModuleGraphConnection.TRANSITIVE_ONLY;
       }
 
       /**
-       * @param {Parameters<Dependency["serialize"]>[0]} context
+       * @param {Parameters<Dependency["serialize"]>[0]} context serializer context
        */
       serialize(context) {
         const {
@@ -436,16 +426,14 @@ class MiniCssExtractPlugin {
       }
 
       /**
-       * @param {Parameters<Dependency["deserialize"]>[0]} context
+       * @param {Parameters<Dependency["deserialize"]>[0]} context deserializer context
        */
       deserialize(context) {
         super.deserialize(context);
       }
     }
     cssDependencyCache.set(webpack, CssDependency);
-    webpack.util.serialization.register(CssDependency, path.resolve(__dirname, "CssDependency"),
-    // @ts-ignore
-    null, {
+    webpack.util.serialization.register(CssDependency, path.resolve(__dirname, "CssDependency"), null, {
       serialize(instance, context) {
         instance.serialize(context);
       },
@@ -491,17 +479,16 @@ class MiniCssExtractPlugin {
   }
 
   /**
-   * @param {PluginOptions} [options]
+   * @param {PluginOptions=} options options
    */
   constructor(options = {}) {
-    validate( /** @type {Schema} */schema, options, {
+    validate(/** @type {Schema} */schema, options, {
       baseDataPath: "options"
     });
 
     /**
      * @private
      * @type {WeakMap<Chunk, Set<CssModule>>}
-     * @private
      */
     this._sortedModulesCache = new WeakMap();
 
@@ -509,14 +496,13 @@ class MiniCssExtractPlugin {
      * @private
      * @type {NormalizedPluginOptions}
      */
-    this.options = Object.assign({
-      filename: DEFAULT_FILENAME,
+    this.options = {
       ignoreOrder: false,
       // TODO remove in the next major release
-      // eslint-disable-next-line no-undefined
       experimentalUseImportModule: undefined,
-      runtime: true
-    }, options);
+      runtime: true,
+      ...options
+    };
 
     /**
      * @private
@@ -529,46 +515,45 @@ class MiniCssExtractPlugin {
       typeof options.linkType === "boolean" && /** @type {boolean} */options.linkType === true || typeof options.linkType === "undefined" ? "text/css" : options.linkType,
       attributes: options.attributes
     };
-    if (!this.options.chunkFilename) {
-      const {
-        filename
-      } = this.options;
-      if (typeof filename !== "function") {
-        const hasName = /** @type {string} */filename.includes("[name]");
-        const hasId = /** @type {string} */filename.includes("[id]");
-        const hasChunkHash = /** @type {string} */
-        filename.includes("[chunkhash]");
-        const hasContentHash = /** @type {string} */
-        filename.includes("[contenthash]");
-
-        // Anything changing depending on chunk is fine
-        if (hasChunkHash || hasContentHash || hasName || hasId) {
-          this.options.chunkFilename = filename;
-        } else {
-          // Otherwise prefix "[id]." in front of the basename to make it changing
-          this.options.chunkFilename = /** @type {string} */
-          filename.replace(/(^|\/)([^/]*(?:\?|$))/, "$1[id].$2");
-        }
-      } else {
-        this.options.chunkFilename = "[id].css";
-      }
-    }
   }
 
   /**
-   * @param {Compiler} compiler
+   * @param {Compiler} compiler compiler
    */
   apply(compiler) {
+    // Finally normalize filenames based on compiler options
+    const normalizedFilename = this.options.filename || compiler.options.output.cssFilename || DEFAULT_FILENAME;
+    let normalizedChunkFilename = this.options.chunkFilename || compiler.options.output.cssChunkFilename;
+    if (!normalizedChunkFilename) {
+      if (typeof normalizedFilename !== "function") {
+        const hasName = /** @type {string} */normalizedFilename.includes("[name]");
+        const hasId = /** @type {string} */normalizedFilename.includes("[id]");
+        const hasChunkHash = /** @type {string} */
+        normalizedFilename.includes("[chunkhash]");
+        const hasContentHash = /** @type {string} */
+        normalizedFilename.includes("[contenthash]");
+
+        // Anything changing depending on chunk is fine
+        if (hasChunkHash || hasContentHash || hasName || hasId) {
+          normalizedChunkFilename = normalizedFilename;
+        } else {
+          // Otherwise prefix "[id]." in front of the basename to make it changing
+          normalizedChunkFilename = /** @type {string} */
+          normalizedFilename.replace(/(^|\/)([^/]*(?:\?|$))/, "$1[id].$2");
+        }
+      } else {
+        normalizedChunkFilename = "[id].css";
+      }
+    }
     const {
       webpack
     } = compiler;
-    if (this.options.experimentalUseImportModule) {
-      if (typeof ( /** @type {Compiler["options"]["experiments"] & { executeModule?: boolean }} */
-      compiler.options.experiments.executeModule) === "undefined") {
-        /** @type {Compiler["options"]["experiments"] & { executeModule?: boolean }} */
-        // eslint-disable-next-line no-param-reassign
-        compiler.options.experiments.executeModule = true;
-      }
+    if (this.options.experimentalUseImportModule && typeof (/** @type {Compiler["options"]["experiments"] & { executeModule?: boolean }} */
+    compiler.options.experiments.executeModule) === "undefined") {
+      /** @type {Compiler["options"]["experiments"] & { executeModule?: boolean }} */
+
+      // @ts-expect-error TODO remove in the next major release
+      compiler.options.experiments.executeModule = true;
     }
 
     // TODO bug in webpack, remove it after it will be fixed
@@ -580,11 +565,9 @@ class MiniCssExtractPlugin {
     const {
       splitChunks
     } = compiler.options.optimization;
-    if (splitChunks) {
-      if ( /** @type {string[]} */splitChunks.defaultSizeTypes.includes("...")) {
-        /** @type {string[]} */
-        splitChunks.defaultSizeTypes.push(MODULE_TYPE);
-      }
+    if (splitChunks && /** @type {string[]} */splitChunks.defaultSizeTypes.includes("...")) {
+      /** @type {string[]} */
+      splitChunks.defaultSizeTypes.push(MODULE_TYPE);
     }
     const CssModule = MiniCssExtractPlugin.getCssModule(webpack);
     const CssDependency = MiniCssExtractPlugin.getCssDependency(webpack);
@@ -597,11 +580,10 @@ class MiniCssExtractPlugin {
       } = NormalModule.getCompilationHooks(compilation);
       normalModuleHook.tap(pluginName,
       /**
-       * @param {object} loaderContext
+       * @param {object} loaderContext loader context
        */
       loaderContext => {
         /** @type {object & { [pluginSymbol]: { experimentalUseImportModule: boolean | undefined } }} */
-        // eslint-disable-next-line no-param-reassign
         loaderContext[pluginSymbol] = {
           experimentalUseImportModule: this.options.experimentalUseImportModule
         };
@@ -611,28 +593,27 @@ class MiniCssExtractPlugin {
       class CssModuleFactory {
         /**
          * @param {{ dependencies: Dependency[] }} dependencies
-         * @param {(arg0?: Error, arg1?: TODO) => void} callback
+         * @param {(err?: null | Error, result?: CssModule) => void} callback
          */
-        // eslint-disable-next-line class-methods-use-this
+
         create({
           dependencies: [dependency]
         }, callback) {
-          callback(
-          // eslint-disable-next-line no-undefined
-          undefined, new CssModule( /** @type {CssDependency} */dependency));
+          callback(undefined, new CssModule(/** @type {CssDependency} */dependency));
         }
       }
-      compilation.dependencyFactories.set(CssDependency, new CssModuleFactory());
+      compilation.dependencyFactories.set(CssDependency,
+      // @ts-expect-error TODO fix in the next major release and fix using `CssModuleFactory extends webpack.ModuleFactory`
+      new CssModuleFactory());
       class CssDependencyTemplate {
-        // eslint-disable-next-line class-methods-use-this
         apply() {}
       }
       compilation.dependencyTemplates.set(CssDependency, new CssDependencyTemplate());
       compilation.hooks.renderManifest.tap(pluginName,
       /**
-       * @param {ReturnType<Compilation["getRenderManifest"]>} result
-       * @param {Parameters<Compilation["getRenderManifest"]>[0]} chunk
-       * @returns {TODO}
+       * @param {ReturnType<Compilation["getRenderManifest"]>} result result
+       * @param {Parameters<Compilation["getRenderManifest"]>[0]} chunk chunk
+       * @returns {ReturnType<Compilation["getRenderManifest"]>} a rendered manifest
        */
       (result, {
         chunk
@@ -647,17 +628,14 @@ class MiniCssExtractPlugin {
         // We don't need hot update chunks for css
         // We will use the real asset instead to update
         if (chunk instanceof HotUpdateChunk) {
-          return;
+          return result;
         }
+        const renderedModules = /** @type {CssModule[]} */
 
-        /** @type {CssModule[]} */
-        const renderedModules = Array.from( /** @type {CssModule[]} */
-        this.getChunkModules(chunk, chunkGraph)).filter(module =>
-        // @ts-ignore
-        module.type === MODULE_TYPE);
+        [...this.getChunkModules(chunk, chunkGraph)].filter(module => module.type === MODULE_TYPE);
         const filenameTemplate = /** @type {string} */
 
-        chunk.canBeInitial() ? this.options.filename : this.options.chunkFilename;
+        chunk.canBeInitial() ? normalizedFilename : normalizedChunkFilename;
         if (renderedModules.length > 0) {
           result.push({
             render: () => this.renderContentAsset(compiler, compilation, chunk, renderedModules, compilation.runtimeTemplate.requestShortener, filenameTemplate, {
@@ -673,6 +651,7 @@ class MiniCssExtractPlugin {
             hash: chunk.contentHash[MODULE_TYPE]
           });
         }
+        return result;
       });
       compilation.hooks.contentHash.tap(pluginName, chunk => {
         const {
@@ -681,7 +660,7 @@ class MiniCssExtractPlugin {
         } = compilation;
         const modules = this.sortModules(compilation, chunk, /** @type {CssModule[]} */
         chunkGraph.getChunkModulesIterableBySourceType(chunk, MODULE_TYPE), compilation.runtimeTemplate.requestShortener);
-        if (modules) {
+        if (modules && modules.size > 0) {
           const {
             hashFunction,
             hashDigest,
@@ -690,14 +669,12 @@ class MiniCssExtractPlugin {
           const {
             createHash
           } = compiler.webpack.util;
-          const hash = createHash( /** @type {string} */hashFunction);
+          const hash = createHash(/** @type {string} */hashFunction);
           for (const m of modules) {
             hash.update(chunkGraph.getModuleHash(m, chunk.runtime));
           }
-
-          // eslint-disable-next-line no-param-reassign
           chunk.contentHash[MODULE_TYPE] = /** @type {string} */
-          hash.digest(hashDigest).substring(0, hashDigestLength);
+          hash.digest(hashDigest).slice(0, Math.max(0, /** @type {number} */hashDigestLength));
         }
       });
 
@@ -717,7 +694,7 @@ class MiniCssExtractPlugin {
        * @param {Compilation} compilation
        * @returns {Record<string, number>}
        */
-      // eslint-disable-next-line no-shadow
+
       const getCssChunkObject = (mainChunk, compilation) => {
         /** @type {Record<string, number>} */
         const obj = {};
@@ -727,9 +704,8 @@ class MiniCssExtractPlugin {
         for (const chunk of mainChunk.getAllAsyncChunks()) {
           const modules = chunkGraph.getOrderedChunkModulesIterable(chunk, compareModulesByIdentifier);
           for (const module of modules) {
-            // @ts-ignore
             if (module.type === MODULE_TYPE) {
-              obj[( /** @type {string} */chunk.id)] = 1;
+              obj[(/** @type {string} */chunk.id)] = 1;
               break;
             }
           }
@@ -745,12 +721,12 @@ class MiniCssExtractPlugin {
       function chunkHasCss(chunk, chunkGraph) {
         // this function replace:
         // const chunkHasCss = require("webpack/lib/css/CssModulesPlugin").chunkHasCss;
-        return !!chunkGraph.getChunkModulesIterableBySourceType(chunk, "css/mini-extract");
+        return Boolean(chunkGraph.getChunkModulesIterableBySourceType(chunk, "css/mini-extract"));
       }
       class CssLoadingRuntimeModule extends RuntimeModule {
         /**
-         * @param {Set<string>} runtimeRequirements
-         * @param {RuntimeOptions} runtimeOptions
+         * @param {Set<string>} runtimeRequirements runtime Requirements
+         * @param {RuntimeOptions} runtimeOptions runtime options
          */
         constructor(runtimeRequirements, runtimeOptions) {
           super("css loading", 10);
@@ -769,13 +745,13 @@ class MiniCssExtractPlugin {
               crossOriginLoading
             }
           } = /** @type {Compilation} */this.compilation;
-          const chunkMap = getCssChunkObject( /** @type {Chunk} */chunk, /** @type {Compilation} */this.compilation);
+          const chunkMap = getCssChunkObject(/** @type {Chunk} */chunk, /** @type {Compilation} */this.compilation);
           const withLoading = runtimeRequirements.has(RuntimeGlobals.ensureChunkHandlers) && Object.keys(chunkMap).length > 0;
           const withHmr = runtimeRequirements.has(RuntimeGlobals.hmrDownloadUpdateHandlers);
           if (!withLoading && !withHmr) {
             return "";
           }
-          const conditionMap = /** @type {ChunkGraph} */chunkGraph.getChunkConditionMap( /** @type {Chunk} */chunk, chunkHasCss);
+          const conditionMap = /** @type {ChunkGraph} */chunkGraph.getChunkConditionMap(/** @type {Chunk} */chunk, chunkHasCss);
           const hasCssMatcher = compileBooleanMatcher(conditionMap);
           const withPrefetch = runtimeRequirements.has(RuntimeGlobals.prefetchChunkHandlers);
           const withPreload = runtimeRequirements.has(RuntimeGlobals.preloadChunkHandlers);
@@ -788,42 +764,42 @@ class MiniCssExtractPlugin {
             return `linkTag.setAttribute(${JSON.stringify(key)}, ${JSON.stringify(value)});`;
           })) : "", 'linkTag.rel = "stylesheet";', this.runtimeOptions.linkType ? `linkTag.type = ${JSON.stringify(this.runtimeOptions.linkType)};` : "", `if (${RuntimeGlobals.scriptNonce}) {`, Template.indent(`linkTag.nonce = ${RuntimeGlobals.scriptNonce};`), "}", `var onLinkComplete = ${runtimeTemplate.basicFunction("event", ["// avoid mem leaks.", "linkTag.onerror = linkTag.onload = null;", "if (event.type === 'load') {", Template.indent(["resolve();"]), "} else {", Template.indent(["var errorType = event && event.type;", "var realHref = event && event.target && event.target.href || fullhref;", 'var err = new Error("Loading CSS chunk " + chunkId + " failed.\\n(" + errorType + ": " + realHref + ")");', 'err.name = "ChunkLoadError";',
           // TODO remove `code` in the future major release to align with webpack
-          'err.code = "CSS_CHUNK_LOAD_FAILED";', "err.type = errorType;", "err.request = realHref;", "if (linkTag.parentNode) linkTag.parentNode.removeChild(linkTag)", "reject(err);"]), "}"])}`, "linkTag.onerror = linkTag.onload = onLinkComplete;", "linkTag.href = fullhref;", crossOriginLoading ? Template.asString([`if (linkTag.href.indexOf(window.location.origin + '/') !== 0) {`, Template.indent(`linkTag.crossOrigin = ${JSON.stringify(crossOriginLoading)};`), "}"]) : "", MiniCssExtractPlugin.getCompilationHooks(compilation).beforeTagInsert.call("", {
+          'err.code = "CSS_CHUNK_LOAD_FAILED";', "err.type = errorType;", "err.request = realHref;", "if (linkTag.parentNode) linkTag.parentNode.removeChild(linkTag)", "reject(err);"]), "}"])}`, "linkTag.onerror = linkTag.onload = onLinkComplete;", "linkTag.href = fullhref;", crossOriginLoading ? Template.asString(["if (linkTag.href.indexOf(window.location.origin + '/') !== 0) {", Template.indent(`linkTag.crossOrigin = ${JSON.stringify(crossOriginLoading)};`), "}"]) : "", MiniCssExtractPlugin.getCompilationHooks(compilation).beforeTagInsert.call("", {
             tag: "linkTag",
             chunkId: "chunkId",
             href: "fullhref",
             resolve: "resolve",
             reject: "reject"
-          }) || "", typeof this.runtimeOptions.insert !== "undefined" ? typeof this.runtimeOptions.insert === "function" ? `(${this.runtimeOptions.insert.toString()})(linkTag)` : Template.asString([`var target = document.querySelector("${this.runtimeOptions.insert}");`, `target.parentNode.insertBefore(linkTag, target.nextSibling);`]) : Template.asString(["if (oldTag) {", Template.indent(["oldTag.parentNode.insertBefore(linkTag, oldTag.nextSibling);"]), "} else {", Template.indent(["document.head.appendChild(linkTag);"]), "}"]), "return linkTag;"])};`, `var findStylesheet = ${runtimeTemplate.basicFunction("href, fullhref", ['var existingLinkTags = document.getElementsByTagName("link");', "for(var i = 0; i < existingLinkTags.length; i++) {", Template.indent(["var tag = existingLinkTags[i];", 'var dataHref = tag.getAttribute("data-href") || tag.getAttribute("href");', 'if(tag.rel === "stylesheet" && (dataHref === href || dataHref === fullhref)) return tag;']), "}", 'var existingStyleTags = document.getElementsByTagName("style");', "for(var i = 0; i < existingStyleTags.length; i++) {", Template.indent(["var tag = existingStyleTags[i];", 'var dataHref = tag.getAttribute("data-href");', "if(dataHref === href || dataHref === fullhref) return tag;"]), "}"])};`, `var loadStylesheet = ${runtimeTemplate.basicFunction("chunkId", `return new Promise(${runtimeTemplate.basicFunction("resolve, reject", [`var href = ${RuntimeGlobals.require}.miniCssF(chunkId);`, `var fullhref = ${RuntimeGlobals.publicPath} + href;`, "if(findStylesheet(href, fullhref)) return resolve();", "createStylesheet(chunkId, fullhref, null, resolve, reject);"])});`)}`, withLoading ? Template.asString(["// object to store loaded CSS chunks", "var installedCssChunks = {", Template.indent( /** @type {string[]} */
-          ( /** @type {Chunk} */chunk.ids).map(id => `${JSON.stringify(id)}: 0`).join(",\n")), "};", "", `${RuntimeGlobals.ensureChunkHandlers}.miniCss = ${runtimeTemplate.basicFunction("chunkId, promises", [`var cssChunks = ${JSON.stringify(chunkMap)};`, "if(installedCssChunks[chunkId]) promises.push(installedCssChunks[chunkId]);", "else if(installedCssChunks[chunkId] !== 0 && cssChunks[chunkId]) {", Template.indent([`promises.push(installedCssChunks[chunkId] = loadStylesheet(chunkId).then(${runtimeTemplate.basicFunction("", "installedCssChunks[chunkId] = 0;")}, ${runtimeTemplate.basicFunction("e", ["delete installedCssChunks[chunkId];", "throw e;"])}));`]), "}"])};`]) : "// no chunk loading", "", withHmr ? Template.asString(["var oldTags = [];", "var newTags = [];", `var applyHandler = ${runtimeTemplate.basicFunction("options", [`return { dispose: ${runtimeTemplate.basicFunction("", ["for(var i = 0; i < oldTags.length; i++) {", Template.indent(["var oldTag = oldTags[i];", "if(oldTag.parentNode) oldTag.parentNode.removeChild(oldTag);"]), "}", "oldTags.length = 0;"])}, apply: ${runtimeTemplate.basicFunction("", ['for(var i = 0; i < newTags.length; i++) newTags[i].rel = "stylesheet";', "newTags.length = 0;"])} };`])}`, `${RuntimeGlobals.hmrDownloadUpdateHandlers}.miniCss = ${runtimeTemplate.basicFunction("chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList", ["applyHandlers.push(applyHandler);", `chunkIds.forEach(${runtimeTemplate.basicFunction("chunkId", [`var href = ${RuntimeGlobals.require}.miniCssF(chunkId);`, `var fullhref = ${RuntimeGlobals.publicPath} + href;`, "var oldTag = findStylesheet(href, fullhref);", "if(!oldTag) return;", `promises.push(new Promise(${runtimeTemplate.basicFunction("resolve, reject", [`var tag = createStylesheet(chunkId, fullhref, oldTag, ${runtimeTemplate.basicFunction("", ['tag.as = "style";', 'tag.rel = "preload";', "resolve();"])}, reject);`, "oldTags.push(oldTag);", "newTags.push(tag);"])}));`])});`])}`]) : "// no hmr", "", withPrefetch && withLoading && hasCssMatcher !== false ? `${RuntimeGlobals.prefetchChunkHandlers}.miniCss = ${runtimeTemplate.basicFunction("chunkId", [`if((!${RuntimeGlobals.hasOwnProperty}(installedCssChunks, chunkId) || installedCssChunks[chunkId] === undefined) && ${hasCssMatcher === true ? "true" : hasCssMatcher("chunkId")}) {`, Template.indent(["installedCssChunks[chunkId] = null;", linkPrefetch.call(Template.asString(["var link = document.createElement('link');", crossOriginLoading ? `link.crossOrigin = ${JSON.stringify(crossOriginLoading)};` : "", `if (${RuntimeGlobals.scriptNonce}) {`, Template.indent(`link.setAttribute("nonce", ${RuntimeGlobals.scriptNonce});`), "}", 'link.rel = "prefetch";', 'link.as = "style";', `link.href = ${RuntimeGlobals.publicPath} + ${RuntimeGlobals.require}.miniCssF(chunkId);`]), /** @type {Chunk} */chunk), "document.head.appendChild(link);"]), "}"])};` : "// no prefetching", "", withPreload && withLoading && hasCssMatcher !== false ? `${RuntimeGlobals.preloadChunkHandlers}.miniCss = ${runtimeTemplate.basicFunction("chunkId", [`if((!${RuntimeGlobals.hasOwnProperty}(installedCssChunks, chunkId) || installedCssChunks[chunkId] === undefined) && ${hasCssMatcher === true ? "true" : hasCssMatcher("chunkId")}) {`, Template.indent(["installedCssChunks[chunkId] = null;", linkPreload.call(Template.asString(["var link = document.createElement('link');", "link.charset = 'utf-8';", `if (${RuntimeGlobals.scriptNonce}) {`, Template.indent(`link.setAttribute("nonce", ${RuntimeGlobals.scriptNonce});`), "}", 'link.rel = "preload";', 'link.as = "style";', `link.href = ${RuntimeGlobals.publicPath} + ${RuntimeGlobals.require}.miniCssF(chunkId);`, crossOriginLoading ? crossOriginLoading === "use-credentials" ? 'link.crossOrigin = "use-credentials";' : Template.asString(["if (link.href.indexOf(window.location.origin + '/') !== 0) {", Template.indent(`link.crossOrigin = ${JSON.stringify(crossOriginLoading)};`), "}"]) : ""]), /** @type {Chunk} */chunk), "document.head.appendChild(link);"]), "}"])};` : "// no preloaded"]);
+          }) || "", typeof this.runtimeOptions.insert !== "undefined" ? typeof this.runtimeOptions.insert === "function" ? `(${this.runtimeOptions.insert.toString()})(linkTag)` : Template.asString([`var target = document.querySelector("${this.runtimeOptions.insert}");`, "target.parentNode.insertBefore(linkTag, target.nextSibling);"]) : Template.asString(["if (oldTag) {", Template.indent(["oldTag.parentNode.insertBefore(linkTag, oldTag.nextSibling);"]), "} else {", Template.indent(["document.head.appendChild(linkTag);"]), "}"]), "return linkTag;"])};`, `var findStylesheet = ${runtimeTemplate.basicFunction("href, fullhref", ['var existingLinkTags = document.getElementsByTagName("link");', "for(var i = 0; i < existingLinkTags.length; i++) {", Template.indent(["var tag = existingLinkTags[i];", 'var dataHref = tag.getAttribute("data-href") || tag.getAttribute("href");', 'if(tag.rel === "stylesheet" && (dataHref === href || dataHref === fullhref)) return tag;']), "}", 'var existingStyleTags = document.getElementsByTagName("style");', "for(var i = 0; i < existingStyleTags.length; i++) {", Template.indent(["var tag = existingStyleTags[i];", 'var dataHref = tag.getAttribute("data-href");', "if(dataHref === href || dataHref === fullhref) return tag;"]), "}"])};`, `var loadStylesheet = ${runtimeTemplate.basicFunction("chunkId", `return new Promise(${runtimeTemplate.basicFunction("resolve, reject", [`var href = ${RuntimeGlobals.require}.miniCssF(chunkId);`, `var fullhref = ${RuntimeGlobals.publicPath} + href;`, "if(findStylesheet(href, fullhref)) return resolve();", "createStylesheet(chunkId, fullhref, null, resolve, reject);"])});`)}`, withLoading ? Template.asString(["// object to store loaded CSS chunks", "var installedCssChunks = {", Template.indent(/** @type {string[]} */
+          (/** @type {Chunk} */chunk.ids).map(id => `${JSON.stringify(id)}: 0`).join(",\n")), "};", "", `${RuntimeGlobals.ensureChunkHandlers}.miniCss = ${runtimeTemplate.basicFunction("chunkId, promises", [`var cssChunks = ${JSON.stringify(chunkMap)};`, "if(installedCssChunks[chunkId]) promises.push(installedCssChunks[chunkId]);", "else if(installedCssChunks[chunkId] !== 0 && cssChunks[chunkId]) {", Template.indent([`promises.push(installedCssChunks[chunkId] = loadStylesheet(chunkId).then(${runtimeTemplate.basicFunction("", "installedCssChunks[chunkId] = 0;")}, ${runtimeTemplate.basicFunction("e", ["delete installedCssChunks[chunkId];", "throw e;"])}));`]), "}"])};`]) : "// no chunk loading", "", withHmr ? Template.asString(["var oldTags = [];", "var newTags = [];", `var applyHandler = ${runtimeTemplate.basicFunction("options", [`return { dispose: ${runtimeTemplate.basicFunction("", ["for(var i = 0; i < oldTags.length; i++) {", Template.indent(["var oldTag = oldTags[i];", "if(oldTag.parentNode) oldTag.parentNode.removeChild(oldTag);"]), "}", "oldTags.length = 0;"])}, apply: ${runtimeTemplate.basicFunction("", ['for(var i = 0; i < newTags.length; i++) newTags[i].rel = "stylesheet";', "newTags.length = 0;"])} };`])}`, `${RuntimeGlobals.hmrDownloadUpdateHandlers}.miniCss = ${runtimeTemplate.basicFunction("chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList", ["applyHandlers.push(applyHandler);", `chunkIds.forEach(${runtimeTemplate.basicFunction("chunkId", [`var href = ${RuntimeGlobals.require}.miniCssF(chunkId);`, `var fullhref = ${RuntimeGlobals.publicPath} + href;`, "var oldTag = findStylesheet(href, fullhref);", "if(!oldTag) return;", `promises.push(new Promise(${runtimeTemplate.basicFunction("resolve, reject", [`var tag = createStylesheet(chunkId, fullhref, oldTag, ${runtimeTemplate.basicFunction("", ['tag.as = "style";', 'tag.rel = "preload";', "resolve();"])}, reject);`, "oldTags.push(oldTag);", "newTags.push(tag);"])}));`])});`])}`]) : "// no hmr", "", withPrefetch && withLoading && hasCssMatcher !== false ? `${RuntimeGlobals.prefetchChunkHandlers}.miniCss = ${runtimeTemplate.basicFunction("chunkId", [`if((!${RuntimeGlobals.hasOwnProperty}(installedCssChunks, chunkId) || installedCssChunks[chunkId] === undefined) && ${hasCssMatcher === true ? "true" : hasCssMatcher("chunkId")}) {`, Template.indent(["installedCssChunks[chunkId] = null;", linkPrefetch.call(Template.asString(["var link = document.createElement('link');", crossOriginLoading ? `link.crossOrigin = ${JSON.stringify(crossOriginLoading)};` : "", `if (${RuntimeGlobals.scriptNonce}) {`, Template.indent(`link.setAttribute("nonce", ${RuntimeGlobals.scriptNonce});`), "}", 'link.rel = "prefetch";', 'link.as = "style";', `link.href = ${RuntimeGlobals.publicPath} + ${RuntimeGlobals.require}.miniCssF(chunkId);`]), /** @type {Chunk} */chunk), "document.head.appendChild(link);"]), "}"])};` : "// no prefetching", "", withPreload && withLoading && hasCssMatcher !== false ? `${RuntimeGlobals.preloadChunkHandlers}.miniCss = ${runtimeTemplate.basicFunction("chunkId", [`if((!${RuntimeGlobals.hasOwnProperty}(installedCssChunks, chunkId) || installedCssChunks[chunkId] === undefined) && ${hasCssMatcher === true ? "true" : hasCssMatcher("chunkId")}) {`, Template.indent(["installedCssChunks[chunkId] = null;", linkPreload.call(Template.asString(["var link = document.createElement('link');", "link.charset = 'utf-8';", `if (${RuntimeGlobals.scriptNonce}) {`, Template.indent(`link.setAttribute("nonce", ${RuntimeGlobals.scriptNonce});`), "}", 'link.rel = "preload";', 'link.as = "style";', `link.href = ${RuntimeGlobals.publicPath} + ${RuntimeGlobals.require}.miniCssF(chunkId);`, crossOriginLoading ? crossOriginLoading === "use-credentials" ? 'link.crossOrigin = "use-credentials";' : Template.asString(["if (link.href.indexOf(window.location.origin + '/') !== 0) {", Template.indent(`link.crossOrigin = ${JSON.stringify(crossOriginLoading)};`), "}"]) : ""]), /** @type {Chunk} */chunk), "document.head.appendChild(link);"]), "}"])};` : "// no preloaded"]);
         }
       }
       const enabledChunks = new WeakSet();
 
       /**
-       * @param {Chunk} chunk
-       * @param {Set<string>} set
+       * @param {Chunk} chunk chunk
+       * @param {Set<string>} set set with runtime requirement
        */
       const handler = (chunk, set) => {
         if (enabledChunks.has(chunk)) {
           return;
         }
         enabledChunks.add(chunk);
-        if (typeof this.options.chunkFilename === "string" && /\[(full)?hash(:\d+)?\]/.test(this.options.chunkFilename)) {
+        if (typeof normalizedChunkFilename === "string" && /\[(full)?hash(:\d+)?\]/.test(normalizedChunkFilename)) {
           set.add(RuntimeGlobals.getFullHash);
         }
         set.add(RuntimeGlobals.publicPath);
         compilation.addRuntimeModule(chunk, new runtime.GetChunkFilenameRuntimeModule(MODULE_TYPE, "mini-css", `${RuntimeGlobals.require}.miniCssF`,
         /**
-         * @param {Chunk} referencedChunk
-         * @returns {TODO}
+         * @param {Chunk} referencedChunk a referenced chunk
+         * @returns {ReturnType<import("webpack").runtime.GetChunkFilenameRuntimeModule["getFilenameForChunk"]>} a template value
          */
         referencedChunk => {
           if (!referencedChunk.contentHash[MODULE_TYPE]) {
             return false;
           }
-          return referencedChunk.canBeInitial() ? this.options.filename : this.options.chunkFilename;
-        }, false));
+          return referencedChunk.canBeInitial() ? (/** @type {Filename} */normalizedFilename) : (/** @type {ChunkFilename} */normalizedChunkFilename);
+        }, set.has(RuntimeGlobals.hmrDownloadUpdateHandlers)));
         compilation.addRuntimeModule(chunk, new CssLoadingRuntimeModule(set, this.runtimeOptions));
       };
       compilation.hooks.runtimeRequirementInTree.for(RuntimeGlobals.ensureChunkHandlers).tap(pluginName, handler);
@@ -835,9 +811,9 @@ class MiniCssExtractPlugin {
 
   /**
    * @private
-   * @param {Chunk} chunk
-   * @param {ChunkGraph} chunkGraph
-   * @returns {Iterable<Module>}
+   * @param {Chunk} chunk chunk
+   * @param {ChunkGraph} chunkGraph chunk graph
+   * @returns {Iterable<Module>} modules
    */
   getChunkModules(chunk, chunkGraph) {
     return typeof chunkGraph !== "undefined" ? chunkGraph.getOrderedChunkModulesIterable(chunk, compareModulesByIdentifier) : chunk.modulesIterable;
@@ -845,11 +821,11 @@ class MiniCssExtractPlugin {
 
   /**
    * @private
-   * @param {Compilation} compilation
-   * @param {Chunk} chunk
-   * @param {CssModule[]} modules
-   * @param {Compilation["requestShortener"]} requestShortener
-   * @returns {Set<CssModule>}
+   * @param {Compilation} compilation compilation
+   * @param {Chunk} chunk chunk
+   * @param {CssModule[]} modules modules
+   * @param {Compilation["requestShortener"]} requestShortener request shortener
+   * @returns {Set<CssModule>} css modules
    */
   sortModules(compilation, chunk, modules, requestShortener) {
     let usedModules = this._sortedModulesCache.get(chunk);
@@ -861,7 +837,7 @@ class MiniCssExtractPlugin {
     const modulesList = [...modules];
     // Store dependencies for modules
     /** @type {Map<CssModule, Set<CssModule>>} */
-    const moduleDependencies = new Map(modulesList.map(m => [m, ( /** @type {Set<CssModule>} */
+    const moduleDependencies = new Map(modulesList.map(m => [m, (/** @type {Set<CssModule>} */
     new Set())]));
     /** @type {Map<CssModule, Map<CssModule, Set<ChunkGroup>>>} */
     const moduleDependenciesReasons = new Map(modulesList.map(m => [m, new Map()]));
@@ -870,14 +846,10 @@ class MiniCssExtractPlugin {
     // Lists are in reverse order to allow to use Array.pop()
     /** @type {CssModule[][]} */
     const modulesByChunkGroup = Array.from(chunk.groupsIterable, chunkGroup => {
-      const sortedModules = modulesList.map(module => {
-        return {
-          module,
-          index: chunkGroup.getModulePostOrderIndex(module)
-        };
-      })
-      // eslint-disable-next-line no-undefined
-      .filter(item => item.index !== undefined).sort((a, b) => /** @type {number} */b.index - ( /** @type {number} */a.index)).map(item => item.module);
+      const sortedModules = modulesList.map(module => ({
+        module,
+        index: chunkGroup.getModulePostOrderIndex(module)
+      })).filter(item => item.index !== undefined).sort((a, b) => /** @type {number} */b.index - (/** @type {number} */a.index)).map(item => item.module);
       for (let i = 0; i < sortedModules.length; i++) {
         const set = moduleDependencies.get(sortedModules[i]);
         const reasons = /** @type {Map<CssModule, Set<ChunkGroup>>} */
@@ -887,7 +859,7 @@ class MiniCssExtractPlugin {
 
           /** @type {Set<CssModule>} */
           set.add(module);
-          const reason = reasons.get(module) || ( /** @type {Set<ChunkGroup>} */new Set());
+          const reason = reasons.get(module) || (/** @type {Set<ChunkGroup>} */new Set());
           reason.add(chunkGroup);
           reasons.set(module, reason);
         }
@@ -899,10 +871,10 @@ class MiniCssExtractPlugin {
     usedModules = new Set();
 
     /**
-     * @param {CssModule} m
-     * @returns {boolean}
+     * @param {CssModule} m a css module
+     * @returns {boolean} true when module unused, otherwise false
      */
-    const unusedModulesFilter = m => !( /** @type {Set<CssModule>} */usedModules.has(m));
+    const unusedModulesFilter = m => !(/** @type {Set<CssModule>} */usedModules.has(m));
     while (usedModules.size < modulesList.length) {
       let success = false;
       let bestMatch;
@@ -918,10 +890,10 @@ class MiniCssExtractPlugin {
         // skip empty lists
         if (list.length !== 0) {
           const module = list[list.length - 1];
-          const deps = moduleDependencies.get(module);
+          const deps = /** @type {Set<CssModule>} */
+          moduleDependencies.get(module);
           // determine dependencies that are not yet included
-          const failedDeps = Array.from( /** @type {Set<CssModule>} */
-          deps).filter(unusedModulesFilter);
+          const failedDeps = [...deps].filter(unusedModulesFilter);
 
           // store best match for fallback behavior
           if (!bestMatchDeps || bestMatchDeps.length > failedDeps.length) {
@@ -930,7 +902,7 @@ class MiniCssExtractPlugin {
           }
           if (failedDeps.length === 0) {
             // use this module and remove it from list
-            usedModules.add( /** @type {CssModule} */list.pop());
+            usedModules.add(/** @type {CssModule} */list.pop());
             success = true;
             break;
           }
@@ -942,14 +914,13 @@ class MiniCssExtractPlugin {
         // and emit a warning
         const fallbackModule = /** @type {CssModule[]} */bestMatch.pop();
         if (!this.options.ignoreOrder) {
-          const reasons = moduleDependenciesReasons.get( /** @type {CssModule} */fallbackModule);
-          compilation.warnings.push( /** @type {WebpackError} */
+          const reasons = moduleDependenciesReasons.get(/** @type {CssModule} */fallbackModule);
+          compilation.warnings.push(/** @type {WebpackError} */
 
-          new Error([`chunk ${chunk.name || chunk.id} [${pluginName}]`, "Conflicting order. Following module has been added:", ` * ${
-          /** @type {CssModule} */fallbackModule.readableIdentifier(requestShortener)}`, "despite it was not able to fulfill desired ordering with these modules:", ... /** @type {CssModule[]} */bestMatchDeps.map(m => {
+          new Error([`chunk ${chunk.name || chunk.id} [${pluginName}]`, "Conflicting order. Following module has been added:", ` * ${ /** @type {CssModule} */fallbackModule.readableIdentifier(requestShortener)}`, "despite it was not able to fulfill desired ordering with these modules:", ... /** @type {CssModule[]} */bestMatchDeps.map(m => {
             const goodReasonsMap = moduleDependenciesReasons.get(m);
-            const goodReasons = goodReasonsMap && goodReasonsMap.get( /** @type {CssModule} */fallbackModule);
-            const failedChunkGroups = Array.from( /** @type {Set<ChunkGroup>} */
+            const goodReasons = goodReasonsMap && goodReasonsMap.get(/** @type {CssModule} */fallbackModule);
+            const failedChunkGroups = Array.from(/** @type {Set<ChunkGroup>} */
 
             /** @type {Map<CssModule, Set<ChunkGroup>>} */
             reasons.get(m), cg => cg.name).join(", ");
@@ -957,7 +928,7 @@ class MiniCssExtractPlugin {
             return [` * ${m.readableIdentifier(requestShortener)}`, `   - couldn't fulfill desired order of chunk group(s) ${failedChunkGroups}`, goodChunkGroups && `   - while fulfilling desired order of chunk group(s) ${goodChunkGroups}`].filter(Boolean).join("\n");
           })].join("\n")));
         }
-        usedModules.add( /** @type {CssModule} */fallbackModule);
+        usedModules.add(/** @type {CssModule} */fallbackModule);
       }
     }
     this._sortedModulesCache.set(chunk, usedModules);
@@ -966,14 +937,14 @@ class MiniCssExtractPlugin {
 
   /**
    * @private
-   * @param {Compiler} compiler
-   * @param {Compilation} compilation
-   * @param {Chunk} chunk
-   * @param {CssModule[]} modules
-   * @param {Compiler["requestShortener"]} requestShortener
-   * @param {string} filenameTemplate
-   * @param {Parameters<Exclude<Required<Configuration>['output']['filename'], string | undefined>>[0]} pathData
-   * @returns {Source}
+   * @param {Compiler} compiler compiler
+   * @param {Compilation} compilation compilation
+   * @param {Chunk} chunk chunk
+   * @param {CssModule[]} modules modules
+   * @param {Compiler["requestShortener"]} requestShortener request shortener
+   * @param {string} filenameTemplate filename template
+   * @param {Parameters<Exclude<Required<Configuration>['output']['filename'], string | undefined>>[0]} pathData path data
+   * @returns {Source} source
    */
   renderContentAsset(compiler, compilation, chunk, modules, requestShortener, filenameTemplate, pathData) {
     const usedModules = this.sortModules(compilation, chunk, modules, requestShortener);
@@ -987,7 +958,7 @@ class MiniCssExtractPlugin {
     for (const module of usedModules) {
       let content = module.content.toString();
       const readableIdentifier = module.readableIdentifier(requestShortener);
-      const startsWithAtRuleImport = /^@import url/.test(content);
+      const startsWithAtRuleImport = content.startsWith("@import url");
       let header;
       if (compilation.outputOptions.pathinfo) {
         // From https://github.com/webpack/webpack/blob/29eff8a74ecc2f87517b627dee451c2af9ed3f3f/lib/ModuleInfoHeaderPlugin.js#L191-L194
@@ -1003,9 +974,9 @@ class MiniCssExtractPlugin {
 
         // HACK for IE
         // http://stackoverflow.com/a/14676665/1458162
-        if (module.media || module.supports || typeof module.layer !== "undefined") {
+        if (module.media || module.supports || typeof module.layer === "string") {
           let atImportExtra = "";
-          const needLayer = typeof module.layer !== "undefined";
+          const needLayer = typeof module.layer === "string";
           if (needLayer) {
             atImportExtra += module.layer.length > 0 ? ` layer(${module.layer})` : " layer";
           }
@@ -1033,7 +1004,7 @@ class MiniCssExtractPlugin {
         if (module.media) {
           source.add(`@media ${module.media} {\n`);
         }
-        const needLayer = typeof module.layer !== "undefined";
+        const needLayer = typeof module.layer === "string";
         if (needLayer) {
           source.add(`@layer${module.layer.length > 0 ? ` ${module.layer}` : ""} {\n`);
         }

@@ -46,7 +46,10 @@ export interface StylesheetPluginOptions {
      * initialized and used for every stylesheet. This overrides the tailwind integration
      * and any tailwind usage must be manually configured in the custom postcss usage.
      */
-    postcssConfiguration?: PostcssConfiguration;
+    postcssConfiguration?: {
+        config: PostcssConfiguration;
+        configPath: string;
+    };
     /**
      * Optional Options for configuring Sass behavior.
      */

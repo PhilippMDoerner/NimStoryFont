@@ -53,12 +53,12 @@ const analytics_parameters_1 = require("./analytics-parameters");
 const TRACKING_ID_PROD = 'G-VETNJBW8L4';
 const TRACKING_ID_STAGING = 'G-TBMPRL1BTM';
 class AnalyticsCollector {
-    context;
+    logger;
     trackingEventsQueue;
     requestParameterStringified;
     userParameters;
-    constructor(context, userId) {
-        this.context = context;
+    constructor(logger, userId, packageManagerInfo) {
+        this.logger = logger;
         const requestParameters = {
             [analytics_parameters_1.RequestParameter.ProtocolVersion]: 2,
             [analytics_parameters_1.RequestParameter.ClientId]: userId,
@@ -81,7 +81,7 @@ class AnalyticsCollector {
         }
         this.requestParameterStringified = querystring.stringify(requestParameters);
         const parsedVersion = semver.parse(process.version);
-        const packageManagerVersion = context.packageManager.version;
+        const packageManagerVersion = packageManagerInfo.version;
         this.userParameters = {
             // While architecture is being collect by GA as UserAgentArchitecture.
             // It doesn't look like there is a way to query this. Therefore we collect this as a custom user dimension too.
@@ -92,7 +92,7 @@ class AnalyticsCollector {
                 ? `${parsedVersion.major}.${parsedVersion.minor}.${parsedVersion.patch}`
                 : 'other',
             [analytics_parameters_1.UserCustomDimension.NodeMajorVersion]: parsedVersion?.major,
-            [analytics_parameters_1.UserCustomDimension.PackageManager]: context.packageManager.name,
+            [analytics_parameters_1.UserCustomDimension.PackageManager]: packageManagerInfo.name,
             [analytics_parameters_1.UserCustomDimension.PackageManagerVersion]: packageManagerVersion,
             [analytics_parameters_1.UserCustomDimension.PackageManagerMajorVersion]: packageManagerVersion
                 ? +packageManagerVersion.split('.', 1)[0]
@@ -148,7 +148,7 @@ class AnalyticsCollector {
     }
     async flush() {
         const pendingTrackingEvents = this.trackingEventsQueue;
-        this.context.logger.debug(`Analytics flush size. ${pendingTrackingEvents?.length}.`);
+        this.logger.debug(`Analytics flush size. ${pendingTrackingEvents?.length}.`);
         if (!pendingTrackingEvents?.length) {
             return;
         }
@@ -161,7 +161,7 @@ class AnalyticsCollector {
         catch (error) {
             // Failure to report analytics shouldn't crash the CLI.
             (0, error_1.assertIsError)(error);
-            this.context.logger.debug(`Send analytics error. ${error.message}.`);
+            this.logger.debug(`Send analytics error. ${error.message}.`);
         }
     }
     async send(data) {
@@ -192,3 +192,4 @@ class AnalyticsCollector {
     }
 }
 exports.AnalyticsCollector = AnalyticsCollector;
+//# sourceMappingURL=analytics-collector.js.map

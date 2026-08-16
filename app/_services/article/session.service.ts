@@ -2,8 +2,8 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { OverviewItem } from 'src/app/_models/overview';
-import { Session, SessionRaw } from 'src/app/_models/session';
+import { OverviewItem } from '../../_models/overview';
+import { Session, SessionRaw } from '../../_models/session';
 import { BaseService } from '../base.service';
 import { RoutingService } from '../routing.service';
 

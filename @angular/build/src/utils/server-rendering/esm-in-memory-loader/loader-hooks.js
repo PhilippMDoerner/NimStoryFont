@@ -15,9 +15,9 @@ exports.resolve = resolve;
 exports.load = load;
 const node_assert_1 = __importDefault(require("node:assert"));
 const node_crypto_1 = require("node:crypto");
+const promises_1 = require("node:fs/promises");
 const node_path_1 = require("node:path");
 const node_url_1 = require("node:url");
-const javascript_transformer_1 = require("../../../tools/esbuild/javascript-transformer");
 /**
  * @note For some unknown reason, setting `globalThis.ngServerMode = true` does not work when using ESM loader hooks.
  */
@@ -29,11 +29,6 @@ const NG_SERVER_MODE_INIT_BYTES = new TextEncoder().encode('var ngServerMode=tru
 const MEMORY_URL_SCHEME = 'memory://';
 let memoryVirtualRootUrl;
 let outputFiles;
-const javascriptTransformer = new javascript_transformer_1.JavaScriptTransformer(
-// Always enable JIT linking to support applications built with and without AOT.
-// In a development environment the additional scope information does not
-// have a negative effect unlike production where final output size is relevant.
-{ sourcemap: true, jit: true }, 1);
 function initialize(data) {
     // This path does not actually exist but is used to overlay the in memory files with the
     // actual filesystem for resolution purposes.
@@ -110,7 +105,7 @@ async function load(url, context, nextLoad) {
     // need linking are ESM only.
     if (format === 'module' && isFileProtocol(url)) {
         const filePath = (0, node_url_1.fileURLToPath)(url);
-        let source = await javascriptTransformer.transformFile(filePath);
+        let source = await (0, promises_1.readFile)(filePath);
         if (filePath.includes('@angular/')) {
             // Prepend 'var ngServerMode=true;' to the source.
             source = Buffer.concat([NG_SERVER_MODE_INIT_BYTES, source]);
@@ -127,9 +122,4 @@ async function load(url, context, nextLoad) {
 function isFileProtocol(url) {
     return url.startsWith('file://');
 }
-function handleProcessExit() {
-    void javascriptTransformer.close();
-}
-process.once('exit', handleProcessExit);
-process.once('SIGINT', handleProcessExit);
-process.once('uncaughtException', handleProcessExit);
+//# sourceMappingURL=loader-hooks.js.map

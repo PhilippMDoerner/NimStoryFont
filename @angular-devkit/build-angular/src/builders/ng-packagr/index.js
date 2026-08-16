@@ -43,6 +43,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.execute = execute;
 const private_1 = require("@angular/build/private");
 const architect_1 = require("@angular-devkit/architect");
+const node_module_1 = require("node:module");
 const node_path_1 = require("node:path");
 const rxjs_1 = require("rxjs");
 const normalize_cache_1 = require("../../utils/normalize-cache");
@@ -50,11 +51,15 @@ const normalize_cache_1 = require("../../utils/normalize-cache");
  * @experimental Direct usage of this function is considered experimental.
  */
 function execute(options, context) {
+    context.logger.warn('The "@angular-devkit/build-angular:ng-packagr" builder is deprecated as part of Angular\'s Webpack support deprecation. ' +
+        'Use "@angular/build:ng-packagr" instead. For more information, see https://angular.dev/tools/cli/build-system-migration.');
     return (0, rxjs_1.from)((async () => {
         // Purge old build disk cache.
         await (0, private_1.purgeStaleBuildCache)(context);
         const root = context.workspaceRoot;
-        const packager = (await Promise.resolve().then(() => __importStar(require('ng-packagr')))).ngPackagr();
+        const workspaceRequire = (0, node_module_1.createRequire)(root + '/');
+        const ngPackagePath = workspaceRequire.resolve('ng-packagr');
+        const packager = (await Promise.resolve(`${ngPackagePath}`).then(s => __importStar(require(s)))).ngPackagr();
         packager.forProject((0, node_path_1.resolve)(root, options.project));
         if (options.tsConfig) {
             packager.withTsConfig((0, node_path_1.resolve)(root, options.tsConfig));
@@ -74,3 +79,4 @@ function execute(options, context) {
     })()).pipe((0, rxjs_1.switchMap)(({ packager, ngPackagrOptions }) => options.watch ? packager.watch(ngPackagrOptions) : packager.build(ngPackagrOptions)), (0, rxjs_1.map)(() => ({ success: true })), (0, rxjs_1.catchError)((err) => (0, rxjs_1.of)({ success: false, error: err.message })));
 }
 exports.default = (0, architect_1.createBuilder)(execute);
+//# sourceMappingURL=index.js.map

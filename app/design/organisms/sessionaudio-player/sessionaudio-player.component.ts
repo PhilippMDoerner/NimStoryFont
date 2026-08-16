@@ -8,13 +8,13 @@ import {
   signal,
 } from '@angular/core';
 import { FormlyFieldConfig } from '@ngx-formly/core';
-import { Timestamp } from 'src/app/_models/sessionAudio';
-import { FormlyService } from 'src/app/_services/formly/formly-service.service';
-import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
-import { CardComponent } from 'src/app/design/atoms/card/card.component';
-import { FormComponent } from 'src/app/design/molecules';
-import { LinkEntryComponent } from 'src/app/design/molecules/link-entry/link-entry.component';
+import { Timestamp } from '../../../_models/sessionAudio';
+import { FormlyService } from '../../../_services/formly/formly-service.service';
+import { ButtonComponent } from '../../atoms/button/button.component';
+import { CardComponent } from '../../atoms/card/card.component';
+import { FormComponent } from '../../molecules';
 import { LinkEntry } from '../../molecules/_models/link-entry';
+import { LinkEntryComponent } from '../../molecules/link-entry/link-entry.component';
 import { PlayerComponent } from '../player/player.component';
 
 type TimestampState = 'CREATE' | 'DISPLAY';
@@ -34,27 +34,29 @@ type TimestampState = 'CREATE' | 'DISPLAY';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SessionaudioPlayerComponent {
-  sessionAudioPk = input.required<number>();
-  timestamps = input.required<Timestamp[] | undefined>();
-  serverUrl = input.required<string>();
-  audioSource = input.required<string>();
-  downloadSource = input.required<string>();
-  canDelete = input.required<boolean>();
-  canCreate = input.required<boolean>();
+  readonly sessionAudioPk = input.required<number>();
+  readonly timestamps = input.required<Timestamp[] | undefined>();
+  readonly serverUrl = input.required<string>();
+  readonly audioSource = input.required<string>();
+  readonly downloadSource = input.required<string>();
+  readonly canDelete = input.required<boolean>();
+  readonly canCreate = input.required<boolean>();
 
   readonly deleteTimestamp = output<Timestamp>();
   readonly createTimestamp = output<Timestamp>();
 
-  timestampEntries = computed<LinkEntry<Timestamp>[] | undefined>(() => {
-    return this.timestamps()?.map((timestamp) => ({
-      value: timestamp,
-      label: timestamp.name,
-      linkText: this.timeToString(timestamp.time),
-    }));
-  });
-  timestampState = signal<TimestampState>('DISPLAY');
-  currentTime = signal<number | undefined>(0);
-  timestampFields = computed<FormlyFieldConfig[]>(() => [
+  readonly timestampEntries = computed<LinkEntry<Timestamp>[] | undefined>(
+    () => {
+      return this.timestamps()?.map((timestamp) => ({
+        value: timestamp,
+        label: timestamp.name,
+        linkText: this.timeToString(timestamp.time),
+      }));
+    },
+  );
+  readonly timestampState = signal<TimestampState>('DISPLAY');
+  readonly currentTime = signal<number | undefined>(0);
+  readonly timestampFields = computed<FormlyFieldConfig[]>(() => [
     this.formlyService.buildInputConfig({
       key: 'time',
       maxLength: 8,
@@ -73,7 +75,7 @@ export class SessionaudioPlayerComponent {
       inputKind: 'STRING',
     }),
   ]);
-  timestampModel = signal<
+  readonly timestampModel = signal<
     Exclude<Partial<Timestamp>, 'time'> & { time?: string }
   >({});
 

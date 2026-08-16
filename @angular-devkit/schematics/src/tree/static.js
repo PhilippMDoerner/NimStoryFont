@@ -35,3 +35,4 @@ function partition(tree, predicate) {
         throw new exception_1.SchematicsException('Tree type is not supported.');
     }
 }
+//# sourceMappingURL=static.js.map

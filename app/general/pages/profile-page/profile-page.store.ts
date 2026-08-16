@@ -2,15 +2,15 @@ import { inject } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { patchState, signalStore, withMethods, withState } from '@ngrx/signals';
 import { EMPTY, switchMap, take } from 'rxjs';
-import { User } from 'src/app/_models/user';
-import { UserService } from 'src/app/_services/article/user.service';
-import { CampaignService } from 'src/app/_services/utils/campaign.service';
-import { GlobalUrlParamsService } from 'src/app/_services/utils/global-url-params.service';
-import { AuthStore } from 'src/app/auth.store';
-import { CampaignMembership } from 'src/app/design/templates/_models/campaign-membership';
-import { PasswordModel } from 'src/app/design/templates/profile/profile.component';
-import { GlobalStore } from 'src/app/global.store';
-import { filterNil } from 'src/utils/rxjs-operators';
+import { filterNil } from '../../../../utils/rxjs-operators';
+import { User } from '../../../_models/user';
+import { UserService } from '../../../_services/article/user.service';
+import { CampaignService } from '../../../_services/utils/campaign.service';
+import { GlobalUrlParamsService } from '../../../_services/utils/global-url-params.service';
+import { AuthStore } from '../../../auth.store';
+import { CampaignMembership } from '../../../design/templates/_models/campaign-membership';
+import { PasswordModel } from '../../../design/templates/profile/profile.component';
+import { GlobalStore } from '../../../global.store';
 
 export interface ProfilePageState {
   user: User | undefined;

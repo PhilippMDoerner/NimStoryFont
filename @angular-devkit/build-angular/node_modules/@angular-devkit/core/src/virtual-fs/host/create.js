@@ -52,3 +52,4 @@ function createSyncHost(handler) {
         }
     })();
 }
+//# sourceMappingURL=create.js.map

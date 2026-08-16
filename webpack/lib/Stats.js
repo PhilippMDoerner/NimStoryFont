@@ -6,15 +6,17 @@
 "use strict";
 
 /** @typedef {import("../declarations/WebpackOptions").StatsOptions} StatsOptions */
+/** @typedef {import("../declarations/WebpackOptions").StatsValue} StatsValue */
 /** @typedef {import("./Compilation")} Compilation */
-/** @typedef {import("./Compilation").NormalizedStatsOptions} NormalizedStatsOptions */
 /** @typedef {import("./stats/DefaultStatsFactoryPlugin").StatsCompilation} StatsCompilation */
 
 class Stats {
 	/**
+	 * Creates an instance of Stats.
 	 * @param {Compilation} compilation webpack compilation
 	 */
 	constructor(compilation) {
+		/** @type {Compilation} */
 		this.compilation = compilation;
 	}
 
@@ -31,27 +33,30 @@ class Stats {
 	}
 
 	/**
+	 * Checks whether this stats has warnings.
 	 * @returns {boolean} true if the compilation had a warning
 	 */
 	hasWarnings() {
 		return (
 			this.compilation.getWarnings().length > 0 ||
-			this.compilation.children.some(child => child.getStats().hasWarnings())
+			this.compilation.children.some((child) => child.getStats().hasWarnings())
 		);
 	}
 
 	/**
+	 * Checks whether this stats has errors.
 	 * @returns {boolean} true if the compilation encountered an error
 	 */
 	hasErrors() {
 		return (
 			this.compilation.errors.length > 0 ||
-			this.compilation.children.some(child => child.getStats().hasErrors())
+			this.compilation.children.some((child) => child.getStats().hasErrors())
 		);
 	}
 
 	/**
-	 * @param {(string | boolean | StatsOptions)=} options stats options
+	 * Returns json output.
+	 * @param {StatsValue=} options stats options
 	 * @returns {StatsCompilation} json output
 	 */
 	toJson(options) {
@@ -67,7 +72,8 @@ class Stats {
 	}
 
 	/**
-	 * @param {(string | boolean | StatsOptions)=} options stats options
+	 * Returns a string representation.
+	 * @param {StatsValue=} options stats options
 	 * @returns {string} string output
 	 */
 	toString(options) {

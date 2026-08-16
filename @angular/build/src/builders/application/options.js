@@ -13,7 +13,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.INDEX_HTML_SERVER = exports.INDEX_HTML_CSR = void 0;
 exports.normalizeOptions = normalizeOptions;
 exports.getLocaleBaseHref = getLocaleBaseHref;
-const node_fs_1 = require("node:fs");
 const promises_1 = require("node:fs/promises");
 const node_module_1 = require("node:module");
 const node_path_1 = __importDefault(require("node:path"));
@@ -22,8 +21,10 @@ const color_1 = require("../../utils/color");
 const environment_options_1 = require("../../utils/environment-options");
 const i18n_options_1 = require("../../utils/i18n-options");
 const normalize_cache_1 = require("../../utils/normalize-cache");
+const path_1 = require("../../utils/path");
 const postcss_configuration_1 = require("../../utils/postcss-configuration");
 const project_metadata_1 = require("../../utils/project-metadata");
+const resolve_project_1 = require("../../utils/resolve-project");
 const url_1 = require("../../utils/url");
 const schema_1 = require("./schema");
 /**
@@ -52,12 +53,7 @@ async function normalizeOptions(context, projectName, options, extensions) {
     // If not explicitly set, default to the Node.js process argument
     const preserveSymlinks = options.preserveSymlinks ?? process.execArgv.includes('--preserve-symlinks');
     // Setup base paths based on workspace root and project information
-    const workspaceRoot = preserveSymlinks
-        ? context.workspaceRoot
-        : // NOTE: promises.realpath should not be used here since it uses realpath.native which
-            // can cause case conversion and other undesirable behavior on Windows systems.
-            // ref: https://github.com/nodejs/node/issues/7726
-            (0, node_fs_1.realpathSync)(context.workspaceRoot);
+    const workspaceRoot = (0, path_1.canonicalizePath)(context.workspaceRoot);
     const projectMetadata = await context.getProjectMetadata(projectName);
     const { projectRoot, projectSourceRoot } = (0, project_metadata_1.getProjectRootPaths)(workspaceRoot, projectMetadata);
     // Gather persistent caching option and provide a project specific cache location
@@ -96,7 +92,12 @@ async function normalizeOptions(context, projectName, options, extensions) {
             if (extension[0] !== '.' || /\.[cm]?[jt]sx?$/.test(extension)) {
                 continue;
             }
-            if (value !== 'text' && value !== 'binary' && value !== 'file' && value !== 'empty') {
+            if (value !== 'text' &&
+                value !== 'binary' &&
+                value !== 'file' &&
+                value !== 'dataurl' &&
+                value !== 'base64' &&
+                value !== 'empty') {
                 continue;
             }
             loaderExtensions ??= {};
@@ -151,10 +152,10 @@ async function normalizeOptions(context, projectName, options, extensions) {
         ssrOptions = {};
     }
     else if (typeof options.ssr === 'object') {
-        const { entry, experimentalPlatform = schema_1.ExperimentalPlatform.Node } = options.ssr;
+        const { entry, platform = schema_1.Platform.Node } = options.ssr;
         ssrOptions = {
             entry: entry && node_path_1.default.join(workspaceRoot, entry),
-            platform: experimentalPlatform,
+            platform,
         };
     }
     let appShellOptions;
@@ -242,8 +243,9 @@ async function normalizeOptions(context, projectName, options, extensions) {
             throw new Error('The "index" option cannot be set to false when enabling "ssr", "prerender" or "app-shell".');
         }
     }
-    const autoCsp = options.security?.autoCsp;
+    const { autoCsp, allowedHosts = [] } = options.security ?? {};
     const security = {
+        allowedHosts,
         autoCsp: autoCsp
             ? {
                 unsafeEval: autoCsp === true ? false : !!autoCsp.unsafeEval,
@@ -309,6 +311,7 @@ async function normalizeOptions(context, projectName, options, extensions) {
         plugins: extensions?.codePlugins?.length ? extensions?.codePlugins : undefined,
         loaderExtensions,
         jsonLogs: environment_options_1.useJSONBuildLogs,
+        quiet: options.quiet,
         colors: (0, color_1.supportColor)(),
         clearScreen,
         define,
@@ -444,7 +447,14 @@ function getLocaleBaseHref(baseHref = '', i18n, locale) {
         return undefined;
     }
     const baseHrefSuffix = localeData.baseHref ?? localeData.subPath + '/';
-    return baseHrefSuffix !== '' ? (0, url_1.urlJoin)(baseHref, baseHrefSuffix) : undefined;
+    let joinedBaseHref;
+    if (baseHrefSuffix !== '') {
+        joinedBaseHref = (0, url_1.addTrailingSlash)((0, url_1.joinUrlParts)(baseHref, baseHrefSuffix));
+        if (baseHref && baseHref[0] !== '/') {
+            joinedBaseHref = (0, url_1.stripLeadingSlash)(joinedBaseHref);
+        }
+    }
+    return joinedBaseHref;
 }
 /**
  * Normalizes an array of external dependency paths by ensuring that
@@ -469,9 +479,7 @@ function normalizeExternals(value) {
     ];
 }
 async function findFrameworkVersion(projectRoot) {
-    // Create a custom require function for ESM compliance.
-    // NOTE: The trailing slash is significant.
-    const projectResolve = (0, node_module_1.createRequire)(projectRoot + '/').resolve;
+    const projectResolve = (0, resolve_project_1.createProjectResolver)(projectRoot);
     try {
         const manifestPath = projectResolve('@angular/core/package.json');
         const manifestData = await (0, promises_1.readFile)(manifestPath, 'utf-8');
@@ -483,3 +491,4 @@ async function findFrameworkVersion(projectRoot) {
         throw new Error('Error: It appears that "@angular/core" is missing as a dependency. Please ensure it is included in your project.');
     }
 }
+//# sourceMappingURL=options.js.map

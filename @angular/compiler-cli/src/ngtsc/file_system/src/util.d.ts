@@ -12,7 +12,7 @@ import { AbsoluteFsPath, PathString } from './types';
  */
 export declare function normalizeSeparators(path: string): string;
 /**
- * Remove a .ts, .d.ts, or .js extension from a file name.
+ * Remove a .ts, .d.ts, .tsx, or .js extension from a file name.
  */
 export declare function stripExtension<T extends PathString>(path: T): T;
 export declare function getSourceFileOrError(program: ts.Program, fileName: AbsoluteFsPath): ts.SourceFile;

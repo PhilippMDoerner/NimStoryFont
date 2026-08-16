@@ -25,11 +25,11 @@ export interface ImageGridEntry {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ImageGridComponent {
-  EMPTY_IMAGE_URL = 'assets/general_overview.webp';
+  readonly EMPTY_IMAGE_URL = 'assets/general_overview.webp';
 
-  entries = input.required<ImageGridEntry[]>();
+  readonly entries = input.required<ImageGridEntry[]>();
 
-  columnCount = computed<ColumnCount>(() => {
+  readonly columnCount = computed<ColumnCount>(() => {
     switch (this.entries().length) {
       case 1:
         return 1;

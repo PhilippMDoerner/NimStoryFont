@@ -7,7 +7,7 @@ import { ScreenService } from './screen.service';
   providedIn: 'root',
 })
 export class SwipeService {
-  screenService = inject(ScreenService);
+  readonly screenService = inject(ScreenService);
 
   /**
    * Listens to swipe events to the left and right that happen on or inside the element.

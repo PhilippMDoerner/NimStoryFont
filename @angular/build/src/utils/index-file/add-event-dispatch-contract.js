@@ -25,3 +25,4 @@ async function addEventDispatchContract(html) {
     });
     return transformedContent();
 }
+//# sourceMappingURL=add-event-dispatch-contract.js.map

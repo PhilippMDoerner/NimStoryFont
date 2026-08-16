@@ -24,12 +24,14 @@ const { parseResource } = require("./util/identifier");
 /** @typedef {import("estree").Super} Super */
 /** @typedef {import("estree").VariableDeclaration} VariableDeclaration */
 /** @typedef {import("./Compiler")} Compiler */
-/** @typedef {import("./javascript/BasicEvaluatedExpression")} BasicEvaluatedExpression */
 /** @typedef {import("./javascript/JavascriptParser")} JavascriptParser */
 /** @typedef {import("./javascript/JavascriptParser").Range} Range */
 
+/** @typedef {Set<string>} Declarations */
+
 /**
- * @param {Set<string>} declarations set of declarations
+ * Collect declaration.
+ * @param {Declarations} declarations set of declarations
  * @param {Identifier | Pattern} pattern pattern to collect declarations from
  */
 const collectDeclaration = (declarations, pattern) => {
@@ -63,13 +65,15 @@ const collectDeclaration = (declarations, pattern) => {
 };
 
 /**
+ * Gets hoisted declarations.
  * @param {Statement} branch branch to get hoisted declarations from
  * @param {boolean} includeFunctionDeclarations whether to include function declarations
- * @returns {Array<string>} hoisted declarations
+ * @returns {string[]} hoisted declarations
  */
 const getHoistedDeclarations = (branch, includeFunctionDeclarations) => {
+	/** @type {Declarations} */
 	const declarations = new Set();
-	/** @type {Array<Statement | null | undefined>} */
+	/** @type {(Statement | null | undefined)[]} */
 	const stack = [branch];
 	while (stack.length > 0) {
 		const node = stack.pop();
@@ -129,14 +133,14 @@ const getHoistedDeclarations = (branch, includeFunctionDeclarations) => {
 				break;
 		}
 	}
-	return Array.from(declarations);
+	return [...declarations];
 };
 
 const PLUGIN_NAME = "ConstPlugin";
 
 class ConstPlugin {
 	/**
-	 * Apply the plugin
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Compiler} compiler the compiler instance
 	 * @returns {void}
 	 */
@@ -156,11 +160,12 @@ class ConstPlugin {
 				);
 
 				/**
+				 * Handles the hook callback for this code path.
 				 * @param {JavascriptParser} parser the parser
 				 */
-				const handler = parser => {
-					parser.hooks.terminate.tap(PLUGIN_NAME, statement => true);
-					parser.hooks.statementIf.tap(PLUGIN_NAME, statement => {
+				const handler = (parser) => {
+					parser.hooks.terminate.tap(PLUGIN_NAME, (_statement) => true);
+					parser.hooks.statementIf.tap(PLUGIN_NAME, (statement) => {
 						if (parser.scope.isAsmJs) return;
 						const param = parser.evaluateExpression(statement.test);
 						const bool = param.asBool();
@@ -170,7 +175,7 @@ class ConstPlugin {
 									`${bool}`,
 									/** @type {Range} */ (param.range)
 								);
-								dep.loc = /** @type {SourceLocation} */ (statement.loc);
+								dep.loc = parser.getLocation(statement);
 								parser.state.module.addPresentationalDependency(dep);
 							} else {
 								parser.walkExpression(statement.test);
@@ -179,24 +184,25 @@ class ConstPlugin {
 								? statement.alternate
 								: statement.consequent;
 							if (branchToRemove) {
-								this.eliminateUnusedStatement(parser, branchToRemove);
+								this.eliminateUnusedStatement(parser, branchToRemove, true);
 							}
 							return bool;
 						}
 					});
-					parser.hooks.unusedStatement.tap(PLUGIN_NAME, statement => {
+					parser.hooks.unusedStatement.tap(PLUGIN_NAME, (statement) => {
 						if (
 							parser.scope.isAsmJs ||
 							// Check top level scope here again
 							parser.scope.topLevelScope === true
-						)
+						) {
 							return;
-						this.eliminateUnusedStatement(parser, statement);
+						}
+						this.eliminateUnusedStatement(parser, statement, false);
 						return true;
 					});
 					parser.hooks.expressionConditionalOperator.tap(
 						PLUGIN_NAME,
-						expression => {
+						(expression) => {
 							if (parser.scope.isAsmJs) return;
 							const param = parser.evaluateExpression(expression.test);
 							const bool = param.asBool();
@@ -206,7 +212,7 @@ class ConstPlugin {
 										` ${bool}`,
 										/** @type {Range} */ (param.range)
 									);
-									dep.loc = /** @type {SourceLocation} */ (expression.loc);
+									dep.loc = parser.getLocation(expression);
 									parser.state.module.addPresentationalDependency(dep);
 								} else {
 									parser.walkExpression(expression.test);
@@ -229,7 +235,7 @@ class ConstPlugin {
 									"0",
 									/** @type {Range} */ (branchToRemove.range)
 								);
-								dep.loc = /** @type {SourceLocation} */ (branchToRemove.loc);
+								dep.loc = parser.getLocation(branchToRemove);
 								parser.state.module.addPresentationalDependency(dep);
 								return bool;
 							}
@@ -237,7 +243,7 @@ class ConstPlugin {
 					);
 					parser.hooks.expressionLogicalOperator.tap(
 						PLUGIN_NAME,
-						expression => {
+						(expression) => {
 							if (parser.scope.isAsmJs) return;
 							if (
 								expression.operator === "&&" ||
@@ -309,7 +315,7 @@ class ConstPlugin {
 											` ${bool}`,
 											/** @type {Range} */ (param.range)
 										);
-										dep.loc = /** @type {SourceLocation} */ (expression.loc);
+										dep.loc = parser.getLocation(expression);
 										parser.state.module.addPresentationalDependency(dep);
 									} else {
 										parser.walkExpression(expression.left);
@@ -319,7 +325,7 @@ class ConstPlugin {
 											"0",
 											/** @type {Range} */ (expression.right.range)
 										);
-										dep.loc = /** @type {SourceLocation} */ (expression.loc);
+										dep.loc = parser.getLocation(expression);
 										parser.state.module.addPresentationalDependency(dep);
 									}
 									return keepRight;
@@ -362,14 +368,14 @@ class ConstPlugin {
 											" null",
 											/** @type {Range} */ (param.range)
 										);
-										dep.loc = /** @type {SourceLocation} */ (expression.loc);
+										dep.loc = parser.getLocation(expression);
 										parser.state.module.addPresentationalDependency(dep);
 									} else {
 										const dep = new ConstDependency(
 											"0",
 											/** @type {Range} */ (expression.right.range)
 										);
-										dep.loc = /** @type {SourceLocation} */ (expression.loc);
+										dep.loc = parser.getLocation(expression);
 										parser.state.module.addPresentationalDependency(dep);
 										parser.walkExpression(expression.left);
 									}
@@ -379,7 +385,7 @@ class ConstPlugin {
 							}
 						}
 					);
-					parser.hooks.optionalChaining.tap(PLUGIN_NAME, expr => {
+					parser.hooks.optionalChaining.tap(PLUGIN_NAME, (expr) => {
 						/** @type {Expression[]} */
 						const optionalExpressionsStack = [];
 						/** @type {Expression | Super} */
@@ -431,7 +437,7 @@ class ConstPlugin {
 									" undefined",
 									/** @type {Range} */ (expr.range)
 								);
-								dep.loc = /** @type {SourceLocation} */ (expr.loc);
+								dep.loc = parser.getLocation(expr);
 								parser.state.module.addPresentationalDependency(dep);
 								return true;
 							}
@@ -439,7 +445,7 @@ class ConstPlugin {
 					});
 					parser.hooks.evaluateIdentifier
 						.for("__resourceQuery")
-						.tap(PLUGIN_NAME, expr => {
+						.tap(PLUGIN_NAME, (expr) => {
 							if (parser.scope.isAsmJs) return;
 							if (!parser.state.module) return;
 							return evaluateToString(
@@ -448,7 +454,7 @@ class ConstPlugin {
 						});
 					parser.hooks.expression
 						.for("__resourceQuery")
-						.tap(PLUGIN_NAME, expr => {
+						.tap(PLUGIN_NAME, (expr) => {
 							if (parser.scope.isAsmJs) return;
 							if (!parser.state.module) return;
 							const dep = new CachedConstDependency(
@@ -458,14 +464,14 @@ class ConstPlugin {
 								/** @type {Range} */ (expr.range),
 								"__resourceQuery"
 							);
-							dep.loc = /** @type {SourceLocation} */ (expr.loc);
+							dep.loc = parser.getLocation(expr);
 							parser.state.module.addPresentationalDependency(dep);
 							return true;
 						});
 
 					parser.hooks.evaluateIdentifier
 						.for("__resourceFragment")
-						.tap(PLUGIN_NAME, expr => {
+						.tap(PLUGIN_NAME, (expr) => {
 							if (parser.scope.isAsmJs) return;
 							if (!parser.state.module) return;
 							return evaluateToString(
@@ -474,7 +480,7 @@ class ConstPlugin {
 						});
 					parser.hooks.expression
 						.for("__resourceFragment")
-						.tap(PLUGIN_NAME, expr => {
+						.tap(PLUGIN_NAME, (expr) => {
 							if (parser.scope.isAsmJs) return;
 							if (!parser.state.module) return;
 							const dep = new CachedConstDependency(
@@ -484,7 +490,7 @@ class ConstPlugin {
 								/** @type {Range} */ (expr.range),
 								"__resourceFragment"
 							);
-							dep.loc = /** @type {SourceLocation} */ (expr.loc);
+							dep.loc = parser.getLocation(expr);
 							parser.state.module.addPresentationalDependency(dep);
 							return true;
 						});
@@ -507,9 +513,10 @@ class ConstPlugin {
 	 * Eliminate an unused statement.
 	 * @param {JavascriptParser} parser the parser
 	 * @param {Statement} statement the statement to remove
+	 * @param {boolean} alwaysInBlock whether to always generate curly brackets
 	 * @returns {void}
 	 */
-	eliminateUnusedStatement(parser, statement) {
+	eliminateUnusedStatement(parser, statement, alwaysInBlock) {
 		// Before removing the unused branch, the hoisted declarations
 		// must be collected.
 		//
@@ -543,13 +550,19 @@ class ConstPlugin {
 		const declarations = parser.scope.isStrict
 			? getHoistedDeclarations(statement, false)
 			: getHoistedDeclarations(statement, true);
-		const replacement =
-			declarations.length > 0 ? `{ var ${declarations.join(", ")}; }` : "{}";
+
+		const inBlock = alwaysInBlock || statement.type === "BlockStatement";
+
+		let replacement = inBlock ? "{" : "";
+		replacement +=
+			declarations.length > 0 ? ` var ${declarations.join(", ")}; ` : "";
+		replacement += inBlock ? "}" : "";
+
 		const dep = new ConstDependency(
 			`// removed by dead control flow\n${replacement}`,
 			/** @type {Range} */ (statement.range)
 		);
-		dep.loc = /** @type {SourceLocation} */ (statement.loc);
+		dep.loc = parser.getLocation(statement);
 		parser.state.module.addPresentationalDependency(dep);
 	}
 }

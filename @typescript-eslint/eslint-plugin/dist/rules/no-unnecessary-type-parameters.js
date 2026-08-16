@@ -101,7 +101,28 @@ exports.default = (0, util_1.createRule)({
                                 for (const reference of smTypeParameterVariable.references) {
                                     if (reference.isTypeReference) {
                                         const referenceNode = reference.identifier;
-                                        yield fixer.replaceText(referenceNode, constraintText);
+                                        const isComplexType = constraint?.type === utils_1.AST_NODE_TYPES.TSUnionType ||
+                                            constraint?.type === utils_1.AST_NODE_TYPES.TSIntersectionType ||
+                                            constraint?.type === utils_1.AST_NODE_TYPES.TSConditionalType;
+                                        const hasMatchingAncestorType = [
+                                            utils_1.AST_NODE_TYPES.TSArrayType,
+                                            utils_1.AST_NODE_TYPES.TSIndexedAccessType,
+                                            utils_1.AST_NODE_TYPES.TSIntersectionType,
+                                            utils_1.AST_NODE_TYPES.TSUnionType,
+                                            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                                        ].some(type => referenceNode.parent.parent.type === type);
+                                        if (isComplexType && hasMatchingAncestorType) {
+                                            const fixResult = (0, util_1.getWrappingFixer)({
+                                                node: referenceNode,
+                                                innerNode: constraint,
+                                                sourceCode: context.sourceCode,
+                                                wrap: constraintNode => constraintNode,
+                                            })(fixer);
+                                            yield fixResult;
+                                        }
+                                        else {
+                                            yield fixer.replaceText(referenceNode, constraintText);
+                                        }
                                     }
                                 }
                                 // ...and remove the type parameter itself from the declaration.
@@ -334,6 +355,11 @@ function collectTypeParameterUsageCounts(checker, node, foundIdentifierUsages, f
                     // TS treats mapped types like `{[k in "a"]: T}` like `{a: T}`.
                     // They have properties, so we need to avoid double-counting.
                     visitType(type.templateType ?? type.constraintType, false);
+                }
+                // TS doesn't count mapped types key remapping (`{[K in 'a' as T]: K}`)
+                // but handles this under `MappedType.nameType`, so we need to visit that too.
+                if (type.nameType) {
+                    visitType(type.nameType, false);
                 }
             }
             visitType(type.getNumberIndexType(), true);

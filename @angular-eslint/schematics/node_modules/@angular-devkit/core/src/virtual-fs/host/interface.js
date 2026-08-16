@@ -15,3 +15,4 @@ var HostWatchEventType;
     HostWatchEventType[HostWatchEventType["Deleted"] = 2] = "Deleted";
     HostWatchEventType[HostWatchEventType["Renamed"] = 3] = "Renamed";
 })(HostWatchEventType || (exports.HostWatchEventType = HostWatchEventType = {}));
+//# sourceMappingURL=interface.js.map

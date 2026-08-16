@@ -48,7 +48,7 @@ const path = __importStar(require("node:path"));
 const find_up_1 = require("./find-up");
 function findWorkspaceFile(currentDirectory = process.cwd()) {
     const possibleConfigFiles = ['angular.json', '.angular.json'];
-    const configFilePath = (0, find_up_1.findUp)(possibleConfigFiles, currentDirectory);
+    const configFilePath = (0, find_up_1.findUpSync)(possibleConfigFiles, currentDirectory);
     if (configFilePath === null) {
         return null;
     }
@@ -78,3 +78,4 @@ function containsCliDep(obj) {
     }
     return !!(obj.dependencies?.[pkgName] || obj.devDependencies?.[pkgName]);
 }
+//# sourceMappingURL=project.js.map

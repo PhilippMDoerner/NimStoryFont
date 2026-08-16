@@ -16,7 +16,8 @@ export type Schema = {
      */
     appShell?: boolean;
     /**
-     * List of static application assets.
+     * Define the assets to be copied to the output directory. These assets are copied as-is
+     * without any further processing or hashing.
      */
     assets?: AssetPattern[];
     /**
@@ -102,7 +103,9 @@ export type Schema = {
      * Defines the type of loader to use with a specified file extension when used with a
      * JavaScript `import`. `text` inlines the content as a string; `binary` inlines the content
      * as a Uint8Array; `file` emits the file and provides the runtime location of the file;
-     * `empty` considers the content to be empty and not include it in bundles.
+     * `dataurl` inlines the content as a data URL with best guess of MIME type; `base64`
+     * inlines the content as a Base64-encoded string; `empty` considers the content to be empty
+     * and not include it in bundles.
      */
     loader?: {
         [key: string]: any;
@@ -124,12 +127,18 @@ export type Schema = {
     optimization?: OptimizationUnion;
     /**
      * Define the output filename cache-busting hashing mode.
+     *
+     * - `none`: No hashing.
+     * - `all`: Hash for all output bundles.
+     * - `media`: Hash for all output media (e.g., images, fonts, etc. that are referenced in
+     * CSS files).
+     * - `bundles`: Hash for output of lazy and main bundles.
      */
     outputHashing?: OutputHashing;
     /**
-     * Defines the build output target. 'static': Generates a static site for deployment on any
-     * static hosting service. 'server': Produces an application designed for deployment on a
-     * server that supports server-side rendering (SSR).
+     * Defines the type of build output artifact. 'static': Generates a static site build
+     * artifact for deployment on any static hosting service. 'server': Generates a server
+     * application build artifact, required for applications using hybrid rendering or APIs.
      */
     outputMode?: OutputMode;
     /**
@@ -347,7 +356,7 @@ export declare enum InlineStyleLanguage {
 /**
  * Translate the bundles in one or more locales.
  */
-export type Localize = string[] | boolean;
+export type Localize = [string, ...string[]] | boolean;
 /**
  * Enables optimization of the build output. Including minification of scripts and styles,
  * tree-shaking, dead-code elimination, inlining of critical CSS and fonts inlining. For
@@ -399,12 +408,18 @@ export type StylesClass = {
     minify?: boolean;
     /**
      * Remove comments in global CSS that contains '@license' or '@preserve' or that starts with
-     * '//!' or '/*!'.
+     * '//!' or '/ *!'.
      */
     removeSpecialComments?: boolean;
 };
 /**
  * Define the output filename cache-busting hashing mode.
+ *
+ * - `none`: No hashing.
+ * - `all`: Hash for all output bundles.
+ * - `media`: Hash for all output media (e.g., images, fonts, etc. that are referenced in
+ * CSS files).
+ * - `bundles`: Hash for output of lazy and main bundles.
  */
 export declare enum OutputHashing {
     All = "all",
@@ -413,9 +428,9 @@ export declare enum OutputHashing {
     None = "none"
 }
 /**
- * Defines the build output target. 'static': Generates a static site for deployment on any
- * static hosting service. 'server': Produces an application designed for deployment on a
- * server that supports server-side rendering (SSR).
+ * Defines the type of build output artifact. 'static': Generates a static site build
+ * artifact for deployment on any static hosting service. 'server': Generates a server
+ * application build artifact, required for applications using hybrid rendering or APIs.
  */
 export declare enum OutputMode {
     Server = "server",
@@ -482,6 +497,12 @@ export type ScriptClass = {
  */
 export type Security = {
     /**
+     * A list of hostnames that are allowed to access the server-side application. For more
+     * information, see
+     * https://angular.dev/best-practices/security#preventing-server-side-request-forgery-ssrf.
+     */
+    allowedHosts?: string[];
+    /**
      * Enables automatic generation of a hash-based Strict Content Security Policy
      * (https://web.dev/articles/strict-csp#choose-hash) based on scripts in index.html. Will
      * default to true once we are out of experimental/preview phases.
@@ -502,12 +523,6 @@ export type AutoCspClass = {
      */
     unsafeEval?: boolean;
 };
-/**
- * The full path for the server entry point to the application, relative to the current
- * workspace.
- *
- * Generates a service worker configuration.
- */
 export type Serv = boolean | string;
 /**
  * Output source maps for scripts and styles. For more information, see
@@ -555,10 +570,8 @@ export type SsrClass = {
      * making the bundle more portable.
      *
      * Please note that this feature does not provide polyfills for Node.js modules.
-     * Additionally, it is experimental, and the schematics may undergo changes in future
-     * versions.
      */
-    experimentalPlatform?: ExperimentalPlatform;
+    platform?: Platform;
 };
 /**
  * Specifies the platform for which the server bundle is generated. This affects the APIs
@@ -570,10 +583,8 @@ export type SsrClass = {
  * making the bundle more portable.
  *
  * Please note that this feature does not provide polyfills for Node.js modules.
- * Additionally, it is experimental, and the schematics may undergo changes in future
- * versions.
  */
-export declare enum ExperimentalPlatform {
+export declare enum Platform {
     Neutral = "neutral",
     Node = "node"
 }

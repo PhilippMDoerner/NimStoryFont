@@ -1,57 +1,54 @@
 "use strict";
-var __values = (this && this.__values) || function(o) {
-    var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
-    if (m) return m.call(o);
-    if (o && typeof o.length === "number") return {
-        next: function () {
-            if (o && i >= o.length) o = void 0;
-            return { value: o && o[i++], done: !o };
-        }
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
     };
-    throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
-};
-var __read = (this && this.__read) || function (o, n) {
-    var m = typeof Symbol === "function" && o[Symbol.iterator];
-    if (!m) return o;
-    var i = m.call(o), r, ar = [], e;
-    try {
-        while ((n === void 0 || n-- > 0) && !(r = i.next()).done) ar.push(r.value);
-    }
-    catch (error) { e = { error: error }; }
-    finally {
-        try {
-            if (r && !r.done && (m = i["return"])) m.call(i);
-        }
-        finally { if (e) throw e.error; }
-    }
-    return ar;
-};
-var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
-    if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
-        if (ar || !(i in from)) {
-            if (!ar) ar = Array.prototype.slice.call(from, 0, i);
-            ar[i] = from[i];
-        }
-    }
-    return to.concat(ar || Array.prototype.slice.call(from));
-};
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.migrate = migrate;
 exports.default = default_1;
-var schematics_1 = require("@angular-devkit/schematics");
-var schematics_core_1 = require("../../schematics-core");
-var visitors_1 = require("../../schematics-core/utility/visitors");
-var ts = require("typescript");
+const schematics_1 = require("@angular-devkit/schematics");
+const schematics_core_1 = require("../../schematics-core");
+const visitors_1 = require("../../schematics-core/utility/visitors");
+const ts = __importStar(require("typescript"));
 function migratedToEntityProps(sourceFile) {
-    var changes = [];
-    (0, visitors_1.visitImportDeclaration)(sourceFile, function (importDeclaration, moduleName) {
+    const changes = [];
+    (0, visitors_1.visitImportDeclaration)(sourceFile, (importDeclaration, moduleName) => {
         if (moduleName !== '@ngrx/signals/entities') {
             return;
         }
-        (0, visitors_1.visitImportSpecifier)(importDeclaration, function (importSpecifier) {
+        (0, visitors_1.visitImportSpecifier)(importDeclaration, (importSpecifier) => {
             if (importSpecifier.name.getText() === 'EntityComputed') {
                 changes.push((0, schematics_core_1.createReplaceChange)(sourceFile, importSpecifier, importSpecifier.getText(), 'EntityProps'));
-                (0, visitors_1.visitTypeReference)(sourceFile, function (type) {
+                (0, visitors_1.visitTypeReference)(sourceFile, (type) => {
                     if (type.typeName.getText() === 'EntityComputed') {
                         changes.push((0, schematics_core_1.createReplaceChange)(sourceFile, type, type.typeName.getText(), 'EntityProps'));
                     }
@@ -59,7 +56,7 @@ function migratedToEntityProps(sourceFile) {
             }
             if (importSpecifier.name.getText() === 'NamedEntityComputed') {
                 changes.push((0, schematics_core_1.createReplaceChange)(sourceFile, importSpecifier, importSpecifier.getText(), 'NamedEntityProps'));
-                (0, visitors_1.visitTypeReference)(sourceFile, function (typeReference) {
+                (0, visitors_1.visitTypeReference)(sourceFile, (typeReference) => {
                     if (typeReference.typeName.getText() === 'NamedEntityComputed') {
                         changes.push((0, schematics_core_1.createReplaceChange)(sourceFile, typeReference.typeName, typeReference.typeName.getText(), 'NamedEntityProps'));
                     }
@@ -70,52 +67,40 @@ function migratedToEntityProps(sourceFile) {
     return changes;
 }
 function migrateToPropsInSignalStoreFeatureType(sourceFile) {
-    var changes = [];
-    (0, visitors_1.visitTypeReference)(sourceFile, function (typeReference) {
+    const changes = [];
+    (0, visitors_1.visitTypeReference)(sourceFile, (typeReference) => {
         if (typeReference.typeName.getText() !== 'SignalStoreFeature') {
             return;
         }
-        (0, visitors_1.visitTypeLiteral)(typeReference, function (typeLiteral) {
-            var e_1, _a;
-            var typeLiteralChildren = typeLiteral.members;
-            try {
-                for (var typeLiteralChildren_1 = __values(typeLiteralChildren), typeLiteralChildren_1_1 = typeLiteralChildren_1.next(); !typeLiteralChildren_1_1.done; typeLiteralChildren_1_1 = typeLiteralChildren_1.next()) {
-                    var propertySignature = typeLiteralChildren_1_1.value;
-                    if (ts.isPropertySignature(propertySignature)) {
-                        if (propertySignature.name.getText() === 'computed') {
-                            changes.push((0, schematics_core_1.createReplaceChange)(sourceFile, propertySignature.name, 'computed', 'props'));
-                        }
+        (0, visitors_1.visitTypeLiteral)(typeReference, (typeLiteral) => {
+            const typeLiteralChildren = typeLiteral.members;
+            for (const propertySignature of typeLiteralChildren) {
+                if (ts.isPropertySignature(propertySignature)) {
+                    if (propertySignature.name.getText() === 'computed') {
+                        changes.push((0, schematics_core_1.createReplaceChange)(sourceFile, propertySignature.name, 'computed', 'props'));
                     }
                 }
-            }
-            catch (e_1_1) { e_1 = { error: e_1_1 }; }
-            finally {
-                try {
-                    if (typeLiteralChildren_1_1 && !typeLiteralChildren_1_1.done && (_a = typeLiteralChildren_1.return)) _a.call(typeLiteralChildren_1);
-                }
-                finally { if (e_1) throw e_1.error; }
             }
         });
     });
     return changes;
 }
 function migrateToPropsInSignalStoreFeatureWithObjectLiteral(objectLiteral, sourceFile) {
-    var computedKey = objectLiteral.properties
+    const computedKey = objectLiteral.properties
         .filter(ts.isPropertyAssignment)
-        .find(function (property) { return property.name.getText() === 'computed'; });
+        .find((property) => property.name.getText() === 'computed');
     if (computedKey) {
         return [(0, schematics_core_1.createReplaceChange)(sourceFile, computedKey, 'computed', 'props')];
     }
     return [];
 }
 function migrateToPropsInSignalStoreFeatureWithCallExpression(callExpression, sourceFile) {
-    var _a;
     if (callExpression.expression.getText() === 'type') {
-        var typeArgument = (_a = callExpression.typeArguments) === null || _a === void 0 ? void 0 : _a.at(0);
+        const typeArgument = callExpression.typeArguments?.at(0);
         if (typeArgument && ts.isTypeLiteralNode(typeArgument)) {
-            var computedKey = typeArgument.members
+            const computedKey = typeArgument.members
                 .filter(ts.isPropertySignature)
-                .find(function (propertySignature) { return propertySignature.name.getText() === 'computed'; });
+                .find((propertySignature) => propertySignature.name.getText() === 'computed');
             if (computedKey) {
                 return [
                     (0, schematics_core_1.createReplaceChange)(sourceFile, computedKey, 'computed', 'props'),
@@ -126,40 +111,44 @@ function migrateToPropsInSignalStoreFeatureWithCallExpression(callExpression, so
     return [];
 }
 function migrateToPropsInSignalStoreFeatureFunction(sourceFile) {
-    var changes = [];
-    (0, visitors_1.visitCallExpression)(sourceFile, function (callExpression) {
+    const changes = [];
+    (0, visitors_1.visitCallExpression)(sourceFile, (callExpression) => {
         if (callExpression.expression.getText() !== 'signalStoreFeature') {
             return;
         }
-        var objectLiteralOrCallExpression = callExpression.arguments[0];
+        const objectLiteralOrCallExpression = callExpression.arguments[0];
         if (!objectLiteralOrCallExpression) {
             return;
         }
         if (ts.isObjectLiteralExpression(objectLiteralOrCallExpression)) {
-            changes.push.apply(changes, __spreadArray([], __read(migrateToPropsInSignalStoreFeatureWithObjectLiteral(objectLiteralOrCallExpression, sourceFile)), false));
+            changes.push(...migrateToPropsInSignalStoreFeatureWithObjectLiteral(objectLiteralOrCallExpression, sourceFile));
         }
         else if (ts.isCallExpression(objectLiteralOrCallExpression)) {
-            changes.push.apply(changes, __spreadArray([], __read(migrateToPropsInSignalStoreFeatureWithCallExpression(objectLiteralOrCallExpression, sourceFile)), false));
+            changes.push(...migrateToPropsInSignalStoreFeatureWithCallExpression(objectLiteralOrCallExpression, sourceFile));
         }
     });
     return changes;
 }
 function migrate() {
-    return function (tree, ctx) {
-        (0, schematics_core_1.visitTSSourceFiles)(tree, function (sourceFile) {
-            var entityPropsChanges = migratedToEntityProps(sourceFile);
-            var propsInSignalStoreFeatureTypeChanges = migrateToPropsInSignalStoreFeatureType(sourceFile);
-            var propsInSignalStoreFeatureFunctionChanges = migrateToPropsInSignalStoreFeatureFunction(sourceFile);
-            var changes = __spreadArray(__spreadArray(__spreadArray([], __read(entityPropsChanges), false), __read(propsInSignalStoreFeatureTypeChanges), false), __read(propsInSignalStoreFeatureFunctionChanges), false);
+    return (tree, ctx) => {
+        (0, schematics_core_1.visitTSSourceFiles)(tree, (sourceFile) => {
+            const entityPropsChanges = migratedToEntityProps(sourceFile);
+            const propsInSignalStoreFeatureTypeChanges = migrateToPropsInSignalStoreFeatureType(sourceFile);
+            const propsInSignalStoreFeatureFunctionChanges = migrateToPropsInSignalStoreFeatureFunction(sourceFile);
+            const changes = [
+                ...entityPropsChanges,
+                ...propsInSignalStoreFeatureTypeChanges,
+                ...propsInSignalStoreFeatureFunctionChanges,
+            ];
             (0, schematics_core_1.commitChanges)(tree, sourceFile.fileName, changes);
             if (entityPropsChanges.length) {
-                ctx.logger.info("[@ngrx/signals] Renamed '(Named)EntityComputed' to '(Named)EntityProps' in ".concat(sourceFile.fileName));
+                ctx.logger.info(`[@ngrx/signals] Renamed '(Named)EntityComputed' to '(Named)EntityProps' in ${sourceFile.fileName}`);
             }
             if (propsInSignalStoreFeatureTypeChanges.length) {
-                ctx.logger.info("[@ngrx/signals] Renamed 'computed' to 'props' in SignalStoreFeature<> in ".concat(sourceFile.fileName));
+                ctx.logger.info(`[@ngrx/signals] Renamed 'computed' to 'props' in SignalStoreFeature<> in ${sourceFile.fileName}`);
             }
             if (propsInSignalStoreFeatureFunctionChanges.length) {
-                ctx.logger.info("[@ngrx/signals] Renamed 'computed' to 'props' in signalStoreFeature() in ".concat(sourceFile.fileName));
+                ctx.logger.info(`[@ngrx/signals] Renamed 'computed' to 'props' in signalStoreFeature() in ${sourceFile.fileName}`);
             }
         });
     };

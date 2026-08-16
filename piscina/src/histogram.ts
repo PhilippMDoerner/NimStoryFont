@@ -51,10 +51,6 @@ export class PiscinaHistogramHandler {
     return this.#runTime.count;
   }
 
-  get waitTimeCount(): number {
-    return this.#waitTime.count;
-  }
-
   recordRunTime(value: number) {
     this.#runTime.record(PiscinaHistogramHandler.toHistogramIntegerNano(value));
   }
@@ -81,7 +77,7 @@ export class PiscinaHistogramHandler {
     return {
       average: mean / 1000,
       mean: mean / 1000,
-      stddev,
+      stddev: stddev / 1000,
       min: min / 1000,
       max: max / 1000,
       p0_001: histogram.percentile(0.001) / 1000,

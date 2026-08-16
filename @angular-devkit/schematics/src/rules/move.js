@@ -34,3 +34,4 @@ function move(from, to) {
         return tree;
     };
 }
+//# sourceMappingURL=move.js.map

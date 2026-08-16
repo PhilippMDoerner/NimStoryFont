@@ -37,3 +37,4 @@ async function purgeStaleBuildCache(context) {
         .map((stalePath) => (0, promises_1.rm)(stalePath, { force: true, recursive: true, maxRetries: 3 }));
     await Promise.allSettled(entriesToDelete);
 }
+//# sourceMappingURL=purge-cache.js.map

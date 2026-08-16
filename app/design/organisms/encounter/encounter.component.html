@@ -18,18 +18,15 @@
     </h4>
 
     <span class="card__right-container">
-      @if (showUpdateSuccessMarker$ | async) {
-        <span class="card__success-animation">
-          Updated encounter
-          <app-success-animation />
-        </span>
-      }
       @if (cardState() !== "CREATE" && contextMenuItems().length > 0) {
         <app-context-menu
           [menuItems]="contextMenuItems()"
-          [menuButtonKind]="'NONE'"
+          [menuButtonKind]="'LIGHT-OUTLINE'"
           [menuButtonIcon]="'ellipsis-vertical'"
-          [menuButtonText]="'Actions for Encounter ' + encounter()?.title"
+          [menuButtonText]="
+            'Actions for Encounter ' +
+            $safeNavigationMigration(encounter()?.title)
+          "
           [menuButtonShowText]="false"
           (actionTriggered)="onContextMenuAction($event)"
         />
@@ -63,17 +60,19 @@
   <!-- Encounter -->
   @let encounterVal = encounter();
   @if (encounterVal) {
-    <label [for]="editorId" class="cdk-visually-hidden">
+    @let labelId = editorId + "-label-id";
+    <label [id]="labelId" [for]="editorId" class="cdk-visually-hidden">
       Description of encounter {{ encounterVal.title }}
     </label>
     <app-editor
       #editor
       class="card__text"
       [id]="editorId"
+      [labelId]="labelId"
       [state]="textFieldState()"
       [canUpdate]="canUpdate()"
       [text]="encounterVal.description"
-      [serverModel]="serverModel()?.description"
+      [serverModel]="$safeNavigationMigration(serverModel()?.description)"
       [placeholder]="'What happened during ' + encounterVal.title + ' ?'"
       [cancelButtonKind]="'SECONDARY'"
       (update)="onDescriptionUpdateFinished($event)"
@@ -94,7 +93,7 @@
         kind: 'SELECT',
         hotkeyAction: 'create',
         createBadgeLabel: 'Add character',
-        formFieldLabel: 'Characters',
+        formFieldLabel: 'Select a character',
         config: {
           options: characters(),
           valueProp: 'pk',
@@ -119,7 +118,7 @@
     <app-form
       [model]="userModel()"
       [fields]="formlyFields()"
-      [cancelButtonType]="'DARK'"
+      [cancelButtonType]="'SECONDARY'"
       (formlySubmit)="onEncounterUpdate(userModel())"
       (formlyCancel)="changeState('DISPLAY', undefined)"
     ></app-form>

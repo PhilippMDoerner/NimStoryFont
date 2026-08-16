@@ -1,11 +1,10 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.loggerPlugin = void 0;
-const url_1 = require("url");
-const logger_1 = require("../../logger");
-const logger_plugin_1 = require("../../utils/logger-plugin");
-const loggerPlugin = (proxyServer, options) => {
-    const logger = (0, logger_1.getLogger)(options);
+import { URL } from 'node:url';
+import { getLogger } from '../../logger.js';
+import { createUrl } from '../../utils/create-url.js';
+import { getPort } from '../../utils/logger-plugin.js';
+import { definePlugin } from '../define-plugin.js';
+export const loggerPlugin = definePlugin((proxyServer, options) => {
+    const logger = getLogger(options);
     proxyServer.on('error', (err, req, res, target) => {
         const hostname = req?.headers?.host;
         const requestHref = `${hostname}${req?.url}`;
@@ -28,22 +27,15 @@ const loggerPlugin = (proxyServer, options) => {
         // construct targetUrl
         let target;
         try {
-            const port = (0, logger_plugin_1.getPort)(proxyRes.req?.agent?.sockets);
-            const obj = {
-                protocol: proxyRes.req.protocol,
-                host: proxyRes.req.host,
-                pathname: proxyRes.req.path,
-            };
-            target = new url_1.URL(`${obj.protocol}//${obj.host}${obj.pathname}`);
-            if (port) {
-                target.port = port;
-            }
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const port = getPort(proxyRes.req?.agent?.sockets);
+            const { protocol, host, path } = proxyRes.req;
+            target = createUrl({ protocol, host, port, path });
         }
         catch (err) {
-            // nock issue (https://github.com/chimurai/http-proxy-middleware/issues/1035)
+            // should not error. keeping fallback just in case
+            console.error('[HPM] Unexpected error while creating target URL', err);
             // fallback to old implementation (less correct - without port)
-            target = new url_1.URL(options.target);
+            target = new URL(options.target);
             target.pathname = proxyRes.req.path;
         }
         const targetUrl = target.toString();
@@ -62,5 +54,4 @@ const loggerPlugin = (proxyServer, options) => {
     proxyServer.on('close', (req, proxySocket, proxyHead) => {
         logger.info('[HPM] Client disconnected: %o', proxySocket.address());
     });
-};
-exports.loggerPlugin = loggerPlugin;
+});

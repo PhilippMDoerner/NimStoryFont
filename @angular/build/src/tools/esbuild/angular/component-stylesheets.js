@@ -15,6 +15,7 @@ const node_assert_1 = __importDefault(require("node:assert"));
 const node_crypto_1 = require("node:crypto");
 const node_path_1 = __importDefault(require("node:path"));
 const bundler_context_1 = require("../bundler-context");
+const bundler_files_1 = require("../bundler-files");
 const cache_1 = require("../cache");
 const bundle_options_1 = require("../stylesheets/bundle-options");
 /**
@@ -168,7 +169,7 @@ class ComponentStylesheetBundler {
         }
         for (const outputFile of result.outputFiles) {
             const filename = node_path_1.default.basename(outputFile.path);
-            if (outputFile.type === bundler_context_1.BuildOutputFileType.Media || filename.endsWith('.css.map')) {
+            if (outputFile.type === bundler_files_1.BuildOutputFileType.Media || filename.endsWith('.css.map')) {
                 // The output files could also contain resources (images/fonts/etc.) that were referenced and the map files.
                 // Clone the output file to avoid amending the original path which would causes problems during rebuild.
                 const clonedOutputFile = outputFile.clone();
@@ -219,3 +220,4 @@ class ComponentStylesheetBundler {
     }
 }
 exports.ComponentStylesheetBundler = ComponentStylesheetBundler;
+//# sourceMappingURL=component-stylesheets.js.map

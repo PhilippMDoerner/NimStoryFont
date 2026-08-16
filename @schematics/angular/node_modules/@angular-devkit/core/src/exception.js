@@ -45,3 +45,4 @@ class PathIsFileException extends BaseException {
     }
 }
 exports.PathIsFileException = PathIsFileException;
+//# sourceMappingURL=exception.js.map

@@ -15,3 +15,4 @@ class EmptyTree extends host_tree_1.HostTree {
     }
 }
 exports.EmptyTree = EmptyTree;
+//# sourceMappingURL=empty.js.map

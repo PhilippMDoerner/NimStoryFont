@@ -1,20 +1,12 @@
-/**
- * @license
- * Copyright Google LLC All Rights Reserved.
- *
- * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.dev/license
- */
-import { BoundTarget } from '@angular/compiler';
-import { TopLevelIdentifier } from './api';
-import { ComponentMeta } from './context';
+import { DeclarationNode } from '../../reflection';
+import { AbstractBoundTemplate, TopLevelIdentifier } from './api';
 /**
  * Traverses a template AST and builds identifiers discovered in it.
  *
  * @param boundTemplate bound template target, which can be used for querying expression targets.
  * @return identifiers in template
  */
-export declare function getTemplateIdentifiers(boundTemplate: BoundTarget<ComponentMeta>): {
-    identifiers: Set<TopLevelIdentifier>;
+export declare function getTemplateIdentifiers<T = DeclarationNode>(boundTemplate: AbstractBoundTemplate<T>): {
+    identifiers: Set<TopLevelIdentifier<T>>;
     errors: Error[];
 };

@@ -10,11 +10,11 @@ import {
 } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { FormlyFieldConfig } from '@ngx-formly/core';
-import { User } from 'src/app/_models/user';
-import { FormlyService } from 'src/app/_services/formly/formly-service.service';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { ProfileTabLayoutComponent } from 'src/app/general/components/profile-tab-layout/profile-tab-layout.component';
-import { takeOnceOrUntilDestroyed } from 'src/utils/rxjs-operators';
+import { takeOnceOrUntilDestroyed } from '../../../../utils/rxjs-operators';
+import { User } from '../../../_models/user';
+import { FormlyService } from '../../../_services/formly/formly-service.service';
+import { RoutingService } from '../../../_services/routing.service';
+import { ProfileTabLayoutComponent } from '../../../general/components/profile-tab-layout/profile-tab-layout.component';
 import { CardComponent } from '../../atoms/card/card.component';
 import { MenuItem } from '../../molecules/_models/menu';
 import { ConfirmationToggleButtonComponent } from '../../molecules/confirmation-toggle-button/confirmation-toggle-button.component';
@@ -42,31 +42,37 @@ export interface PasswordModel {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ProfileComponent {
-  formlyService = inject(FormlyService);
-  routingService = inject(RoutingService);
+  readonly formlyService = inject(FormlyService);
+  readonly routingService = inject(RoutingService);
 
-  user = input.required<User>();
-  memberships = input.required<CampaignMembership[]>();
-  canDeleteProfile = input<boolean>(false);
-  campaignName = input.required<string | undefined>();
-  canResetWithoutPassword = input<boolean>(false);
-  backUrl = input.required<string>();
+  readonly user = input.required<User>();
+  readonly memberships = input.required<CampaignMembership[]>();
+  readonly canDeleteProfile = input<boolean>(false);
+  readonly campaignName = input.required<string | undefined>();
+  readonly canResetWithoutPassword = input<boolean>(false);
+  readonly backUrl = input.required<string>();
 
   readonly profileUpdate = output<Partial<User>>();
   readonly passwordUpdate = output<PasswordModel>();
   readonly campaignLeave = output<CampaignMembership>();
   readonly profileDelete = output<User>();
 
-  displayState = signal<'DISPLAY' | 'EDIT-PW' | 'EDIT-PROFILE'>('DISPLAY');
-  showProfileEditForm = computed(() => this.displayState() === 'EDIT-PROFILE');
-  showPasswordEditForm = computed(() => this.displayState() === 'EDIT-PW');
+  readonly displayState = signal<'DISPLAY' | 'EDIT-PW' | 'EDIT-PROFILE'>(
+    'DISPLAY',
+  );
+  readonly showProfileEditForm = computed(
+    () => this.displayState() === 'EDIT-PROFILE',
+  );
+  readonly showPasswordEditForm = computed(
+    () => this.displayState() === 'EDIT-PW',
+  );
   passwordModel: Partial<PasswordModel & { passwordConfirm: string }> = {};
-  oldPasswordField: FormlyFieldConfig =
+  readonly oldPasswordField: FormlyFieldConfig =
     this.formlyService.buildSinglePasswordConfig({
       key: 'oldPassword',
       label: 'Your old password',
     });
-  passwordFields = computed<FormlyFieldConfig[]>(() => {
+  readonly passwordFields = computed<FormlyFieldConfig[]>(() => {
     const fields = [
       this.formlyService.buildConfirmedPasswordConfig({
         label: 'New Password',
@@ -81,7 +87,7 @@ export class ProfileComponent {
   });
 
   profileModel: Partial<User> = {};
-  profileFields: FormlyFieldConfig[] = [
+  readonly profileFields: FormlyFieldConfig[] = [
     this.formlyService.buildInputConfig({
       key: 'username',
       inputKind: 'STRING',
@@ -92,7 +98,7 @@ export class ProfileComponent {
       inputKind: 'STRING',
     }),
   ];
-  contextMenuEntries = computed<MenuItem[]>(() => {
+  readonly contextMenuEntries = computed<MenuItem[]>(() => {
     const menuItems: MenuItem[] = [
       {
         kind: 'BUTTON',

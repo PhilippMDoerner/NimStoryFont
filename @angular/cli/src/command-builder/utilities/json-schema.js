@@ -10,7 +10,36 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.parseJsonSchemaToOptions = parseJsonSchemaToOptions;
 exports.addSchemaOptionsToCommand = addSchemaOptionsToCommand;
 const core_1 = require("@angular-devkit/core");
-function coerceToStringMap(dashedName, value) {
+/**
+ * A Yargs check function that validates that the given options are in the form of `key=value`.
+ * @param keyValuePairOptions A set of options that should be in the form of `key=value`.
+ * @param args The parsed arguments.
+ * @returns `true` if the options are valid, otherwise an error is thrown.
+ */
+function checkStringMap(keyValuePairOptions, args) {
+    for (const key of keyValuePairOptions) {
+        const value = args[key];
+        if (!Array.isArray(value)) {
+            // Value has been parsed.
+            continue;
+        }
+        for (const pair of value) {
+            if (pair === undefined) {
+                continue;
+            }
+            if (!pair.includes('=')) {
+                throw new Error(`Invalid value for argument: ${key}, Given: '${pair}', Expected key=value pair`);
+            }
+        }
+    }
+    return true;
+}
+/**
+ * A Yargs coerce function that converts an array of `key=value` strings to an object.
+ * @param value An array of `key=value` strings.
+ * @returns An object with the keys and values from the input array.
+ */
+function coerceToStringMap(value) {
     const stringMap = {};
     for (const pair of value) {
         // This happens when the flag isn't passed at all.
@@ -19,17 +48,20 @@ function coerceToStringMap(dashedName, value) {
         }
         const eqIdx = pair.indexOf('=');
         if (eqIdx === -1) {
-            // TODO: Remove workaround once yargs properly handles thrown errors from coerce.
-            // Right now these sometimes end up as uncaught exceptions instead of proper validation
-            // errors with usage output.
-            return Promise.reject(new Error(`Invalid value for argument: ${dashedName}, Given: '${pair}', Expected key=value pair`));
+            // In the case it is not valid skip processing this option and handle the error in `checkStringMap`
+            return value;
         }
         const key = pair.slice(0, eqIdx);
-        const value = pair.slice(eqIdx + 1);
-        stringMap[key] = value;
+        stringMap[key] = pair.slice(eqIdx + 1);
     }
     return stringMap;
 }
+/**
+ * Checks if a JSON schema node represents a string map.
+ * A string map is an object with `additionalProperties` of type `string`.
+ * @param node The JSON schema node to check.
+ * @returns `true` if the node represents a string map, otherwise `false`.
+ */
 function isStringMap(node) {
     // Exclude fields with more specific kinds of properties.
     if (node.properties || node.patternProperties) {
@@ -40,129 +72,197 @@ function isStringMap(node) {
         !node.additionalProperties.enum &&
         node.additionalProperties.type === 'string');
 }
+const SUPPORTED_PRIMITIVE_TYPES = new Set(['boolean', 'number', 'string']);
+/**
+ * Checks if a string is a supported primitive type.
+ * @param value The string to check.
+ * @returns `true` if the string is a supported primitive type, otherwise `false`.
+ */
+function isSupportedPrimitiveType(value) {
+    return SUPPORTED_PRIMITIVE_TYPES.has(value);
+}
+/**
+ * Recursively checks if a JSON schema for an array's items is a supported primitive type.
+ * It supports `oneOf` and `anyOf` keywords.
+ * @param schema The JSON schema for the array's items.
+ * @returns `true` if the schema is a supported primitive type, otherwise `false`.
+ */
+function isSupportedArrayItemSchema(schema) {
+    if (typeof schema.type === 'string' && isSupportedPrimitiveType(schema.type)) {
+        return true;
+    }
+    if (core_1.json.isJsonArray(schema.enum)) {
+        return true;
+    }
+    if (core_1.json.isJsonArray(schema.items)) {
+        return schema.items.some((item) => (0, core_1.isJsonObject)(item) && isSupportedArrayItemSchema(item));
+    }
+    if (core_1.json.isJsonArray(schema.oneOf) &&
+        schema.oneOf.some((item) => (0, core_1.isJsonObject)(item) && isSupportedArrayItemSchema(item))) {
+        return true;
+    }
+    if (core_1.json.isJsonArray(schema.anyOf) &&
+        schema.anyOf.some((item) => (0, core_1.isJsonObject)(item) && isSupportedArrayItemSchema(item))) {
+        return true;
+    }
+    return false;
+}
+/**
+ * Gets the supported types for a JSON schema node.
+ * @param current The JSON schema node to get the supported types for.
+ * @returns An array of supported types.
+ */
+function getSupportedTypes(current) {
+    const typeSet = core_1.json.schema.getTypesOfSchema(current);
+    if (typeSet.size === 0) {
+        return [];
+    }
+    return [...typeSet].filter((type) => {
+        switch (type) {
+            case 'boolean':
+            case 'number':
+            case 'string':
+                return true;
+            case 'array':
+                return (0, core_1.isJsonObject)(current.items) && isSupportedArrayItemSchema(current.items);
+            case 'object':
+                return isStringMap(current);
+            default:
+                return false;
+        }
+    });
+}
+/**
+ * Gets the enum values for a JSON schema node.
+ * @param current The JSON schema node to get the enum values for.
+ * @returns An array of enum values.
+ */
+function getEnumValues(current) {
+    if (core_1.json.isJsonArray(current.enum)) {
+        return current.enum.sort();
+    }
+    if ((0, core_1.isJsonObject)(current.items)) {
+        const enumValues = getEnumValues(current.items);
+        if (enumValues?.length) {
+            return enumValues;
+        }
+    }
+    if (typeof current.type === 'string' && isSupportedPrimitiveType(current.type)) {
+        return [];
+    }
+    const subSchemas = (core_1.json.isJsonArray(current.oneOf) && current.oneOf) ||
+        (core_1.json.isJsonArray(current.anyOf) && current.anyOf);
+    if (subSchemas) {
+        // Find the first enum.
+        for (const subSchema of subSchemas) {
+            if ((0, core_1.isJsonObject)(subSchema)) {
+                const enumValues = getEnumValues(subSchema);
+                if (enumValues) {
+                    return enumValues;
+                }
+            }
+        }
+    }
+    return [];
+}
+/**
+ * Gets the default value for a JSON schema node.
+ * @param current The JSON schema node to get the default value for.
+ * @param type The type of the JSON schema node.
+ * @returns The default value, or `undefined` if there is no default value.
+ */
+function getDefaultValue(current, type) {
+    const defaultValue = current.default;
+    if (defaultValue === undefined) {
+        return undefined;
+    }
+    if (type === 'array') {
+        return Array.isArray(defaultValue) && defaultValue.length > 0 ? defaultValue : undefined;
+    }
+    if (typeof defaultValue === type) {
+        return defaultValue;
+    }
+    return undefined;
+}
+/**
+ * Gets the aliases for a JSON schema node.
+ * @param current The JSON schema node to get the aliases for.
+ * @returns An array of aliases.
+ */
+function getAliases(current) {
+    if (core_1.json.isJsonArray(current.aliases)) {
+        return [...current.aliases].map(String);
+    }
+    if (current.alias) {
+        return [String(current.alias)];
+    }
+    return [];
+}
+/**
+ * Parses a JSON schema to a list of options that can be used by yargs.
+ *
+ * @param registry A schema registry to use for flattening the schema.
+ * @param schema The JSON schema to parse.
+ * @param interactive Whether to prompt the user for missing options.
+ * @returns A list of options.
+ *
+ * @note The schema definition are not resolved at this stage. This means that `$ref` will not be resolved,
+ * and custom keywords like `x-prompt` will not be processed.
+ */
 async function parseJsonSchemaToOptions(registry, schema, interactive = true) {
     const options = [];
     function visitor(current, pointer, parentSchema) {
-        if (!parentSchema) {
-            // Ignore root.
+        if (!parentSchema ||
+            core_1.json.isJsonArray(current) ||
+            pointer.split(/\/(?:properties|items|definitions)\//g).length > 2) {
+            // Ignore root, arrays, and subitems.
             return;
         }
-        else if (pointer.split(/\/(?:properties|items|definitions)\//g).length > 2) {
-            // Ignore subitems (objects or arrays).
-            return;
-        }
-        else if (core_1.json.isJsonArray(current)) {
-            return;
-        }
-        if (pointer.indexOf('/not/') != -1) {
+        if (pointer.includes('/not/')) {
             // We don't support anyOf/not.
             throw new Error('The "not" keyword is not supported in JSON Schema.');
         }
         const ptr = core_1.json.schema.parseJsonPointer(pointer);
-        const name = ptr[ptr.length - 1];
-        if (ptr[ptr.length - 2] != 'properties') {
+        if (ptr[ptr.length - 2] !== 'properties') {
             // Skip any non-property items.
             return;
         }
-        const typeSet = core_1.json.schema.getTypesOfSchema(current);
-        if (typeSet.size == 0) {
-            throw new Error('Cannot find type of schema.');
-        }
-        // We only support number, string or boolean (or array of those), so remove everything else.
-        const types = [...typeSet].filter((x) => {
-            switch (x) {
-                case 'boolean':
-                case 'number':
-                case 'string':
-                    return true;
-                case 'array':
-                    // Only include arrays if they're boolean, string or number.
-                    if (core_1.json.isJsonObject(current.items) &&
-                        typeof current.items.type == 'string' &&
-                        ['boolean', 'number', 'string'].includes(current.items.type)) {
-                        return true;
-                    }
-                    return false;
-                case 'object':
-                    return isStringMap(current);
-                default:
-                    return false;
-            }
-        });
-        if (types.length == 0) {
+        const name = ptr.at(-1);
+        const types = getSupportedTypes(current);
+        if (types.length === 0) {
             // This means it's not usable on the command line. e.g. an Object.
             return;
         }
-        // Only keep enum values we support (booleans, numbers and strings).
-        const enumValues = ((core_1.json.isJsonArray(current.enum) && current.enum) || []).filter((x) => {
-            switch (typeof x) {
-                case 'boolean':
-                case 'number':
-                case 'string':
-                    return true;
-                default:
-                    return false;
-            }
-        });
-        let defaultValue = undefined;
-        if (current.default !== undefined) {
-            switch (types[0]) {
-                case 'string':
-                    if (typeof current.default == 'string') {
-                        defaultValue = current.default;
-                    }
-                    break;
-                case 'number':
-                    if (typeof current.default == 'number') {
-                        defaultValue = current.default;
-                    }
-                    break;
-                case 'boolean':
-                    if (typeof current.default == 'boolean') {
-                        defaultValue = current.default;
-                    }
-                    break;
-            }
-        }
+        const [type] = types;
         const $default = current.$default;
-        const $defaultIndex = core_1.json.isJsonObject($default) && $default['$source'] == 'argv' ? $default['index'] : undefined;
-        const positional = typeof $defaultIndex == 'number' ? $defaultIndex : undefined;
-        let required = core_1.json.isJsonArray(schema.required) ? schema.required.includes(name) : false;
+        const $defaultIndex = (0, core_1.isJsonObject)($default) && $default['$source'] === 'argv' ? $default['index'] : undefined;
+        const positional = typeof $defaultIndex === 'number' ? $defaultIndex : undefined;
+        let required = core_1.json.isJsonArray(schema.required) && schema.required.includes(name);
         if (required && interactive && current['x-prompt']) {
             required = false;
         }
-        const alias = core_1.json.isJsonArray(current.aliases)
-            ? [...current.aliases].map((x) => '' + x)
-            : current.alias
-                ? ['' + current.alias]
-                : [];
-        const format = typeof current.format == 'string' ? current.format : undefined;
-        const visible = current.visible === undefined || current.visible === true;
-        const hidden = !!current.hidden || !visible;
-        const xUserAnalytics = current['x-user-analytics'];
-        const userAnalytics = typeof xUserAnalytics === 'string' ? xUserAnalytics : undefined;
-        // Deprecated is set only if it's true or a string.
+        const visible = current.visible !== false;
         const xDeprecated = current['x-deprecated'];
-        const deprecated = xDeprecated === true || typeof xDeprecated === 'string' ? xDeprecated : undefined;
+        const enumValues = getEnumValues(current);
         const option = {
             name,
-            description: '' + (current.description === undefined ? '' : current.description),
-            default: defaultValue,
-            choices: enumValues.length ? enumValues : undefined,
+            description: String(current.description ?? ''),
+            default: getDefaultValue(current, type),
+            choices: enumValues?.length ? enumValues : undefined,
             required,
-            alias,
-            format,
-            hidden,
-            userAnalytics,
-            deprecated,
+            alias: getAliases(current),
+            format: typeof current.format === 'string' ? current.format : undefined,
+            hidden: !!current.hidden || !visible,
+            userAnalytics: typeof current['x-user-analytics'] === 'string' ? current['x-user-analytics'] : undefined,
+            deprecated: xDeprecated === true || typeof xDeprecated === 'string' ? xDeprecated : undefined,
             positional,
-            ...(types[0] === 'object'
+            ...(type === 'object'
                 ? {
                     type: 'array',
                     itemValueType: 'string',
                 }
                 : {
-                    type: types[0],
+                    type,
                 }),
         };
         options.push(option);
@@ -199,7 +299,7 @@ function addSchemaOptionsToCommand(localYargs, options, includeDefaultValues) {
             booleanOptionsWithNoPrefix.add(dashedName);
         }
         if (itemValueType) {
-            keyValuePairOptions.add(name);
+            keyValuePairOptions.add(dashedName);
         }
         const sharedOptions = {
             alias,
@@ -207,7 +307,7 @@ function addSchemaOptionsToCommand(localYargs, options, includeDefaultValues) {
             description,
             deprecated,
             choices,
-            coerce: itemValueType ? coerceToStringMap.bind(null, dashedName) : undefined,
+            coerce: itemValueType ? coerceToStringMap : undefined,
             // This should only be done when `--help` is used otherwise default will override options set in angular.json.
             ...(includeDefaultValues ? { default: defaultVal } : {}),
         };
@@ -229,6 +329,10 @@ function addSchemaOptionsToCommand(localYargs, options, includeDefaultValues) {
             optionsWithAnalytics.set(name, userAnalytics);
         }
     }
+    // Valid key/value options
+    if (keyValuePairOptions.size) {
+        localYargs.check(checkStringMap.bind(null, keyValuePairOptions), false);
+    }
     // Handle options which have been defined in the schema with `no` prefix.
     if (booleanOptionsWithNoPrefix.size) {
         localYargs.middleware((options) => {
@@ -242,3 +346,4 @@ function addSchemaOptionsToCommand(localYargs, options, includeDefaultValues) {
     }
     return optionsWithAnalytics;
 }
+//# sourceMappingURL=json-schema.js.map

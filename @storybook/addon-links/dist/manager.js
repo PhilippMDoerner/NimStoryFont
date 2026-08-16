@@ -1,3 +1,13 @@
-import { addons } from 'storybook/manager-api';
+import {
+  ADDON_ID,
+  constants_default
+} from "./_browser-chunks/chunk-FX5LXYO2.js";
 
-var ADDON_ID="storybook/links";var constants_default={NAVIGATE:`${ADDON_ID}/navigate`,REQUEST:`${ADDON_ID}/request`,RECEIVE:`${ADDON_ID}/receive`};addons.register(ADDON_ID,api=>{api.on(constants_default.REQUEST,({kind,name})=>{let id=api.storyId(kind,name);api.emit(constants_default.RECEIVE,id);});});
+// src/manager.ts
+import { addons } from "storybook/manager-api";
+addons.register(ADDON_ID, (api) => {
+  api.on(constants_default.REQUEST, ({ kind, name }) => {
+    let id = api.storyId(kind, name);
+    api.emit(constants_default.RECEIVE, id);
+  });
+});

@@ -1,0 +1,20 @@
+import { createActionGroup, emptyProps, props } from '@ngrx/store';
+import { Update } from '@ngrx/entity';
+
+import { <%= classify(name) %> } from '<%= featurePath(group, flat, "models", dasherize(name)) %><%= dasherize(name) %>.model';
+
+export const <%= classify(name) %>Actions = createActionGroup({
+  source: '<%= classify(name) %>/API',
+  events: {
+    'Load <%= classify(name) %>s': props<{ <%= camelize(name) %>s: <%= classify(name) %>[] }>(),
+    'Add <%= classify(name) %>': props<{ <%= camelize(name) %>: <%= classify(name) %> }>(),
+    'Upsert <%= classify(name) %>': props<{ <%= camelize(name) %>: <%= classify(name) %> }>(),
+    'Add <%= classify(name) %>s': props<{ <%= camelize(name) %>s: <%= classify(name) %>[] }>(),
+    'Upsert <%= classify(name) %>s': props<{ <%= camelize(name) %>s: <%= classify(name) %>[] }>(),
+    'Update <%= classify(name) %>': props<{ <%= camelize(name) %>: Update<<%= classify(name) %>> }>(),
+    'Update <%= classify(name) %>s': props<{ <%= camelize(name) %>s: Update<<%= classify(name) %>>[] }>(),
+    'Delete <%= classify(name) %>': props<{ id: string }>(),
+    'Delete <%= classify(name) %>s': props<{ ids: string[] }>(),
+    'Clear <%= classify(name) %>s': emptyProps(),
+  }
+});

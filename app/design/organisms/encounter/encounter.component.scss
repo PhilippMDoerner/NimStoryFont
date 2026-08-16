@@ -13,7 +13,7 @@
   &__text {
     width: 100%;
     margin-bottom: var(--spacer-1);
-    --bg-hover-color: var(--bs-dark);
+    --editor-focus-border-width: 0px;
   }
 
   &__text-container {
@@ -26,7 +26,6 @@
     font-weight: normal;
     border-radius: var(--bs-border-radius);
     width: 90px;
-    margin-right: var(--spacer-3);
 
     &:hover,
     &:focus-visible {
@@ -54,7 +53,7 @@
   &__right-container {
     display: flex;
     align-items: center;
-    gap: var(--spacer-3);
+    gap: var(--spacer-1);
   }
 
   &__success-animation {

@@ -5,7 +5,7 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.dev/license
  */
-import { AST, LiteralPrimitive, PropertyRead, PropertyWrite, SafePropertyRead, TmplAstNode, TmplAstTemplate, TmplAstTextAttribute } from '@angular/compiler';
+import { AST, LiteralPrimitive, PropertyRead, SafePropertyRead, TmplAstNode, TmplAstTemplate, TmplAstTextAttribute } from '@angular/compiler';
 import ts from 'typescript';
 import { AbsoluteFsPath } from '../../file_system';
 import { GlobalCompletion, TcbLocation } from '../api';
@@ -23,12 +23,17 @@ export declare class CompletionEngine {
     private tcbIsShim;
     private componentContext;
     /**
+     * Get the `TcbLocation` for the global context, which is the location of the `this` variable.
+     */
+    private globalTsContext;
+    /**
      * Cache of completions for various levels of the template, including the root template (`null`).
      * Memoizes `getTemplateContextCompletions`.
      */
     private templateContextCache;
     private expressionCompletionCache;
     constructor(tcb: ts.Node, data: TypeCheckData, tcbPath: AbsoluteFsPath, tcbIsShim: boolean);
+    getGlobalTsContext(): TcbLocation | null;
     /**
      * Get global completions within the given template context and AST node.
      *
@@ -38,7 +43,7 @@ export declare class CompletionEngine {
      * @param node the given AST node
      */
     getGlobalCompletions(context: TmplAstTemplate | null, node: AST | TmplAstNode): GlobalCompletion | null;
-    getExpressionCompletionLocation(expr: PropertyRead | PropertyWrite | SafePropertyRead): TcbLocation | null;
+    getExpressionCompletionLocation(expr: PropertyRead | SafePropertyRead): TcbLocation | null;
     getLiteralCompletionLocation(expr: LiteralPrimitive | TmplAstTextAttribute): TcbLocation | null;
     /**
      * Get global completions within the given template context - either a `TmplAstTemplate` embedded

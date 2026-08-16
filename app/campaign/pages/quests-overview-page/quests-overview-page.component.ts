@@ -6,8 +6,8 @@ import {
   Signal,
 } from '@angular/core';
 import { Observable } from 'rxjs';
-import { QuestOverviewComponent } from 'src/app/design/templates/quest-overview/quest-overview.component';
-import { GlobalStore } from 'src/app/global.store';
+import { QuestOverviewComponent } from '../../../design/templates/quest-overview/quest-overview.component';
+import { GlobalStore } from '../../../global.store';
 import { QuestOverviewPageStore } from './quests-overview-page.store';
 
 @Component({
@@ -18,8 +18,8 @@ import { QuestOverviewPageStore } from './quests-overview-page.store';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class QuestsOverviewPageComponent {
-  store = inject(QuestOverviewPageStore);
-  globalStore = inject(GlobalStore);
+  readonly store = inject(QuestOverviewPageStore);
+  readonly globalStore = inject(GlobalStore);
 
   private readonly isPageLoading: Observable<boolean> | Signal<boolean> =
     computed(

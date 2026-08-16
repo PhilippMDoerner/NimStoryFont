@@ -26,6 +26,13 @@ export declare class DocsExtractor {
         entries: DocEntry[];
         symbols: Map<string, string>;
     };
+    /**
+     * Extracts a documentation entry for a given set of declarations that are all exported under
+     * the same name. This is used to combine entries, e.g. for a type and a namespace that are
+     * exported under the same name.
+     */
+    private extractDeclarations;
+    private getTypeMembersFromNamespace;
     /** Extract the doc entry for a single declaration. */
     private extractDeclaration;
     /** Gets the list of exported declarations for doc extraction. */

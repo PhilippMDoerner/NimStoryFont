@@ -18,3 +18,4 @@ class BuildCommandModule extends architect_command_module_1.ArchitectCommandModu
     longDescriptionPath = (0, node_path_1.join)(__dirname, 'long-description.md');
 }
 exports.default = BuildCommandModule;
+//# sourceMappingURL=cli.js.map

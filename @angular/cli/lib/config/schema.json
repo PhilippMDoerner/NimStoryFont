@@ -51,7 +51,6 @@
           "type": "string",
           "enum": [
             "npm",
-            "cnpm",
             "yarn",
             "pnpm",
             "bun"
@@ -118,7 +117,6 @@
           "type": "string",
           "enum": [
             "npm",
-            "cnpm",
             "yarn",
             "pnpm",
             "bun"
@@ -480,8 +478,6 @@
                       "@angular-devkit/build-angular:karma",
                       "@angular-devkit/build-angular:ng-packagr",
                       "@angular-devkit/build-angular:prerender",
-                      "@angular-devkit/build-angular:jest",
-                      "@angular-devkit/build-angular:web-test-runner",
                       "@angular-devkit/build-angular:server",
                       "@angular-devkit/build-angular:ssr-dev-server"
                     ]
@@ -776,50 +772,6 @@
               "additionalProperties": false,
               "properties": {
                 "builder": {
-                  "const": "@angular-devkit/build-angular:jest"
-                },
-                "defaultConfiguration": {
-                  "type": "string",
-                  "description": "A default named configuration to use when a target configuration is not provided."
-                },
-                "options": {
-                  "$ref": "#/definitions/AngularDevkitBuildAngularBuildersJestSchema"
-                },
-                "configurations": {
-                  "type": "object",
-                  "additionalProperties": {
-                    "$ref": "#/definitions/AngularDevkitBuildAngularBuildersJestSchema"
-                  }
-                }
-              }
-            },
-            {
-              "type": "object",
-              "additionalProperties": false,
-              "properties": {
-                "builder": {
-                  "const": "@angular-devkit/build-angular:web-test-runner"
-                },
-                "defaultConfiguration": {
-                  "type": "string",
-                  "description": "A default named configuration to use when a target configuration is not provided."
-                },
-                "options": {
-                  "$ref": "#/definitions/AngularDevkitBuildAngularBuildersWebTestRunnerSchema"
-                },
-                "configurations": {
-                  "type": "object",
-                  "additionalProperties": {
-                    "$ref": "#/definitions/AngularDevkitBuildAngularBuildersWebTestRunnerSchema"
-                  }
-                }
-              }
-            },
-            {
-              "type": "object",
-              "additionalProperties": false,
-              "properties": {
-                "builder": {
                   "const": "@angular-devkit/build-angular:prerender"
                 },
                 "defaultConfiguration": {
@@ -969,12 +921,12 @@
           }
         },
         "inlineStyle": {
-          "description": "Include the styles for the root component directly within the `app.component.ts` file. Only CSS styles can be included inline. By default, a separate stylesheet file (e.g., `app.component.css`) is created.",
+          "description": "Include the styles for the root component directly within the `app.ts` file. Only CSS styles can be included inline. By default, a separate stylesheet file (e.g., `app.css`) is created.",
           "type": "boolean",
           "alias": "s"
         },
         "inlineTemplate": {
-          "description": "Include the HTML template for the root component directly within the `app.component.ts` file. By default, a separate template file (e.g., `app.component.html`) is created.",
+          "description": "Include the HTML template for the root component directly within the `app.ts` file. By default, a separate template file (e.g., `app.html`) is created.",
           "type": "boolean",
           "alias": "t"
         },
@@ -1007,7 +959,8 @@
             "css",
             "scss",
             "sass",
-            "less"
+            "less",
+            "tailwind"
           ]
         },
         "skipTests": {
@@ -1015,6 +968,15 @@
           "type": "boolean",
           "default": false,
           "alias": "S"
+        },
+        "testRunner": {
+          "description": "The unit testing runner to use.",
+          "type": "string",
+          "enum": [
+            "vitest",
+            "karma"
+          ],
+          "default": "vitest"
         },
         "skipPackageJson": {
           "type": "boolean",
@@ -1049,7 +1011,16 @@
         "zoneless": {
           "description": "Generate an application that does not use `zone.js`.",
           "type": "boolean",
-          "default": false
+          "default": true
+        },
+        "fileNameStyleGuide": {
+          "type": "string",
+          "enum": [
+            "2016",
+            "2025"
+          ],
+          "default": "2025",
+          "description": "The file naming convention to use for generated files. The '2025' style guide (default) uses a concise format (e.g., `app.ts` for the root component), while the '2016' style guide includes the type in the file name (e.g., `app.component.ts`). For more information, see the Angular Style Guide (https://angular.dev/style-guide)."
         }
       }
     },
@@ -1118,7 +1089,7 @@
         },
         "name": {
           "type": "string",
-          "description": "The name for the new component. This will be used to create the component's class, template, and stylesheet files. For example, if you provide `my-component`, the files will be named `my-component.component.ts`, `my-component.component.html`, and `my-component.component.css`.",
+          "description": "The name for the new component. This will be used to create the component's class, template, and stylesheet files. For example, if you provide `my-component`, the files will be named `my-component.ts`, `my-component.html`, and `my-component.css`.",
           "$default": {
             "$source": "argv",
             "index": 0
@@ -1131,13 +1102,13 @@
           "alias": "b"
         },
         "inlineStyle": {
-          "description": "Include the component's styles directly in the `component.ts` file. By default, a separate stylesheet file (e.g., `my-component.component.css`) is created.",
+          "description": "Include the component's styles directly in the `component.ts` file. By default, a separate stylesheet file (e.g., `my-component.css`) is created.",
           "type": "boolean",
           "default": false,
           "alias": "s"
         },
         "inlineTemplate": {
-          "description": "Include the component's HTML template directly in the `component.ts` file. By default, a separate template file (e.g., `my-component.component.html`) is created.",
+          "description": "Include the component's HTML template directly in the `component.ts` file. By default, a separate template file (e.g., `my-component.html`) is created.",
           "type": "boolean",
           "default": false,
           "alias": "t"
@@ -1160,11 +1131,11 @@
         "changeDetection": {
           "description": "Configures the change detection strategy for the component.",
           "enum": [
-            "Default",
+            "Eager",
             "OnPush"
           ],
           "type": "string",
-          "default": "Default",
+          "default": "OnPush",
           "alias": "c"
         },
         "prefix": {
@@ -1196,6 +1167,11 @@
         "type": {
           "type": "string",
           "description": "Append a custom type to the component's filename. For example, if you set the type to `container`, the file will be named `my-component.container.ts`."
+        },
+        "addTypeToClassName": {
+          "type": "boolean",
+          "default": true,
+          "description": "When true, the 'type' option will be appended to the generated class name. When false, only the file name will include the type."
         },
         "skipTests": {
           "type": "boolean",
@@ -1326,6 +1302,11 @@
         "type": {
           "type": "string",
           "description": "Append a custom type to the directive's filename. For example, if you set the type to `directive`, the file will be named `example.directive.ts`."
+        },
+        "addTypeToClassName": {
+          "type": "boolean",
+          "default": true,
+          "description": "When true, the 'type' option will be appended to the generated class name. When false, only the file name will include the type."
         }
       }
     },
@@ -1591,6 +1572,15 @@
           "description": "Create a library that utilizes the standalone API, eliminating the need for NgModules. This can simplify the structure of your library and its usage in applications.",
           "type": "boolean",
           "default": true
+        },
+        "testRunner": {
+          "description": "The unit testing runner to use.",
+          "type": "string",
+          "enum": [
+            "vitest",
+            "karma"
+          ],
+          "default": "vitest"
         }
       }
     },
@@ -1724,12 +1714,12 @@
           "default": "projects"
         },
         "inlineStyle": {
-          "description": "Include the styles for the initial application's root component directly within the `app.component.ts` file. By default, a separate stylesheet file (e.g., `app.component.css`) is created.",
+          "description": "Include the styles for the initial application's root component directly within the `app.ts` file. By default, a separate stylesheet file (e.g., `app.css`) is created.",
           "type": "boolean",
           "alias": "s"
         },
         "inlineTemplate": {
-          "description": "Include the HTML template for the initial application's root component directly within the `app.component.ts` file. By default, a separate template file (e.g., `app.component.html`) is created.",
+          "description": "Include the HTML template for the initial application's root component directly within the `app.ts` file. By default, a separate template file (e.g., `app.html`) is created.",
           "type": "boolean",
           "alias": "t"
         },
@@ -1769,7 +1759,8 @@
             "css",
             "scss",
             "sass",
-            "less"
+            "less",
+            "tailwind"
           ]
         },
         "skipTests": {
@@ -1777,6 +1768,15 @@
           "type": "boolean",
           "default": false,
           "alias": "S"
+        },
+        "testRunner": {
+          "description": "The unit testing runner to use.",
+          "type": "string",
+          "enum": [
+            "vitest",
+            "karma"
+          ],
+          "default": "vitest"
         },
         "createApplication": {
           "description": "Create a new initial application project in the new workspace. When false, creates an empty workspace with no initial application. You can then use the `ng generate application` command to create applications in the `projects` directory.",
@@ -1800,7 +1800,6 @@
             "npm",
             "yarn",
             "pnpm",
-            "cnpm",
             "bun"
           ]
         },
@@ -1815,8 +1814,32 @@
         },
         "zoneless": {
           "description": "Create an initial application that does not utilize `zone.js`.",
-          "type": "boolean",
-          "default": false
+          "type": "boolean"
+        },
+        "aiConfig": {
+          "type": "array",
+          "uniqueItems": true,
+          "description": "Specifies which AI tools to generate configuration files for. These file are used to improve the outputs of AI tools by following the best practices.",
+          "items": {
+            "type": "string",
+            "enum": [
+              "none",
+              "claude-code",
+              "cursor",
+              "gemini-cli",
+              "open-ai-codex",
+              "vscode"
+            ]
+          }
+        },
+        "fileNameStyleGuide": {
+          "type": "string",
+          "enum": [
+            "2016",
+            "2025"
+          ],
+          "default": "2025",
+          "description": "The file naming convention to use for generated files. The '2025' style guide (default) uses a concise format (e.g., `app.ts` for the root component), while the '2016' style guide includes the type in the file name (e.g., `app.component.ts`). For more information, see the Angular Style Guide (https://angular.dev/style-guide)."
         }
       }
     },
@@ -1918,6 +1941,16 @@
         "type": {
           "type": "string",
           "description": "Append a custom type to the service's filename. For example, if you set the type to `service`, the file will be named `my-service.service.ts`."
+        },
+        "addTypeToClassName": {
+          "type": "boolean",
+          "default": true,
+          "description": "When true, the 'type' option will be appended to the generated class name. When false, only the file name will include the type."
+        },
+        "injectable": {
+          "type": "boolean",
+          "default": false,
+          "description": "When true, generates an `@Injectable` instead of `@Service`."
         }
       }
     },
@@ -1965,7 +1998,7 @@
       "properties": {
         "assets": {
           "type": "array",
-          "description": "List of static application assets.",
+          "description": "Define the assets to be copied to the output directory. These assets are copied as-is without any further processing or hashing.",
           "default": [],
           "items": {
             "$ref": "#/definitions/AngularBuildBuildersApplicationSchema/definitions/assetPattern"
@@ -2011,6 +2044,14 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
+            "allowedHosts": {
+              "description": "A list of hostnames that are allowed to access the server-side application. For more information, see https://angular.dev/best-practices/security#preventing-server-side-request-forgery-ssrf.",
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string"
+              }
+            },
             "autoCsp": {
               "description": "Enables automatic generation of a hash-based Strict Content Security Policy (https://web.dev/articles/strict-csp#choose-hash) based on scripts in index.html. Will default to true once we are out of experimental/preview phases.",
               "default": false,
@@ -2240,7 +2281,7 @@
           ]
         },
         "loader": {
-          "description": "Defines the type of loader to use with a specified file extension when used with a JavaScript `import`. `text` inlines the content as a string; `binary` inlines the content as a Uint8Array; `file` emits the file and provides the runtime location of the file; `empty` considers the content to be empty and not include it in bundles.",
+          "description": "Defines the type of loader to use with a specified file extension when used with a JavaScript `import`. `text` inlines the content as a string; `binary` inlines the content as a Uint8Array; `file` emits the file and provides the runtime location of the file; `dataurl` inlines the content as a data URL with best guess of MIME type; `base64` inlines the content as a Base64-encoded string; `empty` considers the content to be empty and not include it in bundles.",
           "type": "object",
           "patternProperties": {
             "^\\.\\S+$": {
@@ -2248,6 +2289,8 @@
                 "text",
                 "binary",
                 "file",
+                "dataurl",
+                "base64",
                 "empty"
               ]
             }
@@ -2415,7 +2458,7 @@
         },
         "outputHashing": {
           "type": "string",
-          "description": "Define the output filename cache-busting hashing mode.",
+          "description": "Define the output filename cache-busting hashing mode.\n\n- `none`: No hashing.\n- `all`: Hash for all output bundles. \n- `media`: Hash for all output media (e.g., images, fonts, etc. that are referenced in CSS files).\n- `bundles`: Hash for output of lazy and main bundles.",
           "default": "none",
           "enum": [
             "none",
@@ -2577,8 +2620,8 @@
                   "type": "string",
                   "description": "The server entry-point that when executed will spawn the web server."
                 },
-                "experimentalPlatform": {
-                  "description": "Specifies the platform for which the server bundle is generated. This affects the APIs and modules available in the server-side code. \n\n- `node`:  (Default) Generates a bundle optimized for Node.js environments. \n- `neutral`: Generates a platform-neutral bundle suitable for environments like edge workers, and other serverless platforms. This option avoids using Node.js-specific APIs, making the bundle more portable. \n\nPlease note that this feature does not provide polyfills for Node.js modules. Additionally, it is experimental, and the schematics may undergo changes in future versions.",
+                "platform": {
+                  "description": "Specifies the platform for which the server bundle is generated. This affects the APIs and modules available in the server-side code. \n\n- `node`:  (Default) Generates a bundle optimized for Node.js environments. \n- `neutral`: Generates a platform-neutral bundle suitable for environments like edge workers, and other serverless platforms. This option avoids using Node.js-specific APIs, making the bundle more portable. \n\nPlease note that this feature does not provide polyfills for Node.js modules.",
                   "default": "node",
                   "enum": [
                     "node",
@@ -2596,7 +2639,7 @@
         },
         "outputMode": {
           "type": "string",
-          "description": "Defines the build output target. 'static': Generates a static site for deployment on any static hosting service. 'server': Produces an application designed for deployment on a server that supports server-side rendering (SSR).",
+          "description": "Defines the type of build output artifact. 'static': Generates a static site build artifact for deployment on any static hosting service. 'server': Generates a server application build artifact, required for applications using hybrid rendering or APIs.",
           "enum": [
             "static",
             "server"
@@ -2752,7 +2795,7 @@
       "properties": {
         "assets": {
           "type": "array",
-          "description": "List of static application assets.",
+          "description": "Define the assets to be copied to the output directory. These assets are copied as-is without any further processing or hashing.",
           "default": [],
           "items": {
             "$ref": "#/definitions/AngularDevkitBuildAngularBuildersBrowserSchema/definitions/assetPattern"
@@ -3074,7 +3117,7 @@
         },
         "outputHashing": {
           "type": "string",
-          "description": "Define the output filename cache-busting hashing mode.",
+          "description": "Define the output filename cache-busting hashing mode.\n\n- `none`: No hashing.\n- `all`: Hash for all output bundles. \n- `media`: Hash for all output media (e.g., images, fonts, etc. that are referenced in CSS files).\n- `bundles`: Hash for output of lazy and main bundles.",
           "default": "none",
           "enum": [
             "none",
@@ -3927,6 +3970,13 @@
             }
           ]
         },
+        "define": {
+          "description": "Defines global identifiers that will be replaced with a specified constant value when found in any JavaScript or TypeScript code including libraries. The value will be used directly. String values must be put in quotes. Identifiers within Angular metadata such as Component Decorators will not be replaced.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
         "headers": {
           "type": "object",
           "description": "Custom HTTP headers to be added to all responses.",
@@ -4254,28 +4304,42 @@
       "properties": {
         "buildTarget": {
           "type": "string",
-          "description": "A build builder target to serve in the format of `project:target[:configuration]`. You can also pass in more than one configuration name as a comma-separated list. Example: `project:target:production,staging`.",
+          "description": "Specifies the build target to use for the unit test build in the format `project:target[:configuration]`. This defaults to the `build` target of the current project with the `development` configuration. You can also pass a comma-separated list of configurations. Example: `project:target:production,staging`.",
           "pattern": "^[^:\\s]*:[^:\\s]*(:[^\\s]+)?$"
         },
         "tsConfig": {
           "type": "string",
-          "description": "The name of the TypeScript configuration file."
+          "description": "The path to the TypeScript configuration file, relative to the workspace root. Defaults to `tsconfig.spec.json` in the project root if it exists. If not specified and the default does not exist, the `tsConfig` from the specified `buildTarget` will be used."
         },
         "runner": {
           "type": "string",
-          "description": "The name of the test runner to use for test execution.",
+          "description": "Specifies the test runner to use for test execution.",
+          "default": "vitest",
           "enum": [
             "karma",
             "vitest"
           ]
         },
+        "runnerConfig": {
+          "type": [
+            "string",
+            "boolean"
+          ],
+          "description": "Specifies the configuration file for the selected test runner. If a string is provided, it will be used as the path to the configuration file. If `true`, the builder will search for a default configuration file (e.g., `vitest-base.config.ts` or `karma.conf.js`). If `false`, no external configuration file will be used.\\nFor Vitest, this enables advanced options and the use of custom plugins. Please note that while the file is loaded, the Angular team does not provide direct support for its specific contents or any third-party plugins used within it.",
+          "default": false
+        },
         "browsers": {
-          "description": "A list of browsers to use for test execution. If undefined, jsdom on Node.js will be used instead of a browser.",
+          "description": "Specifies the browsers to use for test execution. When not specified, tests are run in a Node.js environment using jsdom. For both Vitest and Karma, browser names ending with 'Headless' (e.g., 'ChromeHeadless') will enable headless mode.",
           "type": "array",
           "items": {
             "type": "string"
           },
           "minItems": 1
+        },
+        "browserViewport": {
+          "description": "Specifies the browser viewport dimensions for browser-based tests in the format `widthxheight`.",
+          "type": "string",
+          "pattern": "^\\d+x\\d+$"
         },
         "include": {
           "type": "array",
@@ -4283,51 +4347,263 @@
             "type": "string"
           },
           "default": [
-            "**/*.spec.ts"
+            "**/*.spec.ts",
+            "**/*.test.ts"
           ],
-          "description": "Globs of files to include, relative to project root. \nThere are 2 special cases:\n - when a path to directory is provided, all spec files ending \".spec.@(ts|tsx)\" will be included\n - when a path to a file is provided, and a matching spec file exists it will be included instead."
+          "description": "Specifies glob patterns of files to include for testing, relative to the project root. This option also has special handling for directory paths (includes all test files within) and file paths (includes the corresponding test file if one exists)."
         },
         "exclude": {
           "type": "array",
           "items": {
             "type": "string"
           },
-          "default": [],
-          "description": "Globs of files to exclude, relative to the project root."
+          "description": "Specifies glob patterns of files to exclude from testing, relative to the project root."
+        },
+        "filter": {
+          "type": "string",
+          "description": "Specifies a regular expression pattern to match against test suite and test names. Only tests with a name matching the pattern will be executed. For example, `^App` will run only tests in suites beginning with 'App'."
         },
         "watch": {
           "type": "boolean",
-          "description": "Run build when files change."
+          "description": "Enables watch mode, which re-runs tests when source files change. Defaults to `true` in TTY environments and `false` otherwise."
+        },
+        "headless": {
+          "type": "boolean",
+          "description": "Forces all configured browsers to run in headless mode. When using the Vitest runner, this option is ignored if no browsers are configured. The Karma runner does not support this option."
         },
         "debug": {
           "type": "boolean",
-          "description": "Initialize the test runner to support using the Node Inspector for test debugging.",
+          "description": "Enables debugging mode for tests, allowing the use of the Node Inspector.",
           "default": false
         },
-        "codeCoverage": {
+        "ui": {
           "type": "boolean",
-          "description": "Output a code coverage report.",
-          "default": false
+          "description": "Enables the Vitest UI for interactive test execution. This option is only available for the Vitest runner."
         },
-        "codeCoverageExclude": {
-          "type": "array",
-          "description": "Globs to exclude from code coverage.",
-          "items": {
-            "type": "string"
-          },
-          "default": []
+        "isolate": {
+          "type": "boolean",
+          "description": "Enables isolation for test execution. When true, Vitest runs tests in separate threads or processes. This option is only available for the Vitest runner. Defaults to false to align with the Karma/Jasmine experience."
         },
-        "reporters": {
+        "quiet": {
+          "type": "boolean",
+          "description": "Suppresses the verbose build summary and stats table on each rebuild. Defaults to `true` locally and `false` in CI environments."
+        },
+        "coverage": {
+          "type": "boolean",
+          "description": "Enables coverage reporting for tests. If not specified, the coverage configuration from a runner configuration file will be used if present. Otherwise, coverage is disabled by default."
+        },
+        "coverageInclude": {
           "type": "array",
-          "description": "Test runner reporters to use. Directly passed to the test runner.",
+          "description": "Specifies glob patterns of files to include in the coverage report.",
           "items": {
             "type": "string"
           }
         },
+        "coverageExclude": {
+          "type": "array",
+          "description": "Specifies glob patterns of files to exclude from the coverage report.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "coverageReporters": {
+          "type": "array",
+          "description": "Specifies the reporters to use for coverage results. Each reporter can be a string representing its name, or a tuple containing the name and an options object. Built-in reporters include 'html', 'lcov', 'lcovonly', 'text', 'text-summary', 'cobertura', 'json', and 'json-summary'.",
+          "items": {
+            "oneOf": [
+              {
+                "enum": [
+                  "html",
+                  "lcov",
+                  "lcovonly",
+                  "text",
+                  "text-summary",
+                  "cobertura",
+                  "json",
+                  "json-summary"
+                ]
+              },
+              {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 2,
+                "items": [
+                  {
+                    "enum": [
+                      "html",
+                      "lcov",
+                      "lcovonly",
+                      "text",
+                      "text-summary",
+                      "cobertura",
+                      "json",
+                      "json-summary"
+                    ]
+                  },
+                  {
+                    "type": "object"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "coverageThresholds": {
+          "type": "object",
+          "description": "Specifies minimum coverage thresholds that must be met. If thresholds are not met, the builder will exit with an error.",
+          "properties": {
+            "perFile": {
+              "type": "boolean",
+              "description": "When true, thresholds are enforced for each file individually."
+            },
+            "statements": {
+              "type": "number",
+              "description": "Minimum percentage of statements covered."
+            },
+            "branches": {
+              "type": "number",
+              "description": "Minimum percentage of branches covered."
+            },
+            "functions": {
+              "type": "number",
+              "description": "Minimum percentage of functions covered."
+            },
+            "lines": {
+              "type": "number",
+              "description": "Minimum percentage of lines covered."
+            }
+          },
+          "additionalProperties": false
+        },
+        "coverageWatermarks": {
+          "type": "object",
+          "description": "Specifies coverage watermarks for the HTML reporter. These determine the color coding for high, medium, and low coverage.",
+          "properties": {
+            "statements": {
+              "type": "array",
+              "description": "The high and low watermarks for statements coverage. `[low, high]`",
+              "items": {
+                "type": "number"
+              },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "branches": {
+              "type": "array",
+              "description": "The high and low watermarks for branches coverage. `[low, high]`",
+              "items": {
+                "type": "number"
+              },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "functions": {
+              "type": "array",
+              "description": "The high and low watermarks for functions coverage. `[low, high]`",
+              "items": {
+                "type": "number"
+              },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "lines": {
+              "type": "array",
+              "description": "The high and low watermarks for lines coverage. `[low, high]`",
+              "items": {
+                "type": "number"
+              },
+              "minItems": 2,
+              "maxItems": 2
+            }
+          },
+          "additionalProperties": false
+        },
+        "reporters": {
+          "type": "array",
+          "description": "Specifies the reporters to use during test execution. Each reporter can be a string representing its name, or a tuple containing the name and an options object. Built-in reporters include 'default', 'verbose', 'dots', 'json', 'junit', 'tap', 'tap-flat', and 'html'. You can also provide a path to a custom reporter.",
+          "items": {
+            "oneOf": [
+              {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
+                      "default",
+                      "verbose",
+                      "dots",
+                      "json",
+                      "junit",
+                      "tap",
+                      "tap-flat",
+                      "html"
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 2,
+                "items": [
+                  {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "default",
+                          "verbose",
+                          "dots",
+                          "json",
+                          "junit",
+                          "tap",
+                          "tap-flat",
+                          "html"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "object"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "outputFile": {
+          "type": "string",
+          "description": "Specifies a file path for the test report, applying only to the first reporter. To configure output files for multiple reporters, use the tuple format `['reporter-name', { outputFile: '...' }]` within the `reporters` option. When not provided, output is written to the console."
+        },
         "providersFile": {
           "type": "string",
-          "description": "TypeScript file that exports an array of Angular providers to use during test execution. The array must be a default export.",
+          "description": "Specifies the path to a TypeScript file that provides an array of Angular providers for the test environment. The file must contain a default export of the provider array.",
           "minLength": 1
+        },
+        "setupFiles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "A list of paths to global setup files that are executed before the test files. The application's polyfills and the Angular TestBed are always initialized before these files."
+        },
+        "progress": {
+          "type": "boolean",
+          "description": "Shows build progress information in the console. Defaults to the `progress` setting of the specified `buildTarget`."
+        },
+        "listTests": {
+          "type": "boolean",
+          "description": "Lists all discovered test files and exits the process without building or executing the tests.",
+          "default": false
+        },
+        "dumpVirtualFiles": {
+          "type": "boolean",
+          "description": "Dumps build output files to the `.angular/cache` directory for debugging purposes.",
+          "default": false,
+          "visible": false
         }
       },
       "additionalProperties": false
@@ -4499,7 +4775,7 @@
           "default": []
         },
         "loader": {
-          "description": "Defines the type of loader to use with a specified file extension when used with a JavaScript `import`. `text` inlines the content as a string; `binary` inlines the content as a Uint8Array; `file` emits the file and provides the runtime location of the file; `empty` considers the content to be empty and not include it in bundles.",
+          "description": "Defines the type of loader to use with a specified file extension when used with a JavaScript `import`. `text` inlines the content as a string; `binary` inlines the content as a Uint8Array; `file` emits the file and provides the runtime location of the file; `dataurl` inlines the content as a data URL with best guess of MIME type; `base64` inlines the content as a Base64-encoded string; `empty` considers the content to be empty and not include it in bundles.",
           "type": "object",
           "patternProperties": {
             "^\\.\\S+$": {
@@ -4507,6 +4783,8 @@
                 "text",
                 "binary",
                 "file",
+                "dataurl",
+                "base64",
                 "empty"
               ]
             }
@@ -4574,7 +4852,8 @@
         },
         "watch": {
           "type": "boolean",
-          "description": "Run build when files change."
+          "description": "Re-run tests when source files change.",
+          "default": true
         },
         "poll": {
           "type": "number",
@@ -4967,347 +5246,6 @@
             "application"
           ],
           "default": "browser"
-        },
-        "webWorkerTsConfig": {
-          "type": "string",
-          "description": "TypeScript configuration for Web Worker modules."
-        },
-        "aot": {
-          "type": "boolean",
-          "description": "Run tests using Ahead of Time compilation.",
-          "default": false
-        }
-      },
-      "additionalProperties": false,
-      "definitions": {
-        "assetPattern": {
-          "oneOf": [
-            {
-              "type": "object",
-              "properties": {
-                "glob": {
-                  "type": "string",
-                  "description": "The pattern to match."
-                },
-                "input": {
-                  "type": "string",
-                  "description": "The input directory path in which to apply 'glob'. Defaults to the project root."
-                },
-                "output": {
-                  "type": "string",
-                  "default": "",
-                  "description": "Absolute path within the output."
-                },
-                "ignore": {
-                  "description": "An array of globs to ignore.",
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              },
-              "additionalProperties": false
-            },
-            {
-              "type": "string"
-            }
-          ]
-        }
-      }
-    },
-    "AngularDevkitBuildAngularBuildersJestSchema": {
-      "title": "Jest browser schema for Build Facade.",
-      "description": "Jest target options",
-      "type": "object",
-      "properties": {
-        "include": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "default": [
-            "**/*.spec.ts"
-          ],
-          "description": "Globs of files to include, relative to project root."
-        },
-        "exclude": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "default": [],
-          "description": "Globs of files to exclude, relative to the project root."
-        },
-        "tsConfig": {
-          "type": "string",
-          "description": "The name of the TypeScript configuration file."
-        },
-        "polyfills": {
-          "type": "array",
-          "description": "A list of polyfills to include in the build. Can be a full path for a file, relative to the current workspace or module specifier. Example: 'zone.js'.",
-          "items": {
-            "type": "string",
-            "uniqueItems": true
-          },
-          "default": []
-        },
-        "aot": {
-          "type": "boolean",
-          "description": "Run tests using Ahead of Time compilation.",
-          "default": false
-        }
-      },
-      "additionalProperties": false
-    },
-    "AngularDevkitBuildAngularBuildersWebTestRunnerSchema": {
-      "title": "Web Test Runner Target",
-      "description": "Web Test Runner target options for Build Facade.",
-      "type": "object",
-      "properties": {
-        "main": {
-          "type": "string",
-          "description": "The name of the main entry-point file."
-        },
-        "tsConfig": {
-          "type": "string",
-          "description": "The name of the TypeScript configuration file."
-        },
-        "polyfills": {
-          "description": "Polyfills to be included in the build.",
-          "oneOf": [
-            {
-              "type": "array",
-              "description": "A list of polyfills to include in the build. Can be a full path for a file, relative to the current workspace or module specifier. Example: 'zone.js'.",
-              "items": {
-                "type": "string",
-                "uniqueItems": true
-              },
-              "default": []
-            },
-            {
-              "type": "string",
-              "description": "The full path for the polyfills file, relative to the current workspace or a module specifier. Example: 'zone.js'."
-            }
-          ]
-        },
-        "assets": {
-          "type": "array",
-          "description": "List of static application assets.",
-          "default": [],
-          "items": {
-            "$ref": "#/definitions/AngularDevkitBuildAngularBuildersWebTestRunnerSchema/definitions/assetPattern"
-          }
-        },
-        "scripts": {
-          "description": "Global scripts to be included in the build.",
-          "type": "array",
-          "default": [],
-          "items": {
-            "oneOf": [
-              {
-                "type": "object",
-                "properties": {
-                  "input": {
-                    "type": "string",
-                    "description": "The file to include.",
-                    "pattern": "\\.[cm]?jsx?$"
-                  },
-                  "bundleName": {
-                    "type": "string",
-                    "pattern": "^[\\w\\-.]*$",
-                    "description": "The bundle name for this extra entry point."
-                  },
-                  "inject": {
-                    "type": "boolean",
-                    "description": "If the bundle will be referenced in the HTML file.",
-                    "default": true
-                  }
-                },
-                "additionalProperties": false
-              },
-              {
-                "type": "string",
-                "description": "The file to include.",
-                "pattern": "\\.[cm]?jsx?$"
-              }
-            ]
-          }
-        },
-        "styles": {
-          "description": "Global styles to be included in the build.",
-          "type": "array",
-          "default": [],
-          "items": {
-            "oneOf": [
-              {
-                "type": "object",
-                "properties": {
-                  "input": {
-                    "type": "string",
-                    "description": "The file to include.",
-                    "pattern": "\\.(?:css|scss|sass|less)$"
-                  },
-                  "bundleName": {
-                    "type": "string",
-                    "pattern": "^[\\w\\-.]*$",
-                    "description": "The bundle name for this extra entry point."
-                  },
-                  "inject": {
-                    "type": "boolean",
-                    "description": "If the bundle will be referenced in the HTML file.",
-                    "default": true
-                  }
-                },
-                "additionalProperties": false
-              },
-              {
-                "type": "string",
-                "description": "The file to include.",
-                "pattern": "\\.(?:css|scss|sass|less)$"
-              }
-            ]
-          }
-        },
-        "inlineStyleLanguage": {
-          "description": "The stylesheet language to use for the application's inline component styles.",
-          "type": "string",
-          "default": "css",
-          "enum": [
-            "css",
-            "less",
-            "sass",
-            "scss"
-          ]
-        },
-        "stylePreprocessorOptions": {
-          "description": "Options to pass to style preprocessors",
-          "type": "object",
-          "properties": {
-            "includePaths": {
-              "description": "Paths to include. Paths will be resolved to workspace root.",
-              "type": "array",
-              "items": {
-                "type": "string"
-              },
-              "default": []
-            }
-          },
-          "additionalProperties": false
-        },
-        "include": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "default": [
-            "**/*.spec.ts"
-          ],
-          "description": "Globs of files to include, relative to project root. \nThere are 2 special cases:\n - when a path to directory is provided, all spec files ending \".spec.@(ts|tsx)\" will be included\n - when a path to a file is provided, and a matching spec file exists it will be included instead."
-        },
-        "exclude": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "default": [],
-          "description": "Globs of files to exclude, relative to the project root."
-        },
-        "sourceMap": {
-          "description": "Output source maps for scripts and styles. For more information, see https://angular.dev/reference/configs/workspace-config#source-map-configuration.",
-          "default": true,
-          "oneOf": [
-            {
-              "type": "object",
-              "properties": {
-                "scripts": {
-                  "type": "boolean",
-                  "description": "Output source maps for all scripts.",
-                  "default": true
-                },
-                "styles": {
-                  "type": "boolean",
-                  "description": "Output source maps for all styles.",
-                  "default": true
-                },
-                "vendor": {
-                  "type": "boolean",
-                  "description": "Resolve vendor packages source maps.",
-                  "default": false
-                }
-              },
-              "additionalProperties": false
-            },
-            {
-              "type": "boolean"
-            }
-          ]
-        },
-        "progress": {
-          "type": "boolean",
-          "description": "Log progress to the console while building.",
-          "default": true
-        },
-        "watch": {
-          "type": "boolean",
-          "description": "Run build when files change."
-        },
-        "poll": {
-          "type": "number",
-          "description": "Enable and define the file watching poll time period in milliseconds."
-        },
-        "preserveSymlinks": {
-          "type": "boolean",
-          "description": "Do not use the real path when resolving modules. If unset then will default to `true` if NodeJS option --preserve-symlinks is set."
-        },
-        "browsers": {
-          "type": "string",
-          "description": "Override which browsers tests are run against."
-        },
-        "codeCoverage": {
-          "type": "boolean",
-          "description": "Output a code coverage report.",
-          "default": false
-        },
-        "codeCoverageExclude": {
-          "type": "array",
-          "description": "Globs to exclude from code coverage.",
-          "items": {
-            "type": "string"
-          },
-          "default": []
-        },
-        "fileReplacements": {
-          "description": "Replace compilation source files with other compilation source files in the build.",
-          "type": "array",
-          "items": {
-            "oneOf": [
-              {
-                "type": "object",
-                "properties": {
-                  "src": {
-                    "type": "string"
-                  },
-                  "replaceWith": {
-                    "type": "string"
-                  }
-                },
-                "additionalProperties": false
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "replace": {
-                    "type": "string"
-                  },
-                  "with": {
-                    "type": "string"
-                  }
-                },
-                "additionalProperties": false
-              }
-            ]
-          },
-          "default": []
         },
         "webWorkerTsConfig": {
           "type": "string",

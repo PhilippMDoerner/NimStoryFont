@@ -42,3 +42,4 @@ exports.Tree = Object.freeze({
         return exports.TreeSymbol in maybeTree;
     },
 });
+//# sourceMappingURL=interface.js.map

@@ -14,6 +14,7 @@ exports.AotCompilation = void 0;
 const node_assert_1 = __importDefault(require("node:assert"));
 const node_path_1 = require("node:path");
 const typescript_1 = __importDefault(require("typescript"));
+const environment_options_1 = require("../../../utils/environment-options");
 const profiling_1 = require("../../esbuild/profiling");
 const angular_host_1 = require("../angular-host");
 const jit_bootstrap_transformer_1 = require("../transformers/jit-bootstrap-transformer");
@@ -21,6 +22,7 @@ const lazy_routes_transformer_1 = require("../transformers/lazy-routes-transform
 const web_worker_transformer_1 = require("../transformers/web-worker-transformer");
 const angular_compilation_1 = require("./angular-compilation");
 const hmr_candidates_1 = require("./hmr-candidates");
+const typescript_printer_1 = require("./typescript-printer");
 /**
  * The modified files count limit for performing component HMR analysis.
  * Performing content analysis for a large amount of files can result in longer rebuild times
@@ -34,14 +36,16 @@ class AngularCompilationState {
     affectedFiles;
     templateDiagnosticsOptimization;
     webWorkerTransform;
+    useTypeScriptTranspilation;
     diagnosticCache;
-    constructor(angularProgram, compilerHost, typeScriptProgram, affectedFiles, templateDiagnosticsOptimization, webWorkerTransform, diagnosticCache = new WeakMap()) {
+    constructor(angularProgram, compilerHost, typeScriptProgram, affectedFiles, templateDiagnosticsOptimization, webWorkerTransform, useTypeScriptTranspilation, diagnosticCache = new WeakMap()) {
         this.angularProgram = angularProgram;
         this.compilerHost = compilerHost;
         this.typeScriptProgram = typeScriptProgram;
         this.affectedFiles = affectedFiles;
         this.templateDiagnosticsOptimization = templateDiagnosticsOptimization;
         this.webWorkerTransform = webWorkerTransform;
+        this.useTypeScriptTranspilation = useTypeScriptTranspilation;
         this.diagnosticCache = diagnosticCache;
     }
     get angularCompiler() {
@@ -61,6 +65,8 @@ class AotCompilation extends angular_compilation_1.AngularCompilation {
         // Load the compiler configuration and transform as needed
         const { options: originalCompilerOptions, rootNames, errors: configurationDiagnostics, } = await this.loadConfiguration(tsconfig);
         const compilerOptions = compilerOptionsTransformer?.(originalCompilerOptions) ?? originalCompilerOptions;
+        const useTypeScriptTranspilation = compilerOptions['_useTypeScriptTranspilation'] ??
+            !compilerOptions.isolatedModules;
         if (compilerOptions.externalRuntimeStyles) {
             hostOptions.externalStylesheets ??= new Map();
         }
@@ -113,7 +119,7 @@ class AotCompilation extends angular_compilation_1.AngularCompilation {
                     continue;
                 }
                 const componentFilename = node.getSourceFile().fileName;
-                let relativePath = (0, node_path_1.relative)(host.getCurrentDirectory(), componentFilename);
+                let relativePath = (0, node_path_1.relative)(compilerOptions.rootDir ?? host.getCurrentDirectory(), componentFilename);
                 if (relativePath.startsWith('..')) {
                     relativePath = componentFilename;
                 }
@@ -130,13 +136,24 @@ class AotCompilation extends angular_compilation_1.AngularCompilation {
                 templateUpdates.set(updateId, updateText);
             }
         }
-        const affectedFiles = (0, profiling_1.profileSync)('NG_FIND_AFFECTED', () => findAffectedFiles(typeScriptProgram, angularCompiler, usingBuildInfo));
+        // The affected files walk runs a full semantic type-check as a side effect
+        // (via `getSemanticDiagnosticsOfNextAffectedFile`). Its result is only consumed to
+        // scope Angular template diagnostics and to force re-emit of TS-affected files in the
+        // slow TypeScript emit path. When type-checking is disabled, template/semantic
+        // diagnostics are already suppressed at the consumption layer (see the compiler-plugin
+        // `diagnoseFiles` mask), and in the isolatedModules fast path emit is per-file, so the
+        // set is never read. Skip the walk in that case to avoid a discarded semantic pass.
+        const affectedFiles = environment_options_1.useTypeChecking || useTypeScriptTranspilation
+            ? (0, profiling_1.profileSync)('NG_FIND_AFFECTED', () => findAffectedFiles(typeScriptProgram, angularCompiler, usingBuildInfo))
+            : new Set();
+        const componentResourcesDependencies = new Map();
         // Get all files referenced in the TypeScript/Angular program including component resources
         const referencedFiles = typeScriptProgram
             .getSourceFiles()
             .filter((sourceFile) => !angularCompiler.ignoreForEmit.has(sourceFile))
             .flatMap((sourceFile) => {
             const resourceDependencies = angularCompiler.getResourceDependencies(sourceFile);
+            componentResourcesDependencies.set(sourceFile.fileName, resourceDependencies);
             // Also invalidate Angular diagnostics for a source file if component resources are modified
             if (this.#state && hostOptions.modifiedFiles?.size) {
                 for (const resourceDependency of resourceDependencies) {
@@ -149,13 +166,14 @@ class AotCompilation extends angular_compilation_1.AngularCompilation {
             }
             return [sourceFile.fileName, ...resourceDependencies];
         });
-        this.#state = new AngularCompilationState(angularProgram, host, typeScriptProgram, affectedFiles, affectedFiles.size === 1 ? OptimizeFor.SingleFile : OptimizeFor.WholeProgram, (0, web_worker_transformer_1.createWorkerTransformer)(hostOptions.processWebWorker.bind(hostOptions)), this.#state?.diagnosticCache);
+        this.#state = new AngularCompilationState(angularProgram, host, typeScriptProgram, affectedFiles, affectedFiles.size === 1 ? OptimizeFor.SingleFile : OptimizeFor.WholeProgram, (0, web_worker_transformer_1.createWorkerTransformer)(hostOptions.processWebWorker.bind(hostOptions)), useTypeScriptTranspilation, this.#state?.diagnosticCache);
         return {
             affectedFiles,
             compilerOptions,
             referencedFiles,
             externalStylesheets: hostOptions.externalStylesheets,
             templateUpdates,
+            componentResourcesDependencies,
         };
     }
     *collectDiagnostics(modes) {
@@ -207,12 +225,9 @@ class AotCompilation extends angular_compilation_1.AngularCompilation {
     }
     emitAffectedFiles() {
         (0, node_assert_1.default)(this.#state, 'Angular compilation must be initialized prior to emitting files.');
-        const { affectedFiles, angularCompiler, compilerHost, typeScriptProgram, webWorkerTransform } = this.#state;
+        const { affectedFiles, angularCompiler, compilerHost, typeScriptProgram, webWorkerTransform, useTypeScriptTranspilation, } = this.#state;
         const compilerOptions = typeScriptProgram.getCompilerOptions();
         const buildInfoFilename = compilerOptions.tsBuildInfoFile ?? '.tsbuildinfo';
-        const useTypeScriptTranspilation = !compilerOptions.isolatedModules ||
-            !!compilerOptions.sourceMap ||
-            !!compilerOptions.inlineSourceMap;
         const emittedFiles = new Map();
         const writeFileCallback = (filename, contents, _a, _b, sourceFiles) => {
             if (!sourceFiles?.length && filename.endsWith(buildInfoFilename)) {
@@ -277,9 +292,20 @@ class AotCompilation extends angular_compilation_1.AngularCompilation {
                 contents = sourceFile.text;
             }
             else {
-                // Otherwise, print the transformed source file
+                // Otherwise, print the transformed source file with map if needed
                 const printer = typescript_1.default.createPrinter(compilerOptions, transformResult);
-                contents = printer.printFile(transformResult.transformed[0]);
+                const printResult = (0, typescript_printer_1.printSourceFileWithMap)(transformResult.transformed[0], printer, compilerHost, compilerOptions);
+                contents = printResult.code;
+                if (printResult.map) {
+                    if (compilerOptions.inlineSourceMap) {
+                        const base64Map = Buffer.from(printResult.map).toString('base64');
+                        contents += `\n//# sourceMappingURL=data:application/json;charset=utf-8;base64,${base64Map}`;
+                    }
+                    else if (compilerOptions.sourceMap) {
+                        const mapFilename = sourceFile.fileName + '.map';
+                        emittedFiles.set(sourceFile, { filename: mapFilename, contents: printResult.map });
+                    }
+                }
             }
             angularCompiler.incrementalCompilation.recordSuccessfulEmit(sourceFile);
             emittedFiles.set(sourceFile, { filename: sourceFile.fileName, contents });
@@ -335,3 +361,4 @@ function findAffectedFiles(builder, { ignoreForDiagnostics }, includeTTC) {
     }
     return affectedFiles;
 }
+//# sourceMappingURL=aot-compilation.js.map

@@ -1,4 +1,4 @@
-import type { IWriter, IWriterGrowable } from '@jsonjoy.com/util/lib/buffers';
+import type { IWriter, IWriterGrowable } from '@jsonjoy.com/buffers/lib';
 import { AnnotationAstNode, ArrAstNode, AstNode, BinAstNode, BoolAstNode, FloatAstNode, NintAstNode, ObjAstNode, StrAstNode, UintAstNode } from './ast';
 import { Import } from './Import';
 export declare class IonEncoderFast {

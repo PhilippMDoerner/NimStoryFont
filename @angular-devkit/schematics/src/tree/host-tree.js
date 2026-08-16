@@ -62,6 +62,7 @@ class HostDirEntry {
     }
 }
 exports.HostDirEntry = HostDirEntry;
+// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
 class HostTree {
     _backend;
     _id = --_uniqueId;
@@ -69,9 +70,6 @@ class HostTree {
     _recordSync;
     _ancestry = new Set();
     _dirCache = new Map();
-    [interface_1.TreeSymbol]() {
-        return this;
-    }
     static isHostTree(tree) {
         if (tree instanceof HostTree) {
             return true;
@@ -83,6 +81,7 @@ class HostTree {
     }
     constructor(_backend = new core_1.virtualFs.Empty()) {
         this._backend = _backend;
+        this[interface_1.TreeSymbol] = () => this;
         this._record = new core_1.virtualFs.CordHost(new core_1.virtualFs.SafeReadonlyHost(_backend));
         this._recordSync = new core_1.virtualFs.SyncDelegateHost(this._record);
     }
@@ -229,7 +228,7 @@ class HostTree {
             // See: https://github.com/jestjs/jest/issues/2549
             if (e instanceof TypeError ||
                 e.code === 'ERR_ENCODING_INVALID_ENCODED_DATA') {
-                throw new Error(`Failed to decode "${path}" as UTF-8 text.`);
+                throw new Error(`Failed to decode "${path}" as UTF-8 text.`, { cause: e });
             }
             throw e;
         }
@@ -315,12 +314,8 @@ class HostTree {
     }
     // Structural methods.
     create(path, content) {
-        const p = this._normalizePath(path);
-        if (this._recordSync.exists(p)) {
-            throw new exception_1.FileAlreadyExistException(p);
-        }
         const c = typeof content == 'string' ? Buffer.from(content) : content;
-        this._record.create(p, c).subscribe();
+        this._record.create(this._normalizePath(path), c).subscribe();
     }
     delete(path) {
         this._recordSync.delete(this._normalizePath(path));
@@ -447,3 +442,4 @@ class FilterHostTree extends HostTree {
     }
 }
 exports.FilterHostTree = FilterHostTree;
+//# sourceMappingURL=host-tree.js.map

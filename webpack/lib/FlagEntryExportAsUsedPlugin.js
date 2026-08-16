@@ -13,21 +13,24 @@ const PLUGIN_NAME = "FlagEntryExportAsUsedPlugin";
 
 class FlagEntryExportAsUsedPlugin {
 	/**
+	 * Creates an instance of FlagEntryExportAsUsedPlugin.
 	 * @param {boolean} nsObjectUsed true, if the ns object is used
 	 * @param {string} explanation explanation for the reason
 	 */
 	constructor(nsObjectUsed, explanation) {
+		/** @type {boolean} */
 		this.nsObjectUsed = nsObjectUsed;
+		/** @type {string} */
 		this.explanation = explanation;
 	}
 
 	/**
-	 * Apply the plugin
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Compiler} compiler the compiler instance
 	 * @returns {void}
 	 */
 	apply(compiler) {
-		compiler.hooks.thisCompilation.tap(PLUGIN_NAME, compilation => {
+		compiler.hooks.thisCompilation.tap(PLUGIN_NAME, (compilation) => {
 			const moduleGraph = compilation.moduleGraph;
 			compilation.hooks.seal.tap(PLUGIN_NAME, () => {
 				for (const [

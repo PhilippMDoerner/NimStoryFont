@@ -12,20 +12,19 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = default_1;
 const core_1 = require("@babel/core");
-const istanbul_lib_instrument_1 = require("istanbul-lib-instrument");
 const node_assert_1 = __importDefault(require("node:assert"));
 /**
  * A babel plugin factory function for adding istanbul instrumentation.
  *
  * @returns A babel plugin object instance.
  */
-function default_1() {
+function default_1(programVisitor) {
     const visitors = new WeakMap();
     return {
         visitor: {
             Program: {
                 enter(path, state) {
-                    const visitor = (0, istanbul_lib_instrument_1.programVisitor)(core_1.types, state.filename, {
+                    const visitor = programVisitor(core_1.types, state.filename, {
                         // Babel returns a Converter object from the `convert-source-map` package
                         inputSourceMap: state.file.inputMap?.toObject(),
                     });
@@ -42,3 +41,4 @@ function default_1() {
         },
     };
 }
+//# sourceMappingURL=add-code-coverage.js.map

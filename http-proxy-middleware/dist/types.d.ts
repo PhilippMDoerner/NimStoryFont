@@ -2,31 +2,41 @@
  * Based on definition by DefinitelyTyped:
  * https://github.com/DefinitelyTyped/DefinitelyTyped/blob/6f529c6c67a447190f86bfbf894d1061e41e07b7/types/http-proxy-middleware/index.d.ts
  */
-import type * as http from 'http';
-import type * as httpProxy from 'http-proxy';
-import type * as net from 'net';
+import type * as http from 'node:http';
+import type * as net from 'node:net';
+import type { ProxyServer, ProxyServerOptions } from 'httpxy';
 export type NextFunction<T = (err?: any) => void> = T;
-export interface RequestHandler<TReq = http.IncomingMessage, TRes = http.ServerResponse, TNext = NextFunction> {
+export interface RequestHandler<TReq extends http.IncomingMessage = http.IncomingMessage, TRes extends http.ServerResponse = http.ServerResponse, TNext = NextFunction> {
     (req: TReq, res: TRes, next?: TNext): Promise<void>;
-    upgrade: (req: http.IncomingMessage, socket: net.Socket, head: Buffer) => void;
+    upgrade: (req: TReq, socket: net.Socket, head: Buffer) => void;
 }
-export type Filter<TReq = http.IncomingMessage> = string | string[] | ((pathname: string, req: TReq) => boolean);
-export interface Plugin<TReq = http.IncomingMessage, TRes = http.ServerResponse> {
-    (proxyServer: httpProxy<TReq, TRes>, options: Options<TReq, TRes>): void;
+export type Filter<TReq extends http.IncomingMessage = http.IncomingMessage> = string | string[] | ((pathname: string, req: TReq) => boolean | string | RegExpMatchArray | null);
+/**
+ * @see {@link https://github.com/chimurai/http-proxy-middleware/tree/master#defineplugin-helper `definePlugin()`} to define a http-proxy-middleware plugin.
+ */
+export interface Plugin<TReq extends http.IncomingMessage = http.IncomingMessage, TRes extends http.ServerResponse = http.ServerResponse> {
+    (proxyServer: ProxyServer<TReq, TRes>, options: Options<TReq, TRes>): void;
 }
-export interface OnProxyEvent<TReq = http.IncomingMessage, TRes = http.ServerResponse> {
-    error?: httpProxy.ErrorCallback<Error, TReq, TRes>;
-    proxyReq?: httpProxy.ProxyReqCallback<http.ClientRequest, TReq, TRes>;
-    proxyReqWs?: httpProxy.ProxyReqWsCallback<http.ClientRequest, TReq>;
-    proxyRes?: httpProxy.ProxyResCallback<TReq, TRes>;
-    open?: httpProxy.OpenCallback;
-    close?: httpProxy.CloseCallback<TReq>;
-    start?: httpProxy.StartCallback<TReq, TRes>;
-    end?: httpProxy.EndCallback<TReq, TRes>;
-    econnreset?: httpProxy.EconnresetCallback<Error, TReq, TRes>;
+export interface OnProxyEvent<TReq extends http.IncomingMessage = http.IncomingMessage, TRes extends http.ServerResponse = http.ServerResponse> {
+    error?: (err: Error, req: TReq, res: TRes | net.Socket, target?: string | Partial<URL>) => void;
+    proxyReq?: (proxyReq: http.ClientRequest, req: TReq, res: TRes, options: ProxyServerOptions) => void;
+    proxyReqWs?: (proxyReq: http.ClientRequest, req: TReq, socket: net.Socket, options: ProxyServerOptions, head: any) => void;
+    proxyRes?: (proxyRes: TReq, req: TReq, res: TRes) => void | Promise<void>;
+    open?: (proxySocket: net.Socket) => void;
+    close?: (proxyRes: TReq, proxySocket: net.Socket, proxyHead: any) => void;
+    start?: (req: TReq, res: TRes, target: string | Partial<URL>) => void;
+    end?: (req: TReq, res: TRes, proxyRes: TReq) => void;
+    econnreset?: (err: Error, req: TReq, res: TRes, target: string | Partial<URL>) => void;
 }
 export type Logger = Pick<Console, 'info' | 'warn' | 'error'>;
-export interface Options<TReq = http.IncomingMessage, TRes = http.ServerResponse> extends httpProxy.ServerOptions {
+export type PathRewriteConfig<TReq extends http.IncomingMessage = http.IncomingMessage, TRes extends http.ServerResponse = http.ServerResponse> = {
+    [regexp: string]: string;
+} | ((path: string, req: TReq, 
+/** `res` is undefined in WebSocket upgrade flows. */
+res?: TRes | undefined, options?: Options<TReq, TRes>) => string | undefined) | ((path: string, req: TReq, 
+/** `res` is undefined in WebSocket upgrade flows. */
+res?: TRes | undefined, options?: Options<TReq, TRes>) => Promise<string | undefined>);
+export interface Options<TReq extends http.IncomingMessage = http.IncomingMessage, TRes extends http.ServerResponse = http.ServerResponse> extends ProxyServerOptions {
     /**
      * Narrow down requests to proxy or not.
      * Filter on {@link http.IncomingMessage.url `pathname`} which is relative to the proxy's "mounting" point in the server.
@@ -45,13 +55,15 @@ export interface Options<TReq = http.IncomingMessage, TRes = http.ServerResponse
      *   }
      * });
      * ```
+     * @since v0.15.0
+     * @since v0.21.0 - support `async` function
+     * @since v4.1.0 - `res` and `options` parameters added to custom function
+     *
      * @link https://github.com/chimurai/http-proxy-middleware/blob/master/recipes/pathRewrite.md
      */
-    pathRewrite?: {
-        [regexp: string]: string;
-    } | ((path: string, req: TReq) => string | undefined) | ((path: string, req: TReq) => Promise<string>);
+    pathRewrite?: PathRewriteConfig<TReq, TRes>;
     /**
-     * Access the internal http-proxy server instance to customize behavior
+     * Access the internal `httpxy` server instance to customize behavior
      *
      * @example
      * ```js
@@ -76,7 +88,7 @@ export interface Options<TReq = http.IncomingMessage, TRes = http.ServerResponse
      */
     ejectPlugins?: boolean;
     /**
-     * Listen to http-proxy events
+     * Listen to `httpxy` events
      * @see {@link OnProxyEvent} for available events
      * @example
      * ```js
@@ -94,19 +106,24 @@ export interface Options<TReq = http.IncomingMessage, TRes = http.ServerResponse
     on?: OnProxyEvent<TReq, TRes>;
     /**
      * Dynamically set the {@link Options.target `options.target`}.
+     *
      * @example
      * ```js
      * createProxyMiddleware({
-     *   router: async (req) => {
+     *   router: async (req, res, options) => {
      *     return 'http://127:0.0.1:3000';
      *   }
      * });
      * ```
+     *
+     * @since v0.16.0
+     * @since v4.1.0 - `res` and `options` parameters added to router function signature
+     *
+     * NOTE: `res` is undefined in WebSocket upgrade flows.
+     *
      * @link https://github.com/chimurai/http-proxy-middleware/blob/master/recipes/router.md
      */
-    router?: {
-        [hostOrPath: string]: httpProxy.ServerOptions['target'];
-    } | ((req: TReq) => httpProxy.ServerOptions['target']) | ((req: TReq) => Promise<httpProxy.ServerOptions['target']>);
+    router?: Record<string, ProxyServerOptions['target']> | ((req: TReq, res: TRes | undefined, options: Options<TReq, TRes>) => ProxyServerOptions['target']) | ((req: TReq, res: TRes | undefined, options: Options<TReq, TRes>) => Promise<ProxyServerOptions['target']>);
     /**
      * Log information from http-proxy-middleware
      * @example
@@ -118,5 +135,5 @@ export interface Options<TReq = http.IncomingMessage, TRes = http.ServerResponse
      * @link https://github.com/chimurai/http-proxy-middleware/blob/master/recipes/logger.md
      * @since v3.0.0
      */
-    logger?: Logger | any;
+    logger?: Logger;
 }

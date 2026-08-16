@@ -1,6 +1,6 @@
 {
   "name": "@babel/template",
-  "version": "7.27.2",
+  "version": "8.0.0",
   "description": "Generate an AST from a string template.",
   "author": "The Babel Team (https://babel.dev/team)",
   "homepage": "https://babel.dev/docs/en/next/babel-template",
@@ -16,12 +16,19 @@
   },
   "main": "./lib/index.js",
   "dependencies": {
-    "@babel/code-frame": "^7.27.1",
-    "@babel/parser": "^7.27.2",
-    "@babel/types": "^7.27.1"
+    "@babel/code-frame": "^8.0.0",
+    "@babel/parser": "^8.0.0",
+    "@babel/types": "^8.0.0"
   },
   "engines": {
-    "node": ">=6.9.0"
+    "node": "^22.18.0 || >=24.11.0"
   },
-  "type": "commonjs"
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "type": "module"
 }

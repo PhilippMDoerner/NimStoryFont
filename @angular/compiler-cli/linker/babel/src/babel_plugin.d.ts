@@ -5,7 +5,7 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.dev/license
  */
-import { ConfigAPI, PluginObj } from '@babel/core';
+import { ConfigAPI, PluginObject } from '@babel/core';
 import { LinkerOptions } from '../../src/file_linker/linker_options';
 /**
  * This is the Babel plugin definition that is provided as a default export from the package, such
@@ -22,4 +22,4 @@ import { LinkerOptions } from '../../src/file_linker/linker_options';
  * @param api Provides access to the Babel environment that is configuring this plugin.
  * @param options The plugin options that have been configured.
  */
-export declare function defaultLinkerPlugin(api: ConfigAPI, options: Partial<LinkerOptions>): PluginObj;
+export declare function defaultLinkerPlugin(api: ConfigAPI, options: Partial<LinkerOptions>): PluginObject;

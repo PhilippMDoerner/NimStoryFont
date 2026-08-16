@@ -1,8 +1,8 @@
-import { Worker, MessagePort, receiveMessageOnPort } from 'node:worker_threads';
+import { Worker, MessagePort, receiveMessageOnPort, WorkerOptions, Transferable } from 'node:worker_threads';
 import { createHistogram, RecordableHistogram } from 'node:perf_hooks';
 import assert from 'node:assert';
 
-import { RequestMessage, ResponseMessage } from '../types';
+import { RequestMessage, ResponseMessage, StartupMessage } from '../types';
 import { Errors } from '../errors';
 
 import { TaskInfo } from '../task_queue';
@@ -24,6 +24,14 @@ export type PiscinaWorker = {
   [kWorkerData]: WorkerInfo;
 }
 
+type WorkerInfoParams = {
+  worker: {
+    filename: string,
+  } & WorkerOptions,
+  port: MessagePort,
+  enableHistogram: boolean,
+}
+
 export class WorkerInfo extends AsynchronouslyCreatedResource {
     worker : Worker;
     taskInfos : Map<number, TaskInfo>;
@@ -37,17 +45,19 @@ export class WorkerInfo extends AsynchronouslyCreatedResource {
     destroyed = false;
 
     constructor (
-      worker : Worker,
-      port : MessagePort,
-      onMessage : ResponseCallback,
-      enableHistogram: boolean
+      {
+        worker,
+        port,
+        enableHistogram
+      }: WorkerInfoParams,
+      onMessage: ResponseCallback
     ) {
       super();
-      this.worker = worker;
+      const { filename, ...workerOpts } = worker;
+      this.worker = new Worker(filename, workerOpts);
       this.port = port;
-      this.port.on('message',
-        (message : ResponseMessage) => this._handleResponse(message));
       this.onMessage = onMessage;
+      this.port.on('message', this._handleResponse.bind(this));
       this.taskInfos = new Map();
       this.sharedBuffer = new Int32Array(
         new SharedArrayBuffer(kFieldCount * Int32Array.BYTES_PER_ELEMENT));
@@ -58,13 +68,44 @@ export class WorkerInfo extends AsynchronouslyCreatedResource {
       return this.worker.threadId;
     }
 
+    onWorkerMessage(handler: (msg: any) => void): void {
+      this.worker.on('message', handler);
+    }
+
+    onWorkerError(handler: (err: Error) => void): void {
+      this.worker.on('error', handler);
+    }
+
+    onWorkerExit(handler: (code: number) => void): void {
+      this.worker.on('exit', handler);
+    }
+
+    onPortClose(handler: () => void): void {
+      this.port.on('close', handler);
+    }
+
+    init(msg: StartupMessage, toTransfer: Transferable[]): WorkerInfo {
+      this.worker.postMessage(msg, toTransfer);
+      return this;
+    }
+
+    workerRef(): WorkerInfo {
+      this.worker.ref();
+      return this;
+    }
+
+    workerUnref(): WorkerInfo {
+      this.worker.unref();
+      return this;
+    }
+
     destroy () : void {
       if (this.terminating || this.destroyed) return;
 
       this.terminating = true;
+      this.clearIdleTimeout();
       this.worker.terminate();
       this.port.close();
-      this.clearIdleTimeout();
       for (const taskInfo of this.taskInfos.values()) {
         taskInfo.done(Errors.ThreadTermination());
       }
@@ -73,6 +114,10 @@ export class WorkerInfo extends AsynchronouslyCreatedResource {
       this.terminating = false;
       this.destroyed = true;
       this.markAsDestroyed();
+    }
+
+    setIdleTimeout (handler: (_: void) => void, ms: number, ...args: any[]) : void {
+      this.idleTimeout = setTimeout(handler, ms, ...args).unref();
     }
 
     clearIdleTimeout () : void {
@@ -88,16 +133,13 @@ export class WorkerInfo extends AsynchronouslyCreatedResource {
     }
 
     unref () : WorkerInfo {
-      // Note: Do not call ref()/unref() on the Worker itself since that may cause
-      // a hard crash, see https://github.com/nodejs/node/pull/33394.
       this.port.unref();
       return this;
     }
 
     _handleResponse (message : ResponseMessage) : void {
-      if (message.time != null) {
-        this.histogram?.record(PiscinaHistogramHandler.toHistogramIntegerNano(message.time));
-      }
+      // Both cannot be in different state if histogram enabled.
+      this.histogram?.record(PiscinaHistogramHandler.toHistogramIntegerNano(message?.time!));
 
       this.onMessage(message);
 
@@ -109,7 +151,9 @@ export class WorkerInfo extends AsynchronouslyCreatedResource {
     }
 
     postTask (taskInfo : TaskInfo) {
+      // Avoid duplicates
       assert(!this.taskInfos.has(taskInfo.taskId));
+      // Avoid posting when pool is shutting down or worker already destroyed
       assert(!this.terminating && !this.destroyed);
 
       const message : RequestMessage = {
@@ -122,22 +166,20 @@ export class WorkerInfo extends AsynchronouslyCreatedResource {
 
       try {
         this.port.postMessage(message, taskInfo.transferList);
+        queueMicrotask(() => this.clearIdleTimeout())
+        taskInfo.workerInfo = this;
+        this.taskInfos.set(taskInfo.taskId, taskInfo);
+        this.ref();
+
+        // Inform the worker that there are new messages posted, and wake it up
+        // if it is waiting for one.
+        Atomics.add(this.sharedBuffer, kRequestCountField, 1);
+        Atomics.notify(this.sharedBuffer, kRequestCountField, 1);
       } catch (err) {
         // This would mostly happen if e.g. message contains unserializable data
         // or transferList is invalid.
         taskInfo.done(<Error>err);
-        return;
       }
-
-      taskInfo.workerInfo = this;
-      this.taskInfos.set(taskInfo.taskId, taskInfo);
-      this.ref();
-      this.clearIdleTimeout();
-
-      // Inform the worker that there are new messages posted, and wake it up
-      // if it is waiting for one.
-      Atomics.add(this.sharedBuffer, kRequestCountField, 1);
-      Atomics.notify(this.sharedBuffer, kRequestCountField, 1);
     }
 
     processPendingMessages () {
@@ -153,7 +195,7 @@ export class WorkerInfo extends AsynchronouslyCreatedResource {
         this.lastSeenResponseCount = actualResponseCount;
 
         let entry;
-        while ((entry = receiveMessageOnPort(this.port)) !== undefined) {
+        while ((entry = receiveMessageOnPort(this.port)) != null) {
           this._handleResponse(entry.message);
         }
       }
@@ -163,12 +205,19 @@ export class WorkerInfo extends AsynchronouslyCreatedResource {
       // If there are abortable tasks, we are running one at most per Worker.
       if (this.taskInfos.size !== 1) return false;
       const [[, task]] = this.taskInfos;
-      return task.abortSignal !== null;
+      return task.abortSignal != null;
     }
 
     currentUsage () : number {
-      if (this.isRunningAbortableTask()) return Infinity;
-      return this.taskInfos.size;
+      return this.isRunningAbortableTask() ? Infinity : this.taskInfos.size;
+    }
+
+    popTask (taskId: number) : TaskInfo | null {
+      const task = this.taskInfos.get(taskId) ?? null;
+
+      if (task != null) this.taskInfos.delete(taskId);
+
+      return task;
     }
 
     get interface (): PiscinaWorker {

@@ -5,21 +5,18 @@
 
 "use strict";
 
-const parseJson = require("json-parse-even-better-errors");
 const asyncLib = require("neo-async");
 const {
-	SyncHook,
-	SyncBailHook,
 	AsyncParallelHook,
-	AsyncSeriesHook
+	AsyncSeriesHook,
+	SyncBailHook,
+	SyncHook
 } = require("tapable");
 const { SizeOnlySource } = require("webpack-sources");
-const webpack = require(".");
 const Cache = require("./Cache");
 const CacheFacade = require("./CacheFacade");
 const ChunkGraph = require("./ChunkGraph");
 const Compilation = require("./Compilation");
-const ConcurrentCompilationError = require("./ConcurrentCompilationError");
 const ContextModuleFactory = require("./ContextModuleFactory");
 const ModuleGraph = require("./ModuleGraph");
 const NormalModuleFactory = require("./NormalModuleFactory");
@@ -27,60 +24,95 @@ const RequestShortener = require("./RequestShortener");
 const ResolverFactory = require("./ResolverFactory");
 const Stats = require("./Stats");
 const Watching = require("./Watching");
-const WebpackError = require("./WebpackError");
+const ConcurrentCompilationError = require("./errors/ConcurrentCompilationError");
+const WebpackError = require("./errors/WebpackError");
 const { Logger } = require("./logging/Logger");
-const { join, dirname, mkdirp } = require("./util/fs");
-const { makePathsRelative } = require("./util/identifier");
+const { dirname, join, mkdirp } = require("./util/fs");
+const {
+	WINDOWS_ABS_PATH_REGEXP,
+	makePathsRelative
+} = require("./util/identifier");
+const memoize = require("./util/memoize");
+const parseJson = require("./util/parseJson");
 const { isSourceEqual } = require("./util/source");
+const webpack = require(".");
 
 /** @typedef {import("webpack-sources").Source} Source */
 /** @typedef {import("../declarations/WebpackOptions").EntryNormalized} Entry */
 /** @typedef {import("../declarations/WebpackOptions").OutputNormalized} OutputOptions */
 /** @typedef {import("../declarations/WebpackOptions").WatchOptions} WatchOptions */
 /** @typedef {import("../declarations/WebpackOptions").WebpackOptionsNormalized} WebpackOptions */
-/** @typedef {import("../declarations/WebpackOptions").WebpackPluginInstance} WebpackPluginInstance */
+/** @typedef {import("../declarations/WebpackOptions").Plugins} Plugins */
+/** @typedef {import("./webpack").WebpackPluginFunction} WebpackPluginFunction */
 /** @typedef {import("./Chunk")} Chunk */
-/** @typedef {import("./ChunkGraph").ModuleId} ModuleId */
 /** @typedef {import("./Dependency")} Dependency */
+/** @typedef {import("./HotModuleReplacementPlugin").ChunkHashes} ChunkHashes */
+/** @typedef {import("./HotModuleReplacementPlugin").ChunkModuleHashes} ChunkModuleHashes */
+/** @typedef {import("./HotModuleReplacementPlugin").ChunkModuleIds} ChunkModuleIds */
+/** @typedef {import("./HotModuleReplacementPlugin").ChunkRuntime} ChunkRuntime */
+/** @typedef {import("./HotModuleReplacementPlugin").FullHashChunkModuleHashes} FullHashChunkModuleHashes */
+/** @typedef {import("./HotModuleReplacementPlugin").HotIndex} HotIndex */
 /** @typedef {import("./Module")} Module */
 /** @typedef {import("./Module").BuildInfo} BuildInfo */
+/** @typedef {import("./RecordIdsPlugin").RecordsChunks} RecordsChunks */
+/** @typedef {import("./RecordIdsPlugin").RecordsModules} RecordsModules */
 /** @typedef {import("./config/target").PlatformTargetProperties} PlatformTargetProperties */
 /** @typedef {import("./logging/createConsoleLogger").LoggingFunction} LoggingFunction */
+/** @typedef {import("./optimize/AggressiveSplittingPlugin").SplitData} SplitData */
 /** @typedef {import("./util/fs").IStats} IStats */
 /** @typedef {import("./util/fs").InputFileSystem} InputFileSystem */
 /** @typedef {import("./util/fs").IntermediateFileSystem} IntermediateFileSystem */
 /** @typedef {import("./util/fs").OutputFileSystem} OutputFileSystem */
 /** @typedef {import("./util/fs").TimeInfoEntries} TimeInfoEntries */
 /** @typedef {import("./util/fs").WatchFileSystem} WatchFileSystem */
+/** @typedef {import("schema-utils").validate} Validate */
+/** @typedef {import("schema-utils").Schema} Schema */
+/** @typedef {import("schema-utils").ValidationErrorConfiguration} ValidationErrorConfiguration */
 
 /**
+ * Defines the compilation params type used by this module.
  * @typedef {object} CompilationParams
  * @property {NormalModuleFactory} normalModuleFactory
  * @property {ContextModuleFactory} contextModuleFactory
  */
 
 /**
+ * Defines the callback type used by this module.
  * @template T
- * @callback RunCallback
- * @param {Error | null} err
- * @param {T=} result
+ * @template [R=void]
+ * @typedef {import("./webpack").Callback<T, R>} Callback
  */
 
-/**
- * @template T
- * @callback Callback
- * @param {(Error | null)=} err
- * @param {T=} result
- */
+/** @typedef {import("./webpack").ErrorCallback} ErrorCallback */
 
 /**
+ * Defines the run as child callback callback.
  * @callback RunAsChildCallback
  * @param {Error | null} err
  * @param {Chunk[]=} entries
  * @param {Compilation=} compilation
+ * @returns {void}
  */
 
 /**
+ * Defines the known records type used by this module.
+ * @typedef {object} KnownRecords
+ * @property {SplitData[]=} aggressiveSplits
+ * @property {RecordsChunks=} chunks
+ * @property {RecordsModules=} modules
+ * @property {string=} hash
+ * @property {HotIndex=} hotIndex
+ * @property {FullHashChunkModuleHashes=} fullHashChunkModuleHashes
+ * @property {ChunkModuleHashes=} chunkModuleHashes
+ * @property {ChunkHashes=} chunkHashes
+ * @property {ChunkRuntime=} chunkRuntime
+ * @property {ChunkModuleIds=} chunkModuleIds
+ */
+
+/** @typedef {KnownRecords & Record<string, KnownRecords[]> & Record<string, EXPECTED_ANY>} Records */
+
+/**
+ * Defines the asset emitted info type used by this module.
  * @typedef {object} AssetEmittedInfo
  * @property {Buffer} content
  * @property {Source} source
@@ -97,10 +129,12 @@ const { isSourceEqual } = require("./util/source");
 /** @typedef {{ buildInfo: BuildInfo, references: WeakReferences | undefined, memCache: MemCache }} ModuleMemCachesItem */
 
 /**
- * @param {string[]} array an array
+ * Checks whether this object is sorted.
+ * @template T
+ * @param {T[]} array an array
  * @returns {boolean} true, if the array is sorted
  */
-const isSorted = array => {
+const isSorted = (array) => {
 	for (let i = 1; i < array.length; i++) {
 		if (array[i - 1] > array[i]) return false;
 	}
@@ -108,6 +142,7 @@ const isSorted = array => {
 };
 
 /**
+ * Returns the object with properties sorted by property name.
  * @template {object} T
  * @param {T} obj an object
  * @param {(keyof T)[]} keys the keys of the object
@@ -122,6 +157,7 @@ const sortObject = (obj, keys) => {
 };
 
 /**
+ * Returns true, if the filename contains any hash.
  * @param {string} filename filename
  * @param {string | string[] | undefined} hashes list of hashes
  * @returns {boolean} true, if the filename contains any hash
@@ -129,13 +165,16 @@ const sortObject = (obj, keys) => {
 const includesHash = (filename, hashes) => {
 	if (!hashes) return false;
 	if (Array.isArray(hashes)) {
-		return hashes.some(hash => filename.includes(hash));
+		return hashes.some((hash) => filename.includes(hash));
 	}
 	return filename.includes(hashes);
 };
 
+const getValidate = memoize(() => require("schema-utils").validate);
+
 class Compiler {
 	/**
+	 * Creates an instance of Compiler.
 	 * @param {string} context the compilation path
 	 * @param {WebpackOptions} options options
 	 */
@@ -183,9 +222,15 @@ class Compiler {
 			/** @type {AsyncSeriesHook<[Compilation]>} */
 			afterCompile: new AsyncSeriesHook(["compilation"]),
 
-			/** @type {AsyncSeriesHook<[]>} */
+			/**
+			 * @type {AsyncSeriesHook<[]>}
+			 * @since 5.67.0
+			 */
 			readRecords: new AsyncSeriesHook([]),
-			/** @type {AsyncSeriesHook<[]>} */
+			/**
+			 * @type {AsyncSeriesHook<[]>}
+			 * @since 5.67.0
+			 */
 			emitRecords: new AsyncSeriesHook([]),
 
 			/** @type {AsyncSeriesHook<[Compiler]>} */
@@ -196,7 +241,10 @@ class Compiler {
 			invalid: new SyncHook(["filename", "changeTime"]),
 			/** @type {SyncHook<[]>} */
 			watchClose: new SyncHook([]),
-			/** @type {AsyncSeriesHook<[]>} */
+			/**
+			 * @type {AsyncSeriesHook<[]>}
+			 * @since 5.17.0
+			 */
 			shutdown: new AsyncSeriesHook([]),
 
 			/** @type {SyncBailHook<[string, string, EXPECTED_ANY[] | undefined], true | void>} */
@@ -204,6 +252,11 @@ class Compiler {
 
 			// TODO the following hooks are weirdly located here
 			// TODO move them for webpack 5
+			/**
+			 * @type {SyncHook<[]>}
+			 * @since 5.106.0
+			 */
+			validate: new SyncHook([]),
 			/** @type {SyncHook<[]>} */
 			environment: new SyncHook([]),
 			/** @type {SyncHook<[]>} */
@@ -238,11 +291,11 @@ class Compiler {
 		/** @type {WatchFileSystem | null} */
 		this.watchFileSystem = null;
 
-		/** @type {string|null} */
+		/** @type {string | null} */
 		this.recordsInputPath = null;
-		/** @type {string|null} */
+		/** @type {string | null} */
 		this.recordsOutputPath = null;
-		/** @type {Record<string, TODO>} */
+		/** @type {Records} */
 		this.records = {};
 		/** @type {Set<string | RegExp>} */
 		this.managedPaths = new Set();
@@ -274,21 +327,28 @@ class Compiler {
 			browser: null,
 			webworker: null,
 			node: null,
+			deno: null,
+			bun: null,
 			nwjs: null,
-			electron: null
+			electron: null,
+			universal: null
 		};
 
 		this.options = options;
 
+		/** @type {string} */
 		this.context = context;
 
+		/** @type {RequestShortener} */
 		this.requestShortener = new RequestShortener(context, this.root);
 
+		/** @type {Cache} */
 		this.cache = new Cache();
 
 		/** @type {Map<Module, ModuleMemCachesItem> | undefined} */
 		this.moduleMemCaches = undefined;
 
+		/** @type {string} */
 		this.compilerPath = "";
 
 		/** @type {boolean} */
@@ -300,6 +360,7 @@ class Compiler {
 		/** @type {boolean} */
 		this.watchMode = false;
 
+		/** @type {boolean} */
 		this._backCompat = this.options.experiments.backCompat !== false;
 
 		/** @type {Compilation | undefined} */
@@ -325,6 +386,7 @@ class Compiler {
 	}
 
 	/**
+	 * Returns the cache facade instance.
 	 * @param {string} name cache name
 	 * @returns {CacheFacade} the cache facade instance
 	 */
@@ -337,6 +399,7 @@ class Compiler {
 	}
 
 	/**
+	 * Gets infrastructure logger.
 	 * @param {string | (() => string)} name name of the logger, or function called once to get the logger name
 	 * @returns {Logger} a logger with that name
 	 */
@@ -363,7 +426,7 @@ class Compiler {
 					this.infrastructureLogger(name, type, args);
 				}
 			},
-			childName => {
+			(childName) => {
 				if (typeof name === "function") {
 					if (typeof childName === "function") {
 						return this.getInfrastructureLogger(() => {
@@ -452,13 +515,34 @@ class Compiler {
 	}
 
 	/**
+	 * Release fields on a finished compilation that nothing reads after emit,
+	 * so the heap can shrink while user code still holds the Stats reference.
+	 * Recurses into child compilations. Stats output is preserved — only
+	 * codeGen byproducts are dropped.
+	 * @param {Compilation} compilation finished compilation to slim down
+	 * @returns {void}
+	 */
+	_releaseUnusedCompilationData(compilation) {
+		for (const child of compilation.children) {
+			this._releaseUnusedCompilationData(child);
+		}
+		// Rendered source per (module × runtime) — used only during seal/emit,
+		// never read by Stats, and not serialized to the persistent cache.
+		if (compilation.codeGenerationResults !== undefined) {
+			compilation.codeGenerationResults.map.clear();
+		}
+	}
+
+	/**
+	 * Returns a compiler watcher.
 	 * @param {WatchOptions} watchOptions the watcher's options
-	 * @param {RunCallback<Stats>} handler signals when the call finishes
-	 * @returns {Watching} a compiler watcher
+	 * @param {Callback<Stats>} handler signals when the call finishes
+	 * @returns {Watching | undefined} a compiler watcher
 	 */
 	watch(watchOptions, handler) {
 		if (this.running) {
-			return handler(new ConcurrentCompilationError());
+			handler(new ConcurrentCompilationError());
+			return;
 		}
 
 		this.running = true;
@@ -468,18 +552,21 @@ class Compiler {
 	}
 
 	/**
-	 * @param {RunCallback<Stats>} callback signals when the call finishes
+	 * Processes the provided stat.
+	 * @param {Callback<Stats>} callback signals when the call finishes
 	 * @returns {void}
 	 */
 	run(callback) {
 		if (this.running) {
-			return callback(new ConcurrentCompilationError());
+			callback(new ConcurrentCompilationError());
+			return;
 		}
 
 		/** @type {Logger | undefined} */
 		let logger;
 
 		/**
+		 * Processes the provided err.
 		 * @param {Error | null} err error
 		 * @param {Stats=} stats stats
 		 */
@@ -487,7 +574,6 @@ class Compiler {
 			if (logger) logger.time("beginIdle");
 			this.idle = true;
 			this.cache.beginIdle();
-			this.idle = true;
 			if (logger) logger.timeEnd("beginIdle");
 			this.running = false;
 			if (err) {
@@ -502,6 +588,7 @@ class Compiler {
 		this.running = true;
 
 		/**
+		 * Processes the provided err.
 		 * @param {Error | null} err error
 		 * @param {Compilation=} _compilation compilation
 		 * @returns {void}
@@ -515,7 +602,7 @@ class Compiler {
 				compilation.startTime = startTime;
 				compilation.endTime = Date.now();
 				const stats = new Stats(compilation);
-				this.hooks.done.callAsync(stats, err => {
+				this.hooks.done.callAsync(stats, (err) => {
 					if (err) return finalCallback(err);
 					return finalCallback(null, stats);
 				});
@@ -525,7 +612,7 @@ class Compiler {
 			process.nextTick(() => {
 				logger = compilation.getLogger("webpack.Compiler");
 				logger.time("emitAssets");
-				this.emitAssets(compilation, err => {
+				this.emitAssets(compilation, (err) => {
 					/** @type {Logger} */
 					(logger).timeEnd("emitAssets");
 					if (err) return finalCallback(err);
@@ -538,12 +625,12 @@ class Compiler {
 						/** @type {Logger} */
 						(logger).time("done hook");
 						const stats = new Stats(compilation);
-						this.hooks.done.callAsync(stats, err => {
+						this.hooks.done.callAsync(stats, (err) => {
 							/** @type {Logger} */
 							(logger).timeEnd("done hook");
 							if (err) return finalCallback(err);
 
-							this.hooks.additionalPass.callAsync(err => {
+							this.hooks.additionalPass.callAsync((err) => {
 								if (err) return finalCallback(err);
 								this.compile(onCompiled);
 							});
@@ -553,7 +640,7 @@ class Compiler {
 
 					/** @type {Logger} */
 					(logger).time("emitRecords");
-					this.emitRecords(err => {
+					this.emitRecords((err) => {
 						/** @type {Logger} */
 						(logger).timeEnd("emitRecords");
 						if (err) return finalCallback(err);
@@ -563,13 +650,13 @@ class Compiler {
 						/** @type {Logger} */
 						(logger).time("done hook");
 						const stats = new Stats(compilation);
-						this.hooks.done.callAsync(stats, err => {
+						this.hooks.done.callAsync(stats, (err) => {
 							/** @type {Logger} */
 							(logger).timeEnd("done hook");
 							if (err) return finalCallback(err);
 							this.cache.storeBuildDependencies(
 								compilation.buildDependencies,
-								err => {
+								(err) => {
 									if (err) return finalCallback(err);
 									return finalCallback(null, stats);
 								}
@@ -581,13 +668,13 @@ class Compiler {
 		};
 
 		const run = () => {
-			this.hooks.beforeRun.callAsync(this, err => {
+			this.hooks.beforeRun.callAsync(this, (err) => {
 				if (err) return finalCallback(err);
 
-				this.hooks.run.callAsync(this, err => {
+				this.hooks.run.callAsync(this, (err) => {
 					if (err) return finalCallback(err);
 
-					this.readRecords(err => {
+					this.readRecords((err) => {
 						if (err) return finalCallback(err);
 
 						this.compile(onCompiled);
@@ -597,7 +684,7 @@ class Compiler {
 		};
 
 		if (this.idle) {
-			this.cache.endIdle(err => {
+			this.cache.endIdle((err) => {
 				if (err) return finalCallback(err);
 
 				this.idle = false;
@@ -609,6 +696,7 @@ class Compiler {
 	}
 
 	/**
+	 * Processes the provided run as child callback.
 	 * @param {RunAsChildCallback} callback signals when the call finishes
 	 * @returns {void}
 	 */
@@ -616,6 +704,7 @@ class Compiler {
 		const startTime = Date.now();
 
 		/**
+		 * Processes the provided err.
 		 * @param {Error | null} err error
 		 * @param {Chunk[]=} entries entries
 		 * @param {Compilation=} compilation compilation
@@ -669,8 +758,9 @@ class Compiler {
 	}
 
 	/**
+	 * Processes the provided compilation.
 	 * @param {Compilation} compilation the compilation
-	 * @param {Callback<void>} callback signals when the assets are emitted
+	 * @param {ErrorCallback} callback signals when the assets are emitted
 	 * @returns {void}
 	 */
 	emitAssets(compilation, callback) {
@@ -678,10 +768,11 @@ class Compiler {
 		let outputPath;
 
 		/**
+		 * Processes the provided err.
 		 * @param {Error=} err error
 		 * @returns {void}
 		 */
-		const emitFiles = err => {
+		const emitFiles = (err) => {
 			if (err) return callback(err);
 
 			const assets = compilation.getAssets();
@@ -696,9 +787,9 @@ class Compiler {
 				({ name: file, source, info }, callback) => {
 					let targetFile = file;
 					let immutable = info.immutable;
-					const queryStringIdx = targetFile.indexOf("?");
-					if (queryStringIdx >= 0) {
-						targetFile = targetFile.slice(0, queryStringIdx);
+					const queryOrHashStringIdx = targetFile.search(/[?#]/);
+					if (queryOrHashStringIdx >= 0) {
+						targetFile = targetFile.slice(0, queryOrHashStringIdx);
 						// We may remove the hash, which is in the query string
 						// So we recheck if the file is immutable
 						// This doesn't cover all cases, but immutable is only a performance optimization anyway
@@ -710,18 +801,21 @@ class Compiler {
 								includesHash(targetFile, info.fullhash));
 					}
 
+					const fs = /** @type {OutputFileSystem} */ (this.outputFileSystem);
+					// A Windows drive-absolute targetFile is written as-is; joining it onto
+					// outputPath would produce an invalid path (e.g. C:\out\D:\file). A
+					// leading "/" stays relative to outputPath (e.g. entry name "/dir/x").
+					const targetPath = WINDOWS_ABS_PATH_REGEXP.test(targetFile)
+						? targetFile
+						: join(fs, outputPath, targetFile);
+
 					/**
+					 * Processes the provided err.
 					 * @param {Error=} err error
 					 * @returns {void}
 					 */
-					const writeOut = err => {
+					const writeOut = (err) => {
 						if (err) return callback(err);
-						const targetPath = join(
-							/** @type {OutputFileSystem} */
-							(this.outputFileSystem),
-							outputPath,
-							targetFile
-						);
 						allTargetPaths.add(targetPath);
 
 						// check if the target file has already been written by this Compiler
@@ -733,6 +827,7 @@ class Compiler {
 						if (cacheEntry === undefined) {
 							cacheEntry = {
 								sizeOnlySource: undefined,
+								/** @type {CacheEntry["writtenTo"]} */
 								writtenTo: new Map()
 							};
 							this._assetEmittingSourceCache.set(source, cacheEntry);
@@ -813,9 +908,9 @@ ${other}`);
 						 * @param {Buffer} content content to be written
 						 * @returns {void}
 						 */
-						const doWrite = content => {
+						const doWrite = (content) => {
 							/** @type {OutputFileSystem} */
-							(this.outputFileSystem).writeFile(targetPath, content, err => {
+							(this.outputFileSystem).writeFile(targetPath, content, (err) => {
 								if (err) return callback(err);
 
 								// information marker that the asset has been emitted
@@ -844,9 +939,10 @@ ${other}`);
 						};
 
 						/**
+						 * Updates with replacement source.
 						 * @param {number} size size
 						 */
-						const updateWithReplacementSource = size => {
+						const updateWithReplacementSource = (size) => {
 							updateFileWithReplacementSource(
 								file,
 								/** @type {CacheEntry} */ (cacheEntry),
@@ -866,6 +962,7 @@ ${other}`);
 						};
 
 						/**
+						 * Updates file with replacement source.
 						 * @param {string} file file
 						 * @param {CacheEntry} cacheEntry cache entry
 						 * @param {number} size size
@@ -887,10 +984,11 @@ ${other}`);
 						};
 
 						/**
+						 * Process existing file.
 						 * @param {IStats} stats stats
 						 * @returns {void}
 						 */
-						const processExistingFile = stats => {
+						const processExistingFile = (stats) => {
 							// skip emitting if it's already there and an immutable file
 							if (immutable) {
 								updateWithReplacementSource(/** @type {number} */ (stats.size));
@@ -983,14 +1081,13 @@ ${other}`);
 					};
 
 					if (/\/|\\/.test(targetFile)) {
-						const fs = /** @type {OutputFileSystem} */ (this.outputFileSystem);
-						const dir = dirname(fs, join(fs, outputPath, targetFile));
+						const dir = dirname(fs, targetPath);
 						mkdirp(fs, dir, writeOut);
 					} else {
 						writeOut();
 					}
 				},
-				err => {
+				(err) => {
 					// Clear map to free up memory
 					caseInsensitiveMap.clear();
 					if (err) {
@@ -1000,16 +1097,16 @@ ${other}`);
 
 					this._assetEmittingPreviousFiles = allTargetPaths;
 
-					this.hooks.afterEmit.callAsync(compilation, err => {
+					this.hooks.afterEmit.callAsync(compilation, (err) => {
 						if (err) return callback(err);
 
-						return callback();
+						return callback(null);
 					});
 				}
 			);
 		};
 
-		this.hooks.emit.callAsync(compilation, err => {
+		this.hooks.emit.callAsync(compilation, (err) => {
 			if (err) return callback(err);
 			outputPath = compilation.getPath(this.outputPath, {});
 			mkdirp(
@@ -1021,7 +1118,8 @@ ${other}`);
 	}
 
 	/**
-	 * @param {Callback<void>} callback signals when the call finishes
+	 * Processes the provided error callback.
+	 * @param {ErrorCallback} callback signals when the call finishes
 	 * @returns {void}
 	 */
 	emitRecords(callback) {
@@ -1029,10 +1127,10 @@ ${other}`);
 			if (this.recordsOutputPath) {
 				asyncLib.parallel(
 					[
-						cb => this.hooks.emitRecords.callAsync(cb),
+						(cb) => this.hooks.emitRecords.callAsync(cb),
 						this._emitRecords.bind(this)
 					],
-					err => callback(err)
+					(err) => callback(/** @type {Error | null} */ (err))
 				);
 			} else {
 				this.hooks.emitRecords.callAsync(callback);
@@ -1040,12 +1138,13 @@ ${other}`);
 		} else if (this.recordsOutputPath) {
 			this._emitRecords(callback);
 		} else {
-			callback();
+			callback(null);
 		}
 	}
 
 	/**
-	 * @param {Callback<void>} callback signals when the call finishes
+	 * Processes the provided error callback.
+	 * @param {ErrorCallback} callback signals when the call finishes
 	 * @returns {void}
 	 */
 	_emitRecords(callback) {
@@ -1075,8 +1174,10 @@ ${other}`);
 		};
 
 		const recordsOutputPathDirectory = dirname(
-			/** @type {OutputFileSystem} */ (this.outputFileSystem),
-			/** @type {string} */ (this.recordsOutputPath)
+			/** @type {OutputFileSystem} */
+			(this.outputFileSystem),
+			/** @type {string} */
+			(this.recordsOutputPath)
 		);
 		if (!recordsOutputPathDirectory) {
 			return writeFile();
@@ -1084,7 +1185,7 @@ ${other}`);
 		mkdirp(
 			/** @type {OutputFileSystem} */ (this.outputFileSystem),
 			recordsOutputPathDirectory,
-			err => {
+			(err) => {
 				if (err) return callback(err);
 				writeFile();
 			}
@@ -1092,7 +1193,8 @@ ${other}`);
 	}
 
 	/**
-	 * @param {Callback<void>} callback signals when the call finishes
+	 * Processes the provided error callback.
+	 * @param {ErrorCallback} callback signals when the call finishes
 	 * @returns {void}
 	 */
 	readRecords(callback) {
@@ -1100,10 +1202,10 @@ ${other}`);
 			if (this.recordsInputPath) {
 				asyncLib.parallel(
 					[
-						cb => this.hooks.readRecords.callAsync(cb),
+						(cb) => this.hooks.readRecords.callAsync(cb),
 						this._readRecords.bind(this)
 					],
-					err => callback(err)
+					(err) => callback(/** @type {Error | null} */ (err))
 				);
 			} else {
 				this.records = {};
@@ -1113,55 +1215,60 @@ ${other}`);
 			this._readRecords(callback);
 		} else {
 			this.records = {};
-			callback();
+			callback(null);
 		}
 	}
 
 	/**
-	 * @param {Callback<void>} callback signals when the call finishes
+	 * Processes the provided error callback.
+	 * @param {ErrorCallback} callback signals when the call finishes
 	 * @returns {void}
 	 */
 	_readRecords(callback) {
 		if (!this.recordsInputPath) {
 			this.records = {};
-			return callback();
+			return callback(null);
 		}
 		/** @type {InputFileSystem} */
-		(this.inputFileSystem).stat(this.recordsInputPath, err => {
+		(this.inputFileSystem).stat(this.recordsInputPath, (err) => {
 			// It doesn't exist
 			// We can ignore this.
-			if (err) return callback();
+			if (err) return callback(null);
 
 			/** @type {InputFileSystem} */
 			(this.inputFileSystem).readFile(
-				/** @type {string} */ (this.recordsInputPath),
+				/** @type {string} */
+				(this.recordsInputPath),
 				(err, content) => {
 					if (err) return callback(err);
 
 					try {
-						this.records = parseJson(
-							/** @type {Buffer} */ (content).toString("utf-8")
-						);
+						this.records =
+							/** @type {Records} */
+							(parseJson(/** @type {Buffer} */ (content).toString("utf8")));
 					} catch (parseErr) {
 						return callback(
 							new Error(
-								`Cannot parse records: ${/** @type {Error} */ (parseErr).message}`
+								`Cannot parse records: ${
+									/** @type {Error} */ (parseErr).message
+								}`
 							)
 						);
 					}
 
-					return callback();
+					return callback(null);
 				}
 			);
 		});
 	}
 
 	/**
+	 * Creates a child compiler.
 	 * @param {Compilation} compilation the compilation
 	 * @param {string} compilerName the compiler's name
 	 * @param {number} compilerIndex the compiler's index
 	 * @param {Partial<OutputOptions>=} outputOptions the output options
-	 * @param {WebpackPluginInstance[]=} plugins the plugins to apply
+	 * @param {Plugins=} plugins the plugins to apply
 	 * @returns {Compiler} a child compiler
 	 */
 	createChildCompiler(
@@ -1201,7 +1308,9 @@ ${other}`);
 			this.records[relativeCompilerName] = [];
 		}
 		if (this.records[relativeCompilerName][compilerIndex]) {
-			childCompiler.records = this.records[relativeCompilerName][compilerIndex];
+			childCompiler.records =
+				/** @type {Records} */
+				(this.records[relativeCompilerName][compilerIndex]);
 		} else {
 			this.records[relativeCompilerName].push((childCompiler.records = {}));
 		}
@@ -1210,7 +1319,10 @@ ${other}`);
 		childCompiler.root = this.root;
 		if (Array.isArray(plugins)) {
 			for (const plugin of plugins) {
-				if (plugin) {
+				if (typeof plugin === "function") {
+					/** @type {WebpackPluginFunction} */
+					(plugin).call(childCompiler, childCompiler);
+				} else if (plugin) {
 					plugin.apply(childCompiler);
 				}
 			}
@@ -1231,11 +1343,12 @@ ${other}`);
 				childCompiler.hooks[
 					/** @type {keyof Compiler["hooks"]} */
 					(name)
-				].taps =
-					this.hooks[
+				].taps = [
+					...this.hooks[
 						/** @type {keyof Compiler["hooks"]} */
 						(name)
-					].taps.slice();
+					].taps
+				];
 			}
 		}
 
@@ -1253,6 +1366,7 @@ ${other}`);
 	}
 
 	/**
+	 * Creates a compilation.
 	 * @param {CompilationParams} params the compilation parameters
 	 * @returns {Compilation} compilation
 	 */
@@ -1262,6 +1376,7 @@ ${other}`);
 	}
 
 	/**
+	 * Returns the created compilation.
 	 * @param {CompilationParams} params the compilation parameters
 	 * @returns {Compilation} the created compilation
 	 */
@@ -1281,8 +1396,7 @@ ${other}`);
 			fs: /** @type {InputFileSystem} */ (this.inputFileSystem),
 			resolverFactory: this.resolverFactory,
 			options: this.options.module,
-			associatedObjectForCache: this.root,
-			layers: this.options.experiments.layers
+			associatedObjectForCache: this.root
 		});
 		this._lastNormalModuleFactory = normalModuleFactory;
 		this.hooks.normalModuleFactory.call(normalModuleFactory);
@@ -1304,12 +1418,13 @@ ${other}`);
 	}
 
 	/**
-	 * @param {RunCallback<Compilation>} callback signals when the compilation finishes
+	 * Processes the provided compilation.
+	 * @param {Callback<Compilation>} callback signals when the compilation finishes
 	 * @returns {void}
 	 */
 	compile(callback) {
 		const params = this.newCompilationParams();
-		this.hooks.beforeCompile.callAsync(params, err => {
+		this.hooks.beforeCompile.callAsync(params, (err) => {
 			if (err) return callback(err);
 
 			this.hooks.compile.call(params);
@@ -1319,28 +1434,28 @@ ${other}`);
 			const logger = compilation.getLogger("webpack.Compiler");
 
 			logger.time("make hook");
-			this.hooks.make.callAsync(compilation, err => {
+			this.hooks.make.callAsync(compilation, (err) => {
 				logger.timeEnd("make hook");
 				if (err) return callback(err);
 
 				logger.time("finish make hook");
-				this.hooks.finishMake.callAsync(compilation, err => {
+				this.hooks.finishMake.callAsync(compilation, (err) => {
 					logger.timeEnd("finish make hook");
 					if (err) return callback(err);
 
 					process.nextTick(() => {
 						logger.time("finish compilation");
-						compilation.finish(err => {
+						compilation.finish((err) => {
 							logger.timeEnd("finish compilation");
 							if (err) return callback(err);
 
 							logger.time("seal compilation");
-							compilation.seal(err => {
+							compilation.seal((err) => {
 								logger.timeEnd("seal compilation");
 								if (err) return callback(err);
 
 								logger.time("afterCompile hook");
-								this.hooks.afterCompile.callAsync(compilation, err => {
+								this.hooks.afterCompile.callAsync(compilation, (err) => {
 									logger.timeEnd("afterCompile hook");
 									if (err) return callback(err);
 
@@ -1355,26 +1470,75 @@ ${other}`);
 	}
 
 	/**
-	 * @param {RunCallback<void>} callback signals when the compiler closes
+	 * Processes the provided error callback.
+	 * @param {ErrorCallback} callback signals when the compiler closes
 	 * @returns {void}
 	 */
 	close(callback) {
 		if (this.watching) {
 			// When there is still an active watching, close this first
-			this.watching.close(err => {
+			this.watching.close((_err) => {
 				this.close(callback);
 			});
 			return;
 		}
-		this.hooks.shutdown.callAsync(err => {
+		this.hooks.shutdown.callAsync((err) => {
 			if (err) return callback(err);
-			// Get rid of reference to last compilation to avoid leaking memory
-			// We can't run this._cleanupLastCompilation() as the Stats to this compilation
-			// might be still in use. We try to get rid of the reference to the cache instead.
+			// Defer a microtask so a close() made inside the run callback can't
+			// release codeGenerationResults before afterDone fires on the same stack.
+			const lastCompilation = this._lastCompilation;
+			if (lastCompilation !== undefined) {
+				Promise.resolve().then(() => {
+					this._releaseUnusedCompilationData(lastCompilation);
+				});
+			}
 			this._lastCompilation = undefined;
 			this._lastNormalModuleFactory = undefined;
 			this.cache.shutdown(callback);
 		});
+	}
+
+	/**
+	 * Schema validation function with optional pre-compiled check
+	 * @template {EXPECTED_OBJECT | EXPECTED_OBJECT[]} [T=EXPECTED_OBJECT]
+	 * @param {Schema | (() => Schema)} schema schema
+	 * @param {T} value value
+	 * @param {ValidationErrorConfiguration=} options options
+	 * @param {((value: T) => boolean)=} check options
+	 */
+	validate(schema, value, options, check) {
+		// Avoid validation at all when disabled
+		if (this.options.validate === false) {
+			return;
+		}
+
+		/**
+		 * Returns schema.
+		 * @returns {Schema} schema
+		 */
+		const getSchema = () => {
+			if (typeof schema === "function") {
+				return schema();
+			}
+
+			return schema;
+		};
+
+		// // If we have precompiled schema let's use it
+		if (check) {
+			if (!check(value)) {
+				getValidate()(getSchema(), value, options);
+				require("util").deprecate(
+					() => {},
+					"webpack bug: Pre-compiled schema reports error while real schema is happy. This has performance drawbacks.",
+					"DEP_WEBPACK_PRE_COMPILED_SCHEMA_INVALID"
+				)();
+			}
+			return;
+		}
+
+		// Otherwise let's standard validation
+		getValidate()(getSchema(), value, options);
 	}
 }
 

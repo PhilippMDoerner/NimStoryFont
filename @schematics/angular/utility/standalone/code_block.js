@@ -11,7 +11,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CodeBlock = void 0;
-const typescript_1 = __importDefault(require("../../third_party/github.com/Microsoft/TypeScript/lib/typescript"));
+const typescript_1 = __importDefault(require("typescript"));
 const ast_utils_1 = require("../ast-utils");
 const change_1 = require("../change");
 /** Counter used to generate unique IDs. */
@@ -78,3 +78,4 @@ class CodeBlock {
     }
 }
 exports.CodeBlock = CodeBlock;
+//# sourceMappingURL=code_block.js.map

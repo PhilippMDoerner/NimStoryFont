@@ -40,3 +40,4 @@ function createVirtualModulePlugin(options) {
         },
     };
 }
+//# sourceMappingURL=virtual-module-plugin.js.map

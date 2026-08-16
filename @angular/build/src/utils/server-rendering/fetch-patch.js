@@ -61,3 +61,4 @@ function patchFetchToLoadInMemoryAssets(baseURL) {
     };
     globalThis.fetch = patchedFetch;
 }
+//# sourceMappingURL=fetch-patch.js.map

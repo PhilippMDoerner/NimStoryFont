@@ -1,0 +1,30 @@
+:host {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: clip;
+  --handle-height: 30px;
+}
+
+.handle {
+  position: absolute;
+  right: 0px;
+  bottom: 0px;
+
+  font-size: var(--handle-height);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: grab;
+
+  &:active {
+    cursor: grabbing;
+  }
+
+  &__icon {
+    color: var(--bs-gray);
+    height: var(--handle-height);
+    width: var(--handle-height);
+    transform: rotate(-45deg) translate(0, 50%);
+  }
+}

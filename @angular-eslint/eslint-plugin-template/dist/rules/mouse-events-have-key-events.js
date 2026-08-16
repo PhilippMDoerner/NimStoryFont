@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RULE_NAME = void 0;
+exports.RULE_DOCS_EXTENSION = exports.RULE_NAME = void 0;
 const utils_1 = require("@angular-eslint/utils");
 const create_eslint_rule_1 = require("../utils/create-eslint-rule");
 const get_dom_elements_1 = require("../utils/get-dom-elements");
@@ -50,3 +50,6 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
         }), {});
     },
 });
+exports.RULE_DOCS_EXTENSION = {
+    rationale: 'Elements that show or hide content on mouse hover (using mouseover and mouseout events) must also be accessible to keyboard users. When mouseover is used, there must be an equivalent focus event; when mouseout is used, there must be an equivalent blur event. This ensures that tooltips, dropdown menus, and other hover-triggered content can be accessed by users who navigate with keyboards instead of mice. For example, a tooltip that appears on mouseover should also appear when the element receives keyboard focus. This is essential for users with motor disabilities who cannot use a mouse, as well as screen reader users. This is a WCAG Level A requirement for keyboard accessibility.',
+};

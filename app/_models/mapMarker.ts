@@ -1,4 +1,4 @@
-import { Icon } from 'src/app/design/atoms/_models/icon';
+import { Icon } from '../design/atoms/_models/icon';
 import { ApiObject } from './article';
 import { MapMarkerType } from './mapMarkerType';
 

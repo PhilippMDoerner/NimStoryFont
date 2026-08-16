@@ -4,9 +4,9 @@ import {
   computed,
   inject,
 } from '@angular/core';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { DiaryentryComponent } from 'src/app/design/templates/diaryentry/diaryentry.component';
-import { GlobalStore } from 'src/app/global.store';
+import { RoutingService } from '../../../_services/routing.service';
+import { DiaryentryComponent } from '../../../design/templates/diaryentry/diaryentry.component';
+import { GlobalStore } from '../../../global.store';
 import { DiaryentryPageStore } from './diaryentry-page.store';
 
 @Component({
@@ -17,10 +17,10 @@ import { DiaryentryPageStore } from './diaryentry-page.store';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DiaryentryPageComponent {
-  globalStore = inject(GlobalStore);
-  store = inject(DiaryentryPageStore);
-  routingService = inject(RoutingService);
-  isPageLoading = computed(() => this.store.diaryentry() == null);
+  readonly globalStore = inject(GlobalStore);
+  readonly store = inject(DiaryentryPageStore);
+  readonly routingService = inject(RoutingService);
+  readonly isPageLoading = computed(() => this.store.diaryentry() == null);
 
   constructor() {
     this.globalStore.trackIsPageLoading(this.isPageLoading);

@@ -8,33 +8,38 @@
 const RuntimeGlobals = require("../RuntimeGlobals");
 const { equals } = require("../util/ArrayHelpers");
 const makeSerializable = require("../util/makeSerializable");
-const propertyAccess = require("../util/propertyAccess");
+const { propertyAccess } = require("../util/property");
+const { getConcatenatedExportAccess } = require("./CommonJsDependencyHelpers");
 const NullDependency = require("./NullDependency");
 
 /** @typedef {import("webpack-sources").ReplaceSource} ReplaceSource */
 /** @typedef {import("../Dependency")} Dependency */
-/** @typedef {import("../Dependency").ExportsSpec} ExportsSpec */
-/** @typedef {import("../Dependency").ReferencedExport} ReferencedExport */
+/** @typedef {import("../Dependency").ReferencedExports} ReferencedExports */
 /** @typedef {import("../DependencyTemplate").DependencyTemplateContext} DependencyTemplateContext */
 /** @typedef {import("../ModuleGraph")} ModuleGraph */
+/** @typedef {import("../ExportsInfo").ExportInfoName} ExportInfoName */
 /** @typedef {import("../javascript/JavascriptParser").Range} Range */
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext} ObjectDeserializerContext */
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext} ObjectSerializerContext */
 /** @typedef {import("../util/runtime").RuntimeSpec} RuntimeSpec */
 /** @typedef {import("./CommonJsDependencyHelpers").CommonJSDependencyBaseKeywords} CommonJSDependencyBaseKeywords */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext<[Range, CommonJSDependencyBaseKeywords, ExportInfoName[], boolean]>} ObjectDeserializerContext */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext<[Range, CommonJSDependencyBaseKeywords, ExportInfoName[], boolean]>} ObjectSerializerContext */
 
 class CommonJsSelfReferenceDependency extends NullDependency {
 	/**
+	 * Creates an instance of CommonJsSelfReferenceDependency.
 	 * @param {Range} range range
 	 * @param {CommonJSDependencyBaseKeywords} base base
-	 * @param {string[]} names names
+	 * @param {ExportInfoName[]} names names
 	 * @param {boolean} call is a call
 	 */
 	constructor(range, base, names, call) {
 		super();
 		this.range = range;
+		/** @type {CommonJSDependencyBaseKeywords} */
 		this.base = base;
+		/** @type {string[]} */
 		this.names = names;
+		/** @type {boolean} */
 		this.call = call;
 	}
 
@@ -47,6 +52,7 @@ class CommonJsSelfReferenceDependency extends NullDependency {
 	}
 
 	/**
+	 * Returns an identifier to merge equal requests.
 	 * @returns {string | null} an identifier to merge equal requests
 	 */
 	getResourceIdentifier() {
@@ -57,34 +63,38 @@ class CommonJsSelfReferenceDependency extends NullDependency {
 	 * Returns list of exports referenced by this dependency
 	 * @param {ModuleGraph} moduleGraph module graph
 	 * @param {RuntimeSpec} runtime the runtime for which the module is analysed
-	 * @returns {(string[] | ReferencedExport)[]} referenced exports
+	 * @returns {ReferencedExports} referenced exports
 	 */
 	getReferencedExports(moduleGraph, runtime) {
 		return [this.call ? this.names.slice(0, -1) : this.names];
 	}
 
 	/**
+	 * Serializes this instance into the provided serializer context.
 	 * @param {ObjectSerializerContext} context context
 	 */
 	serialize(context) {
-		const { write } = context;
-		write(this.range);
-		write(this.base);
-		write(this.names);
-		write(this.call);
+		context
+			.write(this.range)
+			.write(this.base)
+			.write(this.names)
+			.write(this.call);
 		super.serialize(context);
 	}
 
 	/**
+	 * Restores this instance from the provided deserializer context.
 	 * @param {ObjectDeserializerContext} context context
 	 */
 	deserialize(context) {
-		const { read } = context;
-		this.range = read();
-		this.base = read();
-		this.names = read();
-		this.call = read();
-		super.deserialize(context);
+		this.range = context.read();
+		const c1 = context.rest;
+		this.base = c1.read();
+		const c2 = c1.rest;
+		this.names = c2.read();
+		const c3 = c2.rest;
+		this.call = c3.read();
+		super.deserialize(c3.rest);
 	}
 }
 
@@ -97,6 +107,7 @@ CommonJsSelfReferenceDependency.Template = class CommonJsSelfReferenceDependency
 	NullDependency.Template
 ) {
 	/**
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Dependency} dependency the dependency for which the template should be applied
 	 * @param {ReplaceSource} source the current replace source which can be modified
 	 * @param {DependencyTemplateContext} templateContext the context object
@@ -105,19 +116,53 @@ CommonJsSelfReferenceDependency.Template = class CommonJsSelfReferenceDependency
 	apply(
 		dependency,
 		source,
-		{ module, moduleGraph, runtime, runtimeRequirements }
+		{
+			module,
+			moduleGraph,
+			runtime,
+			runtimeRequirements,
+			initFragments,
+			concatenationScope
+		}
 	) {
 		const dep = /** @type {CommonJsSelfReferenceDependency} */ (dependency);
+		// CJS exports are never inlined
 		const used =
 			dep.names.length === 0
 				? dep.names
-				: moduleGraph.getExportsInfo(module).getUsedName(dep.names, runtime);
+				: /** @type {string | string[] | false} */ (
+						moduleGraph.getExportsInfo(module).getUsedName(dep.names, runtime)
+					);
 		if (!used) {
 			throw new Error(
 				"Self-reference dependency has unused export name: This should not happen"
 			);
 		}
 
+		if (concatenationScope) {
+			// eligibility (non-empty names, exports/module.exports base) is enforced
+			// by JavascriptGenerator.getConcatenationBailoutReason
+			if (
+				dep.names.length === 0 ||
+				(dep.base !== "exports" && dep.base !== "module.exports")
+			) {
+				throw new Error(
+					`Unsupported self-reference ${dep.base} in concatenated CommonJS module`
+				);
+			}
+			source.replace(
+				dep.range[0],
+				dep.range[1] - 1,
+				getConcatenatedExportAccess(
+					concatenationScope,
+					initFragments,
+					dep.names
+				)
+			);
+			return;
+		}
+
+		/** @type {string} */
 		let base;
 		switch (dep.base) {
 			case "exports":
@@ -147,7 +192,7 @@ CommonJsSelfReferenceDependency.Template = class CommonJsSelfReferenceDependency
 		source.replace(
 			dep.range[0],
 			dep.range[1] - 1,
-			`${base}${propertyAccess(used)}`
+			`${base}${propertyAccess(/** @type {string[]} */ (used))}`
 		);
 	}
 };

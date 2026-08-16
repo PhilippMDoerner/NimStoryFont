@@ -97,7 +97,7 @@ exports.default = (0, util_1.createRule)({
             }
         }
         function getMapSpreadSuggestions(node, type) {
-            const types = tsutils.unionTypeParts(type);
+            const types = tsutils.unionConstituents(type);
             if (types.some(t => !isMap(services.program, t))) {
                 return null;
             }
@@ -127,11 +127,11 @@ exports.default = (0, util_1.createRule)({
             ];
         }
         function getPromiseSpreadSuggestions(node) {
-            const isHighPrecendence = (0, util_1.isHigherPrecedenceThanAwait)(services.esTreeNodeToTSNodeMap.get(node));
+            const isHighPrecedence = (0, util_1.isHigherPrecedenceThanAwait)(services.esTreeNodeToTSNodeMap.get(node));
             return [
                 {
                     messageId: 'addAwait',
-                    fix: fixer => isHighPrecendence
+                    fix: fixer => isHighPrecedence
                         ? fixer.insertTextBefore(node, 'await ')
                         : [
                             fixer.insertTextBefore(node, 'await ('),
@@ -208,7 +208,7 @@ exports.default = (0, util_1.createRule)({
 });
 function isIterable(type, checker) {
     return tsutils
-        .typeParts(type)
+        .typeConstituents(type)
         .some(t => !!tsutils.getWellKnownSymbolPropertyOfType(t, 'iterator', checker));
 }
 function isArray(checker, type) {

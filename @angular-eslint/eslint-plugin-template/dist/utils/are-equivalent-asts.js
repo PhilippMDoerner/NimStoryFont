@@ -4,11 +4,10 @@ exports.areEquivalentASTs = areEquivalentASTs;
 const bundled_angular_compiler_1 = require("@angular-eslint/bundled-angular-compiler");
 function areEquivalentASTs(a, b) {
     // An `ImplicitReceiver` is equivalent to a `ThisReceiver` because
-    // `this.foo` and `foo` mean the same thing. A `ThisReceiver` extends
-    // `ImplicitReceiver` so before we check if the two ASTs are the same
-    // type, we can check if they are both some sort of `ImplicitReceiver`.
-    if (a instanceof bundled_angular_compiler_1.ImplicitReceiver) {
-        return b instanceof bundled_angular_compiler_1.ImplicitReceiver;
+    // `this.foo` and `foo` mean the same thing. In Angular v21.1.0+,
+    // `ThisReceiver` is a separate class, so we check for both types.
+    if (a instanceof bundled_angular_compiler_1.ImplicitReceiver || a instanceof bundled_angular_compiler_1.ThisReceiver) {
+        return b instanceof bundled_angular_compiler_1.ImplicitReceiver || b instanceof bundled_angular_compiler_1.ThisReceiver;
     }
     // Bail out if the two ASTs are not the same type.
     if (a.constructor !== b.constructor) {
@@ -73,7 +72,21 @@ function areEquivalentASTs(a, b) {
             // the `quoted` property because a quoted key with the same value as
             // an unquoted key is the same key. Likewise, the `isShorthandInitialized`
             // property doesn't affect the name of the key.
-            a.keys.every((aKey, index) => aKey.key === b.keys[index].key) &&
+            a.keys.every((aKey, index) => {
+                const bKey = b.keys[index];
+                // Handle spread keys - they match if both are spread keys
+                if (aKey.kind === 'spread' && bKey.kind === 'spread') {
+                    return true;
+                }
+                // If one is spread and the other isn't, they don't match
+                if (aKey.kind !== bKey.kind) {
+                    return false;
+                }
+                // Both are property keys, compare the key values
+                return (aKey.kind === 'property' &&
+                    bKey.kind === 'property' &&
+                    aKey.key === bKey.key);
+            }) &&
             areEquivalentASTArrays(a.values, b.values));
     }
     // Pipes and interpolations are next.
@@ -93,16 +106,6 @@ function areEquivalentASTs(a, b) {
     }
     if (a instanceof bundled_angular_compiler_1.Chain && b instanceof bundled_angular_compiler_1.Chain) {
         return areEquivalentASTArrays(a.expressions, b.expressions);
-    }
-    if (a instanceof bundled_angular_compiler_1.PropertyWrite && b instanceof bundled_angular_compiler_1.PropertyWrite) {
-        return (a.name === b.name &&
-            areEquivalentASTs(a.receiver, b.receiver) &&
-            areEquivalentASTs(a.value, b.value));
-    }
-    if (a instanceof bundled_angular_compiler_1.KeyedWrite && b instanceof bundled_angular_compiler_1.KeyedWrite) {
-        return (areEquivalentASTs(a.key, b.key) &&
-            areEquivalentASTs(a.receiver, b.receiver) &&
-            areEquivalentASTs(a.value, b.value));
     }
     if (a instanceof bundled_angular_compiler_1.TypeofExpression && b instanceof bundled_angular_compiler_1.TypeofExpression) {
         return areEquivalentASTs(a.expression, b.expression);

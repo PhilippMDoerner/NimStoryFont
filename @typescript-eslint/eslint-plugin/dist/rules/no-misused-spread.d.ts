@@ -6,6 +6,7 @@ type Options = [
     }
 ];
 type MessageIds = 'addAwait' | 'noArraySpreadInObject' | 'noClassDeclarationSpreadInObject' | 'noClassInstanceSpreadInObject' | 'noFunctionSpreadInObject' | 'noIterableSpreadInObject' | 'noMapSpreadInObject' | 'noPromiseSpreadInObject' | 'noStringSpread' | 'replaceMapSpreadInObject';
-declare const _default: TSESLint.RuleModule<MessageIds, Options, import("../../rules").ESLintPluginDocs, TSESLint.RuleListener>;
+declare const _default: TSESLint.RuleModule<MessageIds, Options, import("../../rules").ESLintPluginDocs, TSESLint.RuleListener> & {
+    name: string;
+};
 export default _default;
-//# sourceMappingURL=no-misused-spread.d.ts.map

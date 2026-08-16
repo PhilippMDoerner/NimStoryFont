@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { OverviewItem } from 'src/app/_models/overview';
-import { QuoteConnection } from 'src/app/_models/quote';
+import { OverviewItem } from '../../_models/overview';
+import { QuoteConnection } from '../../_models/quote';
 import { BaseService } from '../base.service';
 import { CreateDeleteService } from '../service.interfaces';
 

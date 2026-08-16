@@ -1,0 +1,123 @@
+{
+  "name": "@angular/aria",
+  "version": "22.1.1",
+  "description": "Angular Aria",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/angular/components.git"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/angular/components/issues"
+  },
+  "homepage": "https://github.com/angular/components#readme",
+  "peerDependencies": {
+    "@angular/cdk": "22.1.1",
+    "@angular/core": "^22.0.0 || ^23.0.0"
+  },
+  "devDependencies": {
+    "@angular/cdk": "workspace:*"
+  },
+  "dependencies": {
+    "tslib": "^2.3.0"
+  },
+  "angular": {
+    "examples": {
+      "format": "sqlite",
+      "path": "./resources/code-examples.db"
+    }
+  },
+  "ng-update": {
+    "packageGroup": [
+      "@angular/material",
+      "@angular/aria",
+      "@angular/cdk",
+      "@angular/cdk-experimental",
+      "@angular/material-experimental",
+      "@angular/material-luxon-adapter",
+      "@angular/material-moment-adapter",
+      "@angular/material-date-fns-adapter"
+    ]
+  },
+  "sideEffects": false,
+  "module": "./fesm2022/aria.mjs",
+  "typings": "./types/aria.d.ts",
+  "type": "module",
+  "exports": {
+    "./package.json": {
+      "default": "./package.json"
+    },
+    ".": {
+      "types": "./types/aria.d.ts",
+      "default": "./fesm2022/aria.mjs"
+    },
+    "./accordion": {
+      "types": "./types/accordion.d.ts",
+      "default": "./fesm2022/accordion.mjs"
+    },
+    "./accordion/testing": {
+      "types": "./types/accordion-testing.d.ts",
+      "default": "./fesm2022/accordion-testing.mjs"
+    },
+    "./combobox": {
+      "types": "./types/combobox.d.ts",
+      "default": "./fesm2022/combobox.mjs"
+    },
+    "./combobox/testing": {
+      "types": "./types/combobox-testing.d.ts",
+      "default": "./fesm2022/combobox-testing.mjs"
+    },
+    "./grid": {
+      "types": "./types/grid.d.ts",
+      "default": "./fesm2022/grid.mjs"
+    },
+    "./grid/testing": {
+      "types": "./types/grid-testing.d.ts",
+      "default": "./fesm2022/grid-testing.mjs"
+    },
+    "./listbox": {
+      "types": "./types/listbox.d.ts",
+      "default": "./fesm2022/listbox.mjs"
+    },
+    "./listbox/testing": {
+      "types": "./types/listbox-testing.d.ts",
+      "default": "./fesm2022/listbox-testing.mjs"
+    },
+    "./menu": {
+      "types": "./types/menu.d.ts",
+      "default": "./fesm2022/menu.mjs"
+    },
+    "./menu/testing": {
+      "types": "./types/menu-testing.d.ts",
+      "default": "./fesm2022/menu-testing.mjs"
+    },
+    "./private": {
+      "types": "./types/private.d.ts",
+      "default": "./fesm2022/private.mjs"
+    },
+    "./tabs": {
+      "types": "./types/tabs.d.ts",
+      "default": "./fesm2022/tabs.mjs"
+    },
+    "./tabs/testing": {
+      "types": "./types/tabs-testing.d.ts",
+      "default": "./fesm2022/tabs-testing.mjs"
+    },
+    "./toolbar": {
+      "types": "./types/toolbar.d.ts",
+      "default": "./fesm2022/toolbar.mjs"
+    },
+    "./toolbar/testing": {
+      "types": "./types/toolbar-testing.d.ts",
+      "default": "./fesm2022/toolbar-testing.mjs"
+    },
+    "./tree": {
+      "types": "./types/tree.d.ts",
+      "default": "./fesm2022/tree.mjs"
+    },
+    "./tree/testing": {
+      "types": "./types/tree-testing.d.ts",
+      "default": "./fesm2022/tree-testing.mjs"
+    }
+  }
+}

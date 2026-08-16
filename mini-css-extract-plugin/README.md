@@ -15,7 +15,7 @@
 
 # mini-css-extract-plugin
 
-This plugin extracts CSS into separate files. It creates a CSS file per JS file which contains CSS. It supports On-Demand-Loading of CSS and SourceMaps.
+This plugin extracts CSS into separate files. It creates a CSS file for each JS file that contains CSS. It supports On-Demand-Loading of CSS and SourceMaps.
 
 It builds on top of a new webpack v5 feature and requires webpack 5 to work.
 
@@ -46,9 +46,9 @@ or
 pnpm add -D mini-css-extract-plugin
 ```
 
-It's recommended to combine `mini-css-extract-plugin` with the [`css-loader`](https://github.com/webpack-contrib/css-loader)
+It's recommended to combine `mini-css-extract-plugin` with the [`css-loader`](https://github.com/webpack/css-loader)
 
-Then add the loader and the plugin to your `webpack` config. For example:
+Then add the loader and the plugin to your `webpack` configuration. For example:
 
 **style.css**
 
@@ -84,11 +84,11 @@ module.exports = {
 
 > [!WARNING]
 >
-> Note that if you import CSS from your webpack entrypoint or import styles in the [initial](https://webpack.js.org/concepts/under-the-hood/#chunks) chunk, `mini-css-extract-plugin` will not load this CSS into the page. Please use [`html-webpack-plugin`](https://github.com/jantimon/html-webpack-plugin) for automatic generation `link` tags or create `index.html` file with `link` tag.
+> Note that if you import CSS from your webpack entrypoint or import styles in the [initial](https://webpack.js.org/concepts/under-the-hood/#chunks) chunk, `mini-css-extract-plugin` will not load this CSS into the page automatically. Please use [`html-webpack-plugin`](https://github.com/jantimon/html-webpack-plugin) for automatic generation `link` tags or manually include a `<link>` tag in your `index.html` file.
 
 > [!WARNING]
 >
-> Source maps works only for `source-map`/`nosources-source-map`/`hidden-nosources-source-map`/`hidden-source-map` values because CSS only supports source maps with the `sourceMappingURL` comment (i.e. `//# sourceMappingURL=style.css.map`). If you need set `devtool` to another value you can enable source maps generation for extracted CSS using [`sourceMap: true`](https://github.com/webpack-contrib/css-loader#sourcemap) for `css-loader`.
+> Source maps works only for `source-map`/`nosources-source-map`/`hidden-nosources-source-map`/`hidden-source-map` values because CSS only supports source maps with the `sourceMappingURL` comment (i.e. `//# sourceMappingURL=style.css.map`). If you need set `devtool` to another value you can enable source maps generation for extracted CSS using [`sourceMap: true`](https://github.com/webpack/css-loader#sourcemap) for `css-loader`.
 
 ## Options
 
@@ -129,7 +129,7 @@ type chunkFilename =
   | ((pathData: PathData, assetInfo?: AssetInfo) => string);
 ```
 
-Default: `based on filename`
+Default: `Based on filename`
 
 > Specifying `chunkFilename` as a `function` is only available in webpack@5
 
@@ -148,7 +148,7 @@ type ignoreOrder = boolean;
 Default: `false`
 
 Remove Order Warnings.
-See [examples](#remove-order-warnings) below for details.
+See [examples](#remove-order-warnings) for more details.
 
 #### `insert`
 
@@ -164,7 +164,7 @@ Inserts the `link` tag at the given position for [non-initial (async)](https://w
 
 > [!WARNING]
 >
-> Only for [non-initial (async)](https://webpack.js.org/concepts/under-the-hood/#chunks) chunks.
+> Only applicable for [non-initial (async)](https://webpack.js.org/concepts/under-the-hood/#chunks) chunks.
 
 By default, the `mini-css-extract-plugin` appends styles (`<link>` elements) to `document.head` of the current `window`.
 
@@ -172,7 +172,7 @@ However in some circumstances it might be necessary to have finer control over t
 For example this is the case when you asynchronously load styles for an application that runs inside of an iframe.
 In such cases `insert` can be configured to be a function or a custom selector.
 
-If you target an [iframe](https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement) make sure that the parent document has sufficient access rights to reach into the frame document and append elements to it.
+If you target an [iframe](https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement), make sure that the parent document has sufficient access rights to reach into the frame document and append elements to it.
 
 ##### `string`
 
@@ -187,22 +187,22 @@ new MiniCssExtractPlugin({
 });
 ```
 
-A new `<link>` element will be inserted after the element with id `some-element`.
+A new `<link>` tag will be inserted after the element with the ID `some-element`.
 
 ##### `function`
 
 Allows to override default behavior and insert styles at any position.
 
 > ⚠ Do not forget that this code will run in the browser alongside your application. Since not all browsers support latest ECMA features like `let`, `const`, `arrow function expression` and etc we recommend you to use only ECMA 5 features and syntax.
-
+>
 > > ⚠ The `insert` function is serialized to string and passed to the plugin. This means that it won't have access to the scope of the webpack configuration module.
 
 **webpack.config.js**
 
 ```js
 new MiniCssExtractPlugin({
-  insert: function (linkTag) {
-    var reference = document.querySelector("#some-element");
+  insert(linkTag) {
+    const reference = document.querySelector("#some-element");
     if (reference) {
       reference.parentNode.insertBefore(linkTag, reference);
     }
@@ -210,21 +210,21 @@ new MiniCssExtractPlugin({
 });
 ```
 
-A new `<link>` element will be inserted before the element with id `some-element`.
+A new `<link>` tag will be inserted before the element with the ID `some-element`.
 
 #### `attributes`
 
 Type:
 
 ```ts
-type attributes = Record<string, string>};
+type attributes = Record<string, string>;
 ```
 
 Default: `{}`
 
 > [!WARNING]
 >
-> Only for [non-initial (async)](https://webpack.js.org/concepts/under-the-hood/#chunks) chunks.
+> Only applies to [non-initial (async)](https://webpack.js.org/concepts/under-the-hood/#chunks) chunks.
 
 If defined, the `mini-css-extract-plugin` will attach given attributes with their values on `<link>` element.
 
@@ -255,7 +255,8 @@ module.exports = {
 
 > [!NOTE]
 >
-> It's only applied to dynamically loaded css chunks, if you want to modify link attributes inside html file, please using [html-webpack-plugin](https://github.com/jantimon/html-webpack-plugin)
+> It's only applied to dynamically loaded CSS chunks.
+> If you want to modify `<link>` attributes inside HTML file, please use [html-webpack-plugin](https://github.com/jantimon/html-webpack-plugin)
 
 #### `linkType`
 
@@ -297,7 +298,7 @@ module.exports = {
 
 ##### `boolean`
 
-`false` disables the link `type` attribute
+`false` disables the link `type` attribute entirely.
 
 **webpack.config.js**
 
@@ -372,10 +373,9 @@ Default: `undefined`
 Enabled by default if not explicitly enabled (i.e. `true` and `false` allow you to explicitly control this option) and new API is available (at least webpack `5.52.0` is required).
 Boolean values are available since version `5.33.2`, but you need to enable `experiments.executeModule` (not required from webpack `5.52.0`).
 
-Use a new webpack API to execute modules instead of child compilers.
-This improves performance and memory usage a lot.
+Use a new webpack API to execute modules instead of child compilers, significantly improving performance and memory usage.
 
-When combined with `experiments.layers`, this adds a `layer` option to the loader options to specify the layer of the css execution.
+When combined with `experiments.layers`, this adds a `layer` option to the loader options to specify the layer of the CSS execution.
 
 **webpack.config.js**
 
@@ -483,9 +483,8 @@ module.exports = {
           {
             loader: MiniCssExtractPlugin.loader,
             options: {
-              publicPath: (resourcePath, context) => {
-                return path.relative(path.dirname(resourcePath), context) + "/";
-              },
+              publicPath: (resourcePath, context) =>
+                `${path.relative(path.dirname(resourcePath), context)}/`,
             },
           },
           "css-loader",
@@ -506,7 +505,8 @@ type emit = boolean;
 
 Default: `true`
 
-If true, emits a file (writes a file to the filesystem). If false, the plugin will extract the CSS but **will not** emit the file.
+If `true`, emits a file (writes a file to the filesystem).
+If `false`, the plugin will extract the CSS but **will not** emit the file.
 It is often useful to disable this option for server-side packages.
 
 #### `esModule`
@@ -610,16 +610,16 @@ module.exports = {
 
 ### Recommended
 
-For `production` builds it's recommended to extract the CSS from your bundle being able to use parallel loading of CSS/JS resources later on.
-This can be achieved by using the `mini-css-extract-plugin`, because it creates separate css files.
-For `development` mode (including `webpack-dev-server`) you can use [style-loader](https://github.com/webpack-contrib/style-loader), because it injects CSS into the DOM using multiple <style></style> and works faster.
+For `production` builds, it is recommended to extract the CSS from your bundle being able to use parallel loading of CSS/JS resources later on. This can be achieved by using the `mini-css-extract-plugin`, because it creates separate css files.
+For `development` mode (including `webpack-dev-server`) you can use [style-loader](https://github.com/webpack/style-loader), because it injects CSS into the DOM using multiple <style></style> and works faster.
 
-> Do not use `style-loader` and `mini-css-extract-plugin` together.
+> Important: Do not use `style-loader` and `mini-css-extract-plugin` together.
 
 **webpack.config.js**
 
 ```js
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
+
 const devMode = process.env.NODE_ENV !== "production";
 
 module.exports = {
@@ -638,7 +638,7 @@ module.exports = {
       },
     ],
   },
-  plugins: [].concat(devMode ? [] : [new MiniCssExtractPlugin()]),
+  plugins: [devMode ? [] : [new MiniCssExtractPlugin()]].flat(),
 };
 ```
 
@@ -684,7 +684,7 @@ module.exports = {
 
 > ⚠ Names of locals are converted to `camelCase`.
 
-> ⚠ It is not allowed to use JavaScript reserved words in css class names.
+> ⚠ It is not allowed to use JavaScript reserved words in CSS class names.
 
 > ⚠ Options `esModule` and `modules.namedExport` in `css-loader` should be enabled.
 
@@ -702,7 +702,7 @@ module.exports = {
 **index.js**
 
 ```js
-import { fooBaz, bar } from "./styles.css";
+import { bar, fooBaz } from "./styles.css";
 
 console.log(fooBaz, bar);
 ```
@@ -743,6 +743,8 @@ module.exports = {
 
 ### The `publicPath` option as function
 
+You can specify `publicPath` as a function to dynamically determine the public path based on each resource’s location relative to the project root or context.
+
 **webpack.config.js**
 
 ```js
@@ -765,12 +767,11 @@ module.exports = {
           {
             loader: MiniCssExtractPlugin.loader,
             options: {
-              publicPath: (resourcePath, context) => {
+              publicPath: (resourcePath, context) =>
                 // publicPath is the relative path of the resource to the context
                 // e.g. for ./css/admin/main.css the publicPath will be ../../
                 // while for ./css/main.css the publicPath will be ../
-                return path.relative(path.dirname(resourcePath), context) + "/";
-              },
+                `${path.relative(path.dirname(resourcePath), context)}/`,
             },
           },
           "css-loader",
@@ -795,8 +796,9 @@ You should not use `HotModuleReplacementPlugin` plugin if you are using a `webpa
 **webpack.config.js**
 
 ```js
-const webpack = require("webpack");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
+const webpack = require("webpack");
+
 const devMode = process.env.NODE_ENV !== "production";
 
 const plugins = [
@@ -836,7 +838,7 @@ module.exports = {
 >
 > HMR is automatically supported in webpack 5. No need to configure it. Skip the following:
 
-The `mini-css-extract-plugin` supports hot reloading of actual css files in development.
+The `mini-css-extract-plugin` supports hot reloading of actual CSS files in development.
 Some options are provided to enable HMR of both standard stylesheets and locally scoped CSS or CSS modules.
 Below is an example configuration of mini-css for HMR use with CSS modules.
 
@@ -846,8 +848,8 @@ You should not use `HotModuleReplacementPlugin` plugin if you are using a `webpa
 **webpack.config.js**
 
 ```js
-const webpack = require("webpack");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
+const webpack = require("webpack");
 
 const plugins = [
   new MiniCssExtractPlugin({
@@ -883,13 +885,13 @@ module.exports = {
 
 ### Minimizing For Production
 
-To minify the output, use a plugin like [css-minimizer-webpack-plugin](https://github.com/webpack-contrib/css-minimizer-webpack-plugin).
+To minify the output, use a plugin like [css-minimizer-webpack-plugin](https://github.com/webpack/css-minimizer-webpack-plugin).
 
 **webpack.config.js**
 
 ```js
-const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const CssMinimizerPlugin = require("css-minimizer-webpack-plugin");
+const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 
 module.exports = {
   plugins: [
@@ -908,7 +910,8 @@ module.exports = {
   },
   optimization: {
     minimizer: [
-      // For webpack@5 you can use the `...` syntax to extend existing minimizers (i.e. `terser-webpack-plugin`), uncomment the next line
+      // For webpack@5 you can use the `...` syntax to extend existing minimizers (i.e. `terser-webpack-plugin`).
+      // Uncomment the next line o keep JS minimizers and add CSS minimizer:
       // `...`,
       new CssMinimizerPlugin(),
     ],
@@ -916,19 +919,21 @@ module.exports = {
 };
 ```
 
-This will enable CSS optimization only in production mode. If you want to run it also in development set the `optimization.minimize` option to true.
+- By default, CSS minimization runs in production mode.
+- If you want to run it also in development set the `optimization.minimize` option to `true`.
 
 ### Using preloaded or inlined CSS
 
-The runtime code detects already added CSS via `<link>` or `<style>` tag.
-This can be useful when injecting CSS on server-side for Server-Side-Rendering.
-The `href` of the `<link>` tag has to match the URL that will be used for loading the CSS chunk.
-The `data-href` attribute can be used for `<link>` and `<style>` too.
-When inlining CSS `data-href` must be used.
+The runtime code detects already added CSS via `<link>` or `<style>` tags and avoids duplicating CSS loading.
+
+- This can be useful when injecting CSS on server-side for Server-Side-Rendering (SSR).
+- The `href` of the `<link>` tag has to match the URL that will be used for loading the CSS chunk.
+- The `data-href` attribute can be used for both `<link>` and `<style>` elements.
+- When inlining CSS `data-href` must be used.
 
 ### Extracting all CSS in a single file
 
-The CSS can be extracted in one CSS file using `optimization.splitChunks.cacheGroups`.
+The CSS can be extracted in one CSS file using `optimization.splitChunks.cacheGroups` with the `type` `"css/mini-extract"`.
 
 **webpack.config.js**
 
@@ -987,17 +992,13 @@ module.exports = {
         fooStyles: {
           type: "css/mini-extract",
           name: "styles_foo",
-          chunks: (chunk) => {
-            return chunk.name === "foo";
-          },
+          chunks: (chunk) => chunk.name === "foo",
           enforce: true,
         },
         barStyles: {
           type: "css/mini-extract",
           name: "styles_bar",
-          chunks: (chunk) => {
-            return chunk.name === "bar";
-          },
+          chunks: (chunk) => chunk.name === "bar",
           enforce: true,
         },
       },
@@ -1076,7 +1077,7 @@ module.exports = {
 
 ### Remove Order Warnings
 
-For projects where css ordering has been mitigated through consistent use of scoping or naming conventions, such as [CSS Modules](https://github.com/css-modules/css-modules), the css order warnings can be disabled by setting the ignoreOrder flag to true for the plugin.
+For projects where CSS ordering has been mitigated through consistent use of scoping or naming conventions, such as [CSS Modules](https://github.com/css-modules/css-modules), the css order warnings can be disabled by setting the ignoreOrder flag to true for the plugin.
 
 **webpack.config.js**
 
@@ -1102,6 +1103,8 @@ module.exports = {
 
 ### Multiple Themes
 
+Switch themes by conditionally loading different SCSS variants with query parameters.
+
 **webpack.config.js**
 
 ```js
@@ -1122,7 +1125,7 @@ module.exports = {
               {
                 loader: "sass-loader",
                 options: {
-                  additionalData: `@use 'dark-theme/vars' as vars;`,
+                  additionalData: "@use 'dark-theme/vars' as vars;",
                 },
               },
             ],
@@ -1134,7 +1137,7 @@ module.exports = {
               {
                 loader: "sass-loader",
                 options: {
-                  additionalData: `@use 'light-theme/vars' as vars;`,
+                  additionalData: "@use 'light-theme/vars' as vars;",
                 },
               },
             ],
@@ -1156,7 +1159,7 @@ module.exports = {
 
 **src/index.js**
 
-```js
+```
 import "./style.scss";
 
 let theme = "light";
@@ -1165,7 +1168,6 @@ const themes = {};
 themes[theme] = document.querySelector("#theme");
 
 async function loadTheme(newTheme) {
-  // eslint-disable-next-line no-console
   console.log(`CHANGE THEME - ${newTheme}`);
 
   const themeElement = document.querySelector("#theme");
@@ -1175,7 +1177,6 @@ async function loadTheme(newTheme) {
   }
 
   if (themes[newTheme]) {
-    // eslint-disable-next-line no-console
     console.log(`THEME ALREADY LOADED - ${newTheme}`);
 
     document.head.appendChild(themes[newTheme]);
@@ -1184,13 +1185,11 @@ async function loadTheme(newTheme) {
   }
 
   if (newTheme === "dark") {
-    // eslint-disable-next-line no-console
     console.log(`LOADING THEME - ${newTheme}`);
 
     import(/* webpackChunkName: "dark" */ "./style.scss?dark").then(() => {
       themes[newTheme] = document.querySelector("#theme");
 
-      // eslint-disable-next-line no-console
       console.log(`LOADED - ${newTheme}`);
     });
   }
@@ -1267,14 +1266,15 @@ MiniCssExtractPlugin.getCompilationHooks(compilation).beforeTagInsert.tap(
   (source, varNames) =>
     Template.asString([
       source,
-      `${varNames.tag}.setAttribute("href", "https://github.com/webpack-contrib/mini-css-extract-plugin");`,
-    ])
+      `${varNames.tag}.setAttribute("href", "https://github.com/webpack/mini-css-extract-plugin");`,
+    ]),
 );
 ```
 
 ## Contributing
 
-Please take a moment to read our contributing guidelines if you haven't yet done so.
+We welcome all contributions!
+If you're new here, please take a moment to review our contributing guidelines before submitting issues or pull requests.
 
 [CONTRIBUTING](./.github/CONTRIBUTING.md)
 
@@ -1286,10 +1286,10 @@ Please take a moment to read our contributing guidelines if you haven't yet done
 [npm-url]: https://npmjs.com/package/mini-css-extract-plugin
 [node]: https://img.shields.io/node/v/mini-css-extract-plugin.svg
 [node-url]: https://nodejs.org
-[tests]: https://github.com/webpack-contrib/mini-css-extract-plugin/workflows/mini-css-extract-plugin/badge.svg
-[tests-url]: https://github.com/webpack-contrib/mini-css-extract-plugin/actions
-[cover]: https://codecov.io/gh/webpack-contrib/mini-css-extract-plugin/branch/master/graph/badge.svg
-[cover-url]: https://codecov.io/gh/webpack-contrib/mini-css-extract-plugin
+[tests]: https://github.com/webpack/mini-css-extract-plugin/workflows/mini-css-extract-plugin/badge.svg
+[tests-url]: https://github.com/webpack/mini-css-extract-plugin/actions
+[cover]: https://codecov.io/gh/webpack/mini-css-extract-plugin/branch/main/graph/badge.svg
+[cover-url]: https://codecov.io/gh/webpack/mini-css-extract-plugin
 [discussion]: https://img.shields.io/github/discussions/webpack/webpack
 [discussion-url]: https://github.com/webpack/webpack/discussions
 [size]: https://packagephobia.now.sh/badge?p=mini-css-extract-plugin

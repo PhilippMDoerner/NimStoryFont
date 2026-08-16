@@ -18,3 +18,4 @@ class TestCommandModule extends architect_command_module_1.ArchitectCommandModul
     longDescriptionPath = (0, node_path_1.join)(__dirname, 'long-description.md');
 }
 exports.default = TestCommandModule;
+//# sourceMappingURL=cli.js.map

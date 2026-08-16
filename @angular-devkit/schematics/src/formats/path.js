@@ -22,3 +22,4 @@ exports.pathFormat = {
         },
     },
 };
+//# sourceMappingURL=path.js.map

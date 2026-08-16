@@ -66,6 +66,13 @@ AtRule.prototype = Object.assign(new node_1.default(), tslib_1.__assign(tslib_1.
         else {
             return rules.filter(function (node) { return (node.type === 'Declaration' || node.type === 'Comment'); }).length === rules.length;
         }
+    }, keywordList: function (rules) {
+        if (!Array.isArray(rules)) {
+            return false;
+        }
+        else {
+            return rules.filter(function (node) { return (node.type === 'Keyword' || node.type === 'Comment'); }).length === rules.length;
+        }
     }, accept: function (visitor) {
         var value = this.value, rules = this.rules, declarations = this.declarations;
         if (rules) {
@@ -108,6 +115,9 @@ AtRule.prototype = Object.assign(new node_1.default(), tslib_1.__assign(tslib_1.
         context.mediaBlocks = [];
         if (value) {
             value = value.eval(context);
+            if (value.value && this.keywordList(value.value)) {
+                value = new anonymous_1.default(value.value.map(function (keyword) { return keyword.value; }).join(', '), this.getIndex(), this.fileInfo());
+            }
         }
         if (rules) {
             rules = this.evalRoot(context, rules);

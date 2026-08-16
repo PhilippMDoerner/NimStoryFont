@@ -8,7 +8,7 @@
 import ts from 'typescript';
 import { DependencyTracker } from '../../incremental/api';
 import { ReflectionHost } from '../../reflection';
-import type { ForeignFunctionResolver } from './interface';
+import type { ForeignFunctionResolver, ForeignTypeResolver } from './interface';
 import { ResolvedValue } from './result';
 /**
  * Tracks the scope of a function body, which includes `ResolvedValue`s for the parameters of that
@@ -18,21 +18,25 @@ type Scope = Map<ts.ParameterDeclaration, ResolvedValue>;
 interface Context {
     originatingFile: ts.SourceFile;
     /**
-     * The module name (if any) which was used to reach the currently resolving symbols.
+     * The module name (if any) which was used to reach the currently resolving
+     * symbols.
      */
     absoluteModuleName: string | null;
     /**
-     * A file name representing the context in which the current `absoluteModuleName`, if any, was
-     * resolved.
+     * A file name representing the context in which the current
+     * `absoluteModuleName`, if any, was resolved.
      */
     resolutionContext: string;
     scope: Scope;
     foreignFunctionResolver?: ForeignFunctionResolver;
+    foreignTypeResolver?: ForeignTypeResolver;
 }
 export declare class StaticInterpreter {
     private host;
     private checker;
     private dependencyTracker;
+    private readonly BINARY_OPERATORS;
+    private readonly UNARY_OPERATORS;
     constructor(host: ReflectionHost, checker: ts.TypeChecker, dependencyTracker: DependencyTracker | null);
     visit(node: ts.Expression, context: Context): ResolvedValue;
     private visitExpression;
@@ -65,8 +69,10 @@ export declare class StaticInterpreter {
     private visitBindingElement;
     private stringNameFromPropertyName;
     private getReference;
-    private visitType;
+    visitType(node: ts.TypeNode, context: Context): ResolvedValue;
     private visitTupleType;
     private visitTypeQuery;
+    private visitImportType;
+    private visitTypeReference;
 }
 export {};

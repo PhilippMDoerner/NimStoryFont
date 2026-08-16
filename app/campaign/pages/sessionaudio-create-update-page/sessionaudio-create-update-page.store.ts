@@ -21,15 +21,15 @@ import {
   take,
   tap,
 } from 'rxjs';
-import { SessionAudio, SessionAudioRaw } from 'src/app/_models/sessionAudio';
-import { httpErrorToast } from 'src/app/_models/toast';
-import { SessionAudioService } from 'src/app/_services/article/session-audio.service';
-import { SessionService } from 'src/app/_services/article/session.service';
-import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
-import { GlobalStore } from 'src/app/global.store';
-import { filterNil } from 'src/utils/rxjs-operators';
-import { RequestState } from 'src/utils/store/factory-types';
-import { withQueries } from 'src/utils/store/withQueries';
+import { filterNil } from '../../../../utils/rxjs-operators';
+import { RequestState } from '../../../../utils/store/factory-types';
+import { withQueries } from '../../../../utils/store/withQueries';
+import { SessionAudio, SessionAudioRaw } from '../../../_models/sessionAudio';
+import { httpErrorToast } from '../../../_models/toast';
+import { SessionAudioService } from '../../../_services/article/session-audio.service';
+import { SessionService } from '../../../_services/article/session.service';
+import { ToastService } from '../../../design/organisms/toast-overlay/toast.service';
+import { GlobalStore } from '../../../global.store';
 
 interface SessionaudioCreateUpdateState {
   sessionaudioServerModel: SessionAudio | undefined;

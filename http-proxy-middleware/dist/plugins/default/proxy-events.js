@@ -1,11 +1,9 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.proxyEventsPlugin = void 0;
-const debug_1 = require("../../debug");
-const function_1 = require("../../utils/function");
-const debug = debug_1.Debug.extend('proxy-events-plugin');
+import { Debug } from '../../debug.js';
+import { getFunctionName } from '../../utils/function.js';
+import { definePlugin } from '../define-plugin.js';
+const debug = Debug.extend('proxy-events-plugin');
 /**
- * Implements option.on object to subscribe to http-proxy events.
+ * Implements option.on object to subscribe to `httpxy` events.
  *
  * @example
  * ```js
@@ -24,10 +22,21 @@ const debug = debug_1.Debug.extend('proxy-events-plugin');
  * });
  * ```
  */
-const proxyEventsPlugin = (proxyServer, options) => {
-    Object.entries(options.on || {}).forEach(([eventName, handler]) => {
-        debug(`register event handler: "${eventName}" -> "${(0, function_1.getFunctionName)(handler)}"`);
-        proxyServer.on(eventName, handler);
-    });
-};
-exports.proxyEventsPlugin = proxyEventsPlugin;
+export const proxyEventsPlugin = definePlugin((proxyServer, options) => {
+    if (!options.on) {
+        return;
+    }
+    // hoist variable here for better typing
+    let eventName;
+    // for in provide better typing than Object.entries()
+    for (eventName in options.on) {
+        if (Object.prototype.hasOwnProperty.call(options.on, eventName)) {
+            const handler = options.on[eventName];
+            if (!handler) {
+                continue;
+            }
+            debug(`register event handler: "${eventName}" -> "${getFunctionName(handler)}"`);
+            proxyServer.on(eventName, handler);
+        }
+    }
+});

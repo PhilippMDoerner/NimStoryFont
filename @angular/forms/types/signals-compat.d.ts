@@ -1,0 +1,336 @@
+/**
+ * @license Angular v22.1.1
+ * (c) 2010-2026 Google LLC. https://angular.dev/
+ * License: MIT
+ */
+
+import { WritableSignal, EventEmitter } from '@angular/core';
+import { FormOptions, FieldTree, SchemaOrSchemaFn, ValidationError, ReadonlyFieldTree, SignalFormsConfig, SchemaFn } from './_structure-chunk.js';
+import { AbstractControl, FormControlStatus, FormControlState } from '@angular/forms';
+import '@standard-schema/spec';
+
+/**
+ * Options that may be specified when creating a compat form.
+ *
+ * @see [Top-down migration using compatForm](guide/forms/signals/migration#top-down-migration-using-compatform)
+ *
+ * @category interop
+ * @publicApi 22.0
+ */
+type CompatFormOptions<TModel> = Omit<FormOptions<TModel>, 'adapter'>;
+/**
+ * Creates a compatibility form wrapped around the given model data.
+ *
+ * `compatForm` is a version of the `form` function that is designed for backwards
+ * compatibility with Reactive forms by accepting Reactive controls as a part of the data.
+ *
+ * @example
+ * ```ts
+ * const lastName = new FormControl('lastName');
+ *
+ * const nameModel = signal({
+ *    first: '',
+ *    last: lastName
+ * });
+ *
+ * const nameForm = compatForm(nameModel, (name) => {
+ *   required(name.first);
+ * });
+ *
+ * nameForm.last().value(); // lastName, not FormControl
+ * ```
+ *
+ * @param model A writable signal that contains the model data for the form. The resulting field
+ * structure will match the shape of the model and any changes to the form data will be written to
+ * the model.
+ *
+ * @see [Top-down migration using compatForm](guide/forms/signals/migration#top-down-migration-using-compatform)
+ *
+ * @category interop
+ * @publicApi 22.0
+ */
+declare function compatForm<TModel>(model: WritableSignal<TModel>): FieldTree<TModel>;
+/**
+ * Creates a compatibility form wrapped around the given model data.
+ *
+ * `compatForm` is a version of the `form` function that is designed for backwards
+ * compatibility with Reactive forms by accepting Reactive controls as a part of the data.
+ *
+ * @example
+ * ```ts
+ * const lastName = new FormControl('lastName');
+ *
+ * const nameModel = signal({
+ *    first: '',
+ *    last: lastName
+ * });
+ *
+ * const nameForm = compatForm(nameModel, (name) => {
+ *   required(name.first);
+ * });
+ *
+ * nameForm.last().value(); // lastName, not FormControl
+ *
+ * @param model A writable signal that contains the model data for the form. The resulting field
+ * structure will match the shape of the model and any changes to the form data will be written to
+ * the model.
+ * @param schemaOrOptions The second argument can be either
+ *   1. A schema or a function used to specify logic for the form (e.g. validation, disabled fields, etc.).
+ *      When passing a schema, the form options can be passed as a third argument if needed.
+ *   2. The form options (excluding adapter, since it's provided).
+ *
+ * @see [Top-down migration using compatForm](guide/forms/signals/migration#top-down-migration-using-compatform)
+ *
+ * @category interop
+ * @publicApi 22.0
+ */
+declare function compatForm<TModel>(model: WritableSignal<TModel>, schemaOrOptions: SchemaOrSchemaFn<TModel> | CompatFormOptions<TModel>): FieldTree<TModel>;
+/**
+ * Creates a compatibility form wrapped around the given model data.
+ *
+ * `compatForm` is a version of the `form` function that is designed for backwards
+ * compatibility with Reactive forms by accepting Reactive controls as a part of the data.
+ *
+ * @example
+ * ```ts
+ * const lastName = new FormControl('lastName');
+ *
+ * const nameModel = signal({
+ *    first: '',
+ *    last: lastName
+ * });
+ *
+ * const nameForm = compatForm(nameModel, (name) => {
+ *   required(name.first);
+ * });
+ *
+ * nameForm.last().value(); // lastName, not FormControl
+ *
+ * @param model A writable signal that contains the model data for the form. The resulting field
+ * structure will match the shape of the model and any changes to the form data will be written to
+ * the model.
+ * @param schemaOrOptions A schema or a function used to specify logic for the form (e.g. validation, disabled fields, etc.).
+ *      When passing a schema, the form options can be passed as a third argument if needed.
+ * @param options The form options (excluding adapter, since it's provided).
+ *
+ * @see [Top-down migration using compatForm](guide/forms/signals/migration#top-down-migration-using-compatform)
+ *
+ * @category interop
+ * @publicApi 22.0
+ */
+declare function compatForm<TModel>(model: WritableSignal<TModel>, schema: SchemaOrSchemaFn<TModel>, options: CompatFormOptions<TModel>): FieldTree<TModel>;
+
+/**
+ * Type utility that recursively unwraps the value type of a `FieldTree`.
+ *
+ * If the value type contains `AbstractControl` instances (common in compat mode),
+ * they are replaced with their underlying value types.
+ */
+type RawValue<T> = T extends AbstractControl<infer TValue, any> ? TValue : T extends (infer U)[] ? RawValue<U>[] : T extends object ? {
+    [K in keyof T]: RawValue<T[K]>;
+} : T;
+/**
+ * A type that recursively makes all properties of T optional.
+ * Used for the result of `extractValue` when filtering is applied.
+ * @publicApi 22.0
+ */
+type DeepPartial<T> = (T extends (infer U)[] ? DeepPartial<U>[] : T extends object ? {
+    [K in keyof T]?: DeepPartial<T[K]>;
+} : T) | undefined;
+/**
+ * Criteria that determine whether a field should be included in the extraction.
+ *
+ * Each property is optional; when provided, the field must match the specified state.
+ *
+ * @category interop
+ * @publicApi 22.0
+ */
+interface ExtractFilter {
+    readonly dirty?: boolean;
+    readonly touched?: boolean;
+    readonly enabled?: boolean;
+}
+/**
+ * Utility to unwrap a {@link FieldTree} into its underlying raw value.
+ *
+ * This function is recursive, so if the field tree represents an object or an array,
+ * the result will be an object or an array of the raw values of its children.
+ *
+ * @param field The field tree to extract the value from.
+ * @returns The raw value of the field tree.
+ *
+ * @category interop
+ * @publicApi 22.0
+ */
+declare function extractValue<T>(field: FieldTree<T>): RawValue<T>;
+/**
+ * Utility to unwrap a {@link FieldTree} into its underlying raw value.
+ *
+ * This function is recursive, so if the field tree represents an object or an array,
+ * the result will be an object or an array of the raw values of its children.
+ *
+ * @param field The field tree to extract the value from.
+ * @param filter Criteria to include only fields matching certain state (dirty, touched, enabled).
+ * @returns A partial value containing only the fields matching the filter, or `undefined` if none match.
+ *
+ * @category interop
+ * @publicApi 22.0
+ */
+declare function extractValue<T>(field: FieldTree<T>, filter: ExtractFilter): DeepPartial<RawValue<T>>;
+
+/**
+ * An error used for compat errors.
+ *
+ * @publicApi 22.0
+ * @category interop
+ */
+declare class CompatValidationError<T = unknown> implements ValidationError {
+    readonly kind: string;
+    readonly control: AbstractControl;
+    readonly fieldTree: ReadonlyFieldTree<unknown>;
+    readonly context: T;
+    readonly message?: string;
+    constructor({ context, kind, control }: {
+        context: T;
+        kind: string;
+        control: AbstractControl;
+    });
+}
+
+/**
+ * A value that can be used for `SignalFormsConfig.classes` to automatically add
+ * the `ng-*` status classes from reactive forms.
+ *
+ * @see [Automatic status classes](guide/forms/signals/migration#automatic-status-classes)
+ *
+ * @publicApi 22.0
+ */
+declare const NG_STATUS_CLASSES: SignalFormsConfig['classes'];
+
+/** Options used to update the control value. */
+type ValueUpdateOptions = {
+    onlySelf?: boolean;
+    emitEvent?: boolean;
+    emitModelToViewChange?: boolean;
+    emitViewToModelChange?: boolean;
+};
+/**
+ * A `FormControl` that is backed by signal forms rules.
+ *
+ * This class provides a bridge between Signal Forms and Reactive Forms, allowing
+ * signal-based controls to be used within a standard `FormGroup` or `FormArray`.
+ *
+ * A control could be created using signal forms, and integrated with an existing FormGroup
+ * propagating all the statuses and validity.
+ *
+ * @usageNotes
+ *
+ * ### Basic usage
+ *
+ * ```angular-ts
+ * const form = new FormGroup({
+ *   // You can create SignalFormControl with signal form rules, and add it to a FormGroup.
+ *   name: new SignalFormControl('Alice', p => {
+ *     required(p);
+ *   }),
+ *   age: new FormControl(25),
+ * });
+ * ```
+ * In the template you can get the underlying `fieldTree` and bind it:
+ *
+ * ```angular-html
+ *  <form [formGroup]="form">
+ *    <input [formField]="nameControl.fieldTree" />
+ *    <input formControlName="age" />
+ *  </form>
+ * ```
+ *
+ * @see [Binding SignalFormControl](guide/forms/signals/migration#binding-signalformcontrol)
+ *
+ * @publicApi 22.0
+ */
+declare class SignalFormControl<T> extends AbstractControl {
+    /** Source FieldTree. */
+    readonly fieldTree: FieldTree<T>;
+    /** The raw signal driving the control value. */
+    readonly sourceValue: WritableSignal<T>;
+    private readonly fieldState;
+    private readonly initialValue;
+    private pendingParentNotifications;
+    private readonly onChangeCallbacks;
+    private readonly onDisabledChangeCallbacks;
+    readonly valueChanges: EventEmitter<T>;
+    readonly statusChanges: EventEmitter<FormControlStatus>;
+    constructor(value: T, schemaOrOptions?: SchemaFn<T> | FormOptions<T>, options?: FormOptions<T>);
+    /**
+     * Defines properties using closure-safe names to prevent issues with property renaming optimizations.
+     *
+     * AbstractControl have `value` and `errors` as readonly prop, which doesn't allow getters.
+     **/
+    private defineCompatProperties;
+    private emitControlEvent;
+    setValue(value: any, options?: ValueUpdateOptions): void;
+    patchValue(value: any, options?: ValueUpdateOptions): void;
+    private updateValue;
+    registerOnChange(fn: (value?: any, emitModelEvent?: boolean) => void): void;
+    registerOnDisabledChange(fn: (isDisabled: boolean) => void): void;
+    getRawValue(): T;
+    reset(value?: T | FormControlState<T>, options?: ValueUpdateOptions): void;
+    private scheduleParentUpdate;
+    private notifyParentUnlessPending;
+    private updateParentValueAndValidity;
+    private propagateToParent;
+    get status(): FormControlStatus;
+    get valid(): boolean;
+    get invalid(): boolean;
+    get pending(): boolean;
+    get disabled(): boolean;
+    get enabled(): boolean;
+    get dirty(): boolean;
+    set dirty(_: boolean);
+    get pristine(): boolean;
+    set pristine(_: boolean);
+    get touched(): boolean;
+    set touched(_: boolean);
+    get untouched(): boolean;
+    set untouched(_: boolean);
+    markAsTouched(opts?: {
+        onlySelf?: boolean;
+    }): void;
+    markAsDirty(opts?: {
+        onlySelf?: boolean;
+    }): void;
+    markAsPristine(opts?: {
+        onlySelf?: boolean;
+    }): void;
+    markAsUntouched(opts?: {
+        onlySelf?: boolean;
+    }): void;
+    updateValueAndValidity(_opts?: Object): void;
+    disable(_opts?: {
+        onlySelf?: boolean;
+        emitEvent?: boolean;
+    }): void;
+    enable(_opts?: {
+        onlySelf?: boolean;
+        emitEvent?: boolean;
+    }): void;
+    setValidators(_validators: any): void;
+    setAsyncValidators(_validators: any): void;
+    addValidators(_validators: any): void;
+    addAsyncValidators(_validators: any): void;
+    removeValidators(_validators: any): void;
+    removeAsyncValidators(_validators: any): void;
+    clearValidators(): void;
+    clearAsyncValidators(): void;
+    setErrors(_errors: any, _opts?: {
+        emitEvent?: boolean;
+    }): void;
+    markAsPending(_opts?: {
+        onlySelf?: boolean;
+        emitEvent?: boolean;
+    }): void;
+}
+
+export { CompatValidationError, NG_STATUS_CLASSES, SignalFormControl, compatForm, extractValue };
+export type { CompatFormOptions };

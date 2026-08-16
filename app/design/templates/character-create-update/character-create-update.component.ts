@@ -11,10 +11,10 @@ import {
 import { toObservable } from '@angular/core/rxjs-interop';
 import { FormlyFieldConfig } from '@ngx-formly/core';
 import { of } from 'rxjs';
-import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
-import { CharacterDetails, CharacterRaw } from 'src/app/_models/character';
-import { OverviewItem } from 'src/app/_models/overview';
-import { FormlyService } from 'src/app/_services/formly/formly-service.service';
+import { HotkeyDirective } from '../../../_directives/hotkey.directive';
+import { CharacterDetails, CharacterRaw } from '../../../_models/character';
+import { OverviewItem } from '../../../_models/overview';
+import { FormlyService } from '../../../_services/formly/formly-service.service';
 import { ButtonComponent } from '../../atoms/button/button.component';
 import { SeparatorComponent } from '../../atoms/separator/separator.component';
 import { CompareFormComponent } from '../../molecules/compare-form/compare-form.component';
@@ -40,18 +40,20 @@ type MembershipFormState = 'CREATE' | 'DISPLAY';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CharacterCreateUpdateComponent {
-  state = input.required<CreateUpdateState>();
-  campaignName = input.required<string>();
-  userModel = input<Partial<CharacterDetails>>({});
-  serverModel = input.required<CharacterDetails | undefined>();
-  lastVisitedPlaceOptions = input.required<OverviewItem[]>();
+  readonly state = input.required<CreateUpdateState>();
+  readonly campaignName = input.required<string>();
+  readonly userModel = input<Partial<CharacterDetails>>({});
+  readonly serverModel = input.required<CharacterDetails | undefined>();
+  readonly lastVisitedPlaceOptions = input.required<OverviewItem[]>();
 
   readonly create = output<CharacterDetails>();
   readonly update = output<CharacterDetails>();
   readonly cancelled = output<void>();
 
-  lastVisitedPlaceOptions$ = toObservable(this.lastVisitedPlaceOptions);
-  formlyFields: Signal<FormlyFieldConfig[]> = computed(() => [
+  readonly lastVisitedPlaceOptions$ = toObservable(
+    this.lastVisitedPlaceOptions,
+  );
+  readonly formlyFields: Signal<FormlyFieldConfig[]> = computed(() => [
     this.formlyService.buildCheckboxConfig({
       key: 'player_character',
       label: 'Player Character',
@@ -94,9 +96,9 @@ export class CharacterCreateUpdateComponent {
     }),
   ]);
 
-  heading = computed(() => this.getHeading(this.state()));
+  readonly heading = computed(() => this.getHeading(this.state()));
 
-  membershipFormState = signal<MembershipFormState>('DISPLAY');
+  readonly membershipFormState = signal<MembershipFormState>('DISPLAY');
 
   constructor(private formlyService: FormlyService) {}
 

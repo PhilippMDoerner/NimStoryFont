@@ -6,75 +6,349 @@
 "use strict";
 
 const AsyncDependenciesBlock = require("../AsyncDependenciesBlock");
-const CommentCompilationWarning = require("../CommentCompilationWarning");
-const UnsupportedFeatureWarning = require("../UnsupportedFeatureWarning");
-const { getImportAttributes } = require("../javascript/JavascriptParser");
+const CommentCompilationWarning = require("../errors/CommentCompilationWarning");
+const UnsupportedFeatureWarning = require("../errors/UnsupportedFeatureWarning");
+const {
+	VariableInfo,
+	getImportAttributes
+} = require("../javascript/JavascriptParser");
+const memoize = require("../util/memoize");
+const traverseDestructuringAssignmentProperties = require("../util/traverseDestructuringAssignmentProperties");
 const ContextDependencyHelpers = require("./ContextDependencyHelpers");
+const { getNonOptionalPart } = require("./HarmonyImportDependency");
 const ImportContextDependency = require("./ImportContextDependency");
 const ImportDependency = require("./ImportDependency");
 const ImportEagerDependency = require("./ImportEagerDependency");
+const { createGetImportPhase } = require("./ImportPhase");
 const ImportWeakDependency = require("./ImportWeakDependency");
 
 /** @typedef {import("../../declarations/WebpackOptions").JavascriptParserOptions} JavascriptParserOptions */
 /** @typedef {import("../ChunkGroup").RawChunkGroupOptions} RawChunkGroupOptions */
 /** @typedef {import("../ContextModule").ContextMode} ContextMode */
 /** @typedef {import("../Dependency").DependencyLocation} DependencyLocation */
+/** @typedef {import("../Dependency").RawReferencedExports} RawReferencedExports */
 /** @typedef {import("../Module").BuildMeta} BuildMeta */
 /** @typedef {import("../javascript/JavascriptParser")} JavascriptParser */
 /** @typedef {import("../javascript/JavascriptParser").ImportExpression} ImportExpression */
 /** @typedef {import("../javascript/JavascriptParser").Range} Range */
+/** @typedef {import("../javascript/JavascriptParser").JavascriptParserState} JavascriptParserState */
+/** @typedef {import("../javascript/JavascriptParser").Members} Members */
+/** @typedef {import("../javascript/JavascriptParser").MembersOptionals} MembersOptionals */
+/** @typedef {import("../javascript/JavascriptParser").ArrowFunctionExpression} ArrowFunctionExpression */
+/** @typedef {import("../javascript/JavascriptParser").FunctionExpression} FunctionExpression */
+/** @typedef {import("../javascript/JavascriptParser").Identifier} Identifier */
+/** @typedef {import("../javascript/JavascriptParser").ObjectPattern} ObjectPattern */
+/** @typedef {import("../javascript/JavascriptParser").CallExpression} CallExpression */
+
+/** @typedef {{ references: RawReferencedExports, expression: ImportExpression }} ImportSettings */
+/** @typedef {WeakMap<ImportExpression, RawReferencedExports>} State */
+
+const getHarmonyImportGuard = memoize(() => require("./HarmonyImportGuard"));
+
+/** @type {WeakMap<JavascriptParserState, State>} */
+const parserStateMap = new WeakMap();
+const dynamicImportTag = Symbol("import()");
+
+/**
+ * Returns import parser plugin state.
+ * @param {JavascriptParser} parser javascript parser
+ * @returns {State} import parser plugin state
+ */
+function getState(parser) {
+	if (!parserStateMap.has(parser.state)) {
+		parserStateMap.set(parser.state, new WeakMap());
+	}
+	return /** @type {State} */ (parserStateMap.get(parser.state));
+}
+
+/**
+ * Tag dynamic import referenced.
+ * @param {JavascriptParser} parser javascript parser
+ * @param {ImportExpression} importCall import expression
+ * @param {string} variableName variable name
+ */
+function tagDynamicImportReferenced(parser, importCall, variableName) {
+	const state = getState(parser);
+	/** @type {RawReferencedExports} */
+	const references = state.get(importCall) || [];
+	state.set(importCall, references);
+	parser.tagVariable(
+		variableName,
+		dynamicImportTag,
+		/** @type {ImportSettings} */ ({
+			references,
+			expression: importCall
+		})
+	);
+}
+
+/**
+ * Gets fulfilled callback namespace obj.
+ * @param {CallExpression} importThen import().then() call
+ * @returns {Identifier | ObjectPattern | undefined} the dynamic imported namespace obj
+ */
+function getFulfilledCallbackNamespaceObj(importThen) {
+	const fulfilledCallback = importThen.arguments[0];
+	if (
+		fulfilledCallback &&
+		(fulfilledCallback.type === "ArrowFunctionExpression" ||
+			fulfilledCallback.type === "FunctionExpression") &&
+		fulfilledCallback.params[0] &&
+		(fulfilledCallback.params[0].type === "Identifier" ||
+			fulfilledCallback.params[0].type === "ObjectPattern")
+	) {
+		return fulfilledCallback.params[0];
+	}
+}
+
+/**
+ * Walk import then fulfilled callback.
+ * @param {JavascriptParser} parser javascript parser
+ * @param {ImportExpression} importCall import expression
+ * @param {ArrowFunctionExpression | FunctionExpression} fulfilledCallback the fulfilled callback
+ * @param {Identifier | ObjectPattern} namespaceObjArg the argument of namespace object=
+ */
+function walkImportThenFulfilledCallback(
+	parser,
+	importCall,
+	fulfilledCallback,
+	namespaceObjArg
+) {
+	const arrow = fulfilledCallback.type === "ArrowFunctionExpression";
+	const wasTopLevel = parser.scope.topLevelScope;
+	parser.scope.topLevelScope = arrow ? (wasTopLevel ? "arrow" : false) : false;
+	const scopeParams = [...fulfilledCallback.params];
+
+	// Add function name in scope for recursive calls
+	if (!arrow && fulfilledCallback.id) {
+		scopeParams.push(fulfilledCallback.id);
+	}
+
+	parser.inFunctionScope(!arrow, scopeParams, () => {
+		if (namespaceObjArg.type === "Identifier") {
+			tagDynamicImportReferenced(parser, importCall, namespaceObjArg.name);
+		} else {
+			parser.enterDestructuringAssignment(namespaceObjArg, importCall);
+			const referencedPropertiesInDestructuring =
+				parser.destructuringAssignmentPropertiesFor(importCall);
+			if (referencedPropertiesInDestructuring) {
+				const state = getState(parser);
+				const references = /** @type {RawReferencedExports} */ (
+					state.get(importCall)
+				);
+				/** @type {RawReferencedExports} */
+				const refsInDestructuring = [];
+				traverseDestructuringAssignmentProperties(
+					referencedPropertiesInDestructuring,
+					(stack) => refsInDestructuring.push(stack.map((p) => p.id))
+				);
+				for (const ids of refsInDestructuring) {
+					references.push(ids);
+				}
+			}
+		}
+		for (const param of fulfilledCallback.params) {
+			parser.walkPattern(param);
+		}
+		if (fulfilledCallback.body.type === "BlockStatement") {
+			parser.detectMode(fulfilledCallback.body.body);
+			const prev = parser.prevStatement;
+			parser.preWalkStatement(fulfilledCallback.body);
+			parser.prevStatement = prev;
+			parser.walkStatement(fulfilledCallback.body);
+		} else {
+			parser.walkExpression(fulfilledCallback.body);
+		}
+	});
+	parser.scope.topLevelScope = wasTopLevel;
+}
+
+/**
+ * Exports from enumerable.
+ * @template T
+ * @param {Iterable<T>} enumerable enumerable
+ * @returns {T[][]} array of array
+ */
+const exportsFromEnumerable = (enumerable) =>
+	Array.from(enumerable, (e) => [e]);
+
+const PLUGIN_NAME = "ImportParserPlugin";
+
+/**
+ * Whether an `import()` second argument is a fully static attributes object
+ * (every `with`/`assert` value is a string literal). Only then can webpack use
+ * the attributes at build time; otherwise the argument must be evaluated and
+ * validated at runtime per spec.
+ * @param {import("estree").Expression | null | undefined} node the second-argument AST node
+ * @returns {boolean} true if statically extractable
+ */
+const isStaticStringAttributes = (node) => {
+	if (!node || node.type !== "ObjectExpression") return false;
+	for (const prop of node.properties) {
+		if (prop.type !== "Property" || prop.kind !== "init" || prop.computed) {
+			return false;
+		}
+		const key = prop.key;
+		const keyName =
+			key.type === "Identifier"
+				? key.name
+				: key.type === "Literal"
+					? key.value
+					: undefined;
+		if (keyName === "with" || keyName === "assert") {
+			const value = prop.value;
+			if (value.type !== "ObjectExpression") return false;
+			for (const attr of value.properties) {
+				if (attr.type !== "Property" || attr.kind !== "init" || attr.computed) {
+					return false;
+				}
+				const attrValue = attr.value;
+				if (
+					attrValue.type !== "Literal" ||
+					typeof attrValue.value !== "string"
+				) {
+					return false;
+				}
+			}
+		}
+	}
+	return true;
+};
 
 class ImportParserPlugin {
 	/**
+	 * Creates an instance of ImportParserPlugin.
 	 * @param {JavascriptParserOptions} options options
 	 */
 	constructor(options) {
+		/** @type {JavascriptParserOptions} */
 		this.options = options;
 	}
 
 	/**
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {JavascriptParser} parser the parser
 	 * @returns {void}
 	 */
 	apply(parser) {
-		/**
-		 * @template T
-		 * @param {Iterable<T>} enumerable enumerable
-		 * @returns {T[][]} array of array
-		 */
-		const exportsFromEnumerable = enumerable =>
-			Array.from(enumerable, e => [e]);
-		parser.hooks.importCall.tap("ImportParserPlugin", expr => {
+		parser.hooks.collectDestructuringAssignmentProperties.tap(
+			PLUGIN_NAME,
+			(expr) => {
+				if (expr.type === "ImportExpression") return true;
+				const nameInfo = parser.getNameForExpression(expr);
+				if (
+					nameInfo &&
+					nameInfo.rootInfo instanceof VariableInfo &&
+					nameInfo.rootInfo.name &&
+					parser.getTagData(nameInfo.rootInfo.name, dynamicImportTag)
+				) {
+					return true;
+				}
+			}
+		);
+		parser.hooks.preDeclarator.tap(PLUGIN_NAME, (decl) => {
+			if (
+				decl.init &&
+				decl.init.type === "AwaitExpression" &&
+				decl.init.argument.type === "ImportExpression" &&
+				decl.id.type === "Identifier"
+			) {
+				parser.defineVariable(decl.id.name);
+				tagDynamicImportReferenced(parser, decl.init.argument, decl.id.name);
+			}
+		});
+		parser.hooks.expression.for(dynamicImportTag).tap(PLUGIN_NAME, (expr) => {
+			const settings = /** @type {ImportSettings} */ (parser.currentTagData);
+			const referencedPropertiesInDestructuring =
+				parser.destructuringAssignmentPropertiesFor(expr);
+			if (referencedPropertiesInDestructuring) {
+				/** @type {RawReferencedExports} */
+				const refsInDestructuring = [];
+				traverseDestructuringAssignmentProperties(
+					referencedPropertiesInDestructuring,
+					(stack) => refsInDestructuring.push(stack.map((p) => p.id))
+				);
+				for (const ids of refsInDestructuring) {
+					settings.references.push(ids);
+				}
+			} else {
+				settings.references.push([]);
+			}
+			return true;
+		});
+		parser.hooks.expressionMemberChain
+			.for(dynamicImportTag)
+			.tap(PLUGIN_NAME, (_expression, members, membersOptionals) => {
+				const settings = /** @type {ImportSettings} */ (parser.currentTagData);
+				const ids = getNonOptionalPart(members, membersOptionals);
+				settings.references.push(ids);
+				return true;
+			});
+		parser.hooks.callMemberChain
+			.for(dynamicImportTag)
+			.tap(PLUGIN_NAME, (expression, members, membersOptionals) => {
+				const { arguments: args } = expression;
+				const settings = /** @type {ImportSettings} */ (parser.currentTagData);
+				let ids = getNonOptionalPart(members, membersOptionals);
+				const directImport = members.length === 0;
+				if (
+					!directImport &&
+					(this.options.strictThisContextOnImports || ids.length > 1)
+				) {
+					ids = ids.slice(0, -1);
+				}
+				settings.references.push(ids);
+				if (args) parser.walkExpressions(args);
+				return true;
+			});
+		parser.hooks.importCall.tap(PLUGIN_NAME, (expr, importThen) => {
 			const param = parser.evaluateExpression(expr.source);
 
+			/** @type {null | string} */
 			let chunkName = null;
 			let mode = /** @type {ContextMode} */ (this.options.dynamicImportMode);
+			/** @type {null | RegExp} */
 			let include = null;
+			/** @type {null | RegExp} */
 			let exclude = null;
-			/** @type {string[][] | null} */
+			/** @type {null | RawReferencedExports} */
 			let exports = null;
 			/** @type {RawChunkGroupOptions} */
 			const groupOptions = {};
 
 			const {
 				dynamicImportPreload,
+				dynamicImportCssPreload,
 				dynamicImportPrefetch,
 				dynamicImportFetchPriority
 			} = this.options;
-			if (dynamicImportPreload !== undefined && dynamicImportPreload !== false)
+			if (
+				dynamicImportPreload !== undefined &&
+				dynamicImportPreload !== false
+			) {
 				groupOptions.preloadOrder =
 					dynamicImportPreload === true ? 0 : dynamicImportPreload;
+			}
+			if (
+				dynamicImportCssPreload !== undefined &&
+				dynamicImportCssPreload !== false
+			) {
+				groupOptions.cssPreloadOrder =
+					dynamicImportCssPreload === true ? 0 : dynamicImportCssPreload;
+			}
 			if (
 				dynamicImportPrefetch !== undefined &&
 				dynamicImportPrefetch !== false
-			)
+			) {
 				groupOptions.prefetchOrder =
 					dynamicImportPrefetch === true ? 0 : dynamicImportPrefetch;
+			}
 			if (
 				dynamicImportFetchPriority !== undefined &&
 				dynamicImportFetchPriority !== false
-			)
+			) {
 				groupOptions.fetchPriority = dynamicImportFetchPriority;
+			}
 
 			const { options: importOptions, errors: commentErrors } =
 				parser.parseCommentOptions(/** @type {Range} */ (expr.range));
@@ -85,11 +359,16 @@ class ImportParserPlugin {
 					parser.state.module.addWarning(
 						new CommentCompilationWarning(
 							`Compilation error while processing magic comment(-s): /*${comment.value}*/: ${e.message}`,
-							/** @type {DependencyLocation} */ (comment.loc)
+							parser.getLocation(comment)
 						)
 					);
 				}
 			}
+
+			const phase = createGetImportPhase(
+				this.options.deferImport,
+				this.options.sourceImport
+			)(parser, expr, () => importOptions);
 
 			if (importOptions) {
 				if (importOptions.webpackIgnore !== undefined) {
@@ -97,7 +376,7 @@ class ImportParserPlugin {
 						parser.state.module.addWarning(
 							new UnsupportedFeatureWarning(
 								`\`webpackIgnore\` expected a boolean, but received: ${importOptions.webpackIgnore}.`,
-								/** @type {DependencyLocation} */ (expr.loc)
+								parser.getLocation(expr)
 							)
 						);
 					} else if (importOptions.webpackIgnore) {
@@ -110,7 +389,7 @@ class ImportParserPlugin {
 						parser.state.module.addWarning(
 							new UnsupportedFeatureWarning(
 								`\`webpackChunkName\` expected a string, but received: ${importOptions.webpackChunkName}.`,
-								/** @type {DependencyLocation} */ (expr.loc)
+								parser.getLocation(expr)
 							)
 						);
 					} else {
@@ -122,7 +401,7 @@ class ImportParserPlugin {
 						parser.state.module.addWarning(
 							new UnsupportedFeatureWarning(
 								`\`webpackMode\` expected a string, but received: ${importOptions.webpackMode}.`,
-								/** @type {DependencyLocation} */ (expr.loc)
+								parser.getLocation(expr)
 							)
 						);
 					} else {
@@ -138,7 +417,7 @@ class ImportParserPlugin {
 						parser.state.module.addWarning(
 							new UnsupportedFeatureWarning(
 								`\`webpackPrefetch\` expected true or a number, but received: ${importOptions.webpackPrefetch}.`,
-								/** @type {DependencyLocation} */ (expr.loc)
+								parser.getLocation(expr)
 							)
 						);
 					}
@@ -152,7 +431,7 @@ class ImportParserPlugin {
 						parser.state.module.addWarning(
 							new UnsupportedFeatureWarning(
 								`\`webpackPreload\` expected true or a number, but received: ${importOptions.webpackPreload}.`,
-								/** @type {DependencyLocation} */ (expr.loc)
+								parser.getLocation(expr)
 							)
 						);
 					}
@@ -169,7 +448,7 @@ class ImportParserPlugin {
 						parser.state.module.addWarning(
 							new UnsupportedFeatureWarning(
 								`\`webpackFetchPriority\` expected true or "low", "high" or "auto", but received: ${importOptions.webpackFetchPriority}.`,
-								/** @type {DependencyLocation} */ (expr.loc)
+								parser.getLocation(expr)
 							)
 						);
 					}
@@ -182,7 +461,7 @@ class ImportParserPlugin {
 						parser.state.module.addWarning(
 							new UnsupportedFeatureWarning(
 								`\`webpackInclude\` expected a regular expression, but received: ${importOptions.webpackInclude}.`,
-								/** @type {DependencyLocation} */ (expr.loc)
+								parser.getLocation(expr)
 							)
 						);
 					} else {
@@ -197,7 +476,7 @@ class ImportParserPlugin {
 						parser.state.module.addWarning(
 							new UnsupportedFeatureWarning(
 								`\`webpackExclude\` expected a regular expression, but received: ${importOptions.webpackExclude}.`,
-								/** @type {DependencyLocation} */ (expr.loc)
+								parser.getLocation(expr)
 							)
 						);
 					} else {
@@ -205,19 +484,17 @@ class ImportParserPlugin {
 					}
 				}
 				if (importOptions.webpackExports !== undefined) {
-					if (
-						!(
-							typeof importOptions.webpackExports === "string" ||
-							(Array.isArray(importOptions.webpackExports) &&
-								/** @type {string[]} */ (importOptions.webpackExports).every(
-									item => typeof item === "string"
-								))
-						)
-					) {
+					if (!(
+						typeof importOptions.webpackExports === "string" ||
+						(Array.isArray(importOptions.webpackExports) &&
+							importOptions.webpackExports.every(
+								(item) => typeof item === "string"
+							))
+					)) {
 						parser.state.module.addWarning(
 							new UnsupportedFeatureWarning(
 								`\`webpackExports\` expected a string or an array of strings, but received: ${importOptions.webpackExports}.`,
-								/** @type {DependencyLocation} */ (expr.loc)
+								parser.getLocation(expr)
 							)
 						);
 					} else if (typeof importOptions.webpackExports === "string") {
@@ -225,6 +502,20 @@ class ImportParserPlugin {
 					} else {
 						exports = exportsFromEnumerable(importOptions.webpackExports);
 					}
+				}
+				// `worker` is an internal entry option set only for workers
+				if (
+					importOptions.webpackEntryOptions !== undefined &&
+					typeof importOptions.webpackEntryOptions === "object" &&
+					importOptions.webpackEntryOptions !== null &&
+					importOptions.webpackEntryOptions.worker !== undefined
+				) {
+					parser.state.module.addWarning(
+						new UnsupportedFeatureWarning(
+							"`worker` entry option is not supported in `import()`, it only applies to workers (e.g. `new Worker(new URL(...))`).",
+							parser.getLocation(expr)
+						)
+					);
 				}
 			}
 
@@ -237,7 +528,7 @@ class ImportParserPlugin {
 				parser.state.module.addWarning(
 					new UnsupportedFeatureWarning(
 						`\`webpackMode\` expected 'lazy', 'lazy-once', 'eager' or 'weak', but received: ${mode}.`,
-						/** @type {DependencyLocation} */ (expr.loc)
+						parser.getLocation(expr)
 					)
 				);
 				mode = "lazy";
@@ -245,18 +536,42 @@ class ImportParserPlugin {
 
 			const referencedPropertiesInDestructuring =
 				parser.destructuringAssignmentPropertiesFor(expr);
-			if (referencedPropertiesInDestructuring) {
+			const state = getState(parser);
+			const referencedPropertiesInMember = state.get(expr);
+			const fulfilledNamespaceObj =
+				importThen && getFulfilledCallbackNamespaceObj(importThen);
+			if (
+				referencedPropertiesInDestructuring ||
+				referencedPropertiesInMember ||
+				fulfilledNamespaceObj
+			) {
 				if (exports) {
 					parser.state.module.addWarning(
 						new UnsupportedFeatureWarning(
-							"`webpackExports` could not be used with destructuring assignment.",
-							/** @type {DependencyLocation} */ (expr.loc)
+							"You don't need `webpackExports` if the usage of dynamic import is statically analyse-able. You can safely remove the `webpackExports` magic comment.",
+							parser.getLocation(expr)
 						)
 					);
 				}
-				exports = exportsFromEnumerable(
-					[...referencedPropertiesInDestructuring].map(({ id }) => id)
-				);
+
+				if (referencedPropertiesInDestructuring) {
+					/** @type {RawReferencedExports} */
+					const refsInDestructuring = [];
+					traverseDestructuringAssignmentProperties(
+						referencedPropertiesInDestructuring,
+						(stack) => refsInDestructuring.push(stack.map((p) => p.id))
+					);
+
+					exports = refsInDestructuring;
+				} else if (referencedPropertiesInMember) {
+					exports = referencedPropertiesInMember;
+				} else {
+					/** @type {RawReferencedExports} */
+					const references = [];
+					state.set(expr, references);
+
+					exports = references;
+				}
 			}
 
 			if (param.isString()) {
@@ -267,6 +582,7 @@ class ImportParserPlugin {
 						/** @type {string} */ (param.string),
 						/** @type {Range} */ (expr.range),
 						exports,
+						phase,
 						attributes
 					);
 					parser.state.current.addDependency(dep);
@@ -275,6 +591,7 @@ class ImportParserPlugin {
 						/** @type {string} */ (param.string),
 						/** @type {Range} */ (expr.range),
 						exports,
+						phase,
 						attributes
 					);
 					parser.state.current.addDependency(dep);
@@ -284,53 +601,85 @@ class ImportParserPlugin {
 							...groupOptions,
 							name: chunkName
 						},
-						/** @type {DependencyLocation} */ (expr.loc),
+						parser.getLocation(expr),
 						param.string
+					);
+					// A second argument that isn't a statically extractable attributes
+					// object still has to be evaluated and validated at runtime, so
+					// drop the (unreliable) static attributes for it.
+					const optionsNode = expr.options;
+					const runtimeValidateOptions = Boolean(
+						optionsNode && !isStaticStringAttributes(optionsNode)
 					);
 					const dep = new ImportDependency(
 						/** @type {string} */ (param.string),
 						/** @type {Range} */ (expr.range),
 						exports,
-						attributes
+						phase,
+						runtimeValidateOptions ? undefined : attributes
 					);
-					dep.loc = /** @type {DependencyLocation} */ (expr.loc);
+					if (runtimeValidateOptions && optionsNode && optionsNode.range) {
+						dep.optionsRange = /** @type {Range} */ (optionsNode.range);
+						// The options expression stays in the output, so walk it to
+						// register its variable references and keep them from being
+						// tree-shaken away.
+						parser.walkExpression(optionsNode);
+					}
+					dep.loc = parser.getLocation(expr);
 					dep.optional = Boolean(parser.scope.inTry);
 					depBlock.addDependency(dep);
 					parser.state.current.addBlock(depBlock);
+					getHarmonyImportGuard().attachDependencyGuards(parser, dep);
 				}
-				return true;
+			} else {
+				if (mode === "weak") {
+					mode = "async-weak";
+				}
+
+				const dep = ContextDependencyHelpers.create(
+					ImportContextDependency,
+					/** @type {Range} */ (expr.range),
+					param,
+					expr,
+					this.options,
+					{
+						chunkName,
+						groupOptions,
+						include,
+						exclude,
+						mode,
+						namespaceObject:
+							/** @type {BuildMeta} */
+							(parser.state.module.buildMeta).strictHarmonyModule
+								? "strict"
+								: true,
+						typePrefix: "import()",
+						category: "esm",
+						referencedExports: exports,
+						attributes: getImportAttributes(expr),
+						phase
+					},
+					parser
+				);
+				if (!dep) return;
+				dep.loc = parser.getLocation(expr);
+				dep.optional = Boolean(parser.scope.inTry);
+				parser.state.current.addDependency(dep);
 			}
-			if (mode === "weak") {
-				mode = "async-weak";
+
+			if (fulfilledNamespaceObj) {
+				walkImportThenFulfilledCallback(
+					parser,
+					expr,
+					/** @type {ArrowFunctionExpression | FunctionExpression} */
+					(importThen.arguments[0]),
+					fulfilledNamespaceObj
+				);
+				parser.walkExpressions(importThen.arguments.slice(1));
+			} else if (importThen) {
+				parser.walkExpressions(importThen.arguments);
 			}
-			const dep = ContextDependencyHelpers.create(
-				ImportContextDependency,
-				/** @type {Range} */ (expr.range),
-				param,
-				expr,
-				this.options,
-				{
-					chunkName,
-					groupOptions,
-					include,
-					exclude,
-					mode,
-					namespaceObject: /** @type {BuildMeta} */ (
-						parser.state.module.buildMeta
-					).strictHarmonyModule
-						? "strict"
-						: true,
-					typePrefix: "import()",
-					category: "esm",
-					referencedExports: exports,
-					attributes: getImportAttributes(expr)
-				},
-				parser
-			);
-			if (!dep) return;
-			dep.loc = /** @type {DependencyLocation} */ (expr.loc);
-			dep.optional = Boolean(parser.scope.inTry);
-			parser.state.current.addDependency(dep);
+
 			return true;
 		});
 	}

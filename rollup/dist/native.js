@@ -1,8 +1,57 @@
 const { existsSync } = require('node:fs');
 const path = require('node:path');
 const { platform, arch, report } = require('node:process');
+const { spawnSync } = require('node:child_process');
 
-const isMusl = () => !report.getReport().header.glibcVersionRuntime;
+const getReportHeader = () => {
+	try {
+		if (platform !== 'win32') {
+			// Avoid blocking reverse DNS (PTR) lookups on open TCP socket handles.
+			// See: https://github.com/nodejs/node/issues/55576
+			const previousExcludeNetwork = report.excludeNetwork;
+			report.excludeNetwork = true;
+			const header = report.getReport().header;
+			report.excludeNetwork = previousExcludeNetwork;
+			return header;
+		}
+
+		// This is needed because report.getReport() crashes the process on Windows sometimes.
+		const script =
+			"const r=require('node:process').report;r.excludeNetwork=true;console.log(JSON.stringify(r.getReport().header));";
+		const child = spawnSync(process.execPath, ['-p', script], {
+			encoding: 'utf8',
+			timeout: 3000,
+			windowsHide: true
+		});
+
+		if (child.status !== 0) {
+			return null;
+		}
+
+		// The output from node -p might include a trailing 'undefined' and newline
+		const stdout = child.stdout?.replace(/undefined\r?\n?$/, '').trim();
+		if (!stdout) {
+			return null;
+		}
+
+		return JSON.parse(stdout);
+	} catch {
+		return null;
+	}
+};
+
+let reportHeader;
+const isMingw32 = () => {
+	reportHeader ??= getReportHeader();
+
+	return reportHeader?.osName?.startsWith('MINGW32_NT') ?? false;
+};
+
+const isMusl = () => {
+	reportHeader ??= getReportHeader();
+
+	return reportHeader ? !reportHeader.glibcVersionRuntime : false;
+};
 
 const bindingsByPlatformAndArch = {
 	android: {
@@ -20,16 +69,24 @@ const bindingsByPlatformAndArch = {
 	linux: {
 		arm: { base: 'linux-arm-gnueabihf', musl: 'linux-arm-musleabihf' },
 		arm64: { base: 'linux-arm64-gnu', musl: 'linux-arm64-musl' },
-		loong64: { base: 'linux-loongarch64-gnu', musl: null },
-		ppc64: { base: 'linux-powerpc64le-gnu', musl: null },
+		loong64: { base: 'linux-loong64-gnu', musl: 'linux-loong64-musl' },
+		ppc64: { base: 'linux-ppc64-gnu', musl: 'linux-ppc64-musl' },
 		riscv64: { base: 'linux-riscv64-gnu', musl: 'linux-riscv64-musl' },
 		s390x: { base: 'linux-s390x-gnu', musl: null },
 		x64: { base: 'linux-x64-gnu', musl: 'linux-x64-musl' }
 	},
+	openbsd: {
+		x64: { base: 'openbsd-x64' }
+	},
+	openharmony: {
+		arm64: { base: 'openharmony-arm64' }
+	},
 	win32: {
 		arm64: { base: 'win32-arm64-msvc' },
 		ia32: { base: 'win32-ia32-msvc' },
-		x64: { base: 'win32-x64-msvc' }
+		x64: {
+			base: isMingw32() ? 'win32-x64-gnu' : 'win32-x64-msvc'
+		}
 	}
 };
 

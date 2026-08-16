@@ -36,7 +36,7 @@ var _postcssModulesValues = _interopRequireDefault(require("postcss-modules-valu
 var _postcssModulesLocalByDefault = _interopRequireDefault(require("postcss-modules-local-by-default"));
 var _postcssModulesExtractImports = _interopRequireDefault(require("postcss-modules-extract-imports"));
 var _postcssModulesScope = _interopRequireDefault(require("postcss-modules-scope"));
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+function _interopRequireDefault(e) { return e && e.__esModule ? e : { default: e }; }
 /*
   MIT License http://www.opensource.org/licenses/mit-license.php
   Author Tobias Koppers @sokra
@@ -283,8 +283,10 @@ function defaultGetLocalIdent(loaderContext, localIdentName, localName, options)
   }
   let localIdentHash = "";
   for (let tier = 0; localIdentHash.length < hashDigestLength; tier++) {
+    const hash = (loaderContext.utils.createHash ||
+    // TODO remove in the next major release
     // eslint-disable-next-line no-underscore-dangle
-    const hash = loaderContext._compiler.webpack.util.createHash(hashFunction);
+    loaderContext._compiler.webpack.util.createHash)(hashFunction);
     if (hashSalt) {
       hash.update(hashSalt);
     }
@@ -428,11 +430,6 @@ function getModulesOptions(rawOptions, esModule, exportType, loaderContext) {
       auto
     } = rawModulesOptions);
   }
-
-  // eslint-disable-next-line no-underscore-dangle
-  const {
-    outputOptions
-  } = loaderContext._compilation;
   const needNamedExport = exportType === "css-style-sheet" || exportType === "string";
   const namedExport = typeof rawModulesOptions.namedExport !== "undefined" ? rawModulesOptions.namedExport : needNamedExport || esModule;
   const exportLocalsConvention = typeof rawModulesOptions.exportLocalsConvention !== "undefined" ? rawModulesOptions.exportLocalsConvention : namedExport ? "as-is" : "camel-case-only";
@@ -442,10 +439,23 @@ function getModulesOptions(rawOptions, esModule, exportType, loaderContext) {
     exportGlobals: false,
     localIdentName: "[hash:base64]",
     localIdentContext: loaderContext.rootContext,
-    localIdentHashSalt: outputOptions.hashSalt,
-    localIdentHashFunction: outputOptions.hashFunction,
-    localIdentHashDigest: outputOptions.hashDigest,
-    localIdentHashDigestLength: outputOptions.hashDigestLength,
+    // eslint-disable-next-line no-underscore-dangle
+    localIdentHashSalt: loaderContext.hashSalt ||
+    // TODO remove in the next major release
+    // eslint-disable-next-line no-underscore-dangle
+    loaderContext._compilation.outputOptions.hashSalt,
+    localIdentHashFunction: loaderContext.hashFunction ||
+    // TODO remove in the next major release
+    // eslint-disable-next-line no-underscore-dangle
+    loaderContext._compilation.outputOptions.hashFunction,
+    localIdentHashDigest: loaderContext.hashDigest ||
+    // TODO remove in the next major release
+    // eslint-disable-next-line no-underscore-dangle
+    loaderContext._compilation.outputOptions.hashDigest,
+    localIdentHashDigestLength: loaderContext.hashDigestLength ||
+    // TODO remove in the next major release
+    // eslint-disable-next-line no-underscore-dangle
+    loaderContext._compilation.outputOptions.hashDigestLength,
     // eslint-disable-next-line no-undefined
     localIdentRegExp: undefined,
     // eslint-disable-next-line no-undefined
@@ -838,7 +848,7 @@ function dashesCamelCase(str) {
   return str.replace(/-+(\w)/g, (match, firstLetter) => firstLetter.toUpperCase());
 }
 const validIdentifier = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/u;
-const keywords = new Set(["abstract", "boolean", "break", "byte", "case", "catch", "char", "class", "const", "continue", "debugger", "default", "delete", "do", "double", "else", "enum", "export", "extends", "false", "final", "finally", "float", "for", "function", "goto", "if", "implements", "import", "in", "instanceof", "int", "interface", "long", "native", "new", "null", "package", "private", "protected", "public", "return", "short", "static", "super", "switch", "synchronized", "this", "throw", "throws", "transient", "true", "try", "typeof", "var", "void", "volatile", "while", "with"]);
+const keywords = new Set(["abstract", "boolean", "break", "byte", "case", "catch", "char", "class", "const", "continue", "debugger", "default", "delete", "do", "double", "else", "enum", "export", "extends", "false", "final", "finally", "float", "for", "function", "goto", "if", "implements", "import", "in", "instanceof", "int", "interface", "long", "native", "new", "null", "package", "private", "protected", "public", "return", "short", "static", "super", "switch", "synchronized", "this", "throw", "throws", "transient", "true", "try", "typeof", "var", "void", "volatile", "while", "with", "module"]);
 function getExportCode(exports, replacements, icssPluginUsed, options, isTemplateLiteralSupported) {
   let code = "// Exports\n";
   if (icssPluginUsed) {

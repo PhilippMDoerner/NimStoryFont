@@ -1,5 +1,21 @@
 import { AbstractControl, ValidationErrors } from '@angular/forms';
-import { ValidatorOption } from 'node_modules/@ngx-formly/core/lib/models';
+import { FormlyFieldConfig } from '@ngx-formly/core';
+
+// Copied from @ngx-formly/core/lib/models/config.d.ts because we can no longer import those types from there
+export declare type FieldValidatorFn = (
+  c: AbstractControl,
+  field: FormlyFieldConfig,
+  options?: {
+    [id: string]: any;
+  },
+) => ValidationErrors | null;
+export interface ValidatorOption {
+  name: string;
+  validation: FieldValidatorFn;
+  options?: {
+    [id: string]: any;
+  };
+}
 /***
  * This is how Validators work:
  * 1) You have a validation function. That takes in a control:Formcontrol and returns ValidationErrors (when sync)

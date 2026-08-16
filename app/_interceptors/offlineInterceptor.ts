@@ -7,10 +7,10 @@ import {
 } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Observable, of, switchMap, take } from 'rxjs';
-import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
 import { ToastConfig } from '../_models/toast';
 import { OfflineRequestService } from '../_services/offline-request.service';
 import { OnlineService } from '../_services/online.service';
+import { ToastService } from '../design/organisms/toast-overlay/toast.service';
 
 // const offlineActionToast: ToastConfig = {
 //   type: 'WARNING',

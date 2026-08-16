@@ -6,8 +6,8 @@ import {
   output,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { HotkeyDirective } from 'src/app/_directives/hotkey.directive';
-import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
+import { HotkeyDirective } from '../../../_directives/hotkey.directive';
+import { ButtonComponent } from '../../atoms/button/button.component';
 import { InputComponent } from '../../atoms/input/input.component';
 
 @Component({
@@ -18,22 +18,22 @@ import { InputComponent } from '../../atoms/input/input.component';
   imports: [ButtonComponent, FormsModule, HotkeyDirective, InputComponent],
 })
 export class SearchFieldComponent {
-  NON_NORMAL_CHARACTER_REGEXP = /[^a-zA-Z0-9']/g;
-  TWO_OR_MORE_WHITESPACE_REGEXP = /\s\s+/g;
+  readonly NON_NORMAL_CHARACTER_REGEXP = /[^a-zA-Z0-9']/g;
+  readonly TWO_OR_MORE_WHITESPACE_REGEXP = /\s\s+/g;
 
-  placeholder = input('Enter Search Query');
-  btnAriaLabel = input('Trigger a search');
-  canSearch = input.required<boolean>();
-  autofocus = input<boolean>(false);
-  showButton = input(true);
-  ariaControls = input<string>();
-  inLoadingState = input(false);
+  readonly placeholder = input('Enter Search Query');
+  readonly btnAriaLabel = input('Trigger a search');
+  readonly canSearch = input.required<boolean>();
+  readonly autofocus = input<boolean>(false);
+  readonly showButton = input(true);
+  readonly ariaControls = input<string>();
+  readonly inLoadingState = input(false);
 
   readonly appSearch = output<string>();
   readonly searchSubmit = output<string>();
   readonly searchInput = output<string>();
 
-  _placeholder = computed(() =>
+  readonly _placeholder = computed(() =>
     this.canSearch() ? this.placeholder() : 'Search is currently disabled',
   );
 

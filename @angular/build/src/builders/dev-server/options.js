@@ -72,16 +72,26 @@ async function normalizeOptions(context, projectName, options) {
             };
         }
     }
+    let port = options.port ?? 4200;
+    // Overwrite port, if process.env.PORT is available.
+    if (process.env.PORT) {
+        const envPort = Number(process.env.PORT);
+        if (!isNaN(envPort)) {
+            port = envPort;
+            logger.info(`Environment variable "PORT" detected. Using port ${envPort}.`);
+        }
+    }
     // Initial options to keep
-    const { host, port, poll, open, verbose, watch, liveReload, hmr, headers, proxyConfig, servePath, ssl, sslCert, sslKey, prebundle, allowedHosts, } = options;
+    const { host, poll, open, verbose, define, watch, liveReload, hmr, headers, proxyConfig, servePath, ssl, sslCert, sslKey, prebundle, allowedHosts, } = options;
     // Return all the normalized options
     return {
         buildTarget,
         host: host ?? 'localhost',
-        port: port ?? 4200,
+        port,
         poll,
         open,
         verbose,
+        define,
         watch,
         liveReload: !!liveReload,
         hmr: hmr ?? !!liveReload,
@@ -100,3 +110,4 @@ async function normalizeOptions(context, projectName, options) {
         allowedHosts: allowedHosts ? allowedHosts : [],
     };
 }
+//# sourceMappingURL=options.js.map

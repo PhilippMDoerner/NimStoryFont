@@ -5,19 +5,27 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.dev/license
  */
+/**
+ * @fileoverview
+ * Private exports intended only for use with the @angular-devkit/build-angular package.
+ * All exports are not supported for external use, do not provide SemVer guarantees, and
+ * their existence may change in any future version.
+ */
+import { createAngularCompilation } from './tools/angular/compilation';
 import { CompilerPluginOptions } from './tools/esbuild/angular/compiler-plugin';
 import { BundleStylesheetOptions } from './tools/esbuild/stylesheets/bundle-options';
 export { buildApplicationInternal } from './builders/application';
 export type { ApplicationBuilderInternalOptions } from './builders/application/options';
 export { type Result, type ResultFile, ResultKind } from './builders/application/results';
-export { serveWithVite } from './builders/dev-server/vite-server';
-export { execute as executeKarmaInternal } from './builders/karma/application_builder';
+export { serveWithVite } from './builders/dev-server/vite';
+export { normalizeOptions as normalizeDevServerOptions, type NormalizedDevServerOptions, } from './builders/dev-server/options';
 export * from './tools/babel/plugins';
 export type { ExternalResultMetadata } from './tools/esbuild/bundler-execution-result';
 export { emitFilesToDisk } from './tools/esbuild/utils';
 export { transformSupportedBrowsersToTargets } from './tools/esbuild/utils';
 export { SassWorkerImplementation } from './tools/sass/sass-service';
 export { SourceFileCache } from './tools/esbuild/angular/source-file-cache';
+export { Cache } from './tools/esbuild/cache';
 export { createJitResourceTransformer } from './tools/angular/transformers/jit-resource-transformer';
 export { JavaScriptTransformer } from './tools/esbuild/javascript-transformer';
 export declare function createCompilerPlugin(pluginOptions: CompilerPluginOptions & {
@@ -26,6 +34,11 @@ export declare function createCompilerPlugin(pluginOptions: CompilerPluginOption
 }, styleOptions: BundleStylesheetOptions & {
     inlineStyleLanguage: string;
 }): import('esbuild').Plugin;
+export type { CompilerPluginOptions, BundleStylesheetOptions };
+export type { AngularCompilation } from './tools/angular/compilation';
+export { DiagnosticModes } from './tools/angular/compilation';
+export { createAngularCompilation };
+export { ComponentStylesheetBundler } from './tools/esbuild/angular/component-stylesheets';
 export * from './utils/bundle-calculator';
 export { checkPort } from './utils/check-port';
 export { deleteOutputDir } from './utils/delete-output-dir';
@@ -41,3 +54,4 @@ export { type BundleStats, generateBuildStatsTable } from './utils/stats-table';
 export { getSupportedBrowsers } from './utils/supported-browsers';
 export { assertCompatibleAngularVersion } from './utils/version';
 export { findTests, getTestEntrypoints } from './builders/karma/find-tests';
+export { findTailwindConfiguration, generateSearchDirectories, loadPostcssConfiguration, } from './utils/postcss-configuration';

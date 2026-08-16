@@ -8,6 +8,8 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.resetCumulativeDurations = resetCumulativeDurations;
+exports.getAndClearCumulativeDurations = getAndClearCumulativeDurations;
+exports.mergeCumulativeDurations = mergeCumulativeDurations;
 exports.logCumulativeDurations = logCumulativeDurations;
 exports.profileAsync = profileAsync;
 exports.profileSync = profileSync;
@@ -15,6 +17,25 @@ const environment_options_1 = require("../../utils/environment-options");
 let cumulativeDurations;
 function resetCumulativeDurations() {
     cumulativeDurations?.clear();
+}
+function getAndClearCumulativeDurations() {
+    if (!cumulativeDurations || cumulativeDurations.size === 0) {
+        return undefined;
+    }
+    const data = Object.fromEntries(cumulativeDurations);
+    cumulativeDurations.clear();
+    return data;
+}
+function mergeCumulativeDurations(data) {
+    cumulativeDurations ??= new Map();
+    for (const [name, durations] of Object.entries(data)) {
+        let existing = cumulativeDurations.get(name);
+        if (!existing) {
+            existing = [];
+            cumulativeDurations.set(name, existing);
+        }
+        existing.push(...durations);
+    }
 }
 function logCumulativeDurations() {
     if (!environment_options_1.debugPerformance || !cumulativeDurations) {
@@ -75,3 +96,4 @@ function profileSync(name, action, cumulative) {
         recordDuration(name, startTime, cumulative);
     }
 }
+//# sourceMappingURL=profiling.js.map

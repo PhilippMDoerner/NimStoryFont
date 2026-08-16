@@ -9,16 +9,19 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormlyFieldConfig } from '@ngx-formly/core';
 import { filter, mergeMap, of, take } from 'rxjs';
-import { MapMarker, MapMarkerRaw } from 'src/app/_models/mapMarker';
-import { OverviewItem } from 'src/app/_models/overview';
-import { FormlyService } from 'src/app/_services/formly/formly-service.service';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { CreateUpdateComponent } from 'src/app/design//templates/create-update/create-update.component';
-import { formatSearchTerm } from 'src/app/design/atoms/_models/typeahead';
-import { CreateUpdateState } from 'src/app/design/templates/_models/create-update-states';
-import { GlobalStore } from 'src/app/global.store';
-import { NavigationStore } from 'src/app/navigation.store';
-import { filterNil, takeOnceOrUntilDestroyed } from 'src/utils/rxjs-operators';
+import {
+  filterNil,
+  takeOnceOrUntilDestroyed,
+} from '../../../../utils/rxjs-operators';
+import { MapMarker, MapMarkerRaw } from '../../../_models/mapMarker';
+import { OverviewItem } from '../../../_models/overview';
+import { FormlyService } from '../../../_services/formly/formly-service.service';
+import { RoutingService } from '../../../_services/routing.service';
+import { formatSearchTerm } from '../../../design/atoms/_models/typeahead';
+import { CreateUpdateState } from '../../../design/templates/_models/create-update-states';
+import { CreateUpdateComponent } from '../../../design/templates/create-update/create-update.component';
+import { GlobalStore } from '../../../global.store';
+import { NavigationStore } from '../../../navigation.store';
 import { MarkerCreateUpdateStore } from './marker-create-update-page.store';
 
 @Component({
@@ -29,26 +32,30 @@ import { MarkerCreateUpdateStore } from './marker-create-update-page.store';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MarkerCreateUpdatePageComponent {
-  formlyService = inject(FormlyService);
-  store = inject(MarkerCreateUpdateStore);
-  globalStore = inject(GlobalStore);
-  navigationStore = inject(NavigationStore);
-  router = inject(Router);
-  destroyer = inject(DestroyRef);
-  private route = inject(ActivatedRoute);
-  private params = toSignal(this.route.params);
-  private routingService = inject(RoutingService);
+  readonly formlyService = inject(FormlyService);
+  readonly store = inject(MarkerCreateUpdateStore);
+  readonly globalStore = inject(GlobalStore);
+  readonly navigationStore = inject(NavigationStore);
+  readonly router = inject(Router);
+  readonly destroyer = inject(DestroyRef);
+  private readonly route = inject(ActivatedRoute);
+  private readonly params = toSignal(this.route.params);
+  private readonly routingService = inject(RoutingService);
 
-  campaignLocations$ = toObservable(this.store.campaignLocations).pipe(
+  readonly campaignLocations$ = toObservable(this.store.campaignLocations).pipe(
     filterNil(),
   );
-  campaignMaps$ = toObservable(this.store.campaignMaps).pipe(filterNil());
-  markerTypes$ = toObservable(this.store.markerTypes).pipe(filterNil());
-  createMarkerState$ = toObservable(this.store.createMarkerState);
-  updateMarkerState$ = toObservable(this.store.markerUpdateState);
-  marker$ = toObservable(this.store.marker).pipe(filterNil());
+  readonly campaignMaps$ = toObservable(this.store.campaignMaps).pipe(
+    filterNil(),
+  );
+  readonly markerTypes$ = toObservable(this.store.markerTypes).pipe(
+    filterNil(),
+  );
+  readonly createMarkerState$ = toObservable(this.store.createMarkerState);
+  readonly updateMarkerState$ = toObservable(this.store.markerUpdateState);
+  readonly marker$ = toObservable(this.store.marker).pipe(filterNil());
 
-  formlyFields = computed<FormlyFieldConfig[]>(() => [
+  readonly formlyFields = computed<FormlyFieldConfig[]>(() => [
     this.formlyService.buildInputConfig({
       key: 'latitude',
       inputKind: 'NUMBER',
@@ -92,7 +99,7 @@ export class MarkerCreateUpdatePageComponent {
     }),
   ]);
 
-  state = computed<CreateUpdateState>(() => {
+  readonly state = computed<CreateUpdateState>(() => {
     const pathSegments = this.route.snapshot.url?.map(
       (segment) => segment.path,
     );
@@ -109,35 +116,41 @@ export class MarkerCreateUpdatePageComponent {
     }
   });
 
-  userModel = computed<Partial<MapMarkerRaw> | Partial<MapMarker>>(() => {
-    switch (this.state()) {
-      case 'CREATE': {
-        const location = this.getPreselectedLocation();
-        const map = this.getPreselectedMap();
-        const longitudeParam = this.params()?.['longitude'] as
-          | number
-          | undefined;
-        const longitude = longitudeParam
-          ? Math.round(longitudeParam)
-          : undefined;
-        const latitudeParam = this.params()?.['latitude'] as number | undefined;
-        const latitude = latitudeParam ? Math.round(latitudeParam) : undefined;
+  readonly userModel = computed<Partial<MapMarkerRaw> | Partial<MapMarker>>(
+    () => {
+      switch (this.state()) {
+        case 'CREATE': {
+          const location = this.getPreselectedLocation();
+          const map = this.getPreselectedMap();
+          const longitudeParam = this.params()?.['longitude'] as
+            | number
+            | undefined;
+          const longitude = longitudeParam
+            ? Math.round(longitudeParam)
+            : undefined;
+          const latitudeParam = this.params()?.['latitude'] as
+            | number
+            | undefined;
+          const latitude = latitudeParam
+            ? Math.round(latitudeParam)
+            : undefined;
 
-        return {
-          campaign: this.globalStore.currentCampaign()?.pk,
-          map: map?.pk,
-          location: location?.pk,
-          latitude,
-          longitude,
-        } as Partial<MapMarkerRaw>;
+          return {
+            campaign: this.globalStore.currentCampaign()?.pk,
+            map: map?.pk,
+            location: location?.pk,
+            latitude,
+            longitude,
+          } as Partial<MapMarkerRaw>;
+        }
+        case 'UPDATE':
+        case 'OUTDATED_UPDATE':
+          return { ...this.store.marker() };
       }
-      case 'UPDATE':
-      case 'OUTDATED_UPDATE':
-        return { ...this.store.marker() };
-    }
-  });
+    },
+  );
 
-  heading = computed(() => {
+  readonly heading = computed(() => {
     switch (this.state()) {
       case 'CREATE':
         return 'Adding a new Marker';

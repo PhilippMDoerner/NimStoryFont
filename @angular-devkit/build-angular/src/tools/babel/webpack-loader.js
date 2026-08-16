@@ -6,9 +6,41 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.dev/license
  */
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 const babel_loader_1 = require("babel-loader");
-const load_esm_1 = require("../../utils/load-esm");
 const package_version_1 = require("../../utils/package-version");
 const application_1 = require("./presets/application");
 /**
@@ -19,7 +51,6 @@ let linkerPluginCreator;
  * Cached instance of the localize Babel plugins factory functions.
  */
 let i18nPluginCreators;
-// eslint-disable-next-line max-lines-per-function
 exports.default = (0, babel_loader_1.custom)(() => {
     const baseOptions = Object.freeze({
         babelrc: false,
@@ -46,7 +77,8 @@ exports.default = (0, babel_loader_1.custom)(() => {
                 // Load ESM `@angular/compiler-cli/linker/babel` using the TypeScript dynamic import workaround.
                 // Once TypeScript provides support for keeping the dynamic import this workaround can be
                 // changed to a direct dynamic import.
-                linkerPluginCreator ??= (await (0, load_esm_1.loadEsmModule)('@angular/compiler-cli/linker/babel')).createEs2015LinkerPlugin;
+                linkerPluginCreator ??= (await Promise.resolve().then(() => __importStar(require('@angular/compiler-cli/linker/babel'))))
+                    .createEs2015LinkerPlugin;
                 customOptions.angularLinker = {
                     shouldLink: true,
                     jitMode: aot !== true,
@@ -77,7 +109,7 @@ exports.default = (0, babel_loader_1.custom)(() => {
                     // Load ESM `@angular/localize/tools` using the TypeScript dynamic import workaround.
                     // Once TypeScript provides support for keeping the dynamic import this workaround can be
                     // changed to a direct dynamic import.
-                    i18nPluginCreators = await (0, load_esm_1.loadEsmModule)('@angular/localize/tools');
+                    i18nPluginCreators = await Promise.resolve().then(() => __importStar(require('@angular/localize/tools')));
                 }
                 customOptions.i18n = {
                     ...i18n,
@@ -99,7 +131,7 @@ exports.default = (0, babel_loader_1.custom)(() => {
                 customOptions.optimize = {
                     // Angular packages provide additional tested side effects guarantees and can use
                     // otherwise unsafe optimizations. (@angular/platform-server/init) however has side-effects.
-                    pureTopLevel: AngularPackage && sideEffectFree,
+                    topLevelSafeMode: !(AngularPackage && sideEffectFree),
                     // JavaScript modules that are marked as side effect free are considered to have
                     // no decorators that contain non-local effects.
                     wrapDecorators: sideEffectFree,
@@ -166,3 +198,4 @@ exports.default = (0, babel_loader_1.custom)(() => {
         },
     };
 });
+//# sourceMappingURL=webpack-loader.js.map

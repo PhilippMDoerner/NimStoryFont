@@ -13,10 +13,10 @@ import {
   imports: [],
 })
 export class ChoiceSelectComponent<T> {
-  choices = input.required<T[]>();
-  labelProp = input.required<keyof T>();
-  selectedLabelValue = input.required<string | undefined>();
-  id = input.required<string>();
+  readonly choices = input.required<T[]>();
+  readonly labelProp = input.required<keyof T>();
+  readonly selectedLabelValue = input.required<string | undefined>();
+  readonly id = input.required<string>();
 
   readonly choiceSelect = output<T>();
 

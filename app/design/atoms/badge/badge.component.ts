@@ -19,21 +19,21 @@ import { IconComponent } from '../icon/icon.component';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BadgeComponent {
-  kind = input.required<ElementKind>();
-  text = input.required<string>();
-  icon = input<Icon>();
-  interactionMode = input<InteractionMode>('NONE');
-  link = input<string>();
-  maxLength = input<number | undefined>();
+  readonly kind = input.required<ElementKind>();
+  readonly text = input.required<string>();
+  readonly icon = input<Icon>();
+  readonly interactionMode = input<InteractionMode>('NONE');
+  readonly link = input<string>();
+  readonly maxLength = input<number | undefined>();
 
   readonly badgeClick = output<void>();
 
-  shouldCutText = computed(() => {
+  readonly shouldCutText = computed(() => {
     const maxLength = this.maxLength();
     return maxLength != null && this.text().length > maxLength;
   });
 
-  displayedText = computed(() => {
+  readonly displayedText = computed(() => {
     const maxLength = this.maxLength();
 
     if (this.shouldCutText()) {

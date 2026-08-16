@@ -33,3 +33,4 @@ class AwesomeCommandModule extends command_module_1.CommandModule {
     }
 }
 exports.default = AwesomeCommandModule;
+//# sourceMappingURL=cli.js.map

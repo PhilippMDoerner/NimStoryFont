@@ -10,9 +10,11 @@ const makeSerializable = require("../util/makeSerializable");
 
 /** @typedef {import("webpack-sources").Source} Source */
 /** @typedef {import("../Generator").GenerateContext} GenerateContext */
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext} ObjectDeserializerContext */
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext} ObjectSerializerContext */
-/** @typedef {Map<string, Set<string>>} ImportSpecifiers */
+/** @typedef {{ name: string, value?: string }[]} ArrayImportSpecifiers */
+/** @typedef {Set<string>} ImportSpecifier */
+/** @typedef {Map<string, ImportSpecifier>} ImportSpecifiers */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext<(string | ArrayImportSpecifiers | ImportSpecifiers | undefined)[]>} ObjectDeserializerContext */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext<(string | ArrayImportSpecifiers | ImportSpecifiers | undefined)[]>} ObjectSerializerContext */
 
 /**
  * @extends {InitFragment<GenerateContext>}
@@ -20,7 +22,7 @@ const makeSerializable = require("../util/makeSerializable");
 class ExternalModuleInitFragment extends InitFragment {
 	/**
 	 * @param {string} importedModule imported module
-	 * @param {Array<{ name: string, value?: string }> | ImportSpecifiers} specifiers import specifiers
+	 * @param {ArrayImportSpecifiers | ImportSpecifiers} specifiers import specifiers
 	 * @param {string=} defaultImport default import
 	 */
 	constructor(importedModule, specifiers, defaultImport) {
@@ -30,6 +32,7 @@ class ExternalModuleInitFragment extends InitFragment {
 			0,
 			`external module imports|${importedModule}|${defaultImport || "null"}`
 		);
+		/** @type {string} */
 		this.importedModule = importedModule;
 		if (Array.isArray(specifiers)) {
 			/** @type {ImportSpecifiers} */
@@ -37,6 +40,7 @@ class ExternalModuleInitFragment extends InitFragment {
 			for (const { name, value } of specifiers) {
 				let specifiers = this.specifiers.get(name);
 				if (!specifiers) {
+					/** @type {ImportSpecifier} */
 					specifiers = new Set();
 					this.specifiers.set(name, specifiers);
 				}
@@ -45,6 +49,7 @@ class ExternalModuleInitFragment extends InitFragment {
 		} else {
 			this.specifiers = specifiers;
 		}
+		/** @type {string | undefined} */
 		this.defaultImport = defaultImport;
 	}
 
@@ -72,10 +77,12 @@ class ExternalModuleInitFragment extends InitFragment {
 	}
 
 	/**
+	 * Returns the source code that will be included as initialization code.
 	 * @param {GenerateContext} context context
 	 * @returns {string | Source | undefined} the source code that will be included as initialization code
 	 */
 	getContent({ runtimeRequirements }) {
+		/** @type {string[]} */
 		const namedImports = [];
 
 		for (const [name, specifiers] of this.specifiers) {
@@ -99,10 +106,11 @@ class ExternalModuleInitFragment extends InitFragment {
 
 		return `import ${importsString} from ${JSON.stringify(
 			this.importedModule
-		)};`;
+		)};\n`;
 	}
 
 	/**
+	 * Serializes this instance into the provided serializer context.
 	 * @param {ObjectSerializerContext} context context
 	 */
 	serialize(context) {
@@ -114,14 +122,15 @@ class ExternalModuleInitFragment extends InitFragment {
 	}
 
 	/**
+	 * Restores this instance from the provided deserializer context.
 	 * @param {ObjectDeserializerContext} context context
 	 */
 	deserialize(context) {
 		super.deserialize(context);
 		const { read } = context;
-		this.importedModule = read();
-		this.specifiers = read();
-		this.defaultImport = read();
+		this.importedModule = /** @type {string} */ (read());
+		this.specifiers = /** @type {ImportSpecifiers} */ (read());
+		this.defaultImport = /** @type {string | undefined} */ (read());
 	}
 }
 

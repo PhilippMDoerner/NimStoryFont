@@ -455,13 +455,8 @@ Needle.prototype.send_request = function(count, method, uri, config, post_data, 
       protocol     = request_opts.protocol == 'https:' ? https : http,
       signal       = request_opts.signal;
 
-  function done(err, resp) {
-    if (returned++ > 0)
-      return debug('Already finished, stopping here.');
-
-    if (timer) clearTimeout(timer);
+  function unlisten_errors() {
     request.removeListener('error', had_error);
-    out.done = true;
 
     // An error can still be fired after closing.  In particular, on macOS.
     // See also:
@@ -469,6 +464,16 @@ Needle.prototype.send_request = function(count, method, uri, config, post_data, 
     //  - https://github.com/less/less.js/issues/3693
     //  - https://github.com/nodejs/node/issues/27916
     request.once('error', function() {});
+  }
+
+  function done(err, resp) {
+    if (returned++ > 0)
+      return debug('Already finished, stopping here.');
+
+    if (timer) clearTimeout(timer);
+    out.done = true;
+
+    unlisten_errors();
 
     if (callback)
       return callback(err, resp, resp ? resp.body : undefined);
@@ -539,17 +544,28 @@ Needle.prototype.send_request = function(count, method, uri, config, post_data, 
           delete config.headers['content-length']; // in case the original was a multipart POST request.
         }
 
-        // if follow_set_cookies is true, insert cookies in the next request's headers.
-        // we set both the original request cookies plus any response cookies we might have received.
-        if (config.follow_set_cookies && utils.host_and_ports_match(headers.location, uri)) {
-          var request_cookies = cookies.read(config.headers['cookie']);
-          config.previous_resp_cookies = resp.cookies;
-          if (Object.keys(request_cookies).length || Object.keys(resp.cookies || {}).length) {
-            config.headers['cookie'] = cookies.write(extend(request_cookies, resp.cookies));
+        if (utils.host_and_ports_match(headers.location, uri)) {
+
+          // if follow_set_cookies is true, insert cookies in the next request's headers.
+          // we set both the original request cookies plus any response cookies we might have received.
+          if (config.follow_set_cookies) {
+            var request_cookies = cookies.read(config.headers['cookie']);
+            config.previous_resp_cookies = resp.cookies;
+            if (Object.keys(request_cookies).length || Object.keys(resp.cookies || {}).length) {
+              config.headers['cookie'] = cookies.write(extend(request_cookies, resp.cookies));
+            }
+
+          } else {
+            // set response cookies if present, otherwise remove header
+            // if (resp.cookies && Object.keys(resp.cookies).length)
+            //   config.headers['cookie'] = cookies.write(resp.cookies);
+            // else
+              delete config.headers['cookie'];
           }
-        } else if (config.headers['cookie']) {
-          debug('Clearing original request cookie', config.headers['cookie']);
+        } else {
           delete config.headers['cookie'];
+          delete config.headers['authorization'];
+          delete config.headers['proxy-authorization'];
         }
 
         if (config.follow_set_referer)
@@ -559,6 +575,7 @@ Needle.prototype.send_request = function(count, method, uri, config, post_data, 
 
         var redirect_url = utils.resolve_url(headers.location, uri);
         debug('Redirecting to ' +  redirect_url.toString());
+        unlisten_errors();
         return self.send_request(++count, method, redirect_url.toString(), config, post_data, out, callback);
       } else if (config.follow_max > 0) {
         return done(new Error('Max redirects reached. Possible loop in: ' + headers.location));
@@ -843,7 +860,7 @@ module.exports.defaults = function(obj) {
 
 'head get'.split(' ').forEach(function(method) {
   module.exports[method] = function(uri, options, callback) {
-    return new Needle(method, uri, null, options, callback).start();
+    return new Needle(method, uri, options.query, options, callback).start();
   }
 })
 

@@ -1,7 +1,7 @@
 /*
   @license
-	Rollup.js v4.40.2
-	Tue, 06 May 2025 07:26:21 GMT - commit 02da7efedcf373f0f819b78e3acbe50de05d9a5b
+	Rollup.js v4.62.4
+	Sat, 01 Aug 2026 05:20:25 GMT - commit ddc4ffab628944e45dbb8d66d58aae818015440f
 
 	https://github.com/rollup/rollup
 
@@ -81,7 +81,7 @@ function watch(configs) {
     });
     return emitter;
 }
-function withTrailingSlash(path) {
+function ensureTrailingSlash(path) {
     if (path[path.length - 1] !== '/') {
         return `${path}/`;
     }
@@ -89,21 +89,20 @@ function withTrailingSlash(path) {
 }
 function checkWatchConfig(config) {
     for (const item of config) {
+        if (typeof item.watch !== 'boolean' && item.watch?.allowInputInsideOutputPath) {
+            break;
+        }
         if (item.input && item.output) {
             const input = typeof item.input === 'string' ? rollup.ensureArray(item.input) : item.input;
-            const output = rollup.ensureArray(item.output);
+            const outputs = rollup.ensureArray(item.output);
             for (const index in input) {
                 const inputPath = input[index];
-                const subPath = output.find(o => {
-                    if (!o.dir || typeof inputPath !== 'string') {
-                        return false;
-                    }
-                    const _outPath = withTrailingSlash(o.dir);
-                    const _inputPath = withTrailingSlash(inputPath);
-                    return _inputPath.startsWith(_outPath);
-                });
-                if (subPath) {
-                    parseAst_js.error(parseAst_js.logInvalidOption('watch', parseAst_js.URL_WATCH, `the input "${inputPath}" is a subpath of the output "${subPath.dir}"`));
+                if (typeof inputPath !== 'string') {
+                    continue;
+                }
+                const outputWithInputAsSubPath = outputs.find(({ dir }) => dir && ensureTrailingSlash(inputPath).startsWith(ensureTrailingSlash(dir)));
+                if (outputWithInputAsSubPath) {
+                    parseAst_js.error(parseAst_js.logInvalidOption('watch', parseAst_js.URL_WATCH, `the input "${inputPath}" is a subpath of the output "${outputWithInputAsSubPath.dir}"`));
                 }
             }
         }
@@ -121,8 +120,10 @@ async function watchInternal(configs, emitter) {
     new Watcher(watchOptionsList, emitter);
 }
 
-exports.VERSION = rollup.version;
+const VERSION = rollup.package_.version;
+
 exports.defineConfig = rollup.defineConfig;
 exports.rollup = rollup.rollup;
+exports.VERSION = VERSION;
 exports.watch = watch;
 //# sourceMappingURL=rollup.js.map

@@ -11,11 +11,11 @@ exports.demandCommandFailureMessage = void 0;
 exports.addCommandModuleToYargs = addCommandModuleToYargs;
 const command_module_1 = require("../command-module");
 exports.demandCommandFailureMessage = `You need to specify a command before moving on. Use '--help' to view the available commands.`;
-function addCommandModuleToYargs(localYargs, commandModule, context) {
+function addCommandModuleToYargs(commandModule, context) {
     const cmd = new commandModule(context);
     const { args: { options: { jsonHelp }, }, workspace, } = context;
     const describe = jsonHelp ? cmd.fullDescribe : cmd.describe;
-    return localYargs.command({
+    context.yargsInstance.command({
         command: cmd.command,
         aliases: cmd.aliases,
         describe: 
@@ -36,3 +36,4 @@ function addCommandModuleToYargs(localYargs, commandModule, context) {
         handler: (args) => cmd.handler(args),
     });
 }
+//# sourceMappingURL=command.js.map

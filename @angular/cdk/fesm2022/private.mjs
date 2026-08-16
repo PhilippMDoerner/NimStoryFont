@@ -1,19 +1,76 @@
-export { _ as _CdkPrivateStyleLoader } from './style-loader-B2sGQXxD.mjs';
+export { _CdkPrivateStyleLoader } from './_style-loader-chunk.mjs';
 import * as i0 from '@angular/core';
-import { Component, ViewEncapsulation, ChangeDetectionStrategy } from '@angular/core';
+import { ViewEncapsulation, Component, SecurityContext } from '@angular/core';
 
-/**
- * Component used to load the .cdk-visually-hidden styles.
- * @docs-private
- */
 class _VisuallyHiddenLoader {
-    static ɵfac = i0.ɵɵngDeclareFactory({ minVersion: "12.0.0", version: "20.0.0", ngImport: i0, type: _VisuallyHiddenLoader, deps: [], target: i0.ɵɵFactoryTarget.Component });
-    static ɵcmp = i0.ɵɵngDeclareComponent({ minVersion: "14.0.0", version: "20.0.0", type: _VisuallyHiddenLoader, isStandalone: true, selector: "ng-component", exportAs: ["cdkVisuallyHidden"], ngImport: i0, template: '', isInline: true, styles: [".cdk-visually-hidden{border:0;clip:rect(0 0 0 0);height:1px;margin:-1px;overflow:hidden;padding:0;position:absolute;width:1px;white-space:nowrap;outline:0;-webkit-appearance:none;-moz-appearance:none;left:0}[dir=rtl] .cdk-visually-hidden{left:auto;right:0}\n"], changeDetection: i0.ChangeDetectionStrategy.OnPush, encapsulation: i0.ViewEncapsulation.None });
+  static ɵfac = i0.ɵɵngDeclareFactory({
+    minVersion: "12.0.0",
+    version: "22.1.0",
+    ngImport: i0,
+    type: _VisuallyHiddenLoader,
+    deps: [],
+    target: i0.ɵɵFactoryTarget.Component
+  });
+  static ɵcmp = i0.ɵɵngDeclareComponent({
+    minVersion: "14.0.0",
+    version: "22.1.0",
+    type: _VisuallyHiddenLoader,
+    isStandalone: true,
+    selector: "ng-component",
+    exportAs: ["cdkVisuallyHidden"],
+    ngImport: i0,
+    template: '',
+    isInline: true,
+    styles: [".cdk-visually-hidden {\n  border: 0;\n  clip: rect(0 0 0 0);\n  height: 1px;\n  margin: -1px;\n  overflow: hidden;\n  padding: 0;\n  position: absolute;\n  width: 1px;\n  white-space: nowrap;\n  outline: 0;\n  -webkit-appearance: none;\n  -moz-appearance: none;\n  left: 0;\n}\n[dir=rtl] .cdk-visually-hidden {\n  left: auto;\n  right: 0;\n}\n"],
+    encapsulation: i0.ViewEncapsulation.None
+  });
 }
-i0.ɵɵngDeclareClassMetadata({ minVersion: "12.0.0", version: "20.0.0", ngImport: i0, type: _VisuallyHiddenLoader, decorators: [{
-            type: Component,
-            args: [{ exportAs: 'cdkVisuallyHidden', encapsulation: ViewEncapsulation.None, template: '', changeDetection: ChangeDetectionStrategy.OnPush, styles: [".cdk-visually-hidden{border:0;clip:rect(0 0 0 0);height:1px;margin:-1px;overflow:hidden;padding:0;position:absolute;width:1px;white-space:nowrap;outline:0;-webkit-appearance:none;-moz-appearance:none;left:0}[dir=rtl] .cdk-visually-hidden{left:auto;right:0}\n"] }]
-        }] });
+i0.ɵɵngDeclareClassMetadata({
+  minVersion: "12.0.0",
+  version: "22.1.0",
+  ngImport: i0,
+  type: _VisuallyHiddenLoader,
+  decorators: [{
+    type: Component,
+    args: [{
+      exportAs: 'cdkVisuallyHidden',
+      encapsulation: ViewEncapsulation.None,
+      template: '',
+      styles: [".cdk-visually-hidden {\n  border: 0;\n  clip: rect(0 0 0 0);\n  height: 1px;\n  margin: -1px;\n  overflow: hidden;\n  padding: 0;\n  position: absolute;\n  width: 1px;\n  white-space: nowrap;\n  outline: 0;\n  -webkit-appearance: none;\n  -moz-appearance: none;\n  left: 0;\n}\n[dir=rtl] .cdk-visually-hidden {\n  left: auto;\n  right: 0;\n}\n"]
+    }]
+  }]
+});
 
-export { _VisuallyHiddenLoader };
+let policy;
+function getPolicy() {
+  if (policy === undefined) {
+    policy = null;
+    if (typeof window !== 'undefined') {
+      const ttWindow = window;
+      if (ttWindow.trustedTypes !== undefined) {
+        try {
+          policy = ttWindow.trustedTypes.createPolicy('angular#components', {
+            createHTML: s => s
+          });
+        } catch (error) {
+          console.error(error);
+        }
+      }
+    }
+  }
+  return policy;
+}
+function trustedHTMLFromString(html) {
+  return getPolicy()?.createHTML(html) || html;
+}
+
+function _setInnerHtml(element, html, sanitizer) {
+  const cleanHtml = sanitizer.sanitize(SecurityContext.HTML, html);
+  if (cleanHtml === null && (typeof ngDevMode === 'undefined' || ngDevMode)) {
+    throw new Error(`Could not sanitize HTML: ${html}`);
+  }
+  element.innerHTML = trustedHTMLFromString(cleanHtml || '');
+}
+
+export { _VisuallyHiddenLoader, _setInnerHtml, trustedHTMLFromString };
 //# sourceMappingURL=private.mjs.map

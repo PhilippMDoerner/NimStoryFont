@@ -6,4 +6,5 @@ exports.KNOWN_SIGNAL_TYPES = new Set([
     'ModelSignal',
     'Signal',
     'WritableSignal',
+    'InputSignalWithTransform',
 ]);

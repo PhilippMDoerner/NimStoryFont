@@ -7,5 +7,5 @@
  */
 // THIS CODE IS GENERATED - DO NOT MODIFY.
 const u = undefined;
-export default [[["minuit", "midi", "mat.", "ap.m.", "soir", "nuit"], u, ["minuit", "midi", "du matin", "de l’après-midi", "du soir", "du matin"]], [["minuit", "midi", "mat.", "ap.m.", "soir", "nuit"], u, ["minuit", "midi", "matin", "après-midi", "soir", "nuit"]], ["00:00", "12:00", ["04:00", "12:00"], ["12:00", "18:00"], ["18:00", "24:00"], ["00:00", "04:00"]]];
+export default [[["minuit", "midi", "mat.", "ap.m.", "soir", "matin"], ["minuit", "midi", "matin", "après-midi", "soir", "matin"], ["minuit", "midi", "du matin", "de l’après-midi", "du soir", "du matin"]], [["minuit", "midi", "mat.", "ap.m.", "soir", "matin"], u, ["minuit", "midi", "matin", "après-midi", "soir", "matin"]], ["00:00", "12:00", ["04:00", "12:00"], ["12:00", "18:00"], ["18:00", "24:00"], ["00:00", "04:00"]]];
 //# sourceMappingURL=fr-NE.js.map

@@ -4,7 +4,8 @@ export declare enum AngularClassDecorators {
     Directive = "Directive",
     Injectable = "Injectable",
     NgModule = "NgModule",
-    Pipe = "Pipe"
+    Pipe = "Pipe",
+    Service = "Service"
 }
 declare enum AngularConstructorParameterDecorators {
     Attribute = "Attribute",
@@ -64,14 +65,14 @@ export declare enum AngularLifecycleMethods {
     ngOnDestroy = "ngOnDestroy",
     ngOnInit = "ngOnInit"
 }
-export declare const OPTION_STYLE_CAMEL_CASE = "camelCase";
-export declare const OPTION_STYLE_KEBAB_CASE = "kebab-case";
+export declare const OPTION_STYLE_CAMEL_CASE: "camelCase";
+export declare const OPTION_STYLE_KEBAB_CASE: "kebab-case";
 export type SelectorStyle = typeof OPTION_STYLE_CAMEL_CASE | typeof OPTION_STYLE_KEBAB_CASE;
 export type AngularClassDecoratorKeys = keyof typeof AngularClassDecorators;
 export type AngularInnerClassDecoratorKeys = Exclude<keyof typeof AngularInnerClassDecorators, number>;
 export type AngularLifecycleInterfaceKeys = keyof typeof AngularLifecycleInterfaces;
 export type AngularLifecycleMethodKeys = keyof typeof AngularLifecycleMethods;
-export declare const angularClassDecoratorKeys: readonly ("Component" | "Directive" | "Injectable" | "NgModule" | "Pipe")[];
+export declare const angularClassDecoratorKeys: readonly ("Component" | "Directive" | "Injectable" | "NgModule" | "Pipe" | "Service")[];
 export declare const angularInnerClassDecoratorKeys: readonly ("Attribute" | "Host" | "Inject" | "Optional" | "Self" | "SkipSelf" | "HostListener" | "ContentChild" | "ContentChildren" | "HostBinding" | "Input" | "Output" | "ViewChild" | "ViewChildren")[];
 export declare const angularLifecycleInterfaceKeys: readonly ("AfterContentChecked" | "AfterContentInit" | "AfterViewChecked" | "AfterViewInit" | "DoBootstrap" | "DoCheck" | "OnChanges" | "OnDestroy" | "OnInit")[];
 export declare const angularLifecycleMethodKeys: readonly ("ngAfterContentChecked" | "ngAfterContentInit" | "ngAfterViewChecked" | "ngAfterViewInit" | "ngDoBootstrap" | "ngDoCheck" | "ngOnChanges" | "ngOnDestroy" | "ngOnInit")[];

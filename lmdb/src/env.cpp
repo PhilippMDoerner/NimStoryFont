@@ -12,6 +12,17 @@ using namespace Napi;
 #include <v8.h>
 #endif
 
+#if defined (__linux)
+#include <endian.h> // For __BYTE_ORDER, __BIG_ENDIAN
+#if defined(__BYTE_ORDER__)&&(__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
+#define BE64_TO_HOST(x) (x)
+#else
+#define BE64_TO_HOST(x) bswap_64((x))
+#endif
+#else
+#define BE64_TO_HOST(x) bswap_64((x))
+#endif
+
 MDB_txn* ExtendedEnv::prefetchTxns[20];
 pthread_mutex_t* ExtendedEnv::prefetchTxnsLock;
 env_tracking_t* EnvWrap::envTracking = EnvWrap::initTracking();
@@ -37,11 +48,13 @@ env_tracking_t* EnvWrap::initTracking() {
 static napi_ref testRef;
 static napi_env testRefEnv;
 void EnvWrap::cleanupEnvWraps(void* data) {
-	if (openEnvWraps)
-		delete openEnvWraps;
-	else
-		fprintf(stderr, "How do we end up cleanup env wraps that don't exist?\n");
-	openEnvWraps = nullptr;
+	// The cleanup-hook arg is the identity of the bookkeeping allocation for
+	// this thread's open env list.
+	auto* envWraps = (std::vector<EnvWrap*>*) data;
+	delete envWraps;
+	if (openEnvWraps == envWraps) {
+		openEnvWraps = nullptr;
+	}
 }
 EnvWrap::EnvWrap(const CallbackInfo& info) : ObjectWrap<EnvWrap>(info) {
 	int rc;
@@ -59,6 +72,7 @@ EnvWrap::EnvWrap(const CallbackInfo& info) : ObjectWrap<EnvWrap>(info) {
 	this->writeWorker = nullptr;
 	this->readTxnRenewed = false;
     this->hasWrites = false;
+	this->cleanupHookRegistered = false;
 	this->lastReaderCheck = 0;
 	this->writingLock = new pthread_mutex_t;
 	this->writingCond = new pthread_cond_t;
@@ -235,7 +249,9 @@ static int encfunc(const MDB_val* src, MDB_val* dst, const MDB_val* key, int enc
 #endif
 
 void cleanup(void* data) {
-	((EnvWrap*) data)->closeEnv();
+	EnvWrap* envWrap = (EnvWrap*) data;
+	envWrap->cleanupHookRegistered = false;
+	envWrap->closeEnv();
 }
 
 Napi::Value EnvWrap::open(const CallbackInfo& info) {
@@ -291,7 +307,10 @@ Napi::Value EnvWrap::open(const CallbackInfo& info) {
 	option = options.Get("maxFreeSpaceToRetain");
 	if (option.IsNumber())
 		maxFreeSpaceToRetain = option.As<Number>();
-
+	unsigned int permissionsMode = 0664;
+	option = options.Get("permissionsMode");
+	if (option.IsNumber())
+		permissionsMode = option.As<Number>();
 	Napi::Value encryptionKey = options.Get("encryptionKey");
 	std::string encryptKey;
 	if (!encryptionKey.IsUndefined()) {
@@ -305,15 +324,18 @@ Napi::Value EnvWrap::open(const CallbackInfo& info) {
 	}
 
 	napiEnv = info.Env();
-	rc = openEnv(flags, jsFlags, (const char*)pathString.c_str(), (char*) keyBuffer, compression, maxDbs, maxReaders, mapSize, pageSize, maxFreeSpaceToLoad, maxFreeSpaceToRetain, encryptKey.empty() ? nullptr : (char*)encryptKey.c_str());
+	rc = openEnv(flags, jsFlags, (const char*)pathString.c_str(), (char*) keyBuffer, compression, maxDbs, maxReaders, mapSize, pageSize, maxFreeSpaceToLoad, maxFreeSpaceToRetain, encryptKey.empty() ? nullptr : (char*)encryptKey.c_str(), permissionsMode);
 	//delete[] pathBytes;
 	if (rc != 0)
 		return throwLmdbError(info.Env(), rc);
-	napi_add_env_cleanup_hook(napiEnv, cleanup, this);
+	if (!cleanupHookRegistered) {
+		napi_add_env_cleanup_hook(napiEnv, cleanup, this);
+		cleanupHookRegistered = true;
+	}
 	return info.Env().Undefined();
 }
 int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, Compression* compression, int maxDbs,
-		int maxReaders, mdb_size_t mapSize, int pageSize, unsigned int max_free_to_load, unsigned int max_free_to_retain, char* encryptionKey) {
+		int maxReaders, mdb_size_t mapSize, int pageSize, unsigned int max_free_to_load, unsigned int max_free_to_retain, char* encryptionKey, unsigned int permissionsMode) {
 	this->keyBuffer = keyBuffer;
 	this->compression = compression;
 	this->jsFlags = jsFlags;
@@ -365,7 +387,7 @@ int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, 
 	// TODO: make file attributes configurable
 	// *String::Utf8Value(Isolate::GetCurrent(), path)
 	pthread_mutex_lock(envTracking->envsLock);
-	rc = mdb_env_open(env, path, flags, 0664);
+	rc = mdb_env_open(env, path, flags, permissionsMode);
 
 	if (rc != 0) {
 		#ifdef MDB_OVERLAPPINGSYNC
@@ -389,7 +411,9 @@ int EnvWrap::openEnv(int flags, int jsFlags, const char* path, char* keyBuffer, 
 		) {
 		if (!openEnvWraps) {
 			openEnvWraps = new std::vector<EnvWrap*>;
-			napi_add_env_cleanup_hook(napiEnv, cleanupEnvWraps, nullptr);
+			// Register this exact vector pointer so repeated hook registrations use
+			// distinct (fun, arg) pairs per allocation.
+			napi_add_env_cleanup_hook(napiEnv, cleanupEnvWraps, openEnvWraps);
 		}
 		openEnvWraps->push_back(this);
 	}
@@ -690,10 +714,7 @@ void EnvWrap::closeEnv(bool hasLock) {
 			} else
 				callback_iter++;
 		}
-		if (buffer_iter->second.callbacks.size() == 0)
-			buffer_iter = extended_env->userSharedBuffers.erase(buffer_iter);
-		else
-			buffer_iter++;
+		buffer_iter++;
 	}
 	pthread_mutex_unlock(&extended_env->userBuffersLock);
 	pthread_mutex_lock(&extended_env->locksModificationLock);
@@ -716,7 +737,10 @@ void EnvWrap::closeEnv(bool hasLock) {
 			++ewRef;
 		}
 	}
-	napi_remove_env_cleanup_hook(napiEnv, cleanup, this);
+	if (cleanupHookRegistered) {
+		cleanupHookRegistered = false;
+		napi_remove_env_cleanup_hook(napiEnv, cleanup, this);
+	}
 	cleanupStrayTxns();
 	if (!hasLock)
 		pthread_mutex_lock(envTracking->envsLock);
@@ -1080,10 +1104,10 @@ ExtendedEnv::~ExtendedEnv() {
 uint64_t ExtendedEnv::getNextTime() {
 	uint64_t next_time_int = next_time_double();
 	if (next_time_int == lastTime) next_time_int++;
-	return bswap_64(lastTime = next_time_int);
+	return BE64_TO_HOST(lastTime = next_time_int);
 }
 uint64_t ExtendedEnv::getLastTime() {
-	return bswap_64(lastTime);
+	return BE64_TO_HOST(lastTime);
 }
 
 NAPI_FUNCTION(getUserSharedBuffer) {
@@ -1372,4 +1396,3 @@ void EnvWrap::setupExports(Napi::Env env, Object exports) {
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
-

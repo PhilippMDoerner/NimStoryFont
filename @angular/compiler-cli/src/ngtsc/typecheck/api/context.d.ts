@@ -8,7 +8,7 @@
 import { ParseError, ParseSourceFile, R3TargetBinder, SchemaMetadata, TmplAstHostElement, TmplAstNode } from '@angular/compiler';
 import ts from 'typescript';
 import { Reference } from '../../imports';
-import { PipeMeta } from '../../metadata';
+import { DirectiveMeta, PipeMeta } from '../../metadata';
 import { ClassDeclaration } from '../../reflection';
 import { SourceMapping, TypeCheckableDirectiveMeta } from './api';
 /** Contextuable data for type checking the template of a component. */
@@ -30,6 +30,8 @@ export interface TemplateContext {
 export interface HostBindingsContext {
     /** AST node representing the host element of the directive. */
     node: TmplAstHostElement;
+    /** Directives present on the host element. */
+    directives: DirectiveMeta[];
     /** Describes the source of the host bindings. Used for mapping errors back. */
     sourceMapping: SourceMapping;
 }

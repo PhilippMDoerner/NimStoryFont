@@ -24,15 +24,15 @@ type EditEntry =
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ArticleContextMenuComponent {
-  editEntry = input<EditEntry>();
-  deleteLabel = input<string>();
+  readonly editEntry = input<EditEntry>();
+  readonly deleteLabel = input<string>();
 
-  deleteConfirmed = output<void>();
-  editArticle = output<void>();
+  readonly deleteConfirmed = output<void>();
+  readonly editArticle = output<void>();
 
-  private modalService = inject(NgbModal);
+  private readonly modalService = inject(NgbModal);
 
-  menuItems = computed<MenuItem[]>(() => {
+  readonly menuItems = computed<MenuItem[]>(() => {
     const items: MenuItem[] = [];
     const editEntry = this.editEntry();
     if (editEntry) {
@@ -53,7 +53,7 @@ export class ArticleContextMenuComponent {
     return items;
   });
 
-  showMenu = computed(() => this.menuItems().length > 0);
+  readonly showMenu = computed(() => this.menuItems().length > 0);
 
   onActionTriggered(action: string, modalRef: TemplateRef<HTMLElement>) {
     switch (action) {

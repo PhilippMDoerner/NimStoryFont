@@ -44,8 +44,7 @@ exports.ArchitectBaseCommandModule = void 0;
 const architect_1 = require("@angular-devkit/architect");
 const node_1 = require("@angular-devkit/architect/node");
 const core_1 = require("@angular-devkit/core");
-const node_fs_1 = require("node:fs");
-const node_path_1 = require("node:path");
+const node_module_1 = require("node:module");
 const analytics_1 = require("../analytics/analytics");
 const analytics_parameters_1 = require("../analytics/analytics-parameters");
 const error_1 = require("../utilities/error");
@@ -177,14 +176,12 @@ class ArchitectBaseCommandModule extends command_module_1.CommandModule {
         if (!basePath) {
             return;
         }
-        // Check if yarn PnP is used. https://yarnpkg.com/advanced/pnpapi#processversionspnp
-        if (process.versions.pnp) {
+        const workspaceResolve = (0, node_module_1.createRequire)(basePath + '/').resolve;
+        try {
+            workspaceResolve('@angular/core');
             return;
         }
-        // Check for a `node_modules` directory (npm, yarn non-PnP, etc.)
-        if ((0, node_fs_1.existsSync)((0, node_path_1.resolve)(basePath, 'node_modules'))) {
-            return;
-        }
+        catch { }
         this.context.logger.warn(`Node packages may not be installed. Try installing with '${this.context.packageManager.name} install'.`);
     }
     getArchitectTarget() {
@@ -244,3 +241,4 @@ class ArchitectBaseCommandModule extends command_module_1.CommandModule {
     }
 }
 exports.ArchitectBaseCommandModule = ArchitectBaseCommandModule;
+//# sourceMappingURL=architect-base-command-module.js.map

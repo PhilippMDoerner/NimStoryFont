@@ -7,10 +7,14 @@ var BrowserslistError = require('./error')
 
 var IS_SECTION = /^\s*\[(.+)]\s*$/
 var CONFIG_PATTERN = /^browserslist-config-/
-var SCOPED_CONFIG__PATTERN = /@[^/]+(?:\/[^/]+)?\/browserslist-config(?:-|$|\/)/
+var SCOPED_CONFIG__PATTERN =
+  /^@[^/]+(?:\/[^/]+)?\/browserslist-config(?:-|$|\/)/
 var FORMAT =
   'Browserslist config should be a string or an array ' +
   'of strings with browser queries'
+var PATHTYPE_UNKNOWN = 'unknown'
+var PATHTYPE_DIR = 'directory'
+var PATHTYPE_FILE = 'file'
 
 var dataTimeChecked = false
 var statCache = {}
@@ -36,11 +40,34 @@ function checkExtend(name) {
   }
 }
 
-function isFile(file) {
-  return fs.existsSync(file) && fs.statSync(file).isFile()
+function getPathType(filepath) {
+  var stats
+  try {
+    stats = fs.existsSync(filepath) && fs.statSync(filepath)
+  } catch (err) {
+    /* c8 ignore start */
+    if (
+      err.code !== 'ENOENT' &&
+      err.code !== 'EACCES' &&
+      err.code !== 'ERR_ACCESS_DENIED'
+    ) {
+      throw err
+    }
+    /* c8 ignore end */
+  }
+
+  if (stats && stats.isDirectory()) return PATHTYPE_DIR
+  if (stats && stats.isFile()) return PATHTYPE_FILE
+
+  return PATHTYPE_UNKNOWN
 }
+
+function isFile(file) {
+  return getPathType(file) === PATHTYPE_FILE
+}
+
 function isDirectory(dir) {
-  return fs.existsSync(dir) && fs.statSync(dir).isDirectory()
+  return getPathType(dir) === PATHTYPE_DIR
 }
 
 function eachParent(file, callback, cache) {
@@ -195,12 +222,13 @@ function normalizeStats(data, stats) {
 
   if (typeof stats !== 'object') return undefined
 
-  var normalized = {}
+  var normalized = Object.create(null)
   for (var i in stats) {
     var versions = Object.keys(stats[i])
-    if (versions.length === 1 && data[i] && data[i].versions.length === 1) {
-      var normal = data[i].versions[0]
-      normalized[i] = {}
+    var known = Object.prototype.hasOwnProperty.call(data, i) && data[i]
+    if (versions.length === 1 && known && known.versions.length === 1) {
+      var normal = known.versions[0]
+      normalized[i] = Object.create(null)
       normalized[i][normal] = stats[i][versions[0]]
     } else {
       normalized[i] = stats[i]
@@ -252,10 +280,12 @@ module.exports = {
     if (!ctx.dangerousExtend && !process.env.BROWSERSLIST_DANGEROUS_EXTEND) {
       checkExtend(name)
     }
-    var stats = require(require.resolve(
-      path.join(name, 'browserslist-stats.json'),
-      { paths: ['.'] }
-    ))
+    var stats = require(
+      // Use forward slashes for module paths, also on Windows.
+      require.resolve(path.posix.join(name, 'browserslist-stats.json'), {
+        paths: ['.']
+      })
+    )
     return normalizeStats(data, stats)
   },
 
@@ -309,7 +339,7 @@ module.exports = {
       }
       var usageData = region(compressed)
       normalizeUsageData(usageData, data)
-      usage[country] = {}
+      usage[country] = Object.create(null)
       for (var i in usageData) {
         for (var j in usageData[i]) {
           usage[country][i + ' ' + j] = usageData[i][j]
@@ -449,6 +479,11 @@ module.exports = {
     var monthsPassed = getMonthsPassed(latest)
 
     if (latest !== 0 && monthsPassed >= 6) {
+      if (process.env.BROWSERSLIST_TRACE_WARNING) {
+        console.info('Last browser release in DB: ' + String(new Date(latest)))
+        console.trace()
+      }
+
       var months = monthsPassed + ' ' + (monthsPassed > 1 ? 'months' : 'month')
       console.warn(
         'Browserslist: browsers data (caniuse-lite) is ' +

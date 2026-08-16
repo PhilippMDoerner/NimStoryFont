@@ -10,7 +10,7 @@ let nativeEventNames = null;
 /**
  * Check MDN events page for details https://developer.mozilla.org/en-US/docs/Web/Events
  *
- * Event names sourced from @mdn/browser-compat-data@6.0.24
+ * Event names sourced from @mdn/browser-compat-data@8.0.5
  */
 function getNativeEventNames() {
     return (nativeEventNames ??
@@ -34,7 +34,6 @@ function getNativeEventNames() {
             'beforexrselect',
             'beginEvent',
             'blur',
-            'bounce',
             'cancel',
             'canplay',
             'canplaythrough',
@@ -74,7 +73,6 @@ function getNativeEventNames() {
             'endEvent',
             'enterpictureinpicture',
             'error',
-            'finish',
             'focus',
             'focusin',
             'focusout',
@@ -90,6 +88,7 @@ function getNativeEventNames() {
             'gotpointercapture',
             'hashchange',
             'input',
+            'interest',
             'invalid',
             'keydown',
             'keypress',
@@ -100,6 +99,8 @@ function getNativeEventNames() {
             'loadeddata',
             'loadedmetadata',
             'loadstart',
+            'location',
+            'loseinterest',
             'lostpointercapture',
             'message',
             'messageerror',
@@ -137,6 +138,8 @@ function getNativeEventNames() {
             'popstate',
             'prerenderingchange',
             'progress',
+            'promptaction',
+            'promptdismiss',
             'ratechange',
             'readystatechange',
             'rejectionhandled',
@@ -157,7 +160,6 @@ function getNativeEventNames() {
             'selectstart',
             'slotchange',
             'stalled',
-            'start',
             'storage',
             'submit',
             'suspend',
@@ -173,6 +175,7 @@ function getNativeEventNames() {
             'transitionstart',
             'unhandledrejection',
             'unload',
+            'validationstatuschange',
             'visibilitychange',
             'volumechange',
             'vrdisplayactivate',

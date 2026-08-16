@@ -10,11 +10,11 @@ import {
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { FormlyFieldConfig } from '@ngx-formly/core';
-import { Session, SessionDiaryEntry } from 'src/app/_models/session';
-import { FormlyService } from 'src/app/_services/formly/formly-service.service';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { IconComponent } from 'src/app/design/atoms/icon/icon.component';
-import { CompareFormComponent, FormComponent } from 'src/app/design/molecules';
+import { Session, SessionDiaryEntry } from '../../../_models/session';
+import { FormlyService } from '../../../_services/formly/formly-service.service';
+import { RoutingService } from '../../../_services/routing.service';
+import { IconComponent } from '../../atoms/icon/icon.component';
+import { CompareFormComponent, FormComponent } from '../../molecules';
 import {
   DEFAULT_DELETE_MODAL_DATA,
   MenuItem,
@@ -44,28 +44,28 @@ interface DiaryEntry {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SessionComponent implements OnInit {
-  session = input.required<Session>();
-  canUpdate = input.required<boolean>();
-  canDelete = input.required<boolean>();
-  canCreate = input.required<boolean>();
-  serverModel = input.required<Session | undefined>();
-  disabledHotkeys = input<boolean>(false);
+  readonly session = input.required<Session>();
+  readonly canUpdate = input.required<boolean>();
+  readonly canDelete = input.required<boolean>();
+  readonly canCreate = input.required<boolean>();
+  readonly serverModel = input.required<Session | undefined>();
+  readonly disabledHotkeys = input<boolean>(false);
 
   readonly sessionDelete = output<Session>();
   readonly sessionCreate = output<Session>();
   readonly sessionUpdate = output<Session>();
-  sessionCreateCancel = output<void>();
+  readonly sessionCreateCancel = output<void>();
 
-  state = signal<SessionState>('DISPLAY');
-  sessionAudioUrl = computed(() =>
+  readonly state = signal<SessionState>('DISPLAY');
+  readonly sessionAudioUrl = computed(() =>
     this.routingService.getRoutePath('sessionaudio', {
       campaign: this.session()?.campaign_details?.name as string,
       isMainSession: this.session()?.is_main_session_int,
       sessionNumber: this.session()?.session_number,
     }),
   );
-  userModel = signal<Session | undefined>(undefined);
-  diaryEntries = computed<DiaryEntry[]>(() => {
+  readonly userModel = signal<Session | undefined>(undefined);
+  readonly diaryEntries = computed<DiaryEntry[]>(() => {
     const diaryEntries: SessionDiaryEntry[] =
       this.session()?.diaryentries ?? [];
 
@@ -76,7 +76,7 @@ export class SessionComponent implements OnInit {
     }));
   });
 
-  contextMenuItems = computed<MenuItem[]>(() => {
+  readonly contextMenuItems = computed<MenuItem[]>(() => {
     const menuItems: MenuItem[] = [];
     if (this.canUpdate()) {
       menuItems.push({
@@ -107,7 +107,7 @@ export class SessionComponent implements OnInit {
     return menuItems;
   });
 
-  formlyFields: FormlyFieldConfig[] = [
+  readonly formlyFields: FormlyFieldConfig[] = [
     this.formlyService.buildCheckboxConfig({
       key: 'is_main_session',
       defaultValue: true,

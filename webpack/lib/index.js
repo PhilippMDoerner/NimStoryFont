@@ -13,12 +13,6 @@ const memoize = require("./util/memoize");
 /** @typedef {import("../declarations/WebpackOptions").EntryObject} EntryObject */
 /** @typedef {import("../declarations/WebpackOptions").ExternalItem} ExternalItem */
 /** @typedef {import("../declarations/WebpackOptions").ExternalItemFunction} ExternalItemFunction */
-/** @typedef {import("../declarations/WebpackOptions").ExternalItemFunctionCallback} ExternalItemFunctionCallback */
-/** @typedef {import("../declarations/WebpackOptions").ExternalItemFunctionData} ExternalItemFunctionData */
-/** @typedef {import("../declarations/WebpackOptions").ExternalItemFunctionDataGetResolve} ExternalItemFunctionDataGetResolve */
-/** @typedef {import("../declarations/WebpackOptions").ExternalItemFunctionDataGetResolveCallbackResult} ExternalItemFunctionDataGetResolveCallbackResult */
-/** @typedef {import("../declarations/WebpackOptions").ExternalItemFunctionDataGetResolveResult} ExternalItemFunctionDataGetResolveResult */
-/** @typedef {import("../declarations/WebpackOptions").ExternalItemFunctionPromise} ExternalItemFunctionPromise */
 /** @typedef {import("../declarations/WebpackOptions").ExternalItemObjectKnown} ExternalItemObjectKnown */
 /** @typedef {import("../declarations/WebpackOptions").ExternalItemObjectUnknown} ExternalItemObjectUnknown */
 /** @typedef {import("../declarations/WebpackOptions").ExternalItemValue} ExternalItemValue */
@@ -41,22 +35,54 @@ const memoize = require("./util/memoize");
 /** @typedef {import("../declarations/WebpackOptions").WebpackOptionsNormalized} WebpackOptionsNormalized */
 /** @typedef {import("../declarations/WebpackOptions").WebpackPluginFunction} WebpackPluginFunction */
 /** @typedef {import("../declarations/WebpackOptions").WebpackPluginInstance} WebpackPluginInstance */
+/** @typedef {import("./asset/AssetModule").AssetModuleBuildInfo} AssetModuleBuildInfo */
 /** @typedef {import("./ChunkGroup")} ChunkGroup */
+/** @typedef {import("./Compiler").AssetEmittedInfo} AssetEmittedInfo */
+/** @typedef {import("./ContextModule").ContextModuleBuildInfo} ContextModuleBuildInfo */
+/** @typedef {import("./css/CssModule").CssModuleBuildInfo} CssModuleBuildInfo */
+/** @typedef {import("./css/CssModule").CssModuleBuildMeta} CssModuleBuildMeta */
+/** @typedef {import("./ExternalModule").ExternalModuleBuildInfo} ExternalModuleBuildInfo */
+/** @typedef {import("./html/HtmlModule").HtmlModuleBuildInfo} HtmlModuleBuildInfo */
+/** @typedef {import("./javascript/JavascriptModule").JavascriptModuleBuildInfo} JavascriptModuleBuildInfo */
+/** @typedef {import("./javascript/JavascriptModule").JavascriptModuleBuildMeta} JavascriptModuleBuildMeta */
+/** @typedef {import("./json/JsonModule").JsonModuleBuildInfo} JsonModuleBuildInfo */
+/** @typedef {import("./Module").BuildInfo} BuildInfo */
+/** @typedef {import("./Module").BuildMeta} BuildMeta */
+/** @typedef {import("./NormalModule").NormalModuleBuildInfo} NormalModuleBuildInfo */
+/** @typedef {import("./optimize/ConcatenatedModule").ConcatenatedModuleBuildInfo} ConcatenatedModuleBuildInfo */
+/** @typedef {import("./wasm-sync/SyncWasmModule").SyncWasmModuleBuildMeta} SyncWasmModuleBuildMeta */
 /** @typedef {import("./Compilation").Asset} Asset */
 /** @typedef {import("./Compilation").AssetInfo} AssetInfo */
 /** @typedef {import("./Compilation").EntryOptions} EntryOptions */
 /** @typedef {import("./Compilation").PathData} PathData */
-/** @typedef {import("./Compiler").AssetEmittedInfo} AssetEmittedInfo */
+/** @typedef {import("./Compilation").PathDataChunk} PathDataChunk */
+/** @typedef {import("./Compilation").PathDataModule} PathDataModule */
+/** @typedef {import("./CodeGenerationResults")} CodeGenerationResults */
 /** @typedef {import("./Entrypoint")} Entrypoint */
+/** @typedef {import("./ExternalModuleFactoryPlugin").ExternalItemFunctionCallback} ExternalItemFunctionCallback */
+/** @typedef {import("./ExternalModuleFactoryPlugin").ExternalItemFunctionData} ExternalItemFunctionData */
+/** @typedef {import("./ExternalModuleFactoryPlugin").ExternalItemFunctionDataGetResolve} ExternalItemFunctionDataGetResolve */
+/** @typedef {import("./ExternalModuleFactoryPlugin").ExternalItemFunctionDataGetResolveCallbackResult} ExternalItemFunctionDataGetResolveCallbackResult */
+/** @typedef {import("./ExternalModuleFactoryPlugin").ExternalItemFunctionDataGetResolveResult} ExternalItemFunctionDataGetResolveResult */
+/** @typedef {import("./ExternalModuleFactoryPlugin").ExternalItemFunctionPromise} ExternalItemFunctionPromise */
 /** @typedef {import("./MultiCompiler").MultiCompilerOptions} MultiCompilerOptions */
+/** @typedef {import("./MultiCompiler").MultiWebpackOptions} MultiConfiguration */
 /** @typedef {import("./MultiStats")} MultiStats */
+/** @typedef {import("./MultiStats").MultiStatsOptions} MultiStatsOptions */
 /** @typedef {import("./NormalModuleFactory").ResolveData} ResolveData */
 /** @typedef {import("./Parser").ParserState} ParserState */
 /** @typedef {import("./ResolverFactory").ResolvePluginInstance} ResolvePluginInstance */
 /** @typedef {import("./ResolverFactory").Resolver} Resolver */
+/** @typedef {import("./Template").RenderManifestEntry} RenderManifestEntry */
+/** @typedef {import("./Template").RenderManifestOptions} RenderManifestOptions */
+/** @typedef {import("./TemplatedPathPlugin").TemplatePath} TemplatePath */
 /** @typedef {import("./Watching")} Watching */
 /** @typedef {import("./cli").Argument} Argument */
 /** @typedef {import("./cli").Problem} Problem */
+/** @typedef {import("./cli").Colors} Colors */
+/** @typedef {import("./cli").ColorsOptions} ColorsOptions */
+/** @typedef {import("./config/defineConfig").ConfigurationFactory} ConfigurationFactory */
+/** @typedef {import("./config/defineConfig").DefineConfigInput} DefineConfigInput */
 /** @typedef {import("./stats/DefaultStatsFactoryPlugin").StatsAsset} StatsAsset */
 /** @typedef {import("./stats/DefaultStatsFactoryPlugin").StatsChunk} StatsChunk */
 /** @typedef {import("./stats/DefaultStatsFactoryPlugin").StatsChunkGroup} StatsChunkGroup */
@@ -71,18 +97,22 @@ const memoize = require("./util/memoize");
 /** @typedef {import("./stats/DefaultStatsFactoryPlugin").StatsModuleTraceDependency} StatsModuleTraceDependency */
 /** @typedef {import("./stats/DefaultStatsFactoryPlugin").StatsModuleTraceItem} StatsModuleTraceItem */
 /** @typedef {import("./stats/DefaultStatsFactoryPlugin").StatsProfile} StatsProfile */
+/** @typedef {import("./serialization/ObjectMiddleware").ObjectSerializerContext} ObjectSerializerContext */
+/** @typedef {import("./serialization/ObjectMiddleware").ObjectDeserializerContext} ObjectDeserializerContext */
 /** @typedef {import("./util/fs").InputFileSystem} InputFileSystem */
 /** @typedef {import("./util/fs").OutputFileSystem} OutputFileSystem */
 
 /**
+ * Returns function.
  * @template {EXPECTED_FUNCTION} T
  * @param {() => T} factory factory function
  * @returns {T} function
  */
-const lazyFunction = factory => {
+const lazyFunction = (factory) => {
 	const fac = memoize(factory);
 	const f = /** @type {unknown} */ (
 		/**
+		 * Handles the callback logic for this hook.
 		 * @param {...EXPECTED_ANY} args args
 		 * @returns {T} result
 		 */
@@ -92,6 +122,7 @@ const lazyFunction = factory => {
 };
 
 /**
+ * Merges the provided values into a single result.
  * @template A
  * @template B
  * @param {A} obj input a
@@ -126,32 +157,46 @@ const mergeExports = (obj, exports) => {
 };
 
 const fn = lazyFunction(() => require("./webpack"));
+
 module.exports = mergeExports(fn, {
 	get webpack() {
 		return require("./webpack");
 	},
+	get defineConfig() {
+		return require("./config/defineConfig");
+	},
 	/**
-	 * @returns {(configuration: Configuration | Configuration[]) => void} validate fn
+	 * Returns validate fn.
+	 * @returns {(configuration: Configuration | MultiConfiguration) => void} validate fn
 	 */
 	get validate() {
-		const webpackOptionsSchemaCheck = require("../schemas/WebpackOptions.check.js");
+		const webpackOptionsSchemaCheck =
+			/** @type {(configuration: Configuration | MultiConfiguration) => boolean} */
+			(require("../schemas/WebpackOptions.check"));
+
 		const getRealValidate = memoize(
 			/**
-			 * @returns {(configuration: Configuration | Configuration[]) => void} validate fn
+			 * Handles the callback logic for this hook.
+			 * @returns {(configuration: Configuration | MultiConfiguration) => void} validate fn
 			 */
 			() => {
 				const validateSchema = require("./validateSchema");
-				const webpackOptionsSchema = require("../schemas/WebpackOptions.json");
-				return options => validateSchema(webpackOptionsSchema, options);
+				const webpackOptionsSchema =
+					/** @type {EXPECTED_ANY} */
+					(require("../schemas/WebpackOptions.json"));
+
+				return (options) => validateSchema(webpackOptionsSchema, options);
 			}
 		);
-		return options => {
-			if (!webpackOptionsSchemaCheck(/** @type {TODO} */ (options)))
+		return (options) => {
+			if (!webpackOptionsSchemaCheck(options)) {
 				getRealValidate()(options);
+			}
 		};
 	},
 	get validateSchema() {
 		const validateSchema = require("./validateSchema");
+
 		return validateSchema;
 	},
 	get version() {
@@ -200,20 +245,14 @@ module.exports = mergeExports(fn, {
 	get DefinePlugin() {
 		return require("./DefinePlugin");
 	},
-	get DelegatedPlugin() {
-		return require("./DelegatedPlugin");
-	},
 	get Dependency() {
 		return require("./Dependency");
 	},
-	get DllPlugin() {
-		return require("./DllPlugin");
-	},
-	get DllReferencePlugin() {
-		return require("./DllReferencePlugin");
-	},
 	get DynamicEntryPlugin() {
 		return require("./DynamicEntryPlugin");
+	},
+	get DotenvPlugin() {
+		return require("./DotenvPlugin");
 	},
 	get EntryOptionPlugin() {
 		return require("./EntryOptionPlugin");
@@ -258,9 +297,6 @@ module.exports = mergeExports(fn, {
 			"DEP_WEBPACK_JAVASCRIPT_MODULES_PLUGIN"
 		)();
 	},
-	get LibManifestPlugin() {
-		return require("./LibManifestPlugin");
-	},
 	get LibraryTemplatePlugin() {
 		return util.deprecate(
 			() => require("./LibraryTemplatePlugin"),
@@ -276,6 +312,9 @@ module.exports = mergeExports(fn, {
 	},
 	get Module() {
 		return require("./Module");
+	},
+	get ModuleFactory() {
+		return require("./ModuleFactory");
 	},
 	get ModuleFilenameHelpers() {
 		return require("./ModuleFilenameHelpers");
@@ -335,6 +374,9 @@ module.exports = mergeExports(fn, {
 	get Stats() {
 		return require("./Stats");
 	},
+	get ManifestPlugin() {
+		return require("./ManifestPlugin");
+	},
 	get Template() {
 		return require("./Template");
 	},
@@ -345,7 +387,7 @@ module.exports = mergeExports(fn, {
 		return require("./WatchIgnorePlugin");
 	},
 	get WebpackError() {
-		return require("./WebpackError");
+		return require("./errors/WebpackError");
 	},
 	get WebpackOptionsApply() {
 		return require("./WebpackOptionsApply");
@@ -357,7 +399,7 @@ module.exports = mergeExports(fn, {
 			"DEP_WEBPACK_OPTIONS_DEFAULTER"
 		)();
 	},
-	// TODO webpack 6 deprecate
+	// TODO webpack 6 remove
 	get WebpackOptionsValidationError() {
 		return require("schema-utils").ValidationError;
 	},
@@ -455,7 +497,7 @@ module.exports = mergeExports(fn, {
 			return require("./optimize/LimitChunkCountPlugin");
 		},
 		get MergeDuplicateChunksPlugin() {
-			return require("./optimize/MergeDuplicateChunksPlugin.js");
+			return require("./optimize/MergeDuplicateChunksPlugin");
 		},
 		get MinChunkSizePlugin() {
 			return require("./optimize/MinChunkSizePlugin");
@@ -564,12 +606,47 @@ module.exports = mergeExports(fn, {
 		}
 	},
 
+	html: {
+		get HtmlModulesPlugin() {
+			return require("./html/HtmlModulesPlugin");
+		}
+	},
+
 	library: {
 		get AbstractLibraryPlugin() {
 			return require("./library/AbstractLibraryPlugin");
 		},
 		get EnableLibraryPlugin() {
 			return require("./library/EnableLibraryPlugin");
+		}
+	},
+
+	// TODO remove in webpack 6 in favor of `dll` scope
+	get DelegatedPlugin() {
+		return require("./dll/DelegatedPlugin");
+	},
+	get DllPlugin() {
+		return require("./dll/DllPlugin");
+	},
+	get DllReferencePlugin() {
+		return require("./dll/DllReferencePlugin");
+	},
+	get LibManifestPlugin() {
+		return require("./dll/LibManifestPlugin");
+	},
+
+	dll: {
+		get DelegatedPlugin() {
+			return require("./dll/DelegatedPlugin");
+		},
+		get DllPlugin() {
+			return require("./dll/DllPlugin");
+		},
+		get DllReferencePlugin() {
+			return require("./dll/DllReferencePlugin");
+		},
+		get LibManifestPlugin() {
+			return require("./dll/LibManifestPlugin");
 		}
 	},
 
@@ -641,6 +718,9 @@ module.exports = mergeExports(fn, {
 		schemes: {
 			get HttpUriPlugin() {
 				return require("./schemes/HttpUriPlugin");
+			},
+			get VirtualUrlPlugin() {
+				return require("./schemes/VirtualUrlPlugin");
 			}
 		},
 		ids: {

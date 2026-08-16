@@ -228,3 +228,4 @@ function* extractFilesFromStack(stack) {
         }
     }
 }
+//# sourceMappingURL=sass-language.js.map

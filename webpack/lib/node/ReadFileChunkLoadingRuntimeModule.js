@@ -8,6 +8,9 @@ const RuntimeGlobals = require("../RuntimeGlobals");
 const RuntimeModule = require("../RuntimeModule");
 const Template = require("../Template");
 const {
+	generateJavascriptHMR
+} = require("../hmr/JavascriptHotModuleReplacementHelper");
+const {
 	chunkHasJs,
 	getChunkFilenameTemplate
 } = require("../javascript/JavascriptModulesPlugin");
@@ -18,30 +21,35 @@ const { getUndoPath } = require("../util/identifier");
 /** @typedef {import("../Chunk")} Chunk */
 /** @typedef {import("../ChunkGraph")} ChunkGraph */
 /** @typedef {import("../Compilation")} Compilation */
+/** @typedef {import("../RuntimeTemplate")} RuntimeTemplate */
 /** @typedef {import("../Module").ReadOnlyRuntimeRequirements} ReadOnlyRuntimeRequirements */
 
 class ReadFileChunkLoadingRuntimeModule extends RuntimeModule {
 	/**
+	 * Creates an instance of ReadFileChunkLoadingRuntimeModule.
 	 * @param {ReadOnlyRuntimeRequirements} runtimeRequirements runtime requirements
 	 */
 	constructor(runtimeRequirements) {
 		super("readFile chunk loading", RuntimeModule.STAGE_ATTACH);
+		/** @type {ReadOnlyRuntimeRequirements} */
 		this.runtimeRequirements = runtimeRequirements;
 	}
 
 	/**
+	 * Returns generated code.
 	 * @private
 	 * @param {Chunk} chunk chunk
 	 * @param {string} rootOutputDir root output directory
+	 * @param {RuntimeTemplate} runtimeTemplate the runtime template
 	 * @returns {string} generated code
 	 */
-	_generateBaseUri(chunk, rootOutputDir) {
+	_generateBaseUri(chunk, rootOutputDir, runtimeTemplate) {
 		const options = chunk.getEntryOptions();
 		if (options && options.baseUri) {
 			return `${RuntimeGlobals.baseURI} = ${JSON.stringify(options.baseUri)};`;
 		}
 
-		return `${RuntimeGlobals.baseURI} = require("url").pathToFileURL(${
+		return `${RuntimeGlobals.baseURI} = require(${runtimeTemplate.renderNodePrefixForCoreModule("url")}).pathToFileURL(${
 			rootOutputDir
 				? `__dirname + ${JSON.stringify(`/${rootOutputDir}`)}`
 				: "__filename"
@@ -49,6 +57,7 @@ class ReadFileChunkLoadingRuntimeModule extends RuntimeModule {
 	}
 
 	/**
+	 * Generates runtime code for this runtime module.
 	 * @returns {string | null} runtime code
 	 */
 	generate() {
@@ -86,30 +95,31 @@ class ReadFileChunkLoadingRuntimeModule extends RuntimeModule {
 		);
 		const rootOutputDir = getUndoPath(
 			outputName,
-			/** @type {string} */ (compilation.outputOptions.path),
+			compilation.outputOptions.path,
 			false
 		);
 
 		const stateExpression = withHmr
 			? `${RuntimeGlobals.hmrRuntimeStatePrefix}_readFileVm`
 			: undefined;
+		const installedChunksObject = `{\n${Template.indent(
+			Array.from(initialChunkIds, (id) => `${JSON.stringify(id)}: 0`).join(
+				",\n"
+			)
+		)}\n}`;
 
 		return Template.asString([
 			withBaseURI
-				? this._generateBaseUri(chunk, rootOutputDir)
+				? this._generateBaseUri(chunk, rootOutputDir, runtimeTemplate)
 				: "// no baseURI",
 			"",
 			"// object to store loaded chunks",
 			'// "0" means "already loaded", Promise means loading',
 			`var installedChunks = ${
-				stateExpression ? `${stateExpression} = ${stateExpression} || ` : ""
-			}{`,
-			Template.indent(
-				Array.from(initialChunkIds, id => `${JSON.stringify(id)}: 0`).join(
-					",\n"
-				)
-			),
-			"};",
+				stateExpression
+					? runtimeTemplate.assignOr(stateExpression, installedChunksObject)
+					: installedChunksObject
+			};`,
 			"",
 			withOnChunkLoad
 				? `${
@@ -168,17 +178,17 @@ class ReadFileChunkLoadingRuntimeModule extends RuntimeModule {
 												"var promise = new Promise(function(resolve, reject) {",
 												Template.indent([
 													"installedChunkData = installedChunks[chunkId] = [resolve, reject];",
-													`var filename = require('path').join(__dirname, ${JSON.stringify(
+													`var filename = require(${runtimeTemplate.renderNodePrefixForCoreModule("path")}).join(__dirname, ${JSON.stringify(
 														rootOutputDir
 													)} + ${
 														RuntimeGlobals.getChunkScriptFilename
 													}(chunkId));`,
-													"require('fs').readFile(filename, 'utf-8', function(err, content) {",
+													`require(${runtimeTemplate.renderNodePrefixForCoreModule("fs")}).readFile(filename, 'utf-8', function(err, content) {`,
 													Template.indent([
 														"if(err) return reject(err);",
 														"var chunk = {};",
-														"require('vm').runInThisContext('(function(exports, require, __dirname, __filename) {' + content + '\\n})', filename)" +
-															"(chunk, require, require('path').dirname(filename), filename);",
+														`require(${runtimeTemplate.renderNodePrefixForCoreModule("vm")}).runInThisContext('(function(exports, require, __dirname, __filename) {' + content + '\\n})', filename)` +
+															`(chunk, require, require(${runtimeTemplate.renderNodePrefixForCoreModule("path")}).dirname(filename), filename);`,
 														"installChunk(chunk);"
 													]),
 													"});"
@@ -212,15 +222,15 @@ class ReadFileChunkLoadingRuntimeModule extends RuntimeModule {
 						Template.indent([
 							"return new Promise(function(resolve, reject) {",
 							Template.indent([
-								`var filename = require('path').join(__dirname, ${JSON.stringify(
+								`var filename = require(${runtimeTemplate.renderNodePrefixForCoreModule("path")}).join(__dirname, ${JSON.stringify(
 									rootOutputDir
 								)} + ${RuntimeGlobals.getChunkUpdateScriptFilename}(chunkId));`,
-								"require('fs').readFile(filename, 'utf-8', function(err, content) {",
+								`require(${runtimeTemplate.renderNodePrefixForCoreModule("fs")}).readFile(filename, 'utf-8', function(err, content) {`,
 								Template.indent([
 									"if(err) return reject(err);",
 									"var update = {};",
-									"require('vm').runInThisContext('(function(exports, require, __dirname, __filename) {' + content + '\\n})', filename)" +
-										"(update, require, require('path').dirname(filename), filename);",
+									`require(${runtimeTemplate.renderNodePrefixForCoreModule("vm")}).runInThisContext('(function(exports, require, __dirname, __filename) {' + content + '\\n})', filename)` +
+										`(update, require, require(${runtimeTemplate.renderNodePrefixForCoreModule("path")}).dirname(filename), filename);`,
 									"var updatedModules = update.modules;",
 									"var runtime = update.runtime;",
 									"for(var moduleId in updatedModules) {",
@@ -228,7 +238,7 @@ class ReadFileChunkLoadingRuntimeModule extends RuntimeModule {
 										`if(${RuntimeGlobals.hasOwnProperty}(updatedModules, moduleId)) {`,
 										Template.indent([
 											"currentUpdate[moduleId] = updatedModules[moduleId];",
-											"if(updatedModulesList) updatedModulesList.push(moduleId);"
+											`${runtimeTemplate.optionalChaining("updatedModulesList", "push(moduleId)")};`
 										]),
 										"}"
 									]),
@@ -242,28 +252,7 @@ class ReadFileChunkLoadingRuntimeModule extends RuntimeModule {
 						]),
 						"}",
 						"",
-						Template.getFunctionContent(
-							require("../hmr/JavascriptHotModuleReplacement.runtime.js")
-						)
-							.replace(/\$key\$/g, "readFileVm")
-							.replace(/\$installedChunks\$/g, "installedChunks")
-							.replace(/\$loadUpdateChunk\$/g, "loadUpdateChunk")
-							.replace(/\$moduleCache\$/g, RuntimeGlobals.moduleCache)
-							.replace(/\$moduleFactories\$/g, RuntimeGlobals.moduleFactories)
-							.replace(
-								/\$ensureChunkHandlers\$/g,
-								RuntimeGlobals.ensureChunkHandlers
-							)
-							.replace(/\$hasOwnProperty\$/g, RuntimeGlobals.hasOwnProperty)
-							.replace(/\$hmrModuleData\$/g, RuntimeGlobals.hmrModuleData)
-							.replace(
-								/\$hmrDownloadUpdateHandlers\$/g,
-								RuntimeGlobals.hmrDownloadUpdateHandlers
-							)
-							.replace(
-								/\$hmrInvalidateModuleHandlers\$/g,
-								RuntimeGlobals.hmrInvalidateModuleHandlers
-							)
+						generateJavascriptHMR("readFileVm")
 					])
 				: "// no HMR",
 			"",
@@ -273,14 +262,14 @@ class ReadFileChunkLoadingRuntimeModule extends RuntimeModule {
 						Template.indent([
 							"return new Promise(function(resolve, reject) {",
 							Template.indent([
-								`var filename = require('path').join(__dirname, ${JSON.stringify(
+								`var filename = require(${runtimeTemplate.renderNodePrefixForCoreModule("path")}).join(__dirname, ${JSON.stringify(
 									rootOutputDir
 								)} + ${RuntimeGlobals.getUpdateManifestFilename}());`,
-								"require('fs').readFile(filename, 'utf-8', function(err, content) {",
+								`require(${runtimeTemplate.renderNodePrefixForCoreModule("fs")}).readFile(filename, 'utf-8', function(err, content) {`,
 								Template.indent([
 									"if(err) {",
 									Template.indent([
-										'if(err.code === "ENOENT") return resolve();',
+										'if(["MODULE_NOT_FOUND", "ENOENT"].includes(err.code)) return resolve();',
 										"return reject(err);"
 									]),
 									"}",

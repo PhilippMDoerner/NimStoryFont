@@ -1,7 +1,8 @@
-import { readFile } from 'node:fs';
+import { readFile, writeFile } from 'node:fs';
 import path from 'node:path';
 import { parse, stringify } from 'postcss';
 import mediaParser from 'postcss-media-query-parser';
+import safeParser from 'postcss-safe-parser';
 import { selectAll, selectOne } from 'css-select';
 import { parse as parse$1 } from 'css-what';
 import render from 'dom-serializer';
@@ -9,7 +10,10 @@ import { Element, Text } from 'domhandler';
 import { parseDocument, DomUtils } from 'htmlparser2';
 import pc from 'picocolors';
 
-function parseStylesheet(stylesheet) {
+function parseStylesheet(stylesheet, options) {
+  if (options?.safeParser) {
+    return safeParser(stylesheet);
+  }
   return parse(stylesheet);
 }
 function serializeStylesheet(ast, options) {
@@ -41,9 +45,10 @@ function serializeStylesheet(ast, options) {
       }
       return;
     }
-    if (type === "end" && result === "}" && node?.raws?.semicolon) {
+    if (type === "end" && result === "}" && node?.raws?.semicolon && (node.type === "rule" || node.type === "atrule")) {
+      const lastChild = node.nodes?.[node.nodes.length - 1];
       const lastItemIdx = cssParts.length - 2;
-      if (lastItemIdx >= 0 && cssParts[lastItemIdx]) {
+      if (lastChild?.type === "decl" && lastItemIdx >= 0 && cssParts[lastItemIdx]) {
         cssParts[lastItemIdx] = cssParts[lastItemIdx].slice(0, -1);
       }
     }
@@ -97,15 +102,32 @@ function walkStyleRulesWithReverseMirror(node, node2, iterator) {
       const rule2 = rules2?.[index];
       if (hasNestedRules(rule)) {
         walkStyleRulesWithReverseMirror(rule, rule2, iterator);
+        if ("nodes" in rule && rule.nodes?.length === 0 && isRemovableIfEmpty(rule)) {
+          return false;
+        }
       }
       rule._other = rule2;
       rule.filterSelectors = filterSelectors;
       return iterator(rule) !== false;
     }
   );
+  if (node2.nodes) {
+    node2.nodes = node2.nodes.filter((rule) => {
+      if ("nodes" in rule && rule.nodes?.length === 0 && isRemovableIfEmpty(rule)) {
+        return false;
+      }
+      return true;
+    });
+  }
 }
 function hasNestedRules(rule) {
   return "nodes" in rule && !!rule.nodes?.length && (!("name" in rule) || rule.name !== "keyframes" && rule.name !== "-webkit-keyframes") && rule.nodes.some((n) => n.type === "rule" || n.type === "atrule");
+}
+function isRemovableIfEmpty(rule) {
+  if (!("name" in rule) || rule.type !== "atrule") {
+    return false;
+  }
+  return rule.name === "media" || rule.name === "supports";
 }
 function splitFilter(a, b, predicate) {
   const aOut = [];
@@ -115,7 +137,7 @@ function splitFilter(a, b, predicate) {
     if (predicate(item, index, a, b)) {
       aOut.push(item);
     } else {
-      bOut.push(item);
+      bOut.push(b?.[index] ?? item);
     }
   }
   return [aOut, bOut];
@@ -176,23 +198,21 @@ function validateMediaQuery(query) {
   return true;
 }
 
-let classCache = null;
-let idCache = null;
 function buildCache(container) {
-  classCache = /* @__PURE__ */ new Set();
-  idCache = /* @__PURE__ */ new Set();
+  container._classCache = /* @__PURE__ */ new Set();
+  container._idCache = /* @__PURE__ */ new Set();
   const queue = [container];
   while (queue.length) {
     const node = queue.shift();
     if (node.hasAttribute?.("class")) {
       const classList = node.getAttribute("class").trim().split(" ");
       classList.forEach((cls) => {
-        classCache.add(cls);
+        container._classCache.add(cls);
       });
     }
     if (node.hasAttribute?.("id")) {
       const id = node.getAttribute("id").trim();
-      idCache.add(id);
+      container._idCache.add(id);
     }
     if ("children" in node) {
       queue.push(...node.children.filter((child) => child.type === "tag"));
@@ -203,13 +223,15 @@ function createDocument(html) {
   const document = parseDocument(html, { decodeEntities: false });
   extendDocument(document);
   extendElement(Element.prototype);
-  let beastiesContainer = document.querySelector("[data-beasties-container]");
-  if (!beastiesContainer) {
+  let beastiesContainers = document.querySelectorAll("[data-beasties-container]");
+  if (!beastiesContainers.length) {
     document.documentElement?.setAttribute("data-beasties-container", "");
-    beastiesContainer = document.documentElement || document;
+    beastiesContainers = [document.documentElement || document];
   }
-  document.beastiesContainer = beastiesContainer;
-  buildCache(beastiesContainer);
+  document.beastiesContainers = beastiesContainers;
+  for (const container of beastiesContainers) {
+    buildCache(container);
+  }
   return document;
 }
 function serializeDocument(document) {
@@ -278,10 +300,8 @@ function extendElement(element) {
     },
     setAttribute: {
       value(name, value) {
-        if (this.attribs == null)
-          this.attribs = {};
-        if (value == null)
-          value = "";
+        this.attribs ??= {};
+        value ??= "";
         this.attribs[name] = value;
       }
     },
@@ -389,6 +409,11 @@ function extendDocument(document) {
         }
         return selectAll(sel, this);
       }
+    },
+    beastiesContainer: {
+      get() {
+        return this.beastiesContainers?.[0];
+      }
     }
   });
 }
@@ -399,15 +424,16 @@ function cachedQuerySelector(sel, node) {
     selectorTokens = parseRelevantSelectors(sel);
     selectorTokensCache.set(sel, selectorTokens);
   }
-  if (selectorTokens) {
+  if (selectorTokens && node._classCache && node._idCache) {
     for (const token of selectorTokens) {
-      if (token.name === "class") {
-        return classCache.has(token.value);
+      if (token.name === "class" && !node._classCache.has(token.value)) {
+        return false;
       }
-      if (token.name === "id") {
-        return idCache.has(token.value);
+      if (token.name === "id" && !node._idCache.has(token.value)) {
+        return false;
       }
     }
+    return true;
   }
   return !!selectOne(sel, node);
 }
@@ -417,7 +443,7 @@ function parseRelevantSelectors(sel) {
   for (let i = 0; i < tokens.length; i++) {
     const tokenGroup = tokens[i];
     if (tokenGroup?.length !== 1) {
-      continue;
+      return null;
     }
     const token = tokenGroup[0];
     if (token?.type === "attribute" && (token.name === "class" || token.name === "id")) {
@@ -466,6 +492,15 @@ const removePseudoClassesAndElementsPattern = /(?<!\\)::?[a-z-]+(?:\(.+\))?/gi;
 const implicitUniversalPattern = /([>+~])\s*(?!\1)([>+~])/g;
 const emptyCombinatorPattern = /([>+~])\s*(?=\1|$)/g;
 const removeTrailingCommasPattern = /\(\s*,|,\s*\)/g;
+const LEADING_SLASH_OR_QUERY_RE = /^\/(?!\/)|[?#].*$/g;
+const PUBLIC_PATH_RE = /(^\/(?!\/)|\/$)/g;
+const REMOTE_URL_RE = /^https?:\/\//;
+const BEFORE_AFTER_PSEUDO_RE = /^::?(?:before|after)$/;
+const FONT_FAMILY_RE = /\bfont(?:-family)?\b/i;
+const BEASTIES_COMMENT_RE = /^(?<!! )beasties:(.*)/;
+const LEADING_SLASH_RE = /^\//;
+const WHITESPACE_RE = /\s+/;
+const URL_RE = /url\s*\(\s*(['"]?)(.+?)\1\s*\)/;
 class Beasties {
   #selectorCache = /* @__PURE__ */ new Map();
   options;
@@ -502,6 +537,24 @@ class Beasties {
     });
   }
   /**
+   * Write content to a file
+   */
+  writeFile(filename, data) {
+    const fs = this.fs;
+    return new Promise((resolve, reject) => {
+      const callback = (err) => {
+        if (err)
+          reject(err);
+        else resolve();
+      };
+      if (fs && fs.writeFile) {
+        fs.writeFile(filename, data, callback);
+      } else {
+        writeFile(filename, data, callback);
+      }
+    });
+  }
+  /**
    * Apply critical CSS processing to the html
    */
   async process(html) {
@@ -512,9 +565,21 @@ class Beasties {
     }
     if (this.options.external !== false) {
       const externalSheets = [...document.querySelectorAll('link[rel="stylesheet"]')];
-      await Promise.all(
-        externalSheets.map((link) => this.embedLinkedStylesheet(link, document))
-      );
+      const hasCustomEmbed = this.embedLinkedStylesheet !== Beasties.prototype.embedLinkedStylesheet;
+      if (hasCustomEmbed) {
+        for (const link of externalSheets) {
+          await this.embedLinkedStylesheet(link, document);
+        }
+      } else {
+        const sheets = await Promise.all(
+          externalSheets.map((link) => this.fetchStylesheet(link, document))
+        );
+        for (const sheet of sheets) {
+          if (sheet) {
+            this.embedFetchedStylesheet(sheet, document);
+          }
+        }
+      }
     }
     const styles = this.getAffectedStyleTags(document);
     for (const style of styles) {
@@ -561,12 +626,27 @@ class Beasties {
   async getCssAsset(href, _style) {
     const outputPath = this.options.path;
     const publicPath = this.options.publicPath;
-    let normalizedPath = href.replace(/^\//, "");
-    const pathPrefix = `${(publicPath || "").replace(/(^\/|\/$)/g, "")}/`;
-    if (normalizedPath.startsWith(pathPrefix)) {
-      normalizedPath = normalizedPath.substring(pathPrefix.length).replace(/^\//, "");
+    let normalizedPath = href.replace(LEADING_SLASH_OR_QUERY_RE, "");
+    const pathPrefix = `${(publicPath || "").replace(PUBLIC_PATH_RE, "")}/`;
+    if (normalizedPath.startsWith(pathPrefix) && !(pathPrefix === "/" && normalizedPath.startsWith("//"))) {
+      normalizedPath = normalizedPath.substring(pathPrefix.length).replace(LEADING_SLASH_RE, "");
     }
-    if (/^https?:\/\//.test(normalizedPath) || href.startsWith("//")) {
+    const isRemote = REMOTE_URL_RE.test(normalizedPath) || normalizedPath.startsWith("//");
+    if (isRemote) {
+      if (this.options.remote === true) {
+        try {
+          const absoluteUrl = href.startsWith("//") ? `https:${href}` : href;
+          const response = await fetch(absoluteUrl);
+          if (!response.ok) {
+            this.logger.warn?.(`Failed to fetch ${absoluteUrl} (${response.status})`);
+            return void 0;
+          }
+          return await response.text();
+        } catch (error) {
+          this.logger.warn?.(`Error fetching ${href}: ${error.message}`);
+          return void 0;
+        }
+      }
       return void 0;
     }
     const filename = path.resolve(outputPath, normalizedPath);
@@ -606,6 +686,7 @@ class Beasties {
         styleSheetsIncluded.push(cssFile);
         const style = document.createElement("style");
         style.$$external = true;
+        style.$$name = cssFile;
         return this.getCssAsset(cssFile, style).then((sheet) => [sheet, style]);
       })
     );
@@ -617,19 +698,30 @@ class Beasties {
     }
   }
   /**
-   * Inline the target stylesheet referred to by a <link rel="stylesheet"> (assuming it passes `options.filter`)
+   * Fetch CSS content for a linked stylesheet
    */
-  async embedLinkedStylesheet(link, document) {
+  async fetchStylesheet(link, document) {
+    if (link.hasAttribute("data-beasties-skip")) {
+      return void 0;
+    }
     const href = link.getAttribute("href");
-    if (!href?.endsWith(".css")) {
+    const pathname = href?.split("?")[0]?.split("#")[0];
+    if (!pathname?.endsWith(".css")) {
       return void 0;
     }
     const style = document.createElement("style");
     style.$$external = true;
     const sheet = await this.getCssAsset(href, style);
     if (!sheet) {
-      return;
+      return void 0;
     }
+    return { link, href, sheet, style };
+  }
+  /**
+   * Embed a fetched stylesheet into the document
+   */
+  embedFetchedStylesheet(data, document) {
+    const { link, href, sheet, style } = data;
     style.textContent = sheet;
     style.$$name = href;
     style.$$links = [link];
@@ -676,6 +768,7 @@ class Beasties {
       } else if (preloadMode === "swap-high") {
         link.setAttribute("rel", "alternate stylesheet preload");
         link.setAttribute("title", "styles");
+        link.setAttribute("as", "style");
         link.setAttribute("onload", `this.title='';this.rel='stylesheet'`);
         noscriptFallback = true;
       } else if (preloadMode === "swap-low") {
@@ -708,6 +801,15 @@ class Beasties {
     }
   }
   /**
+   * Inline the target stylesheet referred to by a <link rel="stylesheet"> (assuming it passes `options.filter`)
+   */
+  async embedLinkedStylesheet(link, document) {
+    const sheet = await this.fetchStylesheet(link, document);
+    if (sheet) {
+      this.embedFetchedStylesheet(sheet, document);
+    }
+  }
+  /**
    * Prune the source CSS files
    */
   pruneSource(style, before, sheetInverse) {
@@ -736,9 +838,9 @@ class Beasties {
   processStyle(style, document) {
     if (style.$$reduce === false)
       return;
-    const name = style.$$name ? style.$$name.replace(/^\//, "") : "inline CSS";
+    const name = style.$$name ? style.$$name.replace(LEADING_SLASH_RE, "") : "inline CSS";
     const options = this.options;
-    const beastiesContainer = document.beastiesContainer;
+    const beastiesContainers = document.beastiesContainers;
     let keyframesMode = options.keyframes ?? "critical";
     if (keyframesMode === true)
       keyframesMode = "all";
@@ -748,8 +850,8 @@ class Beasties {
     const before = sheet;
     if (!sheet)
       return;
-    const ast = parseStylesheet(sheet);
-    const astInverse = options.pruneSource ? parseStylesheet(sheet) : null;
+    const ast = parseStylesheet(sheet, { safeParser: this.options.safeParser !== false });
+    const astInverse = options.pruneSource ? parseStylesheet(sheet, { safeParser: this.options.safeParser !== false }) : null;
     let criticalFonts = "";
     const failedSelectors = [];
     const criticalKeyframeNames = /* @__PURE__ */ new Set();
@@ -763,7 +865,7 @@ class Beasties {
       ast,
       markOnly((rule) => {
         if (rule.type === "comment") {
-          const beastiesComment = rule.text.match(/^(?<!! )beasties:(.*)/);
+          const beastiesComment = rule.text.match(BEASTIES_COMMENT_RE);
           const command = beastiesComment && beastiesComment[1];
           if (command) {
             switch (command) {
@@ -812,14 +914,14 @@ class Beasties {
             });
             if (isAllowedRule)
               return true;
-            if (sel === ":root" || sel === "html" || sel === "body" || sel[0] === ":" && /^::?(?:before|after)$/.test(sel)) {
+            if (sel === ":root" || sel === "html" || sel === "body" || sel[0] === ":" && BEFORE_AFTER_PSEUDO_RE.test(sel)) {
               return true;
             }
             sel = this.normalizeCssSelector(sel);
             if (!sel)
               return false;
             try {
-              return beastiesContainer.exists(sel);
+              return beastiesContainers.some((container) => container.exists(sel));
             } catch (e) {
               failedSelectors.push(`${sel} -> ${e.message || e.toString()}`);
               return false;
@@ -833,11 +935,11 @@ class Beasties {
               if (!("prop" in decl)) {
                 continue;
               }
-              if (shouldInlineFonts && /\bfont(?:-family)?\b/i.test(decl.prop)) {
+              if (shouldInlineFonts && FONT_FAMILY_RE.test(decl.prop)) {
                 criticalFonts += ` ${decl.value}`;
               }
               if (decl.prop === "animation" || decl.prop === "animation-name") {
-                for (const name2 of decl.value.split(/\s+/)) {
+                for (const name2 of decl.value.split(WHITESPACE_RE)) {
                   const nameTrimmed = name2.trim();
                   if (nameTrimmed)
                     criticalKeyframeNames.add(nameTrimmed);
@@ -880,7 +982,7 @@ class Beasties {
               continue;
             }
             if (decl.prop === "src") {
-              src = (decl.value.match(/url\s*\(\s*(['"]?)(.+?)\1\s*\)/) || [])[2];
+              src = (decl.value.match(URL_RE) || [])[2];
             } else if (decl.prop === "font-family") {
               family = decl.value;
             }
@@ -920,6 +1022,8 @@ class Beasties {
         const percent2 = sheetInverse.length / before.length * 100;
         afterText = `, reducing non-inlined size ${percent2 | 0}% to ${formatSize(sheetInverse.length)}`;
       }
+      const cssFilePath = path.resolve(this.options.path, name);
+      this.writeFile(cssFilePath, sheetInverse).then(() => this.logger.info?.(`${name} was successfully updated`)).catch((err) => this.logger.error?.(err));
     }
     if (!styleInlinedCompletely) {
       style.textContent = sheet;

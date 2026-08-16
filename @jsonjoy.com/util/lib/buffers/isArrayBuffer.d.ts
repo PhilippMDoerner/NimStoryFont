@@ -1,1 +1,1 @@
-export declare const isArrayBuffer: (value: unknown) => value is ArrayBuffer;
+export * from '@jsonjoy.com/buffers/lib/isArrayBuffer';

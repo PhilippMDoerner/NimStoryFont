@@ -6,11 +6,11 @@ import {
 } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { interval, Observable, retry, tap } from 'rxjs';
-import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
-import { log } from 'src/utils/logging';
+import { log } from '../../utils/logging';
 import { httpErrorToast, ToastConfig } from '../_models/toast';
 import { RoutingService } from '../_services/routing.service';
 import { TokenService } from '../_services/utils/token.service';
+import { ToastService } from '../design/organisms/toast-overlay/toast.service';
 import { GlobalStore } from '../global.store';
 
 const logoutInfoToast: ToastConfig = {

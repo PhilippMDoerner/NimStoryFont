@@ -162,3 +162,4 @@ function applyToSubtree(path, rules) {
         }));
     };
 }
+//# sourceMappingURL=base.js.map

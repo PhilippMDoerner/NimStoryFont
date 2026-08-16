@@ -6,6 +6,7 @@ exports.isMovable = isMovable;
 exports.markMovable = markMovable;
 exports.maybeFileURLToPath = maybeFileURLToPath;
 exports.getAvailableParallelism = getAvailableParallelism;
+exports.promiseResolvers = promiseResolvers;
 const node_url_1 = require("node:url");
 const node_os_1 = require("node:os");
 const symbols_1 = require("./symbols");
@@ -56,5 +57,17 @@ function maybeFileURLToPath(filename) {
 }
 function getAvailableParallelism() {
     return (0, node_os_1.availableParallelism)();
+}
+function promiseResolvers() {
+    // @ts-expect-error - available from v24 onwards
+    if (Promise.withResolvers != null)
+        return Promise.withResolvers();
+    let res;
+    let rej;
+    return {
+        promise: new Promise((resolve, reject) => { res = resolve; rej = reject; }),
+        resolve: res,
+        reject: rej
+    };
 }
 //# sourceMappingURL=common.js.map

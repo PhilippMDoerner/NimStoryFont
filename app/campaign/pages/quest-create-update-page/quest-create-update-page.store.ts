@@ -3,17 +3,17 @@ import { inject } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { patchState, signalStore, withMethods, withState } from '@ngrx/signals';
 import { shareReplay, switchMap, take } from 'rxjs';
-import { Quest, QuestRaw } from 'src/app/_models/quest';
-import { CharacterService } from 'src/app/_services/article/character.service';
-import { QuestService } from 'src/app/_services/article/quest.service';
-import { SessionService } from 'src/app/_services/article/session.service';
-import { ToastService } from 'src/app/design/organisms/toast-overlay/toast.service';
-import { GlobalStore } from 'src/app/global.store';
-import { filterNil } from 'src/utils/rxjs-operators';
-import { RequestState } from 'src/utils/store/factory-types';
-import { handleError } from 'src/utils/store/toServerModel';
-import { withQueries } from 'src/utils/store/withQueries';
-import { withUpdates } from 'src/utils/store/withUpdates';
+import { filterNil } from '../../../../utils/rxjs-operators';
+import { RequestState } from '../../../../utils/store/factory-types';
+import { handleError } from '../../../../utils/store/toServerModel';
+import { withQueries } from '../../../../utils/store/withQueries';
+import { withUpdates } from '../../../../utils/store/withUpdates';
+import { Quest, QuestRaw } from '../../../_models/quest';
+import { CharacterService } from '../../../_services/article/character.service';
+import { QuestService } from '../../../_services/article/quest.service';
+import { SessionService } from '../../../_services/article/session.service';
+import { ToastService } from '../../../design/organisms/toast-overlay/toast.service';
+import { GlobalStore } from '../../../global.store';
 
 interface QuestCreateUpdatePageState {
   createState: RequestState;

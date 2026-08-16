@@ -46,7 +46,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.execute = execute;
 const node_fs_1 = __importDefault(require("node:fs"));
 const node_path_1 = __importDefault(require("node:path"));
-const load_esm_1 = require("../../utils/load-esm");
 const version_1 = require("../../utils/version");
 const options_1 = require("./options");
 const schema_1 = require("./schema");
@@ -72,8 +71,7 @@ async function execute(options, context, extensions) {
     // The package is a peer dependency and might not be present
     let localizeToolsModule;
     try {
-        localizeToolsModule =
-            await (0, load_esm_1.loadEsmModule)('@angular/localize/tools');
+        localizeToolsModule = await Promise.resolve().then(() => __importStar(require('@angular/localize/tools')));
     }
     catch {
         return {
@@ -160,3 +158,4 @@ async function createSerializer(localizeToolsModule, format, sourceLocale, baseP
             });
     }
 }
+//# sourceMappingURL=builder.js.map

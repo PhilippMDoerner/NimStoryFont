@@ -84,70 +84,82 @@ export declare enum PerfPhase {
      */
     TtcDiagnostics = 14,
     /**
+     * Time spent computing template type-checking suggestion diagnostics.
+     */
+    TtcSuggestionDiagnostics = 15,
+    /**
      * Time spent getting a `Symbol` from the `TemplateTypeChecker`.
      */
-    TtcSymbol = 15,
+    TtcSymbol = 16,
     /**
      * Time spent by the Angular Language Service calculating a "get references" or a renaming
      * operation.
      */
-    LsReferencesAndRenames = 16,
+    LsReferencesAndRenames = 17,
     /**
      * Time spent by the Angular Language Service calculating a "quick info" operation.
      */
-    LsQuickInfo = 17,
+    LsQuickInfo = 18,
     /**
      * Time spent by the Angular Language Service calculating a "get type definition" or "get
      * definition" operation.
      */
-    LsDefinition = 18,
+    LsDefinition = 19,
     /**
      * Time spent by the Angular Language Service calculating a "get completions" (AKA autocomplete)
      * operation.
      */
-    LsCompletions = 19,
+    LsCompletions = 20,
     /**
      * Time spent by the Angular Language Service calculating a "view template typecheck block"
      * operation.
      */
-    LsTcb = 20,
+    LsTcb = 21,
     /**
      * Time spent by the Angular Language Service calculating diagnostics.
      */
-    LsDiagnostics = 21,
+    LsDiagnostics = 22,
+    /**
+     * Time spent by the Angular Language Service calculating suggestion diagnostics.
+     */
+    LsSuggestionDiagnostics = 23,
     /**
      * Time spent by the Angular Language Service calculating a "get component locations for template"
      * operation.
      */
-    LsComponentLocations = 22,
+    LsComponentLocations = 24,
     /**
      * Time spent by the Angular Language Service calculating signature help.
      */
-    LsSignatureHelp = 23,
+    LsSignatureHelp = 25,
     /**
      * Time spent by the Angular Language Service calculating outlining spans.
      */
-    OutliningSpans = 24,
-    /**
-     * Tracks the number of `PerfPhase`s, and must appear at the end of the list.
-     */
-    LAST = 25,
+    OutliningSpans = 26,
     /**
      * Time spent by the Angular Language Service calculating code fixes.
      */
-    LsCodeFixes = 26,
+    LsCodeFixes = 27,
     /**
      * Time spent by the Angular Language Service to fix all detected same type errors.
      */
-    LsCodeFixesAll = 27,
+    LsCodeFixesAll = 28,
     /**
      * Time spent computing possible Angular refactorings.
      */
-    LSComputeApplicableRefactorings = 28,
+    LSComputeApplicableRefactorings = 29,
     /**
      * Time spent computing changes for applying a given refactoring.
      */
-    LSApplyRefactoring = 29
+    LSApplyRefactoring = 30,
+    /**
+     * Time spent by the Angular Language Service calculating semantic classifications.
+     */
+    LSSemanticClassification = 31,
+    /**
+     * Tracks the number of `PerfPhase`s, and must appear at the end of the list.
+     */
+    LAST = 32
 }
 /**
  * Represents some occurrence during compilation, and is tracked with a counter.
@@ -182,61 +194,65 @@ export declare enum PerfEvent {
      */
     AnalyzePipe = 6,
     /**
+     * An `@Service` class was analyzed.
+     */
+    AnalyzeService = 7,
+    /**
      * A trait was analyzed.
      *
      * In theory, this should be the sum of the `Analyze` counters for each decorator type.
      */
-    TraitAnalyze = 7,
+    TraitAnalyze = 8,
     /**
      * A trait had a prior analysis available from an incremental program, and did not need to be
      * re-analyzed.
      */
-    TraitReuseAnalysis = 8,
+    TraitReuseAnalysis = 9,
     /**
      * A `ts.SourceFile` directly changed between the prior program and a new incremental compilation.
      */
-    SourceFilePhysicalChange = 9,
+    SourceFilePhysicalChange = 10,
     /**
      * A `ts.SourceFile` did not physically changed, but according to the file dependency graph, has
      * logically changed between the prior program and a new incremental compilation.
      */
-    SourceFileLogicalChange = 10,
+    SourceFileLogicalChange = 11,
     /**
      * A `ts.SourceFile` has not logically changed and all of its analysis results were thus available
      * for reuse.
      */
-    SourceFileReuseAnalysis = 11,
+    SourceFileReuseAnalysis = 12,
     /**
      * A Type Check Block (TCB) was generated.
      */
-    GenerateTcb = 12,
+    GenerateTcb = 13,
     /**
      * A Type Check Block (TCB) could not be generated because inlining was disabled, and the block
      * would've required inlining.
      */
-    SkipGenerateTcbNoInline = 13,
+    SkipGenerateTcbNoInline = 14,
     /**
      * A `.ngtypecheck.ts` file could be reused from the previous program and did not need to be
      * regenerated.
      */
-    ReuseTypeCheckFile = 14,
+    ReuseTypeCheckFile = 15,
     /**
      * The template type-checking program required changes and had to be updated in an incremental
      * step.
      */
-    UpdateTypeCheckProgram = 15,
+    UpdateTypeCheckProgram = 16,
     /**
      * The compiler was able to prove that a `ts.SourceFile` did not need to be re-emitted.
      */
-    EmitSkipSourceFile = 16,
+    EmitSkipSourceFile = 17,
     /**
      * A `ts.SourceFile` was emitted.
      */
-    EmitSourceFile = 17,
+    EmitSourceFile = 18,
     /**
-     * Tracks the number of `PrefEvent`s, and must appear at the end of the list.
+     * Tracks the number of `PerfEvent`s, and must appear at the end of the list.
      */
-    LAST = 18
+    LAST = 19
 }
 /**
  * Represents a checkpoint during compilation at which the memory usage of the compiler should be

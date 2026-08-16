@@ -27,6 +27,9 @@ import {
   tap,
   withLatestFrom,
 } from 'rxjs';
+import { log } from '../../../../utils/logging';
+import { filterNil } from '../../../../utils/rxjs-operators';
+import { capitalize } from '../../../../utils/string';
 import {
   ArticleNode,
   ArticleNodeKind,
@@ -35,10 +38,7 @@ import {
   NodeLink,
   NodeSelection,
   ParsedNodeMap,
-} from 'src/app/_models/graph';
-import { log } from 'src/utils/logging';
-import { filterNil } from 'src/utils/rxjs-operators';
-import { capitalize } from 'src/utils/string';
+} from '../../../_models/graph';
 import {
   GRAPH_SETTINGS,
   LinkClickEvent,
@@ -59,32 +59,32 @@ const STATIC_ICON_SIZE = 24;
 
 @Injectable()
 export class GraphService {
-  public createGraphEvents$ = new ReplaySubject<{
+  public readonly createGraphEvents$ = new ReplaySubject<{
     data: ParsedNodeMap;
     settings: typeof GRAPH_SETTINGS;
   }>(1);
-  private _elements$ = new Subject<GraphElements | undefined>();
-  public elements$ = this._elements$.asObservable();
-  private _nodeClickEvents$ = new Subject<MouseEvent>();
-  public nodeClickEvents$ = this._nodeClickEvents$.pipe(
+  private readonly _elements$ = new Subject<GraphElements | undefined>();
+  public readonly elements$ = this._elements$.asObservable();
+  private readonly _nodeClickEvents$ = new Subject<MouseEvent>();
+  public readonly nodeClickEvents$ = this._nodeClickEvents$.pipe(
     withLatestFrom(this.createGraphEvents$),
     map(([event, graphData]) => this.toNodeEvent(event, graphData.data)),
   );
-  private _nodeRightClickEvents$ = new Subject<MouseEvent>();
-  public nodeRightClickEvents$ = this._nodeRightClickEvents$.pipe(
+  private readonly _nodeRightClickEvents$ = new Subject<MouseEvent>();
+  public readonly nodeRightClickEvents$ = this._nodeRightClickEvents$.pipe(
     withLatestFrom(this.createGraphEvents$),
     map(([event, graphData]) => this.toNodeEvent(event, graphData.data)),
   );
-  private linkRightClickEvents$ = new Subject<LinkClickEvent>();
-  public centerNodeEvents$ = new Subject<ArticleNode | undefined>();
-  public nodeSelectionChanged$ = new Subject<NodeSelection>();
-  private activeNodes$ = this.nodeSelectionChanged$.pipe(
+  private readonly linkRightClickEvents$ = new Subject<LinkClickEvent>();
+  public readonly centerNodeEvents$ = new Subject<ArticleNode | undefined>();
+  public readonly nodeSelectionChanged$ = new Subject<NodeSelection>();
+  private readonly activeNodes$ = this.nodeSelectionChanged$.pipe(
     startWith<NodeSelection>([]),
   );
-  private graphClickEvent$ = new Subject<MouseEvent>();
+  private readonly graphClickEvent$ = new Subject<MouseEvent>();
 
-  private graphMenuService = inject(GraphMenuService);
-  public zoomLevelChangedEvent$ = new ReplaySubject<number>(1);
+  private readonly graphMenuService = inject(GraphMenuService);
+  public readonly zoomLevelChangedEvent$ = new ReplaySubject<number>(1);
 
   constructor() {
     this.zoomLevelChangedEvent$.next(1);

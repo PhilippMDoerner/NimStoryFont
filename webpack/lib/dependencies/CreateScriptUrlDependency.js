@@ -13,11 +13,12 @@ const NullDependency = require("./NullDependency");
 /** @typedef {import("../Dependency")} Dependency */
 /** @typedef {import("../DependencyTemplate").DependencyTemplateContext} DependencyTemplateContext */
 /** @typedef {import("../javascript/JavascriptParser").Range} Range */
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext} ObjectDeserializerContext */
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext} ObjectSerializerContext */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext<[Range]>} ObjectDeserializerContext */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext<[Range]>} ObjectSerializerContext */
 
 class CreateScriptUrlDependency extends NullDependency {
 	/**
+	 * Creates an instance of CreateScriptUrlDependency.
 	 * @param {Range} range range
 	 */
 	constructor(range) {
@@ -30,21 +31,21 @@ class CreateScriptUrlDependency extends NullDependency {
 	}
 
 	/**
+	 * Serializes this instance into the provided serializer context.
 	 * @param {ObjectSerializerContext} context context
 	 */
 	serialize(context) {
-		const { write } = context;
-		write(this.range);
+		context.write(this.range);
 		super.serialize(context);
 	}
 
 	/**
+	 * Restores this instance from the provided deserializer context.
 	 * @param {ObjectDeserializerContext} context context
 	 */
 	deserialize(context) {
-		const { read } = context;
-		this.range = read();
-		super.deserialize(context);
+		this.range = context.read();
+		super.deserialize(context.rest);
 	}
 }
 
@@ -52,6 +53,7 @@ CreateScriptUrlDependency.Template = class CreateScriptUrlDependencyTemplate ext
 	NullDependency.Template
 ) {
 	/**
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Dependency} dependency the dependency for which the template should be applied
 	 * @param {ReplaceSource} source the current replace source which can be modified
 	 * @param {DependencyTemplateContext} templateContext the context object

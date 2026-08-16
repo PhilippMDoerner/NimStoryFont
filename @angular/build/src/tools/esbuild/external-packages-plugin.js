@@ -94,3 +94,4 @@ function createExternalPackagesPlugin(options) {
         },
     };
 }
+//# sourceMappingURL=external-packages-plugin.js.map

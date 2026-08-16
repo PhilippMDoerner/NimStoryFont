@@ -1,9 +1,6 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.verifyConfig = verifyConfig;
-const errors_1 = require("./errors");
-function verifyConfig(options) {
+import { HttpProxyMiddlewareError } from './errors.js';
+export function verifyConfig(options) {
     if (!options.target && !options.router) {
-        throw new Error(errors_1.ERRORS.ERR_CONFIG_FACTORY_TARGET_MISSING);
+        throw new HttpProxyMiddlewareError('[HPM] Missing "target" option. Example: {target: "http://www.example.org"}', 'ERR_CONFIG_FACTORY_TARGET_MISSING');
     }
 }

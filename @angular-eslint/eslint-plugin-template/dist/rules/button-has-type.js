@@ -42,7 +42,7 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
     create(context, [{ ignoreWithDirectives }]) {
         const parserServices = (0, utils_1.getTemplateParserServices)(context);
         return {
-            [`Element[name=button]`](element) {
+            [`Element[name=/^(button)$/i]`](element) {
                 if (!isTypeAttributePresentInElement(element)) {
                     if (!isIgnored(ignoreWithDirectives, element)) {
                         context.report({
@@ -100,6 +100,7 @@ function getInvalidButtonTypeIfPresent(element) {
         if (name === TYPE_ATTRIBUTE_NAME &&
             value instanceof bundled_angular_compiler_1.ASTWithSource &&
             value.ast instanceof bundled_angular_compiler_1.LiteralPrimitive &&
+            typeof value.ast.value === 'string' &&
             !VALID_BUTTON_TYPES.includes(value.ast.value)) {
             return {
                 value: value.ast.value,

@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.resolveBootstrappedComponentData = resolveBootstrappedComponentData;
 const schematics_1 = require("@angular-devkit/schematics");
-const typescript_1 = __importDefault(require("../../third_party/github.com/Microsoft/TypeScript/lib/typescript"));
+const typescript_1 = __importDefault(require("typescript"));
 const ast_utils_1 = require("../ast-utils");
 const ng_ast_utils_1 = require("../ng-ast-utils");
 const util_1 = require("./util");
@@ -107,3 +107,4 @@ function resolveIdentifier(identifier) {
     }
     return null;
 }
+//# sourceMappingURL=app_component.js.map

@@ -9,20 +9,25 @@ function _toPrimitive(t, r) { if ("object" != _typeof(t) || !t) return t; var e 
 
 import ansiHTML from "ansi-html-community";
 
+/** @typedef {import("./index").EXPECTED_ANY} EXPECTED_ANY */
+
 /**
- * @type {(input: string, position: number) => string}
+ * @type {(input: string, position: number) => number | undefined}
  */
-var getCodePoint = String.prototype.codePointAt ? function (input, position) {
+// @ts-expect-error
+var getCodePoint = String.prototype.codePointAt ?
+// @ts-expect-error
+function (input, position) {
   return input.codePointAt(position);
 } : function (input, position) {
   return (input.charCodeAt(position) - 0xd800) * 0x400 + input.charCodeAt(position + 1) - 0xdc00 + 0x10000;
 };
 
 /**
- * @param {string} macroText
- * @param {RegExp} macroRegExp
- * @param {(input: string) => string} macroReplacer
- * @returns {string}
+ * @param {string} macroText macro text
+ * @param {RegExp} macroRegExp macro reg exp
+ * @param {(input: string) => string} macroReplacer macro replacer
+ * @returns {string} result
  */
 var replaceUsingRegExp = function replaceUsingRegExp(macroText, macroRegExp, macroReplacer) {
   macroRegExp.lastIndex = 0;
@@ -33,15 +38,14 @@ var replaceUsingRegExp = function replaceUsingRegExp(macroText, macroRegExp, mac
     var replaceLastIndex = 0;
     do {
       if (replaceLastIndex !== replaceMatch.index) {
-        replaceResult += macroText.substring(replaceLastIndex, replaceMatch.index);
+        replaceResult += macroText.slice(replaceLastIndex, replaceMatch.index);
       }
       var replaceInput = replaceMatch[0];
       replaceResult += macroReplacer(replaceInput);
       replaceLastIndex = replaceMatch.index + replaceInput.length;
-      // eslint-disable-next-line no-cond-assign
     } while (replaceMatch = macroRegExp.exec(macroText));
     if (replaceLastIndex !== macroText.length) {
-      replaceResult += macroText.substring(replaceLastIndex);
+      replaceResult += macroText.slice(replaceLastIndex);
     }
   } else {
     replaceResult = macroText;
@@ -58,14 +62,14 @@ var references = {
 
 /**
  * @param {string} text text
- * @returns {string}
+ * @returns {string} encoded text
  */
 function encode(text) {
   if (!text) {
     return "";
   }
   return replaceUsingRegExp(text, /[<>'"&]/g, function (input) {
-    var result = references[input];
+    var result = references[(/** @type {keyof typeof references} */input)];
     if (!result) {
       var code = input.length > 1 ? getCodePoint(input, 0) : input.charCodeAt(0);
       result = "&#".concat(code, ";");
@@ -75,36 +79,43 @@ function encode(text) {
 }
 
 /**
- * @typedef {Object} StateDefinitions
- * @property {{[event: string]: { target: string; actions?: Array<string> }}} [on]
+ * @typedef {object} Context
+ * @property {'warning' | 'error'} level level
+ * @property {(string  | Message)[]} messages messages
+ * @property {'build' | 'runtime'} messageSource message source
+ */
+
+/** @typedef {{ type: string } & Record<string, EXPECTED_ANY>} Event */
+
+/**
+ * @typedef {object} Options
+ * @property {{ [state: string]: { on: Record<string, { target: string; actions?: Array<string> }> } }} states states
+ * @property {Context} context context
+ * @property {string} initial initial
  */
 
 /**
- * @typedef {Object} Options
- * @property {{[state: string]: StateDefinitions}} states
- * @property {object} context;
- * @property {string} initial
+ * @typedef {object} Implementation
+ * @property {{ [actionName: string]: (ctx: Context, event: Event) => Context | void }} actions actions
  */
 
 /**
- * @typedef {Object} Implementation
- * @property {{[actionName: string]: (ctx: object, event: any) => object}} actions
+ * @typedef {{ send: (event: Event) => void }} StateMachine
  */
 
 /**
  * A simplified `createMachine` from `@xstate/fsm` with the following differences:
- *
- *  - the returned machine is technically a "service". No `interpret(machine).start()` is needed.
- *  - the state definition only support `on` and target must be declared with { target: 'nextState', actions: [] } explicitly.
- *  - event passed to `send` must be an object with `type` property.
- *  - actions implementation will be [assign action](https://xstate.js.org/docs/guides/context.html#assign-action) if you return any value.
- *  Do not return anything if you just want to invoke side effect.
+ * - the returned machine is technically a "service". No `interpret(machine).start()` is needed.
+ * - the state definition only support `on` and target must be declared with { target: 'nextState', actions: [] } explicitly.
+ * - event passed to `send` must be an object with `type` property.
+ * - actions implementation will be [assign action](https://xstate.js.org/docs/guides/context.html#assign-action) if you return any value.
+ * Do not return anything if you just want to invoke side effect.
  *
  * The goal of this custom function is to avoid installing the entire `'xstate/fsm'` package, while enabling modeling using
  * state machine. You can copy the first parameter into the editor at https://stately.ai/viz to visualize the state machine.
- *
- * @param {Options} options
- * @param {Implementation} implementation
+ * @param {Options} options options
+ * @param {Implementation} implementation implementation
+ * @returns {StateMachine} state machine
  */
 function createMachine(_ref, _ref2) {
   var states = _ref.states,
@@ -134,20 +145,21 @@ function createMachine(_ref, _ref2) {
 }
 
 /**
- * @typedef {Object} ShowOverlayData
- * @property {'warning' | 'error'} level
- * @property {Array<string  | { moduleIdentifier?: string, moduleName?: string, loc?: string, message?: string }>} messages
- * @property {'build' | 'runtime'} messageSource
+ * @typedef {object} ShowOverlayData
+ * @property {'warning' | 'error'} level level
+ * @property {(string  | Message)[]} messages messages
+ * @property {'build' | 'runtime'} messageSource message source
  */
 
 /**
- * @typedef {Object} CreateOverlayMachineOptions
- * @property {(data: ShowOverlayData) => void} showOverlay
- * @property {() => void} hideOverlay
+ * @typedef {object} CreateOverlayMachineOptions
+ * @property {(data: ShowOverlayData) => void} showOverlay show overlay
+ * @property {() => void} hideOverlay hide overlay
  */
 
 /**
- * @param {CreateOverlayMachineOptions} options
+ * @param {CreateOverlayMachineOptions} options options
+ * @returns {StateMachine} state machine
  */
 var createOverlayMachine = function createOverlayMachine(options) {
   var hideOverlay = options.hideOverlay,
@@ -231,8 +243,8 @@ var createOverlayMachine = function createOverlayMachine(options) {
 };
 
 /**
- *
- * @param {Error} error
+ * @param {Error} error error
+ * @returns {undefined | string[]} stack
  */
 var parseErrorToStacks = function parseErrorToStacks(error) {
   if (!error || !(error instanceof Error)) {
@@ -252,7 +264,8 @@ var parseErrorToStacks = function parseErrorToStacks(error) {
  */
 
 /**
- * @param {ErrorCallback} callback
+ * @param {ErrorCallback} callback callback
+ * @returns {() => void} cleanup
  */
 var listenToRuntimeError = function listenToRuntimeError(callback) {
   window.addEventListener("error", callback);
@@ -268,7 +281,8 @@ var listenToRuntimeError = function listenToRuntimeError(callback) {
  */
 
 /**
- * @param {UnhandledRejectionCallback} callback
+ * @param {UnhandledRejectionCallback} callback callback
+ * @returns {() => void} cleanup
  */
 var listenToUnhandledRejection = function listenToUnhandledRejection(callback) {
   window.addEventListener("unhandledrejection", callback);
@@ -291,10 +305,10 @@ var msgStyles = {
 };
 var iframeStyle = {
   position: "fixed",
-  top: 0,
-  left: 0,
-  right: 0,
-  bottom: 0,
+  top: "0px",
+  left: "0px",
+  right: "0px",
+  bottom: "0px",
   width: "100vw",
   height: "100vh",
   border: "none",
@@ -303,10 +317,10 @@ var iframeStyle = {
 var containerStyle = {
   position: "fixed",
   boxSizing: "border-box",
-  left: 0,
-  top: 0,
-  right: 0,
-  bottom: 0,
+  left: "0px",
+  top: "0px",
+  right: "0px",
+  bottom: "0px",
   width: "100vw",
   height: "100vh",
   fontSize: "large",
@@ -334,8 +348,8 @@ var dismissButtonStyle = {
   padding: "1rem",
   cursor: "pointer",
   position: "absolute",
-  right: 0,
-  top: 0,
+  right: "0px",
+  top: "0px",
   backgroundColor: "transparent",
   border: "none"
 };
@@ -367,10 +381,12 @@ var colors = {
 };
 ansiHTML.setColors(colors);
 
+/** @typedef {Error & { file?: string, moduleName?: string, moduleIdentifier?: string, loc?: string, message?: string; stack?: string | string[] }} Message */
+
 /**
- * @param {string} type
- * @param {string  | { file?: string, moduleName?: string, loc?: string, message?: string; stack?: string[] }} item
- * @returns {{ header: string, body: string }}
+ * @param {string} type type
+ * @param {string | Message} item item
+ * @returns {{ header: string, body: string }} formatted problem
  */
 var formatProblem = function formatProblem(type, item) {
   var header = type === "warning" ? "WARNING" : "ERROR";
@@ -379,13 +395,12 @@ var formatProblem = function formatProblem(type, item) {
     body += item;
   } else {
     var file = item.file || "";
-    // eslint-disable-next-line no-nested-ternary
     var moduleName = item.moduleName ? item.moduleName.indexOf("!") !== -1 ? "".concat(item.moduleName.replace(/^(\s|\S)*!/, ""), " (").concat(item.moduleName, ")") : "".concat(item.moduleName) : "";
     var loc = item.loc;
     header += "".concat(moduleName || file ? " in ".concat(moduleName ? "".concat(moduleName).concat(file ? " (".concat(file, ")") : "") : file).concat(loc ? " ".concat(loc) : "") : "");
     body += item.message || "";
   }
-  if (Array.isArray(item.stack)) {
+  if (typeof item !== "string" && Array.isArray(item.stack)) {
     item.stack.forEach(function (stack) {
       if (typeof stack === "string") {
         body += "\r\n".concat(stack);
@@ -399,14 +414,14 @@ var formatProblem = function formatProblem(type, item) {
 };
 
 /**
- * @typedef {Object} CreateOverlayOptions
- * @property {string | null} trustedTypesPolicyName
- * @property {boolean | (error: Error) => void} [catchRuntimeError]
+ * @typedef {object} CreateOverlayOptions
+ * @property {(false | string)=} trustedTypesPolicyName trusted types policy name
+ * @property {(boolean | ((error: Error) => void))=} catchRuntimeError runtime error catcher
  */
 
 /**
- *
- * @param {CreateOverlayOptions} options
+ * @param {CreateOverlayOptions} options options
+ * @returns {StateMachine} overlay
  */
 var createOverlay = function createOverlay(options) {
   /** @type {HTMLIFrameElement | null | undefined} */
@@ -417,22 +432,24 @@ var createOverlay = function createOverlay(options) {
   var headerElement;
   /** @type {Array<(element: HTMLDivElement) => void>} */
   var onLoadQueue = [];
-  /** @type {TrustedTypePolicy | undefined} */
+  /** @type {Omit<TrustedTypePolicy, "createScript" | "createScriptURL"> | undefined} */
   var overlayTrustedTypesPolicy;
 
+  /** @typedef {Extract<keyof CSSStyleDeclaration, "string">} CSSStyleDeclarationKeys */
+
   /**
-   *
-   * @param {HTMLElement} element
-   * @param {CSSStyleDeclaration} style
+   * @param {HTMLElement} element element
+   * @param {Partial<CSSStyleDeclaration>} style style
    */
   function applyStyle(element, style) {
     Object.keys(style).forEach(function (prop) {
-      element.style[prop] = style[prop];
+      element.style[(/** @type {CSSStyleDeclarationKeys} */prop)] = /** @type {string} */
+      style[(/** @type {CSSStyleDeclarationKeys} */prop)];
     });
   }
 
   /**
-   * @param {string | null} trustedTypesPolicyName
+   * @param {string | false | undefined} trustedTypesPolicyName trusted types police name
    */
   function createContainer(trustedTypesPolicyName) {
     // Enable Trusted Types if they are available in the current browser.
@@ -488,11 +505,12 @@ var createOverlay = function createOverlay(options) {
   }
 
   /**
-   * @param {(element: HTMLDivElement) => void} callback
-   * @param {string | null} trustedTypesPolicyName
+   * @param {(element: HTMLDivElement) => void} callback callback
+   * @param {string | false | undefined} trustedTypesPolicyName trusted types policy name
    */
   function ensureOverlayExists(callback, trustedTypesPolicyName) {
     if (containerElement) {
+      // @ts-expect-error https://github.com/microsoft/TypeScript/issues/30024
       containerElement.innerHTML = overlayTrustedTypesPolicy ? overlayTrustedTypesPolicy.createHTML("") : "";
       // Everything is ready, call the callback right away.
       callback(containerElement);
@@ -506,6 +524,9 @@ var createOverlay = function createOverlay(options) {
   }
 
   // Successful compilation.
+  /**
+   * @returns {void}
+   */
   function hide() {
     if (!iframeContainerElement) {
       return;
@@ -519,13 +540,14 @@ var createOverlay = function createOverlay(options) {
 
   // Compilation with errors (e.g. syntax error or missing modules).
   /**
-   * @param {string} type
-   * @param {Array<string  | { moduleIdentifier?: string, moduleName?: string, loc?: string, message?: string }>} messages
-   * @param {string | null} trustedTypesPolicyName
-   * @param {'build' | 'runtime'} messageSource
+   * @param {string} type type
+   * @param {(string | Message)[]} messages messages
+   * @param {undefined | false | string} trustedTypesPolicyName trusted types policy name
+   * @param {'build' | 'runtime'} messageSource message source
    */
   function show(type, messages, trustedTypesPolicyName, messageSource) {
     ensureOverlayExists(function () {
+      /** @type {HTMLDivElement} */
       headerElement.innerText = messageSource === "runtime" ? "Uncaught runtime errors:" : "Compiled with problems:";
       messages.forEach(function (message) {
         var entryElement = document.createElement("div");
@@ -539,12 +561,12 @@ var createOverlay = function createOverlay(options) {
           body = _formatProblem.body;
         typeElement.innerText = header;
         applyStyle(typeElement, msgTypeStyle);
-        if (message.moduleIdentifier) {
+        if (typeof message !== "string" && message.moduleIdentifier) {
           applyStyle(typeElement, {
             cursor: "pointer"
           });
           // element.dataset not supported in IE
-          typeElement.setAttribute("data-can-open", true);
+          typeElement.setAttribute("data-can-open", "true");
           typeElement.addEventListener("click", function () {
             fetch("/webpack-dev-server/open-editor?fileName=".concat(message.moduleIdentifier));
           });
@@ -554,6 +576,8 @@ var createOverlay = function createOverlay(options) {
         var text = ansiHTML(encode(body));
         var messageTextNode = document.createElement("div");
         applyStyle(messageTextNode, msgTextStyle);
+
+        // @ts-expect-error https://github.com/microsoft/TypeScript/issues/30024
         messageTextNode.innerHTML = overlayTrustedTypesPolicy ? overlayTrustedTypesPolicy.createHTML(text) : text;
         entryElement.appendChild(typeElement);
         entryElement.appendChild(messageTextNode);
@@ -563,6 +587,18 @@ var createOverlay = function createOverlay(options) {
       });
     }, trustedTypesPolicyName);
   }
+
+  /** @type {(event: KeyboardEvent) => void} */
+  var handleEscapeKey;
+
+  /**
+   * @returns {void}
+   */
+
+  var hideOverlayWithEscCleanup = function hideOverlayWithEscCleanup() {
+    window.removeEventListener("keydown", handleEscapeKey);
+    hide();
+  };
   var overlayService = createOverlayMachine({
     showOverlay: function showOverlay(_ref3) {
       var _ref3$level = _ref3.level,
@@ -571,15 +607,29 @@ var createOverlay = function createOverlay(options) {
         messageSource = _ref3.messageSource;
       return show(level, messages, options.trustedTypesPolicyName, messageSource);
     },
-    hideOverlay: hide
+    hideOverlay: hideOverlayWithEscCleanup
   });
+  /**
+   * ESC key press to dismiss the overlay.
+   * @param {KeyboardEvent} event Keydown event
+   */
+  handleEscapeKey = function handleEscapeKey(event) {
+    if (event.key === "Escape" || event.key === "Esc" || event.keyCode === 27) {
+      overlayService.send({
+        type: "DISMISS"
+      });
+    }
+  };
+  window.addEventListener("keydown", handleEscapeKey);
   if (options.catchRuntimeError) {
     /**
-     * @param {Error | undefined} error
-     * @param {string} fallbackMessage
+     * @param {Error | undefined} error error
+     * @param {string} fallbackMessage fallback message
      */
     var handleError = function handleError(error, fallbackMessage) {
-      var errorObject = error instanceof Error ? error : new Error(error || fallbackMessage);
+      var errorObject = error instanceof Error ? error : new Error(error || fallbackMessage, {
+        cause: error
+      });
       var shouldDisplay = typeof options.catchRuntimeError === "function" ? options.catchRuntimeError(errorObject) : true;
       if (shouldDisplay) {
         overlayService.send({
@@ -612,4 +662,4 @@ var createOverlay = function createOverlay(options) {
   }
   return overlayService;
 };
-export { formatProblem, createOverlay };
+export { createOverlay, formatProblem };

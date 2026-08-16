@@ -7,14 +7,14 @@ import {
   signal,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { PlayerClass } from 'src/app/_models/playerclass';
+import { withViewTransition } from '../../../../utils/animation';
+import { PlayerClass } from '../../../_models/playerclass';
 import {
   Spell,
   SpellPlayerClassConnection,
   SpellRaw,
-} from 'src/app/_models/spell';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { withViewTransition } from 'src/utils/animation';
+} from '../../../_models/spell';
+import { RoutingService } from '../../../_services/routing.service';
 import { BadgeComponent } from '../../atoms/badge/badge.component';
 import { ButtonLinkComponent } from '../../atoms/button-link/button-link.component';
 import { PageContainerComponent } from '../../organisms/page-container/page-container.component';
@@ -34,14 +34,14 @@ import { SpellsComponent } from '../../organisms/spells/spells.component';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SpellsTemplateComponent {
-  campaignName = input.required<string>();
-  campaignId = input.required<number>();
-  spells = input.required<Spell[]>();
-  playerClasses = input.required<PlayerClass[]>();
-  canUpdate = input.required<boolean>();
-  canDelete = input.required<boolean>();
-  canCreate = input.required<boolean>();
-  serverModel = input.required<Spell | undefined>();
+  readonly campaignName = input.required<string>();
+  readonly campaignId = input.required<number>();
+  readonly spells = input.required<Spell[]>();
+  readonly playerClasses = input.required<PlayerClass[]>();
+  readonly canUpdate = input.required<boolean>();
+  readonly canDelete = input.required<boolean>();
+  readonly canCreate = input.required<boolean>();
+  readonly serverModel = input.required<Spell | undefined>();
 
   readonly spellDelete = output<Spell>();
   readonly spellUpdate = output<Spell>();
@@ -49,12 +49,12 @@ export class SpellsTemplateComponent {
   readonly connectionDelete = output<SpellPlayerClassConnection>();
   readonly connectionCreate = output<SpellPlayerClassConnection>();
 
-  homeUrl = computed(() =>
+  readonly homeUrl = computed(() =>
     this.routingService.getRoutePath('home', {
       campaign: this.campaignName,
     }),
   );
-  filteredSpells = computed<Spell[]>(() => {
+  readonly filteredSpells = computed<Spell[]>(() => {
     const hasSelectedClasses = this.selectedClassNames().size > 0;
     if (!hasSelectedClasses) {
       return this.spells();
@@ -70,7 +70,7 @@ export class SpellsTemplateComponent {
     });
   });
 
-  selectedClassNames = signal(new Set<string>());
+  readonly selectedClassNames = signal(new Set<string>());
 
   constructor(private routingService: RoutingService) {}
 

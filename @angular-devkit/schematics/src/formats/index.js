@@ -15,3 +15,4 @@ Object.defineProperty(exports, "htmlSelectorFormat", { enumerable: true, get: fu
 var path_2 = require("./path");
 Object.defineProperty(exports, "pathFormat", { enumerable: true, get: function () { return path_2.pathFormat; } });
 exports.standardFormats = [html_selector_1.htmlSelectorFormat, path_1.pathFormat];
+//# sourceMappingURL=index.js.map

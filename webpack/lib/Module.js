@@ -9,7 +9,11 @@ const util = require("util");
 const ChunkGraph = require("./ChunkGraph");
 const DependenciesBlock = require("./DependenciesBlock");
 const ModuleGraph = require("./ModuleGraph");
-const { JS_TYPES } = require("./ModuleSourceTypesConstants");
+const {
+	JAVASCRIPT_TYPE,
+	UNKNOWN_TYPE
+} = require("./ModuleSourceTypeConstants");
+const { JAVASCRIPT_TYPES } = require("./ModuleSourceTypeConstants");
 const RuntimeGlobals = require("./RuntimeGlobals");
 const { first } = require("./util/SetHelpers");
 const { compareChunksById } = require("./util/comparators");
@@ -17,47 +21,55 @@ const makeSerializable = require("./util/makeSerializable");
 
 /** @typedef {import("webpack-sources").Source} Source */
 /** @typedef {import("../declarations/WebpackOptions").ResolveOptions} ResolveOptions */
-/** @typedef {import("../declarations/WebpackOptions").WebpackOptionsNormalized} WebpackOptions */
+/** @typedef {import("./config/defaults").WebpackOptionsNormalizedWithDefaults} WebpackOptions */
 /** @typedef {import("./Chunk")} Chunk */
 /** @typedef {import("./ChunkGraph").ModuleId} ModuleId */
 /** @typedef {import("./ChunkGroup")} ChunkGroup */
 /** @typedef {import("./CodeGenerationResults")} CodeGenerationResults */
 /** @typedef {import("./Compilation")} Compilation */
 /** @typedef {import("./Compilation").AssetInfo} AssetInfo */
+/** @typedef {import("./Compilation").FileSystemDependencies} FileSystemDependencies */
 /** @typedef {import("./Compilation").UnsafeCacheData} UnsafeCacheData */
 /** @typedef {import("./ConcatenationScope")} ConcatenationScope */
 /** @typedef {import("./Dependency")} Dependency */
 /** @typedef {import("./Dependency").UpdateHashContext} UpdateHashContext */
-/** @typedef {import("./DependencyTemplate").CssData} CssData */
 /** @typedef {import("./DependencyTemplates")} DependencyTemplates */
-/** @typedef {import("./ExportsInfo").UsageStateType} UsageStateType */
+/** @typedef {import("./ModuleSourceTypeConstants").AllTypes} AllTypes */
 /** @typedef {import("./FileSystemInfo")} FileSystemInfo */
-/** @typedef {import("./FileSystemInfo").Snapshot} Snapshot */
 /** @typedef {import("./ModuleGraphConnection").ConnectionState} ConnectionState */
 /** @typedef {import("./ModuleTypeConstants").ModuleTypes} ModuleTypes */
+/** @typedef {import("./ModuleGraph").OptimizationBailouts} OptimizationBailouts */
+/** @typedef {import("./ModuleProfile")} ModuleProfile */
 /** @typedef {import("./NormalModuleFactory")} NormalModuleFactory */
 /** @typedef {import("./RequestShortener")} RequestShortener */
 /** @typedef {import("./ResolverFactory").ResolverWithOptions} ResolverWithOptions */
 /** @typedef {import("./RuntimeTemplate")} RuntimeTemplate */
-/** @typedef {import("./WebpackError")} WebpackError */
+/**
+ * Defines the init fragment type used by this module.
+ * @template T
+ * @typedef {import("./InitFragment")<T>} InitFragment
+ */
+/** @typedef {import("./errors/WebpackError")} WebpackError */
 /** @typedef {import("./serialization/ObjectMiddleware").ObjectDeserializerContext} ObjectDeserializerContext */
 /** @typedef {import("./serialization/ObjectMiddleware").ObjectSerializerContext} ObjectSerializerContext */
 /** @typedef {import("./util/Hash")} Hash */
 /** @typedef {import("./util/fs").InputFileSystem} InputFileSystem */
 /** @typedef {import("./util/identifier").AssociatedObjectForCache} AssociatedObjectForCache */
 /** @typedef {import("./util/runtime").RuntimeSpec} RuntimeSpec */
+/**
+ * @template T
+ * @typedef {import("./util/SortableSet")<T>} SortableSet
+ */
+/** @typedef {"namespace" | "default-only" | "default-with-named" | "dynamic"} ExportsType */
 
 /**
+ * Defines the shared type used by this module.
  * @template T
  * @typedef {import("./util/LazySet")<T>} LazySet<T>
  */
 
 /**
- * @template T
- * @typedef {import("./util/SortableSet")<T>} SortableSet<T>
- */
-
-/**
+ * Defines the source context type used by this module.
  * @typedef {object} SourceContext
  * @property {DependencyTemplates} dependencyTemplates the dependency templates
  * @property {RuntimeTemplate} runtimeTemplate the runtime template
@@ -67,16 +79,22 @@ const makeSerializable = require("./util/makeSerializable");
  * @property {string=} type the type of source that should be generated
  */
 
-/** @typedef {ReadonlySet<string>} SourceTypes */
+/** @typedef {AllTypes} KnownSourceType */
+/** @typedef {KnownSourceType | string} SourceType */
+/** @typedef {ReadonlySet<SourceType>} SourceTypes */
+
+/** @typedef {ReadonlySet<typeof JAVASCRIPT_TYPE | string>} BasicSourceTypes */
 
 // TODO webpack 6: compilation will be required in CodeGenerationContext
 /**
+ * Defines the code generation context type used by this module.
  * @typedef {object} CodeGenerationContext
  * @property {DependencyTemplates} dependencyTemplates the dependency templates
  * @property {RuntimeTemplate} runtimeTemplate the runtime template
  * @property {ModuleGraph} moduleGraph the module graph
  * @property {ChunkGraph} chunkGraph the chunk graph
  * @property {RuntimeSpec} runtime the runtimes code should be generated for
+ * @property {RuntimeSpec[]} runtimes all runtimes code should be generated for
  * @property {ConcatenationScope=} concatenationScope when in concatenated module, information about other concatenated modules
  * @property {CodeGenerationResults | undefined} codeGenerationResults code generation results of other modules (need to have a codeGenerationDependency to use that)
  * @property {Compilation=} compilation the compilation
@@ -84,67 +102,100 @@ const makeSerializable = require("./util/makeSerializable");
  */
 
 /**
+ * Defines the concatenation bailout reason context type used by this module.
  * @typedef {object} ConcatenationBailoutReasonContext
  * @property {ModuleGraph} moduleGraph the module graph
  * @property {ChunkGraph} chunkGraph the chunk graph
+ * @property {boolean=} concatenateCommonJsModules whether eligible CommonJS modules may be concatenated
  */
 
 /** @typedef {Set<string>} RuntimeRequirements */
 /** @typedef {ReadonlySet<string>} ReadOnlyRuntimeRequirements */
 
 /**
+ * Defines the all code generation schemas type used by this module.
+ * @typedef {object} AllCodeGenerationSchemas
+ * @property {Set<string>} topLevelDeclarations top level declarations for javascript modules
+ * @property {Set<string>} freeNames free identifier names in the rendered source for javascript modules
+ * @property {InitFragment<EXPECTED_ANY>[]} chunkInitFragments chunk init fragments for javascript modules
+ * @property {{ javascript?: string, ["asset-url"]?: string }} url url for asset modules
+ * @property {string} filename a filename for asset modules
+ * @property {AssetInfo} assetInfo an asset info for asset modules
+ * @property {string} fullContentHash a full content hash for asset modules
+ * @property {[{ shareScope: string, initStage: number, init: string }]} share-init share-init for modules federation
+ */
+
+/**
+ * Defines the code gen value type used by this module.
+ * @template {string} K
+ * @typedef {K extends (keyof AllCodeGenerationSchemas) ? AllCodeGenerationSchemas[K] : EXPECTED_ANY} CodeGenValue
+ */
+
+/**
+ * Defines the code gen map overloads type used by this module.
+ * @typedef {object} CodeGenMapOverloads
+ * @property {<K extends string>(key: K) => CodeGenValue<K> | undefined} get
+ * @property {<K extends string>(key: K, value: CodeGenValue<K>) => CodeGenerationResultData} set
+ * @property {<K extends string>(key: K) => boolean} has
+ * @property {<K extends string>(key: K) => boolean} delete
+ */
+
+/**
+ * Defines the code generation result data type used by this module.
+ * @typedef {Omit<Map<string, EXPECTED_ANY>, "get" | "set" | "has" | "delete"> & CodeGenMapOverloads} CodeGenerationResultData
+ */
+
+/** @typedef {Map<SourceType, Source>} Sources */
+
+/**
+ * Defines the code generation result type used by this module.
  * @typedef {object} CodeGenerationResult
- * @property {Map<string, Source>} sources the resulting sources for all source types
- * @property {Map<string, TODO>=} data the resulting data for all source types
+ * @property {Sources} sources the resulting sources for all source types
+ * @property {CodeGenerationResultData=} data the resulting data for all source types
  * @property {ReadOnlyRuntimeRequirements | null} runtimeRequirements the runtime requirements
  * @property {string=} hash a hash of the code generation result (will be automatically calculated from sources and runtimeRequirements if not provided)
  */
 
 /**
+ * Defines the lib ident options type used by this module.
  * @typedef {object} LibIdentOptions
  * @property {string} context absolute context path to which lib ident is relative to
  * @property {AssociatedObjectForCache=} associatedObjectForCache object for caching
  */
 
 /**
+ * Defines the build meta properties common to all module types.
+ * Module type specific properties live in the `Known*BuildMeta` typedef of the dedicated module class.
  * @typedef {object} KnownBuildMeta
  * @property {("default" | "namespace" | "flagged" | "dynamic")=} exportsType
  * @property {(false | "redirect" | "redirect-warn")=} defaultObject
- * @property {boolean=} strictHarmonyModule
  * @property {boolean=} async
  * @property {boolean=} sideEffectFree
- * @property {Record<string, string>=} exportsFinalName
- * @property {boolean=} isCSSModule
+ * @property {Map<string, Record<string, string>>=} exportsFinalNameByRuntime using in ModuleLibraryPlugin
+ * @property {Map<string, string>=} exportsSourceByRuntime using in ModuleLibraryPlugin
  */
 
 /**
+ * Defines the build info properties common to all module types.
+ * Module type specific properties live in the `Known*BuildInfo` typedef of the dedicated module class.
  * @typedef {object} KnownBuildInfo
  * @property {boolean=} cacheable
- * @property {boolean=} parsed
+ * @property {string[]=} notCacheableReasons reasons why the module is not cacheable (e.g. paths of loaders that marked it)
  * @property {boolean=} strict
- * @property {string=} moduleArgument using in AMD
- * @property {string=} exportsArgument using in AMD
- * @property {string=} moduleConcatenationBailout using in CommonJs
- * @property {boolean=} needCreateRequire using in APIPlugin
- * @property {string=} resourceIntegrity using in HttpUriPlugin
- * @property {LazySet<string>=} fileDependencies using in NormalModule
- * @property {LazySet<string>=} contextDependencies using in NormalModule
- * @property {LazySet<string>=} missingDependencies using in NormalModule
- * @property {LazySet<string>=} buildDependencies using in NormalModule
- * @property {ValueCacheVersions=} valueDependencies using in NormalModule
- * @property {Record<string, Source>=} assets using in NormalModule
- * @property {string=} hash using in NormalModule
- * @property {(Snapshot | null)=} snapshot using in ContextModule
- * @property {string=} fullContentHash for assets modules
- * @property {string=} filename for assets modules
- * @property {Map<string, AssetInfo | undefined>=} assetsInfo for assets modules
- * @property {boolean=} dataUrl for assets modules
- * @property {CssData=} cssData for css modules
+ * @property {string=} moduleArgument
+ * @property {string=} exportsArgument
+ * @property {Record<string, Source>=} assets assets added by loaders or plugins
+ * @property {Map<string, AssetInfo | undefined>=} assetsInfo
+ * @property {Set<string>=} topLevelDeclarations top level declaration names
+ * @property {boolean=} isCircular true when the module is part of a circular dependency chain
+ * @property {boolean=} usesTopLevelAwaitForOf module uses top-level `for await…of`, which can't be lowered to a generator
  */
 
-/** @typedef {Map<string, string | Set<string>>} ValueCacheVersions */
+/** @typedef {string | Set<string>} ValueCacheVersion */
+/** @typedef {Map<string, ValueCacheVersion>} ValueCacheVersions */
 
 /**
+ * Defines the need build context type used by this module.
  * @typedef {object} NeedBuildContext
  * @property {Compilation} compilation
  * @property {FileSystemInfo} fileSystemInfo
@@ -159,6 +210,7 @@ const makeSerializable = require("./util/makeSerializable");
 /** @typedef {KnownBuildInfo & Record<string, EXPECTED_ANY>} BuildInfo */
 
 /**
+ * Defines the factory meta type used by this module.
  * @typedef {object} FactoryMeta
  * @property {boolean=} sideEffectFree
  */
@@ -167,10 +219,12 @@ const EMPTY_RESOLVE_OPTIONS = {};
 
 let debugId = 1000;
 
-const DEFAULT_TYPES_UNKNOWN = new Set(["unknown"]);
+/** @type {SourceTypes} */
+const DEFAULT_TYPES_UNKNOWN = new Set([UNKNOWN_TYPE]);
 
 const deprecatedNeedRebuild = util.deprecate(
 	/**
+	 * Handles the callback logic for this hook.
 	 * @param {Module} module the module
 	 * @param {NeedBuildContext} context context info
 	 * @returns {boolean} true, when rebuild is needed
@@ -184,10 +238,14 @@ const deprecatedNeedRebuild = util.deprecate(
 	"DEP_WEBPACK_MODULE_NEED_REBUILD"
 );
 
+/** @typedef {string} LibIdent */
+/** @typedef {string} NameForCondition */
+
 /** @typedef {(requestShortener: RequestShortener) => string} OptimizationBailoutFunction */
 
 class Module extends DependenciesBlock {
 	/**
+	 * Creates an instance of Module.
 	 * @param {ModuleTypes | ""} type the module type, when deserializing the type is not known and is an empty string
 	 * @param {(string | null)=} context an optional context
 	 * @param {(string | null)=} layer an optional layer in which the module is
@@ -220,15 +278,12 @@ class Module extends DependenciesBlock {
 		/** @type {boolean} */
 		this.useSimpleSourceMap = false;
 
-		// Is in hot context, i.e. HotModuleReplacementPlugin.js enabled
-		// TODO do we need hot here?
-		/** @type {boolean} */
-		this.hot = false;
 		// Info from Build
-		/** @type {WebpackError[] | undefined} */
+		/** @type {Error[] | undefined} */
 		this._warnings = undefined;
-		/** @type {WebpackError[] | undefined} */
+		/** @type {Error[] | undefined} */
 		this._errors = undefined;
+		// Subclasses with type specific build info/meta redeclare these with a narrowed type
 		/** @type {BuildMeta | undefined} */
 		this.buildMeta = undefined;
 		/** @type {BuildInfo | undefined} */
@@ -242,6 +297,8 @@ class Module extends DependenciesBlock {
 	// TODO remove in webpack 6
 	// BACKWARD-COMPAT START
 	/**
+	 * Returns the module id assigned by the chunk graph.
+	 * @deprecated
 	 * @returns {ModuleId | null} module id
 	 */
 	get id() {
@@ -253,6 +310,8 @@ class Module extends DependenciesBlock {
 	}
 
 	/**
+	 * Updates the module id using the provided value.
+	 * @deprecated
 	 * @param {ModuleId} value value
 	 */
 	set id(value) {
@@ -268,6 +327,8 @@ class Module extends DependenciesBlock {
 	}
 
 	/**
+	 * Returns the hash of the module.
+	 * @deprecated
 	 * @returns {string} the hash of the module
 	 */
 	get hash() {
@@ -279,6 +340,8 @@ class Module extends DependenciesBlock {
 	}
 
 	/**
+	 * Returns the rendered hash of the module.
+	 * @deprecated
 	 * @returns {string} the shortened hash of the module
 	 */
 	get renderedHash() {
@@ -289,6 +352,10 @@ class Module extends DependenciesBlock {
 		).getRenderedModuleHash(this, undefined);
 	}
 
+	/**
+	 * @deprecated
+	 * @returns {ModuleProfile | undefined} module profile
+	 */
 	get profile() {
 		return ModuleGraph.getModuleGraphForModule(
 			this,
@@ -297,6 +364,10 @@ class Module extends DependenciesBlock {
 		).getProfile(this);
 	}
 
+	/**
+	 * @deprecated
+	 * @param {ModuleProfile | undefined} value module profile
+	 */
 	set profile(value) {
 		ModuleGraph.getModuleGraphForModule(
 			this,
@@ -306,6 +377,8 @@ class Module extends DependenciesBlock {
 	}
 
 	/**
+	 * Returns the pre-order index.
+	 * @deprecated
 	 * @returns {number | null} the pre order index
 	 */
 	get index() {
@@ -317,6 +390,8 @@ class Module extends DependenciesBlock {
 	}
 
 	/**
+	 * Updates the pre-order index using the provided value.
+	 * @deprecated
 	 * @param {number} value the pre order index
 	 */
 	set index(value) {
@@ -328,6 +403,8 @@ class Module extends DependenciesBlock {
 	}
 
 	/**
+	 * Returns the post-order index.
+	 * @deprecated
 	 * @returns {number | null} the post order index
 	 */
 	get index2() {
@@ -339,6 +416,8 @@ class Module extends DependenciesBlock {
 	}
 
 	/**
+	 * Updates the post-order index using the provided value.
+	 * @deprecated
 	 * @param {number} value the post order index
 	 */
 	set index2(value) {
@@ -350,6 +429,8 @@ class Module extends DependenciesBlock {
 	}
 
 	/**
+	 * Returns the depth.
+	 * @deprecated
 	 * @returns {number | null} the depth
 	 */
 	get depth() {
@@ -361,6 +442,8 @@ class Module extends DependenciesBlock {
 	}
 
 	/**
+	 * Updates the depth using the provided value.
+	 * @deprecated
 	 * @param {number} value the depth
 	 */
 	set depth(value) {
@@ -372,6 +455,8 @@ class Module extends DependenciesBlock {
 	}
 
 	/**
+	 * Returns the issuer.
+	 * @deprecated
 	 * @returns {Module | null | undefined} issuer
 	 */
 	get issuer() {
@@ -383,6 +468,8 @@ class Module extends DependenciesBlock {
 	}
 
 	/**
+	 * Updates the issuer using the provided value.
+	 * @deprecated
 	 * @param {Module | null} value issuer
 	 */
 	set issuer(value) {
@@ -393,6 +480,10 @@ class Module extends DependenciesBlock {
 		).setIssuer(this, value);
 	}
 
+	/**
+	 * @deprecated
+	 * @returns {boolean | SortableSet<string> | null} used exports
+	 */
 	get usedExports() {
 		return ModuleGraph.getModuleGraphForModule(
 			this,
@@ -402,8 +493,9 @@ class Module extends DependenciesBlock {
 	}
 
 	/**
+	 * Gets optimization bailout.
 	 * @deprecated
-	 * @returns {(string | OptimizationBailoutFunction)[]} list
+	 * @returns {OptimizationBailouts} list
 	 */
 	get optimizationBailout() {
 		return ModuleGraph.getModuleGraphForModule(
@@ -413,6 +505,10 @@ class Module extends DependenciesBlock {
 		).getOptimizationBailout(this);
 	}
 
+	/**
+	 * @deprecated
+	 * @returns {boolean} true when optional, otherwise false
+	 */
 	get optional() {
 		return this.isOptional(
 			ModuleGraph.getModuleGraphForModule(
@@ -424,6 +520,8 @@ class Module extends DependenciesBlock {
 	}
 
 	/**
+	 * Adds the provided chunk to the module.
+	 * @deprecated
 	 * @param {Chunk} chunk the chunk
 	 * @returns {boolean} true, when the module was added
 	 */
@@ -439,6 +537,8 @@ class Module extends DependenciesBlock {
 	}
 
 	/**
+	 * Removes the provided chunk from the module.
+	 * @deprecated
 	 * @param {Chunk} chunk the chunk
 	 * @returns {void}
 	 */
@@ -451,6 +551,8 @@ class Module extends DependenciesBlock {
 	}
 
 	/**
+	 * Checks whether this module is in the provided chunk.
+	 * @deprecated
 	 * @param {Chunk} chunk the chunk
 	 * @returns {boolean} true, when the module is in the chunk
 	 */
@@ -462,6 +564,10 @@ class Module extends DependenciesBlock {
 		).isModuleInChunk(this, chunk);
 	}
 
+	/**
+	 * @deprecated
+	 * @returns {boolean} true when is entry module, otherwise false
+	 */
 	isEntryModule() {
 		return ChunkGraph.getChunkGraphForModule(
 			this,
@@ -470,6 +576,10 @@ class Module extends DependenciesBlock {
 		).isEntryModule(this);
 	}
 
+	/**
+	 * @deprecated
+	 * @returns {Chunk[]} chunks
+	 */
 	getChunks() {
 		return ChunkGraph.getChunkGraphForModule(
 			this,
@@ -478,6 +588,10 @@ class Module extends DependenciesBlock {
 		).getModuleChunks(this);
 	}
 
+	/**
+	 * @deprecated
+	 * @returns {number} number of chunks
+	 */
 	getNumberOfChunks() {
 		return ChunkGraph.getChunkGraphForModule(
 			this,
@@ -486,6 +600,10 @@ class Module extends DependenciesBlock {
 		).getNumberOfModuleChunks(this);
 	}
 
+	/**
+	 * @deprecated
+	 * @returns {Iterable<Chunk>} chunks
+	 */
 	get chunksIterable() {
 		return ChunkGraph.getChunkGraphForModule(
 			this,
@@ -495,6 +613,8 @@ class Module extends DependenciesBlock {
 	}
 
 	/**
+	 * Checks whether this module provides the specified export.
+	 * @deprecated
 	 * @param {string} exportName a name of an export
 	 * @returns {boolean | null} true, if the export is provided why the module.
 	 * null, if it's unknown.
@@ -510,6 +630,7 @@ class Module extends DependenciesBlock {
 	// BACKWARD-COMPAT END
 
 	/**
+	 * Gets exports argument.
 	 * @returns {string} name of the exports argument
 	 */
 	get exportsArgument() {
@@ -517,6 +638,7 @@ class Module extends DependenciesBlock {
 	}
 
 	/**
+	 * Gets module argument.
 	 * @returns {string} name of the module argument
 	 */
 	get moduleArgument() {
@@ -524,9 +646,10 @@ class Module extends DependenciesBlock {
 	}
 
 	/**
+	 * Returns export type.
 	 * @param {ModuleGraph} moduleGraph the module graph
 	 * @param {boolean | undefined} strict the importing module is strict
-	 * @returns {"namespace" | "default-only" | "default-with-named" | "dynamic"} export type
+	 * @returns {ExportsType} export type
 	 * "namespace": Exports is already a namespace object. namespace = exports.
 	 * "dynamic": Check at runtime if __esModule is set. When set: namespace = { ...exports, default: exports }. When not set: namespace = { default: exports }.
 	 * "default-only": Provide a namespace object with only default export. namespace = { default: exports }
@@ -594,6 +717,7 @@ class Module extends DependenciesBlock {
 	}
 
 	/**
+	 * Adds presentational dependency.
 	 * @param {Dependency} presentationalDependency dependency being tied to module.
 	 * This is a Dependency without edge in the module graph. It's only for presentation.
 	 * @returns {void}
@@ -606,6 +730,7 @@ class Module extends DependenciesBlock {
 	}
 
 	/**
+	 * Adds code generation dependency.
 	 * @param {Dependency} codeGenerationDependency dependency being tied to module.
 	 * This is a Dependency where the code generation result of the referenced module is needed during code generation.
 	 * The Dependency should also be added to normal dependencies via addDependency.
@@ -619,7 +744,7 @@ class Module extends DependenciesBlock {
 	}
 
 	/**
-	 * Removes all dependencies and blocks
+	 * Clear dependencies and blocks.
 	 * @returns {void}
 	 */
 	clearDependenciesAndBlocks() {
@@ -633,7 +758,8 @@ class Module extends DependenciesBlock {
 	}
 
 	/**
-	 * @param {WebpackError} warning the warning
+	 * Adds the provided warning to the module.
+	 * @param {Error} warning the warning
 	 * @returns {void}
 	 */
 	addWarning(warning) {
@@ -644,13 +770,15 @@ class Module extends DependenciesBlock {
 	}
 
 	/**
-	 * @returns {Iterable<WebpackError> | undefined} list of warnings if any
+	 * Returns list of warnings if any.
+	 * @returns {Error[] | undefined} list of warnings if any
 	 */
 	getWarnings() {
 		return this._warnings;
 	}
 
 	/**
+	 * Gets number of warnings.
 	 * @returns {number} number of warnings
 	 */
 	getNumberOfWarnings() {
@@ -658,7 +786,8 @@ class Module extends DependenciesBlock {
 	}
 
 	/**
-	 * @param {WebpackError} error the error
+	 * Adds the provided error to the module.
+	 * @param {Error} error the error
 	 * @returns {void}
 	 */
 	addError(error) {
@@ -669,13 +798,15 @@ class Module extends DependenciesBlock {
 	}
 
 	/**
-	 * @returns {Iterable<WebpackError> | undefined} list of errors if any
+	 * Returns list of errors if any.
+	 * @returns {Error[] | undefined} list of errors if any
 	 */
 	getErrors() {
 		return this._errors;
 	}
 
 	/**
+	 * Gets number of errors.
 	 * @returns {number} number of errors
 	 */
 	getNumberOfErrors() {
@@ -696,6 +827,7 @@ class Module extends DependenciesBlock {
 	}
 
 	/**
+	 * Checks whether this module is optional.
 	 * @param {ModuleGraph} moduleGraph the module graph
 	 * @returns {boolean} true, if the module is optional
 	 */
@@ -715,6 +847,7 @@ class Module extends DependenciesBlock {
 	}
 
 	/**
+	 * Checks whether this module is accessible in chunk.
 	 * @param {ChunkGraph} chunkGraph the chunk graph
 	 * @param {Chunk} chunk a chunk
 	 * @param {Chunk=} ignoreChunk chunk to be ignored
@@ -729,6 +862,7 @@ class Module extends DependenciesBlock {
 	}
 
 	/**
+	 * Checks whether this module is accessible in chunk group.
 	 * @param {ChunkGraph} chunkGraph the chunk graph
 	 * @param {ChunkGroup} chunkGroup a chunk group
 	 * @param {Chunk=} ignoreChunk chunk to be ignored
@@ -742,8 +876,9 @@ class Module extends DependenciesBlock {
 			// 1. If module is in one of the chunks of the group we can continue checking the next items
 			//    because it's accessible.
 			for (const chunk of cg.chunks) {
-				if (chunk !== ignoreChunk && chunkGraph.isModuleInChunk(this, chunk))
+				if (chunk !== ignoreChunk && chunkGraph.isModuleInChunk(this, chunk)) {
 					continue queueFor;
+				}
 			}
 			// 2. If the chunk group is initial, we can break here because it's not accessible.
 			if (chunkGroup.isInitial()) return false;
@@ -755,6 +890,7 @@ class Module extends DependenciesBlock {
 	}
 
 	/**
+	 * Checks whether this module contains the chunk.
 	 * @param {Chunk} chunk a chunk
 	 * @param {ModuleGraph} moduleGraph the module graph
 	 * @param {ChunkGraph} chunkGraph the chunk graph
@@ -766,19 +902,21 @@ class Module extends DependenciesBlock {
 			fromModule,
 			connections
 		] of moduleGraph.getIncomingConnectionsByOriginModule(this)) {
-			if (!connections.some(c => c.isTargetActive(chunk.runtime))) continue;
+			if (!connections.some((c) => c.isTargetActive(chunk.runtime))) continue;
 			for (const originChunk of chunkGraph.getModuleChunksIterable(
 				/** @type {Module} */ (fromModule)
 			)) {
 				// return true if module this is not reachable from originChunk when ignoring chunk
-				if (!this.isAccessibleInChunk(chunkGraph, originChunk, chunk))
+				if (!this.isAccessibleInChunk(chunkGraph, originChunk, chunk)) {
 					return true;
+				}
 			}
 		}
 		return false;
 	}
 
 	/**
+	 * Checks whether this module contains the module graph.
 	 * @param {ModuleGraph} moduleGraph the module graph
 	 * @param {RuntimeSpec} runtime the runtime
 	 * @returns {boolean} true if at least one other module depends on this module
@@ -791,6 +929,7 @@ class Module extends DependenciesBlock {
 	}
 
 	/**
+	 * Returns a string representation.
 	 * @returns {string} for debugging
 	 */
 	toString() {
@@ -798,6 +937,7 @@ class Module extends DependenciesBlock {
 	}
 
 	/**
+	 * Checks whether the module needs to be rebuilt for the current build state.
 	 * @param {NeedBuildContext} context context info
 	 * @param {NeedBuildCallback} callback callback function, returns true, if the module needs a rebuild
 	 * @returns {void}
@@ -812,9 +952,10 @@ class Module extends DependenciesBlock {
 	}
 
 	/**
+	 * Checks whether it needs rebuild.
 	 * @deprecated Use needBuild instead
-	 * @param {Map<string, number|null>} fileTimestamps timestamps of files
-	 * @param {Map<string, number|null>} contextTimestamps timestamps of directories
+	 * @param {Map<string, number | null>} fileTimestamps timestamps of files
+	 * @param {Map<string, number | null>} contextTimestamps timestamps of directories
 	 * @returns {boolean} true, if the module needs a rebuild
 	 */
 	needRebuild(fileTimestamps, contextTimestamps) {
@@ -822,6 +963,7 @@ class Module extends DependenciesBlock {
 	}
 
 	/**
+	 * Updates the hash with the data contributed by this instance.
 	 * @param {Hash} hash the hash used to track dependencies
 	 * @param {UpdateHashContext} context context
 	 * @returns {void}
@@ -848,6 +990,7 @@ class Module extends DependenciesBlock {
 	}
 
 	/**
+	 * Invalidates the cached state associated with this value.
 	 * @returns {void}
 	 */
 	invalidateBuild() {
@@ -856,27 +999,32 @@ class Module extends DependenciesBlock {
 
 	/* istanbul ignore next */
 	/**
+	 * Returns the unique identifier used to reference this module.
 	 * @abstract
 	 * @returns {string} a unique identifier of the module
 	 */
 	identifier() {
-		const AbstractMethodError = require("./AbstractMethodError");
+		const AbstractMethodError = require("./errors/AbstractMethodError");
+
 		throw new AbstractMethodError();
 	}
 
 	/* istanbul ignore next */
 	/**
+	 * Returns a human-readable identifier for this module.
 	 * @abstract
 	 * @param {RequestShortener} requestShortener the request shortener
 	 * @returns {string} a user readable identifier of the module
 	 */
 	readableIdentifier(requestShortener) {
-		const AbstractMethodError = require("./AbstractMethodError");
+		const AbstractMethodError = require("./errors/AbstractMethodError");
+
 		throw new AbstractMethodError();
 	}
 
 	/* istanbul ignore next */
 	/**
+	 * Builds the module using the provided compilation context.
 	 * @abstract
 	 * @param {WebpackOptions} options webpack options
 	 * @param {Compilation} compilation the compilation
@@ -886,11 +1034,13 @@ class Module extends DependenciesBlock {
 	 * @returns {void}
 	 */
 	build(options, compilation, resolver, fs, callback) {
-		const AbstractMethodError = require("./AbstractMethodError");
+		const AbstractMethodError = require("./errors/AbstractMethodError");
+
 		throw new AbstractMethodError();
 	}
 
 	/**
+	 * Returns the source types this module can generate.
 	 * @abstract
 	 * @returns {SourceTypes} types available (do not mutate)
 	 */
@@ -899,20 +1049,43 @@ class Module extends DependenciesBlock {
 		if (this.source === Module.prototype.source) {
 			return DEFAULT_TYPES_UNKNOWN;
 		}
-		return JS_TYPES;
+		return JAVASCRIPT_TYPES;
 	}
 
 	/**
+	 * Freshly recomputed source types when they depend on incoming connections, for chunk-graph cache invalidation; undefined otherwise. #20800
+	 * @returns {SourceTypes | undefined} source types or undefined
+	 */
+	getReferencedSourceTypes() {
+		return undefined;
+	}
+
+	/**
+	 * Basic source types are high-level categories like javascript, css, webassembly, etc.
+	 * We only have built-in knowledge about the javascript basic type here; other basic types may be
+	 * added or changed over time by generators and do not need to be handled or detected here.
+	 *
+	 * Some modules, e.g. RemoteModule, may return non-basic source types like "remote" and "share-init"
+	 * from getSourceTypes(), but their generated output is still JavaScript, i.e. their basic type is JS.
+	 * @returns {BasicSourceTypes} types available (do not mutate)
+	 */
+	getSourceBasicTypes() {
+		return this.getSourceTypes();
+	}
+
+	/**
+	 * Returns generated source.
 	 * @abstract
 	 * @deprecated Use codeGeneration() instead
 	 * @param {DependencyTemplates} dependencyTemplates the dependency templates
 	 * @param {RuntimeTemplate} runtimeTemplate the runtime template
-	 * @param {string=} type the type of source that should be generated
+	 * @param {SourceType=} type the type of source that should be generated
 	 * @returns {Source} generated source
 	 */
-	source(dependencyTemplates, runtimeTemplate, type = "javascript") {
+	source(dependencyTemplates, runtimeTemplate, type = JAVASCRIPT_TYPE) {
 		if (this.codeGeneration === Module.prototype.codeGeneration) {
-			const AbstractMethodError = require("./AbstractMethodError");
+			const AbstractMethodError = require("./errors/AbstractMethodError");
+
 			throw new AbstractMethodError();
 		}
 		const chunkGraph = ChunkGraph.getChunkGraphForModule(
@@ -927,6 +1100,7 @@ class Module extends DependenciesBlock {
 			moduleGraph: chunkGraph.moduleGraph,
 			chunkGraph,
 			runtime: undefined,
+			runtimes: [],
 			codeGenerationResults: undefined
 		};
 		const sources = this.codeGeneration(codeGenContext).sources;
@@ -934,37 +1108,42 @@ class Module extends DependenciesBlock {
 		return /** @type {Source} */ (
 			type
 				? sources.get(type)
-				: sources.get(/** @type {string} */ (first(this.getSourceTypes())))
+				: sources.get(/** @type {SourceType} */ (first(this.getSourceTypes())))
 		);
 	}
 
 	/* istanbul ignore next */
 	/**
+	 * Returns the estimated size for the requested source type.
 	 * @abstract
 	 * @param {string=} type the source type for which the size should be estimated
 	 * @returns {number} the estimated size of the module (must be non-zero)
 	 */
 	size(type) {
-		const AbstractMethodError = require("./AbstractMethodError");
+		const AbstractMethodError = require("./errors/AbstractMethodError");
+
 		throw new AbstractMethodError();
 	}
 
 	/**
+	 * Gets the library identifier.
 	 * @param {LibIdentOptions} options options
-	 * @returns {string | null} an identifier for library inclusion
+	 * @returns {LibIdent | null} an identifier for library inclusion
 	 */
 	libIdent(options) {
 		return null;
 	}
 
 	/**
-	 * @returns {string | null} absolute path which should be used for condition matching (usually the resource path)
+	 * Returns the path used when matching this module against rule conditions.
+	 * @returns {NameForCondition | null} absolute path which should be used for condition matching (usually the resource path)
 	 */
 	nameForCondition() {
 		return null;
 	}
 
 	/**
+	 * Returns the reason this module cannot be concatenated, when one exists.
 	 * @param {ConcatenationBailoutReasonContext} context context
 	 * @returns {string | undefined} reason why this module can't be concatenated, undefined when it can be concatenated
 	 */
@@ -973,6 +1152,7 @@ class Module extends DependenciesBlock {
 	}
 
 	/**
+	 * Gets side effects connection state.
 	 * @param {ModuleGraph} moduleGraph the module graph
 	 * @returns {ConnectionState} how this module should be connected to referencing modules when consumed for side-effects only
 	 */
@@ -981,14 +1161,16 @@ class Module extends DependenciesBlock {
 	}
 
 	/**
+	 * Generates code and runtime requirements for this module.
 	 * @param {CodeGenerationContext} context context for code generation
 	 * @returns {CodeGenerationResult} result
 	 */
 	codeGeneration(context) {
 		// Best override this method
+		/** @type {Sources} */
 		const sources = new Map();
 		for (const type of this.getSourceTypes()) {
-			if (type !== "unknown") {
+			if (type !== UNKNOWN_TYPE) {
 				sources.set(
 					type,
 					this.source(
@@ -1010,9 +1192,10 @@ class Module extends DependenciesBlock {
 	}
 
 	/**
+	 * Returns true if the module can be placed in the chunk.
 	 * @param {Chunk} chunk the chunk which condition should be checked
 	 * @param {Compilation} compilation the compilation
-	 * @returns {boolean} true, if the chunk is ok for the module
+	 * @returns {boolean} true if the module can be placed in the chunk
 	 */
 	chunkCondition(chunk, compilation) {
 		return true;
@@ -1068,6 +1251,7 @@ class Module extends DependenciesBlock {
 	}
 
 	/**
+	 * Gets the original source.
 	 * @returns {Source | null} the original source for the module before webpack transformation
 	 */
 	originalSource() {
@@ -1075,10 +1259,11 @@ class Module extends DependenciesBlock {
 	}
 
 	/**
-	 * @param {LazySet<string>} fileDependencies set where file dependencies are added to
-	 * @param {LazySet<string>} contextDependencies set where context dependencies are added to
-	 * @param {LazySet<string>} missingDependencies set where missing dependencies are added to
-	 * @param {LazySet<string>} buildDependencies set where build dependencies are added to
+	 * Adds the provided file dependencies to the module.
+	 * @param {FileSystemDependencies} fileDependencies set where file dependencies are added to
+	 * @param {FileSystemDependencies} contextDependencies set where context dependencies are added to
+	 * @param {FileSystemDependencies} missingDependencies set where missing dependencies are added to
+	 * @param {FileSystemDependencies} buildDependencies set where build dependencies are added to
 	 */
 	addCacheDependencies(
 		fileDependencies,
@@ -1088,6 +1273,7 @@ class Module extends DependenciesBlock {
 	) {}
 
 	/**
+	 * Serializes this instance into the provided serializer context.
 	 * @param {ObjectSerializerContext} context context
 	 */
 	serialize(context) {
@@ -1099,7 +1285,6 @@ class Module extends DependenciesBlock {
 		write(this.factoryMeta);
 		write(this.useSourceMap);
 		write(this.useSimpleSourceMap);
-		write(this.hot);
 		write(
 			this._warnings !== undefined && this._warnings.length === 0
 				? undefined
@@ -1118,6 +1303,7 @@ class Module extends DependenciesBlock {
 	}
 
 	/**
+	 * Restores this instance from the provided deserializer context.
 	 * @param {ObjectDeserializerContext} context context
 	 */
 	deserialize(context) {
@@ -1129,7 +1315,6 @@ class Module extends DependenciesBlock {
 		this.factoryMeta = read();
 		this.useSourceMap = read();
 		this.useSimpleSourceMap = read();
-		this.hot = read();
 		this._warnings = read();
 		this._errors = read();
 		this.buildMeta = read();
@@ -1138,6 +1323,22 @@ class Module extends DependenciesBlock {
 		this.codeGenerationDependencies = read();
 		super.deserialize(context);
 	}
+
+	// TODO remove in webpack 6
+	/**
+	 * Gets source basic types.
+	 * @deprecated In webpack 6, call getSourceBasicTypes() directly on the module instance instead of using this static method.
+	 * @param {Module} module the module
+	 * @returns {ReturnType<Module["getSourceBasicTypes"]>} the source types of the module
+	 */
+	static getSourceBasicTypes(module) {
+		if (!(module instanceof Module)) {
+			// https://github.com/webpack/webpack/issues/20597
+			// fallback to javascript
+			return JAVASCRIPT_TYPES;
+		}
+		return module.getSourceBasicTypes();
+	}
 }
 
 makeSerializable(Module, "webpack/lib/Module");
@@ -1145,6 +1346,7 @@ makeSerializable(Module, "webpack/lib/Module");
 // TODO remove in webpack 6
 Object.defineProperty(Module.prototype, "hasEqualsChunks", {
 	/**
+	 * Gets has equals chunks.
 	 * @deprecated
 	 * @returns {EXPECTED_ANY} throw an error
 	 */
@@ -1158,6 +1360,7 @@ Object.defineProperty(Module.prototype, "hasEqualsChunks", {
 // TODO remove in webpack 6
 Object.defineProperty(Module.prototype, "isUsed", {
 	/**
+	 * Returns throw an error.
 	 * @deprecated
 	 * @returns {EXPECTED_ANY} throw an error
 	 */
@@ -1171,15 +1374,17 @@ Object.defineProperty(Module.prototype, "isUsed", {
 // TODO remove in webpack 6
 Object.defineProperty(Module.prototype, "errors", {
 	/**
+	 * Returns errors.
 	 * @deprecated
-	 * @returns {WebpackError[]} errors
+	 * @returns {Error[]} errors
 	 */
 	get: util.deprecate(
 		/**
+		 * Returns errors.
 		 * @this {Module}
-		 * @returns {WebpackError[]} errors
+		 * @returns {Error[]} errors
 		 */
-		function () {
+		function errors() {
 			if (this._errors === undefined) {
 				this._errors = [];
 			}
@@ -1193,15 +1398,17 @@ Object.defineProperty(Module.prototype, "errors", {
 // TODO remove in webpack 6
 Object.defineProperty(Module.prototype, "warnings", {
 	/**
+	 * Returns warnings.
 	 * @deprecated
-	 * @returns {WebpackError[]} warnings
+	 * @returns {Error[]} warnings
 	 */
 	get: util.deprecate(
 		/**
+		 * Returns warnings.
 		 * @this {Module}
-		 * @returns {WebpackError[]} warnings
+		 * @returns {Error[]} warnings
 		 */
-		function () {
+		function warnings() {
 			if (this._warnings === undefined) {
 				this._warnings = [];
 			}
@@ -1215,6 +1422,7 @@ Object.defineProperty(Module.prototype, "warnings", {
 // TODO remove in webpack 6
 Object.defineProperty(Module.prototype, "used", {
 	/**
+	 * Returns throw an error.
 	 * @deprecated
 	 * @returns {EXPECTED_ANY} throw an error
 	 */
@@ -1224,6 +1432,7 @@ Object.defineProperty(Module.prototype, "used", {
 		);
 	},
 	/**
+	 * Updates used using the provided value.
 	 * @param {EXPECTED_ANY} value value
 	 */
 	set(value) {

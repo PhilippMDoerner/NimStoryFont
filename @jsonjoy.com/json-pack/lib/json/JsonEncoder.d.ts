@@ -1,4 +1,4 @@
-import type { IWriter, IWriterGrowable } from '@jsonjoy.com/util/lib/buffers';
+import type { IWriter, IWriterGrowable } from '@jsonjoy.com/buffers/lib';
 import type { BinaryJsonEncoder, StreamingBinaryJsonEncoder } from '../types';
 export declare class JsonEncoder implements BinaryJsonEncoder, StreamingBinaryJsonEncoder {
     readonly writer: IWriter & IWriterGrowable;

@@ -24,3 +24,4 @@ exports.BuilderSymbol = Symbol.for('@angular-devkit/architect:builder');
  * Architect (if some libraries depends directly on architect instead of sharing the files).
  */
 exports.BuilderVersionSymbol = Symbol.for('@angular-devkit/architect:version');
+//# sourceMappingURL=internal.js.map

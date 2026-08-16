@@ -144,3 +144,4 @@ function visitJsonSchema(schema, visitor) {
     }
     _traverse(schema, (0, pointer_1.buildJsonPointer)([]), schema);
 }
+//# sourceMappingURL=visitor.js.map

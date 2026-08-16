@@ -1,13 +1,11 @@
-/// <reference types="node" />
-/// <reference types="node" />
-/// <reference types="node" />
-/// <reference types="node" />
 import * as net from 'net';
 import * as tls from 'tls';
 import * as http from 'http';
 import { Agent, AgentConnectOpts } from 'agent-base';
 import { URL } from 'url';
 import type { OutgoingHttpHeaders } from 'http';
+import { type OnProxyAuthCallback, type ProxyAuthResponse } from 'proxy-agent-negotiate';
+export type { OnProxyAuthCallback, ProxyAuthResponse };
 type Protocol<T> = T extends `${infer Protocol}:${infer _}` ? Protocol : never;
 type ConnectOptsMap = {
     http: Omit<net.TcpNetConnectOpts, 'host' | 'port'>;
@@ -18,6 +16,8 @@ type ConnectOpts<T> = {
 }[keyof ConnectOptsMap];
 export type HttpsProxyAgentOptions<T> = ConnectOpts<T> & http.AgentOptions & {
     headers?: OutgoingHttpHeaders | (() => OutgoingHttpHeaders);
+    onProxyAuth?: OnProxyAuthCallback;
+    negotiate?: boolean;
 };
 /**
  * The `HttpsProxyAgent` implements an HTTP Agent subclass that connects to
@@ -36,12 +36,16 @@ export declare class HttpsProxyAgent<Uri extends string> extends Agent {
     readonly proxy: URL;
     proxyHeaders: OutgoingHttpHeaders | (() => OutgoingHttpHeaders);
     connectOpts: net.TcpNetConnectOpts & tls.ConnectionOptions;
+    onProxyAuth?: OnProxyAuthCallback;
     constructor(proxy: Uri | URL, opts?: HttpsProxyAgentOptions<Uri>);
     /**
      * Called when the node-core HTTP client library is creating a
      * new HTTP request.
      */
     connect(req: http.ClientRequest, opts: AgentConnectOpts): Promise<net.Socket>;
+    /**
+     * Retry a CONNECT request with additional auth headers.
+     */
+    private _connectWithAuth;
 }
-export {};
 //# sourceMappingURL=index.d.ts.map

@@ -1,27 +1,30 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`component-store should import into a specified module when the module provided 1`] = `
-"import { NgModule } from '@angular/core';
+exports[`component-store > should import into a specified module when the module provided 1`] = `
+"import { NgModule, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 
-import { AppComponent } from './app.component';
+import { App } from './app';
 import { FooStore } from './foo/foo.store';
 
 @NgModule({
   declarations: [
-    AppComponent
+    App
   ],
   imports: [
     BrowserModule
   ],
-  providers: [FooStore],
-  bootstrap: [AppComponent]
+  providers: [
+    provideBrowserGlobalErrorListeners(),
+    FooStore
+  ],
+  bootstrap: [App]
 })
 export class AppModule { }
 "
 `;
 
-exports[`component-store should inject the component store correctly into the spec 1`] = `
+exports[`component-store > should inject the component store correctly into the spec 1`] = `
 "import { FooStore } from './foo.store';
 
 describe('FooStore', () => {
@@ -34,39 +37,41 @@ describe('FooStore', () => {
 "
 `;
 
-exports[`component-store should not be provided into the module by default 1`] = `
-"import { NgModule } from '@angular/core';
+exports[`component-store > should not be provided into the module by default 1`] = `
+"import { NgModule, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 
-import { AppComponent } from './app.component';
+import { App } from './app';
 
 @NgModule({
   declarations: [
-    AppComponent
+    App
   ],
   imports: [
     BrowserModule
   ],
-  providers: [],
-  bootstrap: [AppComponent]
+  providers: [
+    provideBrowserGlobalErrorListeners()
+  ],
+  bootstrap: [App]
 })
 export class AppModule { }
 "
 `;
 
-exports[`component-store should register the component store in the provided component 1`] = `
-"import { Component } from '@angular/core';
+exports[`component-store > should register the component store in the provided component 1`] = `
+"import { Component, signal } from '@angular/core';
 import { FooStore } from './foo/foo.store';
 
 @Component({
   selector: 'app-root',
-  templateUrl: './app.component.html',
+  templateUrl: './app.html',
   standalone: false,
-  styleUrl: './app.component.css',
+  styleUrl: './app.css',
   providers: [FooStore]
 })
-export class AppComponent {
-  title = 'bar';
+export class App {
+  protected readonly title = signal('bar');
 }
 "
 `;

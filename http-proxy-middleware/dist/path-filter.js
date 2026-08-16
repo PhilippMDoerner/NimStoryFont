@@ -1,11 +1,7 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.matchPathFilter = matchPathFilter;
-const isGlob = require("is-glob");
-const micromatch = require("micromatch");
-const url = require("url");
-const errors_1 = require("./errors");
-function matchPathFilter(pathFilter = '/', uri, req) {
+import isGlob from 'is-glob';
+import micromatch from 'micromatch';
+import { HttpProxyMiddlewareError } from './errors.js';
+export function matchPathFilter(pathFilter = '/', uri, req) {
     // single path
     if (isStringPath(pathFilter)) {
         return matchSingleStringPath(pathFilter, uri);
@@ -22,14 +18,14 @@ function matchPathFilter(pathFilter = '/', uri, req) {
         if (pathFilter.every(isGlobPath)) {
             return matchMultiGlobPath(pathFilter, uri);
         }
-        throw new Error(errors_1.ERRORS.ERR_CONTEXT_MATCHER_INVALID_ARRAY);
+        throw new HttpProxyMiddlewareError('[HPM] Invalid pathFilter. Plain paths (e.g. "/api") can not be mixed with globs (e.g. "/api/**"). Expecting something like: ["/api", "/ajax"] or ["/api/**", "!**.html"].', 'HPM_INVALID_PATH_FILTER_ARRAY_CONFIG');
     }
     // custom matching
     if (typeof pathFilter === 'function') {
         const pathname = getUrlPathName(uri);
-        return pathFilter(pathname, req);
+        return Boolean(pathFilter(pathname, req));
     }
-    throw new Error(errors_1.ERRORS.ERR_CONTEXT_MATCHER_GENERIC);
+    throw new HttpProxyMiddlewareError('[HPM] Invalid pathFilter. Expecting something like: "/api" or ["/api", "/ajax"]', 'HPM_INVALID_PATH_FILTER_CONFIG');
 }
 /**
  * @param  {String} pathFilter '/api'
@@ -70,7 +66,7 @@ function matchMultiPath(pathFilterList, uri) {
  * @return {String}     RFC 3986 path
  */
 function getUrlPathName(uri) {
-    return uri && url.parse(uri).pathname;
+    return uri && new URL(uri, 'http://0.0.0.0').pathname;
 }
 function isStringPath(pathFilter) {
     return typeof pathFilter === 'string' && !isGlob(pathFilter);

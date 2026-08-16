@@ -6,7 +6,7 @@
  * found in the LICENSE file at https://angular.dev/license
  */
 import { NormalizedApplicationBuildOptions } from '../../builders/application/options';
-import { BuildOutputFile, InitialFileRecord } from './bundler-context';
+import { BuildOutputFile, InitialFileRecord } from './bundler-files';
 export declare function generateIndexHtml(initialFiles: Map<string, InitialFileRecord>, outputFiles: BuildOutputFile[], buildOptions: NormalizedApplicationBuildOptions, lang?: string): Promise<{
     csrContent: string;
     ssrContent?: string;

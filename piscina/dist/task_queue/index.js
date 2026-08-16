@@ -4,6 +4,7 @@ exports.TaskInfo = exports.FixedQueue = exports.ArrayTaskQueue = void 0;
 exports.isTaskQueue = isTaskQueue;
 const node_perf_hooks_1 = require("node:perf_hooks");
 const node_async_hooks_1 = require("node:async_hooks");
+const abort_1 = require("../abort");
 const common_1 = require("../common");
 const symbols_1 = require("../symbols");
 var array_queue_1 = require("./array_queue");
@@ -29,12 +30,12 @@ let taskIdCounter = 0;
 // Extend AsyncResource so that async relations between posting a task and
 // receiving its result are visible to diagnostic tools.
 class TaskInfo extends node_async_hooks_1.AsyncResource {
-    constructor(task, transferList, filename, name, callback, abortSignal, triggerAsyncId) {
+    constructor({ task, transferList, filename, name, abortSignal, triggerAsyncId, }, callback) {
         super('Piscina.Task', { requireManualDestroy: true, triggerAsyncId });
-        // abortListener : (() => void) | null = null;
         this.workerInfo = null;
         this.aborted = false;
-        this._abortListener = null;
+        this._abortListener = () => { this.aborted = true; };
+        this._abortCleaner = null;
         this.callback = callback;
         this.task = task;
         this.transferList = transferList;
@@ -44,12 +45,11 @@ class TaskInfo extends node_async_hooks_1.AsyncResource {
         if ((0, common_1.isMovable)(task)) {
             // This condition should never be hit but typescript
             // complains if we dont do the check.
-            /* istanbul ignore if */
+            /* c8 ignore next */
             if (this.transferList == null) {
                 this.transferList = [];
             }
-            this.transferList =
-                this.transferList.concat(task[symbols_1.kTransferable]);
+            this.transferList = this.transferList.concat(task[symbols_1.kTransferable]);
             this.task = task[symbols_1.kValue];
         }
         this.filename = filename;
@@ -60,34 +60,29 @@ class TaskInfo extends node_async_hooks_1.AsyncResource {
         this.created = node_perf_hooks_1.performance.now();
         this.started = 0;
     }
-    // TODO: improve this handling - ideally should be extended
-    set abortListener(value) {
+    onAbort(value) {
         this._abortListener = () => {
             this.aborted = true;
             value();
         };
     }
-    get abortListener() {
-        return this._abortListener;
+    setAbortListener(signal) {
+        this._abortCleaner = (0, abort_1.onabort)(signal, this._abortListener);
     }
     releaseTask() {
         const ret = this.task;
         this.task = null;
         return ret;
     }
+    // TODO: implement - helpful for streaming chunks of data from worker to parent
+    onResponse(_result) { }
     done(err, result) {
+        var _a;
         this.runInAsyncScope(this.callback, null, err, result);
         this.emitDestroy(); // `TaskInfo`s are used only once.
         // If an abort signal was used, remove the listener from it when
         // done to make sure we do not accidentally leak.
-        if (this.abortSignal && this.abortListener) {
-            if ('removeEventListener' in this.abortSignal && this.abortListener) {
-                this.abortSignal.removeEventListener('abort', this.abortListener);
-            }
-            else {
-                this.abortSignal.off('abort', this.abortListener);
-            }
-        }
+        (_a = this._abortCleaner) === null || _a === void 0 ? void 0 : _a.call(this);
     }
     get [symbols_1.kQueueOptions]() {
         var _a, _b;

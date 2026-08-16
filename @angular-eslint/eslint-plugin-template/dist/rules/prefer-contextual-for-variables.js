@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RULE_NAME = void 0;
+exports.RULE_DOCS_EXTENSION = exports.RULE_NAME = void 0;
 const bundled_angular_compiler_1 = require("@angular-eslint/bundled-angular-compiler");
 const utils_1 = require("@angular-eslint/utils");
 const are_equivalent_asts_1 = require("../utils/are-equivalent-asts");
@@ -66,6 +66,7 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
                                 description: 'Aliases for $odd that are allowed to be used.',
                             },
                         },
+                        additionalProperties: false,
                     },
                 },
                 additionalProperties: false,
@@ -175,13 +176,13 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
                 }
             },
             PropertyRead(node) {
-                // Get the information for the inner-most for loop (which will be
+                // Get the information for the innermost for loop (which will be
                 // the last one in the array) so that we can record the usage of
                 // aliases and expressions using contextual variables that can be
-                // simplified. We only need the inner-most for loop because we
+                // simplified. We only need the innermost for loop because we
                 // don't remove aliases when there are nested for loops (meaning
                 // we don't need to record alias usage for the outer for loop), and
-                // any contextual variables will only reference the inner most loop.
+                // any contextual variables will only reference the innermost loop.
                 const forLoop = forLoops.at(-1);
                 if (!forLoop) {
                     return;
@@ -405,17 +406,21 @@ function getAllowedAliases(allowedAliases, variableName) {
 function getVariableRangeToRemove(problem, sourceCode, variableCount) {
     let start = problem.variable.sourceSpan.start.offset;
     let end = problem.variable.sourceSpan.end.offset;
-    if (variableCount === 1) {
-        // There's only one variable defined, so we
-        // want to remove the `let` keyword as well.
-        const letIndex = getStartOfPreviousToken('let', start, sourceCode);
+    // Check if this variable has its own `let` keyword (semicolon-separated)
+    // vs being part of a comma-separated list after a single `let`.
+    const letIndex = getStartOfPreviousToken('let', start, sourceCode);
+    const hasOwnLet = letIndex !== undefined &&
+        hasOwnLetKeyword(letIndex, start, end, sourceCode);
+    if (variableCount === 1 || hasOwnLet) {
+        // Either there's only one variable, or this variable has its own
+        // `let` keyword (semicolon-separated), so remove the `let` as well.
         if (letIndex !== undefined) {
             // We also want to remove the preceding semicolon.
             start = getStartOfPreviousToken(';', letIndex, sourceCode) ?? letIndex;
         }
     }
     else if (problem.index === 0) {
-        // There are multiple variables, but we're removing
+        // There are multiple comma-separated variables, and we're removing
         // the first one. We need to keep the `let` keyword, but
         // remove the trailing comma and any whitespace after it.
         const commaIndex = getStartOfNextToken(',', end, sourceCode);
@@ -426,11 +431,39 @@ function getVariableRangeToRemove(problem, sourceCode, variableCount) {
         }
     }
     else {
-        // There is a variable before this one, so we
+        // There is a comma-separated variable before this one, so we
         // need to remove the preceding comma as well.
         start = getStartOfPreviousToken(',', start, sourceCode) ?? start;
     }
     return [start, end];
+}
+/**
+ * Checks if the `let` keyword at `letIndex` belongs solely to this variable
+ * (i.e., this is a semicolon-separated declaration where this variable
+ * has its own `let` keyword that isn't shared with other variables).
+ *
+ * A variable has its own `let` if:
+ * 1. It's the first variable after the `let` (no comma before it), AND
+ * 2. There are no comma-separated variables after it (next char after
+ *    the variable is `;` or `)`, not `,`)
+ */
+function hasOwnLetKeyword(letIndex, variableStart, variableEnd, sourceCode) {
+    const text = sourceCode.text;
+    // Check if there's a comma between `let` and the variable start.
+    // If there is, this variable is not the first after `let`.
+    const betweenLetAndVar = text.slice(letIndex + 3, variableStart);
+    if (betweenLetAndVar.includes(',')) {
+        return false;
+    }
+    // This variable is the first after `let`. Now check if there are more
+    // comma-separated variables after it. If so, this `let` is shared.
+    // Find the next non-whitespace character after the variable.
+    let nextIndex = variableEnd;
+    while (nextIndex < text.length && /\s/.test(text[nextIndex])) {
+        nextIndex++;
+    }
+    // If the next character is a comma, there are more variables sharing this `let`.
+    return text[nextIndex] !== ',';
 }
 function getStartOfPreviousToken(tokenToFind, startIndex, sourceCode) {
     const text = sourceCode.text;
@@ -548,3 +581,6 @@ function isTwo(node) {
 function isLiteralNumber(node, value) {
     return node instanceof bundled_angular_compiler_1.LiteralPrimitive && node.value === value;
 }
+exports.RULE_DOCS_EXTENSION = {
+    rationale: 'Angular\'s @for loop provides built-in contextual variables ($index, $count, $first, $last, $even, $odd) that are more efficient and clearer than manual calculations. Using these variables eliminates redundant logic like @for (item of items; let i = $index) { @if (i === 0) } when $first would suffice. The built-in variables are optimized by Angular and make template intent explicit. For example, $first immediately communicates "first item in the loop" whereas i === 0 requires mental translation. Similarly, using $even/$odd is clearer than i % 2 === 0 for alternating row styling. The rule can be configured to allow specific custom alias names if your team has established naming conventions, but by default encourages using Angular\'s standard contextual variables for consistency across the ecosystem.',
+};

@@ -6,14 +6,14 @@ import {
   output,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { SessionAudio, Timestamp } from 'src/app/_models/sessionAudio';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { IconComponent } from 'src/app/design/atoms/icon/icon.component';
-import { ArticleFooterComponent } from 'src/app/design/molecules';
-import { PageContainerComponent } from 'src/app/design/organisms/page-container/page-container.component';
-import { SessionaudioPlayerComponent } from 'src/app/design/organisms/sessionaudio-player/sessionaudio-player.component';
+import { SessionAudio, Timestamp } from '../../../_models/sessionAudio';
+import { RoutingService } from '../../../_services/routing.service';
 import { ButtonLinkComponent } from '../../atoms/button-link/button-link.component';
+import { IconComponent } from '../../atoms/icon/icon.component';
+import { ArticleFooterComponent } from '../../molecules';
 import { ArticleContextMenuComponent } from '../../molecules/article-context-menu/article-context-menu.component';
+import { PageContainerComponent } from '../../organisms/page-container/page-container.component';
+import { SessionaudioPlayerComponent } from '../../organisms/sessionaudio-player/sessionaudio-player.component';
 
 @Component({
   selector: 'app-sessionaudio',
@@ -31,38 +31,38 @@ import { ArticleContextMenuComponent } from '../../molecules/article-context-men
   ],
 })
 export class SessionaudioComponent {
-  sessionaudio = input.required<SessionAudio>();
-  timestamps = input.required<Timestamp[] | undefined>();
-  serverUrl = input.required<string>();
-  canUpdate = input<boolean>(false);
-  canCreate = input<boolean>(false);
-  canDelete = input<boolean>(false);
+  readonly sessionaudio = input.required<SessionAudio>();
+  readonly timestamps = input.required<Timestamp[] | undefined>();
+  readonly serverUrl = input.required<string>();
+  readonly canUpdate = input<boolean>(false);
+  readonly canCreate = input<boolean>(false);
+  readonly canDelete = input<boolean>(false);
 
   readonly sessionaudioDelete = output<SessionAudio>();
   readonly deleteTimestamp = output<Timestamp>();
   readonly createTimestamp = output<Timestamp>();
 
-  campaignName = computed(
+  readonly campaignName = computed(
     () => this.sessionaudio().session_details?.campaign_details?.name,
   );
-  overviewUrl = computed(() =>
+  readonly overviewUrl = computed(() =>
     this.routingService.getRoutePath('sessionaudio-overview', {
       campaign: this.campaignName(),
     }),
   );
-  updateUrl = computed(() =>
+  readonly updateUrl = computed(() =>
     this.routingService.getRoutePath('sessionaudio-update', {
       campaign: this.campaignName(),
       sessionNumber: this.sessionaudio().session_details?.session_number,
       isMainSession: this.sessionaudio().session_details?.is_main_session_int,
     }),
   );
-  nextSessionAudioUrl = computed(() =>
+  readonly nextSessionAudioUrl = computed(() =>
     this.createSessionAudioUrl(
       this.sessionaudio().sessionAudioNeighbours?.nextSessionAudio,
     ),
   );
-  priorSessionAudioUrl = computed(() =>
+  readonly priorSessionAudioUrl = computed(() =>
     this.createSessionAudioUrl(
       this.sessionaudio().sessionAudioNeighbours?.priorSessionAudio,
     ),

@@ -9,31 +9,39 @@ const { RawSource } = require("webpack-sources");
 const ConcatenationScope = require("../ConcatenationScope");
 const Generator = require("../Generator");
 const {
-	NO_TYPES,
-	CSS_URL_TYPES,
-	JS_TYPES,
-	JS_AND_CSS_URL_TYPES
-} = require("../ModuleSourceTypesConstants");
+	ASSET_URL_TYPE,
+	ASSET_URL_TYPES,
+	CSS_TYPE,
+	HTML_TYPE,
+	JAVASCRIPT_AND_ASSET_URL_TYPES,
+	JAVASCRIPT_TYPE,
+	JAVASCRIPT_TYPES,
+	NO_TYPES
+} = require("../ModuleSourceTypeConstants");
 const RuntimeGlobals = require("../RuntimeGlobals");
 
 /** @typedef {import("webpack-sources").Source} Source */
 /** @typedef {import("../Generator").GenerateContext} GenerateContext */
 /** @typedef {import("../Module").ConcatenationBailoutReasonContext} ConcatenationBailoutReasonContext */
+/** @typedef {import("../Module").SourceType} SourceType */
 /** @typedef {import("../Module").SourceTypes} SourceTypes */
 /** @typedef {import("../ModuleGraph")} ModuleGraph */
 /** @typedef {import("../NormalModule")} NormalModule */
 
 class AssetSourceGenerator extends Generator {
 	/**
+	 * Creates an instance of AssetSourceGenerator.
 	 * @param {ModuleGraph} moduleGraph the module graph
 	 */
 	constructor(moduleGraph) {
 		super();
 
+		/** @type {ModuleGraph} */
 		this._moduleGraph = moduleGraph;
 	}
 
 	/**
+	 * Generates generated code for this runtime module.
 	 * @param {NormalModule} module module for which the code should be generated
 	 * @param {GenerateContext} generateContext context for generate
 	 * @returns {Source | null} generated code
@@ -46,39 +54,40 @@ class AssetSourceGenerator extends Generator {
 		const data = getData ? getData() : undefined;
 
 		switch (type) {
-			case "javascript": {
+			case JAVASCRIPT_TYPE: {
 				if (!originalSource) {
 					return new RawSource("");
 				}
 
 				const content = originalSource.source();
 				const encodedSource =
-					typeof content === "string" ? content : content.toString("utf-8");
+					typeof content === "string" ? content : content.toString("utf8");
 
+				/** @type {string} */
 				let sourceContent;
 				if (concatenationScope) {
 					concatenationScope.registerNamespaceExport(
 						ConcatenationScope.NAMESPACE_OBJECT_EXPORT
 					);
-					sourceContent = `${runtimeTemplate.supportsConst() ? "const" : "var"} ${
+					sourceContent = `${runtimeTemplate.renderConst()} ${
 						ConcatenationScope.NAMESPACE_OBJECT_EXPORT
 					} = ${JSON.stringify(encodedSource)};`;
 				} else {
 					runtimeRequirements.add(RuntimeGlobals.module);
-					sourceContent = `${RuntimeGlobals.module}.exports = ${JSON.stringify(
+					sourceContent = `${module.moduleArgument}.exports = ${JSON.stringify(
 						encodedSource
 					)};`;
 				}
 				return new RawSource(sourceContent);
 			}
-			case "css-url": {
+			case ASSET_URL_TYPE: {
 				if (!originalSource) {
 					return null;
 				}
 
 				const content = originalSource.source();
 				const encodedSource =
-					typeof content === "string" ? content : content.toString("utf-8");
+					typeof content === "string" ? content : content.toString("utf8");
 
 				if (data) {
 					data.set("url", { [type]: encodedSource });
@@ -91,6 +100,7 @@ class AssetSourceGenerator extends Generator {
 	}
 
 	/**
+	 * Generates fallback output for the provided error condition.
 	 * @param {Error} error the error
 	 * @param {NormalModule} module module for which the code should be generated
 	 * @param {GenerateContext} generateContext context for generate
@@ -98,7 +108,7 @@ class AssetSourceGenerator extends Generator {
 	 */
 	generateError(error, module, generateContext) {
 		switch (generateContext.type) {
-			case "javascript": {
+			case JAVASCRIPT_TYPE: {
 				return new RawSource(
 					`throw new Error(${JSON.stringify(error.message)});`
 				);
@@ -109,6 +119,7 @@ class AssetSourceGenerator extends Generator {
 	}
 
 	/**
+	 * Returns the reason this module cannot be concatenated, when one exists.
 	 * @param {NormalModule} module module for which the bailout reason should be determined
 	 * @param {ConcatenationBailoutReasonContext} context context
 	 * @returns {string | undefined} reason why this module can't be concatenated, undefined when it can be concatenated
@@ -118,6 +129,7 @@ class AssetSourceGenerator extends Generator {
 	}
 
 	/**
+	 * Returns the source types available for this module.
 	 * @param {NormalModule} module fresh module
 	 * @returns {SourceTypes} available types (do not mutate)
 	 */
@@ -135,20 +147,31 @@ class AssetSourceGenerator extends Generator {
 		}
 
 		if (sourceTypes.size > 0) {
-			if (sourceTypes.has("javascript") && sourceTypes.has("css")) {
-				return JS_AND_CSS_URL_TYPES;
-			} else if (sourceTypes.has("css")) {
-				return CSS_URL_TYPES;
+			if (
+				sourceTypes.has(JAVASCRIPT_TYPE) &&
+				(sourceTypes.has(CSS_TYPE) || sourceTypes.has(HTML_TYPE))
+			) {
+				return JAVASCRIPT_AND_ASSET_URL_TYPES;
+			} else if (sourceTypes.has(CSS_TYPE) || sourceTypes.has(HTML_TYPE)) {
+				return ASSET_URL_TYPES;
 			}
-			return JS_TYPES;
+			return JAVASCRIPT_TYPES;
 		}
 
 		return NO_TYPES;
 	}
 
 	/**
+	 * @returns {boolean} whether getTypes() depends on the module's incoming connections
+	 */
+	getTypesDependOnIncomingConnections() {
+		return true;
+	}
+
+	/**
+	 * Returns the estimated size for the requested source type.
 	 * @param {NormalModule} module the module
-	 * @param {string=} type source type
+	 * @param {SourceType=} type source type
 	 * @returns {number} estimate size of the module
 	 */
 	getSize(module, type) {

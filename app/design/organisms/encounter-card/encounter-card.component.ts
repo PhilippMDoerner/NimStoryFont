@@ -6,16 +6,16 @@ import {
   input,
   output,
 } from '@angular/core';
-import { HeadingDirective } from 'src/app/_directives/heading.directive';
-import { CharacterEncounter } from 'src/app/_models/character';
+import { RequestState } from '../../../../utils/store/factory-types';
+import { HeadingDirective } from '../../../_directives/heading.directive';
+import { CharacterEncounter } from '../../../_models/character';
 import {
   Encounter,
   EncounterConnection,
   EncounterConnectionRaw,
   EncounterRaw,
-} from 'src/app/_models/encounter';
-import { OverviewItem } from 'src/app/_models/overview';
-import { RequestState } from 'src/utils/store/factory-types';
+} from '../../../_models/encounter';
+import { OverviewItem } from '../../../_models/overview';
 import { HeadingLevel } from '../../atoms/_models/heading';
 import { CardComponent } from '../../atoms/card/card.component';
 import { HtmlTextComponent } from '../../atoms/html-text/html-text.component';
@@ -43,27 +43,29 @@ export type EncounterCardState = 'READ' | 'EDIT';
   },
 })
 export class EncounterCardComponent {
-  state = input.required<EncounterCardState>();
-  characters = input.required<OverviewItem[]>();
-  locations = input.required<OverviewItem[]>();
-  encounter = input.required<Encounter | CharacterEncounter>();
-  serverModel = input.required<Encounter | undefined>();
-  disabled = input.required<boolean>();
-  updateState = input.required<RequestState>();
-  canUpdate = input.required<boolean>();
-  canCreate = input.required<boolean>();
-  canDelete = input.required<boolean>();
-  isInFocus = input.required<boolean>();
-  ariaLevel = input.required<HeadingLevel>();
+  readonly state = input.required<EncounterCardState>();
+  readonly characters = input.required<OverviewItem[]>();
+  readonly locations = input.required<OverviewItem[]>();
+  readonly encounter = input.required<Encounter | CharacterEncounter>();
+  readonly serverModel = input.required<Encounter | undefined>();
+  readonly disabled = input.required<boolean>();
+  readonly updateState = input.required<RequestState>();
+  readonly canUpdate = input.required<boolean>();
+  readonly canCreate = input.required<boolean>();
+  readonly canDelete = input.required<boolean>();
+  readonly isInFocus = input.required<boolean>();
+  readonly ariaLevel = input.required<HeadingLevel>();
 
-  isUpdating = computed(() => this.updateState() === 'loading');
+  readonly isUpdating = computed(() => this.updateState() === 'loading');
 
-  headingId = computed(() => `encounter-heading-${this.encounter().pk}`);
+  readonly headingId = computed(
+    () => `encounter-heading-${this.encounter().pk}`,
+  );
 
-  connectionDelete = output<EncounterConnection>();
-  connectionCreate = output<EncounterConnectionRaw>();
-  encounterDelete = output<Encounter | CharacterEncounter>();
-  encounterUpdate = output<Encounter>();
-  encounterCreate = output<EncounterRaw>();
-  encounterCreateCancel = output<void>();
+  readonly connectionDelete = output<EncounterConnection>();
+  readonly connectionCreate = output<EncounterConnectionRaw>();
+  readonly encounterDelete = output<Encounter | CharacterEncounter>();
+  readonly encounterUpdate = output<Encounter>();
+  readonly encounterCreate = output<EncounterRaw>();
+  readonly encounterCreateCancel = output<void>();
 }

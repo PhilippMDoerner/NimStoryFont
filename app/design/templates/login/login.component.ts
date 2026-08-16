@@ -9,16 +9,16 @@ import {
 } from '@angular/core';
 import { FormGroup, FormsModule } from '@angular/forms';
 import { FormlyFieldConfig, FormlyModule } from '@ngx-formly/core';
-import { Login, SpecialLoginState } from 'src/app/_models/login';
-import { FormlyService } from 'src/app/_services/formly/formly-service.service';
 import { PageContainerComponent } from '../../organisms/page-container/page-container.component';
 
 import { RouterLink } from '@angular/router';
 import { FormlyBootstrapModule } from '@ngx-formly/bootstrap';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { FeatureService } from 'src/app/_services/utils/feature.service';
-import { backInUp } from 'src/app/design/animations/backInUp';
-import { flipInY } from 'src/app/design/animations/flip';
+import { Login, SpecialLoginState } from '../../../_models/login';
+import { FormlyService } from '../../../_services/formly/formly-service.service';
+import { RoutingService } from '../../../_services/routing.service';
+import { FeatureService } from '../../../_services/utils/feature.service';
+import { backInUp } from '../../animations/backInUp';
+import { flipInY } from '../../animations/flip';
 import { ButtonLinkComponent } from '../../atoms/button-link/button-link.component';
 import { ButtonComponent } from '../../atoms/button/button.component';
 
@@ -42,8 +42,8 @@ type LoginMessageMap = { [key in SpecialLoginState]: string };
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LoginComponent {
-  loginState = input<SpecialLoginState>();
-  resetErrorMessage = input<string>();
+  readonly loginState = input<SpecialLoginState>();
+  readonly resetErrorMessage = input<string>();
 
   readonly login = output<Login>();
   readonly resetPassword = output<string>();
@@ -55,7 +55,7 @@ export class LoginComponent {
       !this.feature$.isLoading() && this.feature$.value()?.enableRegistration,
   );
 
-  loginMessages: LoginMessageMap = {
+  readonly loginMessages: LoginMessageMap = {
     'token-expired': 'Your Session expired, please log in again',
     'token-null': 'You do not have a valid token, please log in',
     'invalid-login': 'No active account found with the given credentials',
@@ -64,8 +64,8 @@ export class LoginComponent {
   };
 
   model: Partial<Login> = {};
-  form = new FormGroup({});
-  fields: FormlyFieldConfig[] = [
+  readonly form = new FormGroup({});
+  readonly fields: FormlyFieldConfig[] = [
     this.formlyService.buildInputConfig({
       key: 'username',
       placeholder: 'Username',
@@ -79,8 +79,8 @@ export class LoginComponent {
   ];
 
   recoveryModel: Partial<{ username: string }> = {};
-  recoveryForm = new FormGroup({});
-  recoveryFields: FormlyFieldConfig[] = [
+  readonly recoveryForm = new FormGroup({});
+  readonly recoveryFields: FormlyFieldConfig[] = [
     this.formlyService.buildInputConfig<typeof this.recoveryModel>({
       key: 'username',
       placeholder: 'Username',
@@ -88,8 +88,8 @@ export class LoginComponent {
     }),
   ];
 
-  state = signal<LoginViewState>('LOGIN');
-  isWaitingForPasswordReset = false;
+  readonly state = signal<LoginViewState>('LOGIN');
+  readonly isWaitingForPasswordReset = false;
 
   constructor(private formlyService: FormlyService) {}
 

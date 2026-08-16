@@ -3,8 +3,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.MsgPackDecoderFast = void 0;
 const tslib_1 = require("tslib");
 const JsonPackExtension_1 = require("../JsonPackExtension");
-const Reader_1 = require("@jsonjoy.com/util/lib/buffers/Reader");
-const sharedCachedUtf8Decoder_1 = tslib_1.__importDefault(require("@jsonjoy.com/util/lib/buffers/utf8/sharedCachedUtf8Decoder"));
+const Reader_1 = require("@jsonjoy.com/buffers/lib/Reader");
+const sharedCachedUtf8Decoder_1 = tslib_1.__importDefault(require("@jsonjoy.com/buffers/lib/utf8/sharedCachedUtf8Decoder"));
 class MsgPackDecoderFast {
     constructor(reader = new Reader_1.Reader(), keyDecoder = sharedCachedUtf8Decoder_1.default) {
         this.reader = reader;
@@ -12,13 +12,16 @@ class MsgPackDecoderFast {
     }
     decode(uint8) {
         this.reader.reset(uint8);
-        return this.val();
+        return this.readAny();
     }
     read(uint8) {
         this.reader.reset(uint8);
-        return this.val();
+        return this.readAny();
     }
     val() {
+        return this.readAny();
+    }
+    readAny() {
         const reader = this.reader;
         const byte = reader.u8();
         if (byte >= 0xe0)
@@ -127,7 +130,7 @@ class MsgPackDecoderFast {
             const key = this.key();
             if (key === '__proto__')
                 throw 6;
-            obj[key] = this.val();
+            obj[key] = this.readAny();
         }
         return obj;
     }
@@ -163,7 +166,7 @@ class MsgPackDecoderFast {
     arr(size) {
         const arr = [];
         for (let i = 0; i < size; i++)
-            arr.push(this.val());
+            arr.push(this.readAny());
         return arr;
     }
     ext(size) {

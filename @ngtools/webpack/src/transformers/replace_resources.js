@@ -203,7 +203,7 @@ function createResourceImport(nodeFactory, url, resourceImportDeclarations, modu
     }
     else {
         const importName = nodeFactory.createIdentifier(`__NG_CLI_RESOURCE__${resourceImportDeclarations.length}`);
-        resourceImportDeclarations.push(nodeFactory.createImportDeclaration(undefined, nodeFactory.createImportClause(false, importName, undefined), urlLiteral));
+        resourceImportDeclarations.push(nodeFactory.createImportDeclaration(undefined, nodeFactory.createImportClause(undefined, importName, undefined), urlLiteral));
         return importName;
     }
 }
@@ -247,3 +247,4 @@ function getDecoratorOrigin(decorator, typeChecker) {
     }
     return null;
 }
+//# sourceMappingURL=replace_resources.js.map

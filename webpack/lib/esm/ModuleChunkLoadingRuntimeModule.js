@@ -5,63 +5,56 @@
 "use strict";
 
 const { SyncWaterfallHook } = require("tapable");
-const Compilation = require("../Compilation");
+/** @typedef {import("../Compilation")} Compilation */
 const RuntimeGlobals = require("../RuntimeGlobals");
 const RuntimeModule = require("../RuntimeModule");
 const Template = require("../Template");
 const {
-	getChunkFilenameTemplate,
-	chunkHasJs
+	generateJavascriptHMR
+} = require("../hmr/JavascriptHotModuleReplacementHelper");
+const {
+	chunkHasJs,
+	getChunkFilenameTemplate
 } = require("../javascript/JavascriptModulesPlugin");
 const { getInitialChunkIds } = require("../javascript/StartupHelpers");
 const compileBooleanMatcher = require("../util/compileBooleanMatcher");
+const createHooksRegistry = require("../util/createHooksRegistry");
 const { getUndoPath } = require("../util/identifier");
 
-/** @typedef {import("../../declarations/WebpackOptions").Environment} Environment */
 /** @typedef {import("../Chunk")} Chunk */
 /** @typedef {import("../ChunkGraph")} ChunkGraph */
 /** @typedef {import("../Module").ReadOnlyRuntimeRequirements} ReadOnlyRuntimeRequirements */
 
-/**
- * @typedef {object} JsonpCompilationPluginHooks
- * @property {SyncWaterfallHook<[string, Chunk]>} linkPreload
- * @property {SyncWaterfallHook<[string, Chunk]>} linkPrefetch
- */
+const createCompilationHooks = () => ({
+	/**
+	 * @type {SyncWaterfallHook<[string, Chunk]>}
+	 * @since 5.41.0
+	 */
+	linkPreload: new SyncWaterfallHook(["source", "chunk"]),
+	/**
+	 * @type {SyncWaterfallHook<[string, Chunk]>}
+	 * @since 5.41.0
+	 */
+	linkPrefetch: new SyncWaterfallHook(["source", "chunk"])
+});
 
-/** @type {WeakMap<Compilation, JsonpCompilationPluginHooks>} */
-const compilationHooksMap = new WeakMap();
+/**
+ * @typedef {ReturnType<typeof createCompilationHooks>} JsonpCompilationPluginHooks
+ */
 
 class ModuleChunkLoadingRuntimeModule extends RuntimeModule {
 	/**
-	 * @param {Compilation} compilation the compilation
-	 * @returns {JsonpCompilationPluginHooks} hooks
-	 */
-	static getCompilationHooks(compilation) {
-		if (!(compilation instanceof Compilation)) {
-			throw new TypeError(
-				"The 'compilation' argument must be an instance of Compilation"
-			);
-		}
-		let hooks = compilationHooksMap.get(compilation);
-		if (hooks === undefined) {
-			hooks = {
-				linkPreload: new SyncWaterfallHook(["source", "chunk"]),
-				linkPrefetch: new SyncWaterfallHook(["source", "chunk"])
-			};
-			compilationHooksMap.set(compilation, hooks);
-		}
-		return hooks;
-	}
-
-	/**
+	 * Creates an instance of ModuleChunkLoadingRuntimeModule.
 	 * @param {ReadOnlyRuntimeRequirements} runtimeRequirements runtime requirements
 	 */
 	constructor(runtimeRequirements) {
 		super("import chunk loading", RuntimeModule.STAGE_ATTACH);
+		/** @type {ReadOnlyRuntimeRequirements} */
 		this._runtimeRequirements = runtimeRequirements;
 	}
 
 	/**
+	 * Returns generated code.
 	 * @private
 	 * @param {Chunk} chunk chunk
 	 * @param {string} rootOutputDir root output directory
@@ -82,15 +75,14 @@ class ModuleChunkLoadingRuntimeModule extends RuntimeModule {
 	}
 
 	/**
+	 * Generates runtime code for this runtime module.
 	 * @returns {string | null} runtime code
 	 */
 	generate() {
 		const compilation = /** @type {Compilation} */ (this.compilation);
 		const chunkGraph = /** @type {ChunkGraph} */ (this.chunkGraph);
 		const chunk = /** @type {Chunk} */ (this.chunk);
-		const environment =
-			/** @type {Environment} */
-			(compilation.outputOptions.environment);
+		const environment = compilation.outputOptions.environment;
 		const {
 			runtimeTemplate,
 			outputOptions: { importFunctionName, crossOriginLoading, charset }
@@ -100,6 +92,9 @@ class ModuleChunkLoadingRuntimeModule extends RuntimeModule {
 		const withExternalInstallChunk = this._runtimeRequirements.has(
 			RuntimeGlobals.externalInstallChunk
 		);
+		const withAnalyzableImport = this._runtimeRequirements.has(
+			RuntimeGlobals.analyzableChunkImport
+		);
 		const withLoading = this._runtimeRequirements.has(
 			RuntimeGlobals.ensureChunkHandlers
 		);
@@ -108,6 +103,9 @@ class ModuleChunkLoadingRuntimeModule extends RuntimeModule {
 		);
 		const withHmr = this._runtimeRequirements.has(
 			RuntimeGlobals.hmrDownloadUpdateHandlers
+		);
+		const withHmrManifest = this._runtimeRequirements.has(
+			RuntimeGlobals.hmrDownloadManifest
 		);
 		const { linkPreload, linkPrefetch } =
 			ModuleChunkLoadingRuntimeModule.getCompilationHooks(compilation);
@@ -133,7 +131,7 @@ class ModuleChunkLoadingRuntimeModule extends RuntimeModule {
 		);
 		const rootOutputDir = getUndoPath(
 			outputName,
-			/** @type {string} */ (compilation.outputOptions.path),
+			compilation.outputOptions.path,
 			true
 		);
 
@@ -141,6 +139,13 @@ class ModuleChunkLoadingRuntimeModule extends RuntimeModule {
 			? `${RuntimeGlobals.hmrRuntimeStatePrefix}_module`
 			: undefined;
 
+		const cst = runtimeTemplate.renderConst();
+		const lt = runtimeTemplate.renderLet();
+		const installedChunksObject = `{\n${Template.indent(
+			Array.from(initialChunkIds, (id) => `${JSON.stringify(id)}: 0`).join(
+				",\n"
+			)
+		)}\n}`;
 		return Template.asString([
 			withBaseURI
 				? this._generateBaseUri(chunk, rootOutputDir)
@@ -149,42 +154,42 @@ class ModuleChunkLoadingRuntimeModule extends RuntimeModule {
 			"// object to store loaded and loading chunks",
 			"// undefined = chunk not loaded, null = chunk preloaded/prefetched",
 			"// [resolve, Promise] = chunk loading, 0 = chunk loaded",
-			`var installedChunks = ${
-				stateExpression ? `${stateExpression} = ${stateExpression} || ` : ""
-			}{`,
-			Template.indent(
-				Array.from(initialChunkIds, id => `${JSON.stringify(id)}: 0`).join(
-					",\n"
-				)
-			),
-			"};",
+			`${cst} installedChunks = ${
+				stateExpression
+					? runtimeTemplate.assignOr(stateExpression, installedChunksObject)
+					: installedChunksObject
+			};`,
 			"",
-			withLoading || withExternalInstallChunk
-				? `var installChunk = ${runtimeTemplate.basicFunction("data", [
+			withLoading || withExternalInstallChunk || withAnalyzableImport
+				? `${cst} installChunk = ${runtimeTemplate.basicFunction("data", [
 						runtimeTemplate.destructureObject(
-							["__webpack_ids__", "__webpack_modules__", "__webpack_runtime__"],
+							[
+								RuntimeGlobals.esmIds,
+								RuntimeGlobals.esmModules,
+								RuntimeGlobals.esmRuntime
+							],
 							"data"
 						),
 						'// add "modules" to the modules object,',
 						'// then flag all "ids" as loaded and fire callback',
 						"var moduleId, chunkId, i = 0;",
-						"for(moduleId in __webpack_modules__) {",
+						`for(moduleId in ${RuntimeGlobals.esmModules}) {`,
 						Template.indent([
-							`if(${RuntimeGlobals.hasOwnProperty}(__webpack_modules__, moduleId)) {`,
+							`if(${RuntimeGlobals.hasOwnProperty}(${RuntimeGlobals.esmModules}, moduleId)) {`,
 							Template.indent(
-								`${RuntimeGlobals.moduleFactories}[moduleId] = __webpack_modules__[moduleId];`
+								`${RuntimeGlobals.moduleFactories}[moduleId] = ${RuntimeGlobals.esmModules}[moduleId];`
 							),
 							"}"
 						]),
 						"}",
-						`if(__webpack_runtime__) __webpack_runtime__(${RuntimeGlobals.require});`,
-						"for(;i < __webpack_ids__.length; i++) {",
+						`if(${RuntimeGlobals.esmRuntime}) ${RuntimeGlobals.esmRuntime}(${RuntimeGlobals.require});`,
+						`for(;i < ${RuntimeGlobals.esmIds}.length; i++) {`,
 						Template.indent([
-							"chunkId = __webpack_ids__[i];",
+							`chunkId = ${RuntimeGlobals.esmIds}[i];`,
 							`if(${RuntimeGlobals.hasOwnProperty}(installedChunks, chunkId) && installedChunks[chunkId]) {`,
 							Template.indent("installedChunks[chunkId][0]();"),
 							"}",
-							"installedChunks[__webpack_ids__[i]] = 0;"
+							`installedChunks[${RuntimeGlobals.esmIds}[i]] = 0;`
 						]),
 						"}",
 						withOnChunkLoad ? `${RuntimeGlobals.onChunksLoaded}();` : ""
@@ -198,7 +203,7 @@ class ModuleChunkLoadingRuntimeModule extends RuntimeModule {
 							hasJsMatcher !== false
 								? Template.indent([
 										"// import() chunk loading for javascript",
-										`var installedChunkData = ${RuntimeGlobals.hasOwnProperty}(installedChunks, chunkId) ? installedChunks[chunkId] : undefined;`,
+										`${lt} installedChunkData = ${RuntimeGlobals.hasOwnProperty}(installedChunks, chunkId) ? installedChunks[chunkId] : undefined;`,
 										'if(installedChunkData !== 0) { // 0 means "already installed".',
 										Template.indent([
 											"",
@@ -214,7 +219,7 @@ class ModuleChunkLoadingRuntimeModule extends RuntimeModule {
 													: `if(${hasJsMatcher("chunkId")}) {`,
 												Template.indent([
 													"// setup Promise in chunk cache",
-													`var promise = ${importFunctionName}(${
+													`${lt} promise = ${importFunctionName}(${
 														compilation.outputOptions.publicPath === "auto"
 															? JSON.stringify(rootOutputDir)
 															: RuntimeGlobals.publicPath
@@ -227,7 +232,7 @@ class ModuleChunkLoadingRuntimeModule extends RuntimeModule {
 															"throw e;"
 														]
 													)});`,
-													`var promise = Promise.race([promise, new Promise(${runtimeTemplate.expressionFunction(
+													`promise = Promise.race([promise, new Promise(${runtimeTemplate.expressionFunction(
 														"installedChunkData = installedChunks[chunkId] = [resolve]",
 														"resolve"
 													)})])`,
@@ -250,6 +255,7 @@ class ModuleChunkLoadingRuntimeModule extends RuntimeModule {
 				? `${
 						RuntimeGlobals.prefetchChunkHandlers
 					}.j = ${runtimeTemplate.basicFunction("chunkId", [
+						// prefetch is a browser-only resource hint; no-op without a DOM (e.g. node side of a universal build)
 						isNeutralPlatform
 							? "if (typeof document === 'undefined') return;"
 							: "",
@@ -262,7 +268,7 @@ class ModuleChunkLoadingRuntimeModule extends RuntimeModule {
 							"installedChunks[chunkId] = null;",
 							linkPrefetch.call(
 								Template.asString([
-									"var link = document.createElement('link');",
+									`${cst} link = document.createElement('link');`,
 									charset ? "link.charset = 'utf-8';" : "",
 									crossOriginLoading
 										? `link.crossOrigin = ${JSON.stringify(
@@ -290,6 +296,7 @@ class ModuleChunkLoadingRuntimeModule extends RuntimeModule {
 				? `${
 						RuntimeGlobals.preloadChunkHandlers
 					}.j = ${runtimeTemplate.basicFunction("chunkId", [
+						// preload is a browser-only resource hint; no-op without a DOM (e.g. node side of a universal build)
 						isNeutralPlatform
 							? "if (typeof document === 'undefined') return;"
 							: "",
@@ -302,7 +309,7 @@ class ModuleChunkLoadingRuntimeModule extends RuntimeModule {
 							"installedChunks[chunkId] = null;",
 							linkPreload.call(
 								Template.asString([
-									"var link = document.createElement('link');",
+									`${cst} link = document.createElement('link');`,
 									charset ? "link.charset = 'utf-8';" : "",
 									`if (${RuntimeGlobals.scriptNonce}) {`,
 									Template.indent(
@@ -339,6 +346,31 @@ class ModuleChunkLoadingRuntimeModule extends RuntimeModule {
 					])
 				: "// no external install chunk",
 			"",
+			withAnalyzableImport
+				? `${
+						RuntimeGlobals.analyzableChunkImport
+					} = ${runtimeTemplate.basicFunction("chunkId, importFn", [
+						// A literal `import()` a foreign bundler can follow, wrapped to keep
+						// `ensureChunk` timing and deduplication: resolved chunk → resolve now, in-flight →
+						// reuse its promise, else run `importFn()` and install it.
+						`${lt} installedChunkData = ${RuntimeGlobals.hasOwnProperty}(installedChunks, chunkId) ? installedChunks[chunkId] : undefined;`,
+						"if(installedChunkData === 0) return Promise.resolve();",
+						"if(installedChunkData) return installedChunkData[1];",
+						`${lt} promise = importFn().then(installChunk, ${runtimeTemplate.basicFunction(
+							"e",
+							[
+								"if(installedChunks[chunkId] !== 0) installedChunks[chunkId] = undefined;",
+								"throw e;"
+							]
+						)});`,
+						`promise = Promise.race([promise, new Promise(${runtimeTemplate.expressionFunction(
+							"installedChunkData = installedChunks[chunkId] = [resolve]",
+							"resolve"
+						)})]);`,
+						"return (installedChunkData[1] = promise);"
+					])};`
+				: "// no analyzable chunk import",
+			"",
 			withOnChunkLoad
 				? `${
 						RuntimeGlobals.onChunksLoaded
@@ -346,9 +378,77 @@ class ModuleChunkLoadingRuntimeModule extends RuntimeModule {
 						"installedChunks[chunkId] === 0",
 						"chunkId"
 					)};`
-				: "// no on chunks loaded"
+				: "// no on chunks loaded",
+			withHmr
+				? Template.asString([
+						generateJavascriptHMR("module"),
+						"",
+						"function loadUpdateChunk(chunkId, updatedModulesList) {",
+						Template.indent([
+							`return new Promise(${runtimeTemplate.basicFunction(
+								"resolve, reject",
+								[
+									"// start update chunk loading",
+									`${cst} url = ${RuntimeGlobals.publicPath} + ${RuntimeGlobals.getChunkUpdateScriptFilename}(chunkId);`,
+									`${cst} onResolve = ${runtimeTemplate.basicFunction("obj", [
+										`${cst} updatedModules = obj.${RuntimeGlobals.esmModules};`,
+										`${cst} updatedRuntime = obj.${RuntimeGlobals.esmRuntime};`,
+										"if(updatedRuntime) currentUpdateRuntime.push(updatedRuntime);",
+										"for(var moduleId in updatedModules) {",
+										Template.indent([
+											`if(${RuntimeGlobals.hasOwnProperty}(updatedModules, moduleId)) {`,
+											Template.indent([
+												"currentUpdate[moduleId] = updatedModules[moduleId];",
+												`${runtimeTemplate.optionalChaining("updatedModulesList", "push(moduleId)")};`
+											]),
+											"}"
+										]),
+										"}",
+										"resolve(obj);"
+									])};`,
+									`${cst} onReject = ${runtimeTemplate.basicFunction("error", [
+										`${cst} errorMsg = error.message || 'unknown reason';`,
+										"error.message = 'Loading hot update chunk ' + chunkId + ' failed.\\n(' + errorMsg + ')';",
+										"error.name = 'ChunkLoadError';",
+										"reject(error);"
+									])}`,
+									`${cst} loadScript = ${runtimeTemplate.basicFunction(
+										"url, onResolve, onReject",
+										[
+											`return ${importFunctionName}(/* webpackIgnore: true */ url).then(onResolve).catch(onReject)`
+										]
+									)}`,
+									"loadScript(url, onResolve, onReject);"
+								]
+							)});`
+						]),
+						"}",
+						""
+					])
+				: "// no HMR",
+			"",
+			withHmrManifest
+				? Template.asString([
+						`${
+							RuntimeGlobals.hmrDownloadManifest
+						} = ${runtimeTemplate.basicFunction("", [
+							`return ${importFunctionName}(/* webpackIgnore: true */ ${RuntimeGlobals.publicPath} + ${
+								RuntimeGlobals.getUpdateManifestFilename
+							}()).then(${runtimeTemplate.basicFunction("obj", [
+								"return obj.default;"
+							])}, ${runtimeTemplate.basicFunction("error", [
+								"if(['MODULE_NOT_FOUND', 'ENOENT'].includes(error.code)) return;",
+								"throw error;"
+							])});`
+						])};`
+					])
+				: "// no HMR manifest"
 		]);
 	}
 }
+
+ModuleChunkLoadingRuntimeModule.getCompilationHooks = createHooksRegistry(
+	createCompilationHooks
+);
 
 module.exports = ModuleChunkLoadingRuntimeModule;

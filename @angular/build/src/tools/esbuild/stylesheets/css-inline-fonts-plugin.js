@@ -54,3 +54,4 @@ function createCssInlineFontsPlugin({ cache, cacheOptions, }) {
         },
     };
 }
+//# sourceMappingURL=css-inline-fonts-plugin.js.map

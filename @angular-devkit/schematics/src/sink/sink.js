@@ -111,3 +111,4 @@ exports.SimpleSinkBase = SimpleSinkBase;
 function isPromiseLike(value) {
     return !!value && typeof value.then === 'function';
 }
+//# sourceMappingURL=sink.js.map

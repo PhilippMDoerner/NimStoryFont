@@ -1,4 +1,3 @@
-/// <reference types="node" />
 import { Transform } from 'node:stream';
 import type { Tokenizer, TokenHandler, Token } from 'parse5';
 import { ParserFeedbackSimulator } from './parser-feedback-simulator.js';
@@ -39,6 +38,7 @@ export interface SAXParserOptions {
  */
 export declare class SAXParser extends Transform implements TokenHandler {
     protected options: SAXParserOptions;
+    /** @internal */
     protected parserFeedbackSimulator: ParserFeedbackSimulator;
     private pendingText;
     private lastChunkWritten;
@@ -151,4 +151,3 @@ export interface SAXParser {
      */
     on(event: string, handler: (...args: any[]) => void): this;
 }
-//# sourceMappingURL=index.d.ts.map

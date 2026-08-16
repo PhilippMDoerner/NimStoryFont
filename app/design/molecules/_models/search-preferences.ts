@@ -1,4 +1,4 @@
-import { Icon } from 'src/app/design/atoms/_models/icon';
+import { Icon } from '../../atoms/_models/icon';
 
 export interface ItemCategory {
   label: string;

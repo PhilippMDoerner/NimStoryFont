@@ -5,37 +5,50 @@
 
 "use strict";
 
-const { Parser: AcornParser, tokTypes } = require("acorn");
-const { SyncBailHook, HookMap } = require("tapable");
-const vm = require("vm");
+const { HookMap, SyncBailHook } = require("tapable");
+const NormalModule = require("../NormalModule");
 const Parser = require("../Parser");
+const WebpackError = require("../WebpackError");
 const StackedMap = require("../util/StackedMap");
-const binarySearchBounds = require("../util/binarySearchBounds");
 const {
-	webpackCommentRegExp,
-	createMagicCommentContext
+	CompilerHintNotationRegExp,
+	createMagicCommentContext,
+	getCommentsInRange,
+	parseCommentOptionsInRange
 } = require("../util/magicComment");
-const memoize = require("../util/memoize");
 const BasicEvaluatedExpression = require("./BasicEvaluatedExpression");
+const {
+	LEGACY_ASSERT_ATTRIBUTES,
+	WebpackParser,
+	buildLineStarts,
+	hasOctalEscape,
+	positionAt
+} = require("./syntax");
 
+/** @typedef {typeof import("acorn").Parser} AcornParser */
 /** @typedef {import("acorn").Options} AcornOptions */
+/** @typedef {import("acorn").ecmaVersion} EcmaVersion */
 /** @typedef {import("estree").AssignmentExpression} AssignmentExpression */
 /** @typedef {import("estree").BinaryExpression} BinaryExpression */
 /** @typedef {import("estree").BlockStatement} BlockStatement */
 /** @typedef {import("estree").SequenceExpression} SequenceExpression */
 /** @typedef {import("estree").CallExpression} CallExpression */
-/** @typedef {import("estree").BaseCallExpression} BaseCallExpression */
 /** @typedef {import("estree").StaticBlock} StaticBlock */
 /** @typedef {import("estree").ClassDeclaration} ClassDeclaration */
 /** @typedef {import("estree").ForStatement} ForStatement */
 /** @typedef {import("estree").SwitchStatement} SwitchStatement */
 /** @typedef {import("estree").ClassExpression} ClassExpression */
-/** @typedef {import("estree").Comment} Comment */
+/** @typedef {import("estree").SourceLocation} SourceLocation */
+/** @typedef {import("../Dependency").DependencyLocation} DependencyLocation */
+/** @typedef {import("../Dependency").SourcePosition} SourcePosition */
+/** @typedef {import("estree").Comment & { start: number, end: number, loc?: SourceLocation | null }} Comment */
 /** @typedef {import("estree").ConditionalExpression} ConditionalExpression */
 /** @typedef {import("estree").Declaration} Declaration */
 /** @typedef {import("estree").PrivateIdentifier} PrivateIdentifier */
 /** @typedef {import("estree").PropertyDefinition} PropertyDefinition */
 /** @typedef {import("estree").Expression} Expression */
+/** @typedef {import("estree").ImportAttribute} ImportAttribute */
+/** @typedef {import("estree").ImportDeclaration} ImportDeclaration */
 /** @typedef {import("estree").Identifier} Identifier */
 /** @typedef {import("estree").VariableDeclaration} VariableDeclaration */
 /** @typedef {import("estree").IfStatement} IfStatement */
@@ -48,7 +61,6 @@ const BasicEvaluatedExpression = require("./BasicEvaluatedExpression");
 /** @typedef {import("estree").MetaProperty} MetaProperty */
 /** @typedef {import("estree").Property} Property */
 /** @typedef {import("estree").AssignmentPattern} AssignmentPattern */
-/** @typedef {import("estree").ChainElement} ChainElement */
 /** @typedef {import("estree").Pattern} Pattern */
 /** @typedef {import("estree").UpdateExpression} UpdateExpression */
 /** @typedef {import("estree").ObjectExpression} ObjectExpression */
@@ -74,6 +86,8 @@ const BasicEvaluatedExpression = require("./BasicEvaluatedExpression");
 /** @typedef {import("estree").WhileStatement} WhileStatement */
 /** @typedef {import("estree").ArrowFunctionExpression} ArrowFunctionExpression */
 /** @typedef {import("estree").ExpressionStatement} ExpressionStatement */
+/** @typedef {import("estree").ExportAllDeclaration} ExportAllDeclaration */
+/** @typedef {import("estree").ExportNamedDeclaration} ExportNamedDeclaration */
 /** @typedef {import("estree").FunctionDeclaration} FunctionDeclaration */
 /** @typedef {import("estree").DoWhileStatement} DoWhileStatement */
 /** @typedef {import("estree").TryStatement} TryStatement */
@@ -85,110 +99,93 @@ const BasicEvaluatedExpression = require("./BasicEvaluatedExpression");
 /** @typedef {import("estree").Super} Super */
 /** @typedef {import("estree").TaggedTemplateExpression} TaggedTemplateExpression */
 /** @typedef {import("estree").TemplateLiteral} TemplateLiteral */
-/** @typedef {import("estree").AssignmentProperty} AssignmentProperty */
+/** @typedef {import("estree").ModuleDeclaration} ModuleDeclaration */
 /** @typedef {import("estree").MaybeNamedFunctionDeclaration} MaybeNamedFunctionDeclaration */
 /** @typedef {import("estree").MaybeNamedClassDeclaration} MaybeNamedClassDeclaration */
 /**
+ * Defines the shared type used by this module.
  * @template T
  * @typedef {import("tapable").AsArray<T>} AsArray<T>
  */
 /** @typedef {import("../Parser").ParserState} ParserState */
 /** @typedef {import("../Parser").PreparsedAst} PreparsedAst */
-/** @typedef {{ name: string | VariableInfo, rootInfo: string | VariableInfo, getMembers: () => string[], getMembersOptionals: () => boolean[], getMemberRanges: () => Range[] }} GetInfoResult */
+
+/** @typedef {import("../dependencies/LocalModule")} LocalModule */
+/** @typedef {import("../dependencies/HarmonyExportImportedSpecifierDependency").HarmonyStarExportsList} HarmonyStarExportsList */
+
+/**
+ * Defines the known javascript parser state type used by this module.
+ * @typedef {object} KnownJavascriptParserState
+ * @property {Set<string>=} harmonyNamedExports
+ * @property {HarmonyStarExportsList=} harmonyStarExports
+ * @property {number=} lastHarmonyImportOrder
+ * @property {LocalModule[]=} localModules
+ */
+
+/** @typedef {ParserState & KnownJavascriptParserState} JavascriptParserState */
+
+/** @typedef {import("../Compilation")} Compilation */
+/** @typedef {import("../Module")} Module */
+
+/** @typedef {{ name: string | VariableInfo, rootInfo: string | VariableInfo, getMembers: () => Members, getMembersOptionals: () => MembersOptionals, getMemberRanges: () => MemberRanges }} GetInfoResult */
+/** @typedef {{ consequent?: EXPECTED_OBJECT, alternate?: EXPECTED_OBJECT }} GuardCollection per-branch guard frames pushed onto the parser state guard stack */
 /** @typedef {Statement | ModuleDeclaration | Expression | MaybeNamedFunctionDeclaration | MaybeNamedClassDeclaration} StatementPathItem */
 /** @typedef {(ident: string) => void} OnIdentString */
 /** @typedef {(ident: string, identifier: Identifier) => void} OnIdent */
 /** @typedef {StatementPathItem[]} StatementPath */
 
-// TODO remove cast when @types/estree has been updated to import assertions
-/** @typedef {import("estree").BaseNode & { type: "ImportAttribute", key: Identifier | Literal, value: Literal }} ImportAttribute */
-/** @typedef {import("estree").ImportDeclaration & { attributes?: Array<ImportAttribute> }} ImportDeclaration */
-/** @typedef {import("estree").ExportNamedDeclaration & { attributes?: Array<ImportAttribute> }} ExportNamedDeclaration */
-/** @typedef {import("estree").ExportAllDeclaration & { attributes?: Array<ImportAttribute> }} ExportAllDeclaration */
-/** @typedef {import("estree").ImportExpression & { options?: Expression | null }} ImportExpression */
-/** @typedef {ImportDeclaration | ExportNamedDeclaration | ExportDefaultDeclaration | ExportAllDeclaration} ModuleDeclaration */
+/** @typedef {Set<DestructuringAssignmentProperty>} DestructuringAssignmentProperties */
+
+// TODO remove cast when @types/estree has been updated to import phases
+/** @typedef {import("estree").ImportExpression & { phase?: "defer" | "source" }} ImportExpression */
 
 /** @type {string[]} */
 const EMPTY_ARRAY = [];
+
+/**
+ * Getter that reverses `arr` in place on first access and caches it. Lighter
+ * than `memoize(() => arr.reverse())` (one closure instead of two) and called
+ * per member expression on hot parse paths.
+ * @template T
+ * @param {T[]} arr array reversed lazily on first access
+ * @returns {() => T[]} getter returning the reversed array
+ */
+const lazyReverse = (arr) => {
+	let reversed = false;
+	return () => {
+		if (!reversed) {
+			arr.reverse();
+			reversed = true;
+		}
+		return arr;
+	};
+};
+
 const ALLOWED_MEMBER_TYPES_CALL_EXPRESSION = 0b01;
 const ALLOWED_MEMBER_TYPES_EXPRESSION = 0b10;
 const ALLOWED_MEMBER_TYPES_ALL = 0b11;
 
-const LEGACY_ASSERT_ATTRIBUTES = Symbol("assert");
+// Shared `() => false` so the members-optionals fallback in walkCallExpression
+// doesn't allocate a fresh closure per identifier-rooted call.
+const RETURN_FALSE = () => false;
 
-/** @type {(BaseParser: typeof AcornParser) => typeof AcornParser} */
-const importAssertions = Parser =>
-	class extends Parser {
-		/**
-		 * @this {TODO}
-		 * @returns {ImportAttribute[]} import attributes
-		 */
-		parseWithClause() {
-			/** @type {ImportAttribute[]} */
-			const nodes = [];
-
-			const isAssertLegacy = this.value === "assert";
-
-			if (isAssertLegacy) {
-				if (!this.eat(tokTypes.name)) {
-					return nodes;
-				}
-			} else if (!this.eat(tokTypes._with)) {
-				return nodes;
-			}
-
-			this.expect(tokTypes.braceL);
-
-			/** @type {Record<string, boolean>} */
-			const attributeKeys = {};
-			let first = true;
-
-			while (!this.eat(tokTypes.braceR)) {
-				if (!first) {
-					this.expect(tokTypes.comma);
-					if (this.afterTrailingComma(tokTypes.braceR)) {
-						break;
-					}
-				} else {
-					first = false;
-				}
-
-				const attr =
-					/** @type {ImportAttribute} */
-					this.parseImportAttribute();
-				const keyName =
-					attr.key.type === "Identifier" ? attr.key.name : attr.key.value;
-
-				if (Object.prototype.hasOwnProperty.call(attributeKeys, keyName)) {
-					this.raiseRecoverable(
-						attr.key.start,
-						`Duplicate attribute key '${keyName}'`
-					);
-				}
-
-				attributeKeys[keyName] = true;
-				nodes.push(attr);
-			}
-
-			if (isAssertLegacy) {
-				/** @type {EXPECTED_ANY} */
-				(nodes)[LEGACY_ASSERT_ATTRIBUTES] = true;
-			}
-
-			return nodes;
-		}
-	};
+// Shared `() => []` for the member-less identifier/this evaluation results,
+// replacing three fresh closures per evaluated free variable.
+const RETURN_EMPTY_ARRAY = () => [];
 
 // Syntax: https://developer.mozilla.org/en/SpiderMonkey/Parser_API
-const parser = AcornParser.extend(importAssertions);
+let parser = /** @type {AcornParser} */ (WebpackParser);
 
 /** @typedef {Record<string, string> & { _isLegacyAssert?: boolean }} ImportAttributes */
 
+// Conceptually pairs with ./syntax's LEGACY_ASSERT_ATTRIBUTES marker, but is
+// pinned here by its public `JavascriptParser.getImportAttributes` typing.
 /**
+ * Gets import attributes.
  * @param {ImportDeclaration | ExportNamedDeclaration | ExportAllDeclaration | ImportExpression} node node with assertions
  * @returns {ImportAttributes | undefined} import attributes
  */
-const getImportAttributes = node => {
+const getImportAttributes = (node) => {
 	if (node.type === "ImportExpression") {
 		if (
 			node.options &&
@@ -257,37 +254,116 @@ const getImportAttributes = node => {
 	return result;
 };
 
+/** @typedef {typeof VariableInfoFlags.Evaluated | typeof VariableInfoFlags.Free | typeof VariableInfoFlags.Normal | typeof VariableInfoFlags.Tagged} VariableInfoFlagsType */
+
+const VariableInfoFlags = Object.freeze({
+	Evaluated: 0b000,
+	Free: 0b001,
+	Normal: 0b010,
+	Tagged: 0b100
+});
+
 class VariableInfo {
 	/**
+	 * Creates an instance of VariableInfo.
 	 * @param {ScopeInfo} declaredScope scope in which the variable is declared
-	 * @param {string | true | undefined} freeName which free name the variable aliases, or true when none
+	 * @param {string | undefined} name which name the variable use, defined name or free name or tagged name
+	 * @param {VariableInfoFlagsType} flags how the variable is created
 	 * @param {TagInfo | undefined} tagInfo info about tags
 	 */
-	constructor(declaredScope, freeName, tagInfo) {
+	constructor(declaredScope, name, flags, tagInfo) {
+		/** @type {ScopeInfo} */
 		this.declaredScope = declaredScope;
-		this.freeName = freeName;
+		/** @type {string | undefined} */
+		this.name = name;
+		/** @type {VariableInfoFlagsType} */
+		this.flags = flags;
+		/** @type {TagInfo | undefined} */
 		this.tagInfo = tagInfo;
+	}
+
+	/**
+	 * Checks whether this variable info is free.
+	 * @returns {boolean} the variable is free or not
+	 */
+	isFree() {
+		return (this.flags & VariableInfoFlags.Free) > 0;
+	}
+
+	/**
+	 * Checks whether this variable info is tagged.
+	 * @returns {boolean} the variable is tagged by tagVariable or not
+	 */
+	isTagged() {
+		return (this.flags & VariableInfoFlags.Tagged) > 0;
 	}
 }
 
 /** @typedef {string | ScopeInfo | VariableInfo} ExportedVariableInfo */
 /** @typedef {Literal | string | null | undefined} ImportSource */
-/** @typedef {Omit<AcornOptions, "sourceType" | "ecmaVersion"> & { sourceType: "module" | "script" | "auto", ecmaVersion?: AcornOptions["ecmaVersion"] }} ParseOptions */
-
-/** @typedef {symbol} Tag */
-/** @typedef {Record<string, TODO>} TagData */
 
 /**
+ * Defines the internal parse options type used by this module.
+ * @typedef {Omit<ParseOptions, "sourceType" | "ecmaVersion"> & { sourceType: "module" | "script" | "auto" }} InternalParseOptions
+ */
+
+/**
+ * Defines the parse options type used by this module.
+ * @typedef {object} ParseOptions
+ * @property {"module" | "script"} sourceType
+ * @property {EcmaVersion} ecmaVersion
+ * @property {boolean=} locations
+ * @property {boolean=} comments
+ * @property {boolean=} ranges
+ * @property {boolean=} allowHashBang
+ * @property {boolean=} allowReturnOutsideFunction
+ * @property {boolean=} lazyNodes internal: serve `range` lazily and skip acorn's location/range tracking
+ * @property {Comment[]=} lazyComments internal: collect comments here without slicing their text eagerly
+ * @property {boolean=} importPhases enable parsing of the import phase proposals (import defer / import source)
+ * @property {boolean=} moduleFallback internal: for `auto`, let the parser downgrade module->script in place instead of re-parsing
+ */
+
+/**
+ * Defines the parse result type used by this module.
+ * @typedef {object} ParseResult
+ * @property {Program} ast
+ * @property {Comment[]} comments
+ */
+
+/**
+ * Defines the parse function type used by this module.
+ * @typedef {(code: string, options: ParseOptions) => ParseResult} ParseFunction
+ */
+
+/** @typedef {symbol} Tag */
+
+/** @typedef {import("../dependencies/HarmonyImportDependencyParserPlugin").HarmonySettings} HarmonySettings */
+/** @typedef {import("../dependencies/ImportParserPlugin").ImportSettings} ImportSettings */
+/** @typedef {import("../dependencies/CommonJsImportsParserPlugin").CommonJsImportSettings} CommonJsImportSettings */
+/** @typedef {import("../CompatibilityPlugin").CompatibilitySettings} CompatibilitySettings */
+/** @typedef {import("../optimize/InnerGraph").TopLevelSymbol} TopLevelSymbol */
+
+/** @typedef {HarmonySettings | ImportSettings | CommonJsImportSettings | TopLevelSymbol | CompatibilitySettings} KnownTagData */
+/** @typedef {KnownTagData | Record<string, EXPECTED_ANY>} TagData */
+
+/**
+ * Defines the tag info type used by this module.
  * @typedef {object} TagInfo
  * @property {Tag} tag
  * @property {TagData=} data
  * @property {TagInfo | undefined} next
  */
 
+/** @typedef {string[]} CalleeMembers */
+/** @typedef {string[]} Members */
+/** @typedef {boolean[]} MembersOptionals */
+/** @typedef {Range[]} MemberRanges */
+
 const SCOPE_INFO_TERMINATED_RETURN = 1;
 const SCOPE_INFO_TERMINATED_THROW = 2;
 
 /**
+ * Defines the scope info type used by this module.
  * @typedef {object} ScopeInfo
  * @property {StackedMap<string, VariableInfo | ScopeInfo>} definitions
  * @property {boolean | "arrow"} topLevelScope
@@ -302,9 +378,12 @@ const SCOPE_INFO_TERMINATED_THROW = 2;
 /** @typedef {[number, number]} Range */
 
 /**
+ * Defines the destructuring assignment property type used by this module.
+ * Carries only the range — consumers derive line/column via `getLocation`.
  * @typedef {object} DestructuringAssignmentProperty
  * @property {string} id
- * @property {Range | undefined=} range
+ * @property {Range} range
+ * @property {Set<DestructuringAssignmentProperty> | undefined=} pattern
  * @property {boolean | string} shorthand
  */
 
@@ -333,7 +412,7 @@ const joinRanges = (startRange, endRange) => {
  * Helper function used to generate a string representation of a
  * [member expression](https://github.com/estree/estree/blob/master/es5.md#memberexpression).
  * @param {string} object object to name
- * @param {string[]} membersReversed reversed list of members
+ * @param {Members} membersReversed reversed list of members
  * @returns {string} member expression as a string
  * @example
  * ```js
@@ -360,7 +439,7 @@ const objectAndMembersToName = (object, membersReversed) => {
  * @param {Expression | SpreadElement | Super} expression expression
  * @returns {string | "this" | undefined} name or variable info
  */
-const getRootName = expression => {
+const getRootName = (expression) => {
 	switch (expression.type) {
 		case "Identifier":
 			return expression.name;
@@ -373,29 +452,56 @@ const getRootName = expression => {
 	}
 };
 
-/** @type {AcornOptions} */
-const defaultParserOptions = {
-	ranges: true,
-	locations: true,
-	ecmaVersion: "latest",
-	sourceType: "module",
-	// https://github.com/tc39/proposal-hashbang
-	allowHashBang: true,
-	onComment: undefined
+/**
+ * @param {string} type AST node type
+ * @returns {boolean} true for FunctionExpression or ArrowFunctionExpression
+ */
+const isFunctionExpression = (type) =>
+	type === "FunctionExpression" || type === "ArrowFunctionExpression";
+
+/**
+ * @param {FunctionExpression | ArrowFunctionExpression} fn function
+ * @returns {boolean} true when all params are plain identifiers
+ */
+const isSimpleFunction = (fn) => {
+	const params = fn.params;
+	for (let i = 0; i < params.length; i++) {
+		if (params[i].type !== "Identifier") return false;
+	}
+	return true;
 };
 
-const EMPTY_COMMENT_OPTIONS = {
-	options: null,
-	errors: null
+/** @type {ParseOptions} */
+const defaultParserOptions = {
+	sourceType: "module",
+	ecmaVersion: "latest",
+	ranges: false,
+	locations: false,
+	comments: false,
+	// https://github.com/tc39/proposal-hashbang
+	allowHashBang: true
 };
+
+// reused by _parse for every non-custom parse — all fields are reset per parse
+/** @type {ParseOptions} */
+const REUSED_PARSER_OPTIONS = { ...defaultParserOptions };
+
+// Read-only snippet ASTs for `evaluate()`, released with the compilation;
+// DefinePlugin evaluates the same strings once per usage per module.
+/** @type {WeakMap<Compilation, Map<string, Program>>} */
+const evaluateAstCaches = new WeakMap();
+// The inner map is strong while the compilation lives, so cap it
+const EVALUATE_AST_CACHE_LIMIT = 4096;
 
 const CLASS_NAME = "JavascriptParser";
 
 class JavascriptParser extends Parser {
 	/**
-	 * @param {"module" | "script" | "auto"} sourceType default source type
+	 * Creates an instance of JavascriptParser.
+	 * @param {"module" | "script" | "auto"=} sourceType default source type
+	 * @param {{ parse?: ParseFunction, typescript?: boolean, importPhases?: boolean, strictModeViolations?: "error" | "warn" | false }=} options parser options
 	 */
-	constructor(sourceType = "auto") {
+	constructor(sourceType = "auto", options = {}) {
 		super();
 		this.hooks = Object.freeze({
 			/** @type {HookMap<SyncBailHook<[UnaryExpression], BasicEvaluatedExpression | null | undefined>>} */
@@ -408,11 +514,17 @@ class JavascriptParser extends Parser {
 			evaluateDefinedIdentifier: new HookMap(
 				() => new SyncBailHook(["expression"])
 			),
-			/** @type {HookMap<SyncBailHook<[NewExpression], BasicEvaluatedExpression | null | undefined>>} */
+			/**
+			 * @type {HookMap<SyncBailHook<[NewExpression], BasicEvaluatedExpression | null | undefined>>}
+			 * @since 5.73.0
+			 */
 			evaluateNewExpression: new HookMap(
 				() => new SyncBailHook(["expression"])
 			),
-			/** @type {HookMap<SyncBailHook<[CallExpression], BasicEvaluatedExpression | null | undefined>>} */
+			/**
+			 * @type {HookMap<SyncBailHook<[CallExpression], BasicEvaluatedExpression | null | undefined>>}
+			 * @since 5.73.0
+			 */
 			evaluateCallExpression: new HookMap(
 				() => new SyncBailHook(["expression"])
 			),
@@ -426,13 +538,30 @@ class JavascriptParser extends Parser {
 			),
 			/** @type {SyncBailHook<[Statement | ModuleDeclaration | MaybeNamedClassDeclaration | MaybeNamedFunctionDeclaration], boolean | void>} */
 			preStatement: new SyncBailHook(["statement"]),
+			/**
+			 * @type {HookMap<SyncBailHook<[Statement | ModuleDeclaration | MaybeNamedClassDeclaration | MaybeNamedFunctionDeclaration], boolean | void>>}
+			 * @since 5.109.0
+			 */
+			preStatementByType: new HookMap(() => new SyncBailHook(["statement"])),
 
 			/** @type {SyncBailHook<[Statement | ModuleDeclaration | MaybeNamedClassDeclaration | MaybeNamedFunctionDeclaration], boolean | void>} */
 			blockPreStatement: new SyncBailHook(["declaration"]),
+			/**
+			 * @type {HookMap<SyncBailHook<[Statement | ModuleDeclaration | MaybeNamedClassDeclaration | MaybeNamedFunctionDeclaration], boolean | void>>}
+			 * @since 5.109.0
+			 */
+			blockPreStatementByType: new HookMap(
+				() => new SyncBailHook(["declaration"])
+			),
 			/** @type {SyncBailHook<[Statement | ModuleDeclaration | MaybeNamedFunctionDeclaration | MaybeNamedClassDeclaration], boolean | void>} */
 			statement: new SyncBailHook(["statement"]),
 			/** @type {SyncBailHook<[IfStatement], boolean | void>} */
 			statementIf: new SyncBailHook(["statement"]),
+			/**
+			 * @type {SyncBailHook<[Expression], GuardCollection | void>}
+			 * @since 5.105.0
+			 */
+			collectGuards: new SyncBailHook(["expression"]),
 			/** @type {SyncBailHook<[Expression, ClassExpression | ClassDeclaration | MaybeNamedClassDeclaration], boolean | void>} */
 			classExtendsExpression: new SyncBailHook([
 				"expression",
@@ -440,7 +569,10 @@ class JavascriptParser extends Parser {
 			]),
 			/** @type {SyncBailHook<[MethodDefinition | PropertyDefinition | StaticBlock, ClassExpression | ClassDeclaration | MaybeNamedClassDeclaration], boolean | void>} */
 			classBodyElement: new SyncBailHook(["element", "classDefinition"]),
-			/** @type {SyncBailHook<[Expression, MethodDefinition | PropertyDefinition, ClassExpression | ClassDeclaration | MaybeNamedClassDeclaration], boolean | void>} */
+			/**
+			 * @type {SyncBailHook<[Expression, MethodDefinition | PropertyDefinition, ClassExpression | ClassDeclaration | MaybeNamedClassDeclaration], boolean | void>}
+			 * @since 5.36.0
+			 */
 			classBodyValue: new SyncBailHook([
 				"expression",
 				"element",
@@ -480,40 +612,52 @@ class JavascriptParser extends Parser {
 				"exportName",
 				"index"
 			]),
-			/** @type {SyncBailHook<[VariableDeclarator, Statement], boolean | void>} */
+			/** @type {SyncBailHook<[VariableDeclarator, VariableDeclaration], boolean | void>} */
 			preDeclarator: new SyncBailHook(["declarator", "statement"]),
 			/** @type {SyncBailHook<[VariableDeclarator, Statement], boolean | void>} */
 			declarator: new SyncBailHook(["declarator", "statement"]),
-			/** @type {HookMap<SyncBailHook<[Declaration], boolean | void>>} */
+			/** @type {HookMap<SyncBailHook<[Identifier], boolean | void>>} */
 			varDeclaration: new HookMap(() => new SyncBailHook(["declaration"])),
-			/** @type {HookMap<SyncBailHook<[Declaration], boolean | void>>} */
+			/** @type {HookMap<SyncBailHook<[Identifier], boolean | void>>} */
 			varDeclarationLet: new HookMap(() => new SyncBailHook(["declaration"])),
-			/** @type {HookMap<SyncBailHook<[Declaration], boolean | void>>} */
+			/** @type {HookMap<SyncBailHook<[Identifier], boolean | void>>} */
 			varDeclarationConst: new HookMap(() => new SyncBailHook(["declaration"])),
-			/** @type {HookMap<SyncBailHook<[Declaration], boolean | void>>} */
+			/**
+			 * @type {HookMap<SyncBailHook<[Identifier], boolean | void>>}
+			 * @since 5.100.0
+			 */
+			varDeclarationUsing: new HookMap(() => new SyncBailHook(["declaration"])),
+			/** @type {HookMap<SyncBailHook<[Identifier], boolean | void>>} */
 			varDeclarationVar: new HookMap(() => new SyncBailHook(["declaration"])),
 			/** @type {HookMap<SyncBailHook<[Identifier], boolean | void>>} */
 			pattern: new HookMap(() => new SyncBailHook(["pattern"])),
+			/**
+			 * @type {SyncBailHook<[Expression], boolean | void>}
+			 * @since 5.101.3
+			 */
+			collectDestructuringAssignmentProperties: new SyncBailHook([
+				"expression"
+			]),
 			/** @type {HookMap<SyncBailHook<[Expression], boolean | void>>} */
 			canRename: new HookMap(() => new SyncBailHook(["initExpression"])),
 			/** @type {HookMap<SyncBailHook<[Expression], boolean | void>>} */
 			rename: new HookMap(() => new SyncBailHook(["initExpression"])),
 			/** @type {HookMap<SyncBailHook<[AssignmentExpression], boolean | void>>} */
 			assign: new HookMap(() => new SyncBailHook(["expression"])),
-			/** @type {HookMap<SyncBailHook<[AssignmentExpression, string[]], boolean | void>>} */
+			/** @type {HookMap<SyncBailHook<[AssignmentExpression, Members], boolean | void>>} */
 			assignMemberChain: new HookMap(
 				() => new SyncBailHook(["expression", "members"])
 			),
 			/** @type {HookMap<SyncBailHook<[Expression], boolean | void>>} */
 			typeof: new HookMap(() => new SyncBailHook(["expression"])),
-			/** @type {SyncBailHook<[ImportExpression], boolean | void>} */
-			importCall: new SyncBailHook(["expression"]),
+			/** @type {SyncBailHook<[ImportExpression, CallExpression?], boolean | void>} */
+			importCall: new SyncBailHook(["expression", "importThen"]),
 			/** @type {SyncBailHook<[Expression | ForOfStatement], boolean | void>} */
 			topLevelAwait: new SyncBailHook(["expression"]),
 			/** @type {HookMap<SyncBailHook<[CallExpression], boolean | void>>} */
 			call: new HookMap(() => new SyncBailHook(["expression"])),
 			/** Something like "a.b()" */
-			/** @type {HookMap<SyncBailHook<[CallExpression, string[], boolean[], Range[]], boolean | void>>} */
+			/** @type {HookMap<SyncBailHook<[CallExpression, Members, MembersOptionals, MemberRanges], boolean | void>>} */
 			callMemberChain: new HookMap(
 				() =>
 					new SyncBailHook([
@@ -524,7 +668,7 @@ class JavascriptParser extends Parser {
 					])
 			),
 			/** Something like "a.b().c.d" */
-			/** @type {HookMap<SyncBailHook<[Expression, string[], CallExpression, string[], Range[]], boolean | void>>} */
+			/** @type {HookMap<SyncBailHook<[Expression, CalleeMembers, CallExpression, Members, MemberRanges], boolean | void>>} */
 			memberChainOfCallMemberChain: new HookMap(
 				() =>
 					new SyncBailHook([
@@ -536,7 +680,7 @@ class JavascriptParser extends Parser {
 					])
 			),
 			/** Something like "a.b().c.d()"" */
-			/** @type {HookMap<SyncBailHook<[CallExpression, string[], CallExpression, string[], Range[]], boolean | void>>} */
+			/** @type {HookMap<SyncBailHook<[CallExpression, CalleeMembers, CallExpression, Members, MemberRanges], boolean | void>>} */
 			callMemberChainOfCallMemberChain: new HookMap(
 				() =>
 					new SyncBailHook([
@@ -551,11 +695,14 @@ class JavascriptParser extends Parser {
 			optionalChaining: new SyncBailHook(["optionalChaining"]),
 			/** @type {HookMap<SyncBailHook<[NewExpression], boolean | void>>} */
 			new: new HookMap(() => new SyncBailHook(["expression"])),
-			/** @type {SyncBailHook<[BinaryExpression], boolean | void>} */
+			/**
+			 * @type {SyncBailHook<[BinaryExpression], boolean | void>}
+			 * @since 5.71.0
+			 */
 			binaryExpression: new SyncBailHook(["binaryExpression"]),
 			/** @type {HookMap<SyncBailHook<[Expression], boolean | void>>} */
 			expression: new HookMap(() => new SyncBailHook(["expression"])),
-			/** @type {HookMap<SyncBailHook<[MemberExpression, string[], boolean[], Range[]], boolean | void>>} */
+			/** @type {HookMap<SyncBailHook<[MemberExpression, Members, MembersOptionals, MemberRanges], boolean | void>>} */
 			expressionMemberChain: new HookMap(
 				() =>
 					new SyncBailHook([
@@ -565,7 +712,7 @@ class JavascriptParser extends Parser {
 						"memberRanges"
 					])
 			),
-			/** @type {HookMap<SyncBailHook<[MemberExpression, string[]], boolean | void>>} */
+			/** @type {HookMap<SyncBailHook<[MemberExpression, Members], boolean | void>>} */
 			unhandledExpressionMemberChain: new HookMap(
 				() => new SyncBailHook(["expression", "members"])
 			),
@@ -575,36 +722,78 @@ class JavascriptParser extends Parser {
 			expressionLogicalOperator: new SyncBailHook(["expression"]),
 			/** @type {SyncBailHook<[Program, Comment[]], boolean | void>} */
 			program: new SyncBailHook(["ast", "comments"]),
-			/** @type {SyncBailHook<[ThrowStatement | ReturnStatement], boolean | void>} */
+			/**
+			 * @type {SyncBailHook<[ThrowStatement | ReturnStatement], boolean | void>}
+			 * @since 5.99.0
+			 */
 			terminate: new SyncBailHook(["statement"]),
 			/** @type {SyncBailHook<[Program, Comment[]], boolean | void>} */
 			finish: new SyncBailHook(["ast", "comments"]),
-			/** @type {SyncBailHook<[Statement], boolean | void>} */
+			/**
+			 * @type {SyncBailHook<[Statement], boolean | void>}
+			 * @since 5.99.9
+			 */
 			unusedStatement: new SyncBailHook(["statement"])
 		});
 		this.sourceType = sourceType;
+		this.options = options;
+
 		/** @type {ScopeInfo} */
-		this.scope = /** @type {TODO} */ (undefined);
-		/** @type {ParserState} */
-		this.state = /** @type {TODO} */ (undefined);
+		this.scope = /** @type {EXPECTED_ANY} */ (undefined);
+		/** @type {JavascriptParserState} */
+		this.state = /** @type {EXPECTED_ANY} */ (undefined);
 		/** @type {Comment[] | undefined} */
 		this.comments = undefined;
-		/** @type {Set<number> | undefined} */
+		// ASI overrides keyed by statement-end offset: true forces an ASI
+		// position, false forces a real semicolon. Absent offsets are derived
+		// from the source text. Allocated lazily by set/unsetAsiPosition.
+		/** @type {Map<number, boolean> | undefined} */
 		this.semicolons = undefined;
 		/** @type {StatementPath | undefined} */
 		this.statementPath = undefined;
 		/** @type {Statement | ModuleDeclaration | Expression | MaybeNamedFunctionDeclaration | MaybeNamedClassDeclaration | undefined} */
 		this.prevStatement = undefined;
-		/** @type {WeakMap<Expression, Set<DestructuringAssignmentProperty>> | undefined} */
+		/** @type {WeakMap<Expression, DestructuringAssignmentProperties> | undefined} */
 		this.destructuringAssignmentProperties = undefined;
 		/** @type {TagData | undefined} */
 		this.currentTagData = undefined;
+		// True while parsing a loose module whose code is emitted as strict ESM.
+		this._strictInModuleOutput = false;
+		// Source text of the current parse, for offset → line/column mapping.
+		/** @type {string | undefined} */
+		this._source = undefined;
+		// Offset of each line's first character, built on first getLocation use.
+		/** @type {number[] | undefined} */
+		this._lineStarts = undefined;
+		// True while only the parser's own taps sit on evaluate.for("Identifier");
+		// recomputed per parse, gates the defined-identifier fast paths.
+		this._evalIdentOwnTaps = false;
 		this.magicCommentContext = createMagicCommentContext();
+		// Reused for enterPatterns on every scope entry to avoid per-scope closures.
+		/** @type {OnIdentString} */
+		this._defineVariable = (ident) => this.defineVariable(ident);
 		this._initializeEvaluating();
+		// keyed taps are free for every other member chain, and a shadowed
+		// `arguments` binding never dispatches the free-variable hooks
+		this.hooks.expressionMemberChain
+			.for("arguments")
+			.tap(CLASS_NAME, (expression, members) => {
+				if (this._strictInModuleOutput) {
+					this._checkStrictModeArgumentsMember(members[0], expression);
+				}
+			});
+		this.hooks.callMemberChain
+			.for("arguments")
+			.tap(CLASS_NAME, (expression, members) => {
+				// longer chains re-enter the member walk, which reports them
+				if (this._strictInModuleOutput && members.length === 1) {
+					this._checkStrictModeArgumentsMember(members[0], expression);
+				}
+			});
 	}
 
 	_initializeEvaluating() {
-		this.hooks.evaluate.for("Literal").tap(CLASS_NAME, _expr => {
+		this.hooks.evaluate.for("Literal").tap(CLASS_NAME, (_expr) => {
 			const expr = /** @type {Literal} */ (_expr);
 
 			switch (typeof expr.value) {
@@ -636,7 +825,7 @@ class JavascriptParser extends Parser {
 					.setRange(/** @type {Range} */ (expr.range));
 			}
 		});
-		this.hooks.evaluate.for("NewExpression").tap(CLASS_NAME, _expr => {
+		this.hooks.evaluate.for("NewExpression").tap(CLASS_NAME, (_expr) => {
 			const expr = /** @type {NewExpression} */ (_expr);
 			const callee = expr.callee;
 			if (callee.type !== "Identifier") return;
@@ -649,9 +838,11 @@ class JavascriptParser extends Parser {
 			} else if (
 				expr.arguments.length > 2 ||
 				this.getVariableInfo("RegExp") !== "RegExp"
-			)
+			) {
 				return;
+			}
 
+			/** @type {undefined | string} */
 			let regExp;
 			const arg1 = expr.arguments[0];
 
@@ -674,6 +865,7 @@ class JavascriptParser extends Parser {
 				);
 			}
 
+			/** @type {undefined | string} */
 			let flags;
 			const arg2 = expr.arguments[1];
 
@@ -690,8 +882,9 @@ class JavascriptParser extends Parser {
 					if (
 						flags === undefined ||
 						!BasicEvaluatedExpression.isValidRegExpFlags(flags)
-					)
+					) {
 						return;
+					}
 				}
 			}
 
@@ -699,7 +892,7 @@ class JavascriptParser extends Parser {
 				.setRegExp(flags ? new RegExp(regExp, flags) : new RegExp(regExp))
 				.setRange(/** @type {Range} */ (expr.range));
 		});
-		this.hooks.evaluate.for("LogicalExpression").tap(CLASS_NAME, _expr => {
+		this.hooks.evaluate.for("LogicalExpression").tap(CLASS_NAME, (_expr) => {
 			const expr = /** @type {LogicalExpression} */ (_expr);
 
 			const left = this.evaluateExpression(expr.left);
@@ -708,23 +901,28 @@ class JavascriptParser extends Parser {
 			let allowedRight;
 			if (expr.operator === "&&") {
 				const leftAsBool = left.asBool();
-				if (leftAsBool === false)
+				if (leftAsBool === false) {
 					return left.setRange(/** @type {Range} */ (expr.range));
+				}
 				returnRight = leftAsBool === true;
 				allowedRight = false;
 			} else if (expr.operator === "||") {
 				const leftAsBool = left.asBool();
-				if (leftAsBool === true)
+				if (leftAsBool === true) {
 					return left.setRange(/** @type {Range} */ (expr.range));
+				}
 				returnRight = leftAsBool === false;
 				allowedRight = true;
 			} else if (expr.operator === "??") {
 				const leftAsNullish = left.asNullish();
-				if (leftAsNullish === false)
+				if (leftAsNullish === false) {
 					return left.setRange(/** @type {Range} */ (expr.range));
+				}
 				if (leftAsNullish !== true) return;
 				returnRight = true;
-			} else return;
+			} else {
+				return;
+			}
 			const right = this.evaluateExpression(expr.right);
 			if (returnRight) {
 				if (left.couldHaveSideEffects()) right.setSideEffects();
@@ -812,7 +1010,7 @@ class JavascriptParser extends Parser {
 			}
 		};
 
-		this.hooks.evaluate.for("BinaryExpression").tap(CLASS_NAME, _expr => {
+		this.hooks.evaluate.for("BinaryExpression").tap(CLASS_NAME, (_expr) => {
 			const expr = /** @type {BinaryExpression} */ (_expr);
 
 			/**
@@ -821,7 +1019,7 @@ class JavascriptParser extends Parser {
 			 * @param {(leftOperand: T, rightOperand: T) => boolean | number | bigint | string} operandHandler the handler for the operation (e.g. (a, b) => a + b)
 			 * @returns {BasicEvaluatedExpression | undefined} the evaluated expression
 			 */
-			const handleConstOperation = operandHandler => {
+			const handleConstOperation = (operandHandler) => {
 				const left = this.evaluateExpression(expr.left);
 				if (!left.isCompileTimeValue()) return;
 
@@ -850,6 +1048,7 @@ class JavascriptParser extends Parser {
 				(a === true && b === false) || (a === false && b === true);
 
 			/**
+			 * Handle template string compare.
 			 * @param {BasicEvaluatedExpression} left left
 			 * @param {BasicEvaluatedExpression} right right
 			 * @param {BasicEvaluatedExpression} res res
@@ -858,10 +1057,11 @@ class JavascriptParser extends Parser {
 			 */
 			const handleTemplateStringCompare = (left, right, res, eql) => {
 				/**
+				 * Returns value.
 				 * @param {BasicEvaluatedExpression[]} parts parts
 				 * @returns {string} value
 				 */
-				const getPrefix = parts => {
+				const getPrefix = (parts) => {
 					let value = "";
 					for (const p of parts) {
 						const v = p.asString();
@@ -871,10 +1071,11 @@ class JavascriptParser extends Parser {
 					return value;
 				};
 				/**
+				 * Returns value.
 				 * @param {BasicEvaluatedExpression[]} parts parts
 				 * @returns {string} value
 				 */
-				const getSuffix = parts => {
+				const getSuffix = (parts) => {
 					let value = "";
 					for (let i = parts.length - 1; i >= 0; i--) {
 						const v = parts[i].asString();
@@ -917,7 +1118,7 @@ class JavascriptParser extends Parser {
 			 * @param {boolean} eql true for "===" and false for "!=="
 			 * @returns {BasicEvaluatedExpression | undefined} the evaluated expression
 			 */
-			const handleStrictEqualityComparison = eql => {
+			const handleStrictEqualityComparison = (eql) => {
 				const left = this.evaluateExpression(expr.left);
 				const right = this.evaluateExpression(expr.right);
 				const res = new BasicEvaluatedExpression();
@@ -979,7 +1180,7 @@ class JavascriptParser extends Parser {
 			 * @param {boolean} eql true for "==" and false for "!="
 			 * @returns {BasicEvaluatedExpression | undefined} the evaluated expression
 			 */
-			const handleAbstractEqualityComparison = eql => {
+			const handleAbstractEqualityComparison = (eql) => {
 				const left = this.evaluateExpression(expr.left);
 				const right = this.evaluateExpression(expr.right);
 				const res = new BasicEvaluatedExpression();
@@ -1135,11 +1336,12 @@ class JavascriptParser extends Parser {
 							left.prefix,
 							right.postfix,
 							left.wrappedInnerExpressions &&
-								right.wrappedInnerExpressions &&
-								left.wrappedInnerExpressions
-									.concat(left.postfix ? [left.postfix] : [])
-									.concat(right.prefix ? [right.prefix] : [])
-									.concat(right.wrappedInnerExpressions)
+								right.wrappedInnerExpressions && [
+									...left.wrappedInnerExpressions,
+									...(left.postfix ? [left.postfix] : []),
+									...(right.prefix ? [right.prefix] : []),
+									...right.wrappedInnerExpressions
+								]
 						);
 					} else {
 						// ("prefix" + inner + postfix) + expr
@@ -1147,10 +1349,10 @@ class JavascriptParser extends Parser {
 						res.setWrapped(
 							left.prefix,
 							null,
-							left.wrappedInnerExpressions &&
-								left.wrappedInnerExpressions.concat(
-									left.postfix ? [left.postfix, right] : [right]
-								)
+							left.wrappedInnerExpressions && [
+								...left.wrappedInnerExpressions,
+								...(left.postfix ? [left.postfix, right] : [right])
+							]
 						);
 					}
 				} else if (right.isString()) {
@@ -1163,16 +1365,17 @@ class JavascriptParser extends Parser {
 					res.setWrapped(
 						null,
 						right.postfix,
-						right.wrappedInnerExpressions &&
-							(right.prefix ? [left, right.prefix] : [left]).concat(
-								right.wrappedInnerExpressions
-							)
+						right.wrappedInnerExpressions && [
+							...(right.prefix ? [left, right.prefix] : [left]),
+							...right.wrappedInnerExpressions
+						]
 					);
 				} else {
 					return;
 				}
-				if (left.couldHaveSideEffects() || right.couldHaveSideEffects())
+				if (left.couldHaveSideEffects() || right.couldHaveSideEffects()) {
 					res.setSideEffects();
+				}
 				res.setRange(/** @type {Range} */ (expr.range));
 				return res;
 			} else if (expr.operator === "-") {
@@ -1211,9 +1414,19 @@ class JavascriptParser extends Parser {
 				return handleConstOperation((l, r) => l <= r);
 			} else if (expr.operator === ">=") {
 				return handleConstOperation((l, r) => l >= r);
+			} else if (expr.operator === "in") {
+				// `x in y` always evaluates to a boolean, so it is never nullish
+				const left = this.evaluateExpression(expr.left);
+				const right = this.evaluateExpression(expr.right);
+				return new BasicEvaluatedExpression()
+					.setNullish(false)
+					.setSideEffects(
+						left.couldHaveSideEffects() || right.couldHaveSideEffects()
+					)
+					.setRange(/** @type {Range} */ (expr.range));
 			}
 		});
-		this.hooks.evaluate.for("UnaryExpression").tap(CLASS_NAME, _expr => {
+		this.hooks.evaluate.for("UnaryExpression").tap(CLASS_NAME, (_expr) => {
 			const expr = /** @type {UnaryExpression} */ (_expr);
 
 			/**
@@ -1222,7 +1435,7 @@ class JavascriptParser extends Parser {
 			 * @param {(operand: T) => boolean | number | bigint | string} operandHandler handler for the operand
 			 * @returns {BasicEvaluatedExpression | undefined} evaluated expression
 			 */
-			const handleConstOperation = operandHandler => {
+			const handleConstOperation = (operandHandler) => {
 				const argument = this.evaluateExpression(expr.argument);
 				if (!argument.isCompileTimeValue()) return;
 				const result = operandHandler(
@@ -1329,22 +1542,22 @@ class JavascriptParser extends Parser {
 					.setSideEffects(argument.couldHaveSideEffects())
 					.setRange(/** @type {Range} */ (expr.range));
 			} else if (expr.operator === "~") {
-				return handleConstOperation(v => ~v);
+				return handleConstOperation((v) => ~v);
 			} else if (expr.operator === "+") {
 				// eslint-disable-next-line no-implicit-coercion
-				return handleConstOperation(v => +v);
+				return handleConstOperation((v) => +v);
 			} else if (expr.operator === "-") {
-				return handleConstOperation(v => -v);
+				return handleConstOperation((v) => -v);
 			}
 		});
 		this.hooks.evaluateTypeof
 			.for("undefined")
-			.tap(CLASS_NAME, expr =>
+			.tap(CLASS_NAME, (expr) =>
 				new BasicEvaluatedExpression()
 					.setString("undefined")
 					.setRange(/** @type {Range} */ (expr.range))
 			);
-		this.hooks.evaluate.for("Identifier").tap(CLASS_NAME, expr => {
+		this.hooks.evaluate.for("Identifier").tap(CLASS_NAME, (expr) => {
 			if (/** @type {Identifier} */ (expr).name === "undefined") {
 				return new BasicEvaluatedExpression()
 					.setUndefined()
@@ -1352,6 +1565,7 @@ class JavascriptParser extends Parser {
 			}
 		});
 		/**
+		 * Tap evaluate with variable info.
 		 * @param {"Identifier" | "ThisExpression" | "MemberExpression"} exprType expression type name
 		 * @param {(node: Expression | SpreadElement) => GetInfoResult | undefined} getInfo get info
 		 * @returns {void}
@@ -1361,20 +1575,22 @@ class JavascriptParser extends Parser {
 			let cachedExpression;
 			/** @type {GetInfoResult | undefined} */
 			let cachedInfo;
-			this.hooks.evaluate.for(exprType).tap(CLASS_NAME, expr => {
+			this.hooks.evaluate.for(exprType).tap(CLASS_NAME, (expr) => {
 				const expression =
 					/** @type {Identifier | ThisExpression | MemberExpression} */ (expr);
 
 				const info = getInfo(expression);
+				// Cache the result (even when undefined) so the stage-100 tap below
+				// reuses it instead of recomputing getInfo — getMemberExpressionInfo
+				// is expensive and previously ran twice for every rejected member.
+				cachedExpression = expression;
+				cachedInfo = info;
 				if (info !== undefined) {
 					return this.callHooksForInfoWithFallback(
 						this.hooks.evaluateIdentifier,
 						info.name,
-						name => {
-							cachedExpression = expression;
-							cachedInfo = info;
-						},
-						name => {
+						(_name) => undefined,
+						(name) => {
 							const hook = this.hooks.evaluateDefinedIdentifier.get(name);
 							if (hook !== undefined) {
 								return hook.call(expression);
@@ -1386,7 +1602,7 @@ class JavascriptParser extends Parser {
 			});
 			this.hooks.evaluate
 				.for(exprType)
-				.tap({ name: CLASS_NAME, stage: 100 }, expr => {
+				.tap({ name: CLASS_NAME, stage: 100 }, (expr) => {
 					const expression =
 						/** @type {Identifier | ThisExpression | MemberExpression} */
 						(expr);
@@ -1409,37 +1625,41 @@ class JavascriptParser extends Parser {
 				cachedExpression = cachedInfo = undefined;
 			});
 		};
-		tapEvaluateWithVariableInfo("Identifier", expr => {
+		tapEvaluateWithVariableInfo("Identifier", (expr) => {
 			const info = this.getVariableInfo(/** @type {Identifier} */ (expr).name);
 			if (
 				typeof info === "string" ||
-				(info instanceof VariableInfo && typeof info.freeName === "string")
+				(info instanceof VariableInfo &&
+					(info.isFree() ||
+						info.isTagged() ||
+						// Walk `tagInfo` in `callHooksForInfo` if tagInfo is present.
+						info.tagInfo !== undefined))
 			) {
 				return {
 					name: info,
 					rootInfo: info,
-					getMembers: () => [],
-					getMembersOptionals: () => [],
-					getMemberRanges: () => []
+					getMembers: RETURN_EMPTY_ARRAY,
+					getMembersOptionals: RETURN_EMPTY_ARRAY,
+					getMemberRanges: RETURN_EMPTY_ARRAY
 				};
 			}
 		});
-		tapEvaluateWithVariableInfo("ThisExpression", expr => {
+		tapEvaluateWithVariableInfo("ThisExpression", (_expr) => {
 			const info = this.getVariableInfo("this");
 			if (
 				typeof info === "string" ||
-				(info instanceof VariableInfo && typeof info.freeName === "string")
+				(info instanceof VariableInfo && (info.isFree() || info.isTagged()))
 			) {
 				return {
 					name: info,
 					rootInfo: info,
-					getMembers: () => [],
-					getMembersOptionals: () => [],
-					getMemberRanges: () => []
+					getMembers: RETURN_EMPTY_ARRAY,
+					getMembersOptionals: RETURN_EMPTY_ARRAY,
+					getMemberRanges: RETURN_EMPTY_ARRAY
 				};
 			}
 		});
-		this.hooks.evaluate.for("MetaProperty").tap(CLASS_NAME, expr => {
+		this.hooks.evaluate.for("MetaProperty").tap(CLASS_NAME, (expr) => {
 			const metaProperty = /** @type {MetaProperty} */ (expr);
 
 			return this.callHooksForName(
@@ -1449,15 +1669,15 @@ class JavascriptParser extends Parser {
 				metaProperty
 			);
 		});
-		tapEvaluateWithVariableInfo("MemberExpression", expr =>
+		tapEvaluateWithVariableInfo("MemberExpression", (expr) =>
 			this.getMemberExpressionInfo(
 				/** @type {MemberExpression} */ (expr),
 				ALLOWED_MEMBER_TYPES_EXPRESSION
 			)
 		);
 
-		this.hooks.evaluate.for("CallExpression").tap(CLASS_NAME, _expr => {
-			const expr = /** @type {CallExpression} */ (_expr);
+		this.hooks.evaluate.for("CallExpression").tap(CLASS_NAME, (expression) => {
+			const expr = /** @type {CallExpression} */ (expression);
 			if (
 				expr.callee.type === "MemberExpression" &&
 				expr.callee.property.type ===
@@ -1493,7 +1713,7 @@ class JavascriptParser extends Parser {
 				const arg1Eval = this.evaluateExpression(arg1);
 				if (!arg1Eval.isString()) return;
 				const arg1Value = /** @type {string} */ (arg1Eval.string);
-
+				/** @type {number} */
 				let result;
 				if (arg2) {
 					if (arg2.type === "SpreadElement") return;
@@ -1538,7 +1758,9 @@ class JavascriptParser extends Parser {
 				.for(fn)
 				.tap(CLASS_NAME, (expr, param) => {
 					if (!param.isString()) return;
+					/** @type {BasicEvaluatedExpression} */
 					let arg1;
+					/** @type {string} */
 					let result;
 					const str = /** @type {string} */ (param.string);
 					switch (expr.arguments.length) {
@@ -1576,9 +1798,10 @@ class JavascriptParser extends Parser {
 		}
 
 		/**
+		 * Gets simplified template result.
 		 * @param {"cooked" | "raw"} kind kind of values to get
 		 * @param {TemplateLiteral} templateLiteralExpr TemplateLiteral expr
-		 * @returns {{quasis: BasicEvaluatedExpression[], parts: BasicEvaluatedExpression[]}} Simplified template
+		 * @returns {{ quasis: BasicEvaluatedExpression[], parts: BasicEvaluatedExpression[] }} Simplified template
 		 */
 		const getSimplifiedTemplateResult = (kind, templateLiteralExpr) => {
 			/** @type {BasicEvaluatedExpression[]} */
@@ -1628,7 +1851,7 @@ class JavascriptParser extends Parser {
 			};
 		};
 
-		this.hooks.evaluate.for("TemplateLiteral").tap(CLASS_NAME, _node => {
+		this.hooks.evaluate.for("TemplateLiteral").tap(CLASS_NAME, (_node) => {
 			const node = /** @type {TemplateLiteral} */ (_node);
 
 			const { quasis, parts } = getSimplifiedTemplateResult("cooked", node);
@@ -1641,7 +1864,7 @@ class JavascriptParser extends Parser {
 		});
 		this.hooks.evaluate
 			.for("TaggedTemplateExpression")
-			.tap(CLASS_NAME, _node => {
+			.tap(CLASS_NAME, (_node) => {
 				const node = /** @type {TaggedTemplateExpression} */ (_node);
 				const tag = this.evaluateExpression(node.tag);
 
@@ -1660,8 +1883,10 @@ class JavascriptParser extends Parser {
 			.for("concat")
 			.tap(CLASS_NAME, (expr, param) => {
 				if (!param.isString() && !param.isWrapped()) return;
-				let stringSuffix = null;
+				/** @type {undefined | BasicEvaluatedExpression} */
+				let stringSuffix;
 				let hasUnknownParams = false;
+				/** @type {BasicEvaluatedExpression[]} */
 				const innerExpressions = [];
 				for (let i = expr.arguments.length - 1; i >= 0; i--) {
 					const arg = expr.arguments[i];
@@ -1701,7 +1926,10 @@ class JavascriptParser extends Parser {
 					const prefix = param.isString() ? param : param.prefix;
 					const inner =
 						param.isWrapped() && param.wrappedInnerExpressions
-							? param.wrappedInnerExpressions.concat(innerExpressions.reverse())
+							? [
+									...param.wrappedInnerExpressions,
+									...innerExpressions.reverse()
+								]
 							: innerExpressions.reverse();
 					return new BasicEvaluatedExpression()
 						.setWrapped(prefix, stringSuffix, inner)
@@ -1709,7 +1937,7 @@ class JavascriptParser extends Parser {
 				} else if (param.isWrapped()) {
 					const postfix = stringSuffix || param.postfix;
 					const inner = param.wrappedInnerExpressions
-						? param.wrappedInnerExpressions.concat(innerExpressions.reverse())
+						? [...param.wrappedInnerExpressions, ...innerExpressions.reverse()]
 						: innerExpressions.reverse();
 					return new BasicEvaluatedExpression()
 						.setWrapped(param.prefix, postfix, inner)
@@ -1732,6 +1960,7 @@ class JavascriptParser extends Parser {
 				if (!param.isString()) return;
 				if (expr.arguments.length !== 1) return;
 				if (expr.arguments[0].type === "SpreadElement") return;
+				/** @type {string[]} */
 				let result;
 				const arg = this.evaluateExpression(expr.arguments[0]);
 				if (arg.isString()) {
@@ -1750,44 +1979,47 @@ class JavascriptParser extends Parser {
 					.setSideEffects(param.couldHaveSideEffects())
 					.setRange(/** @type {Range} */ (expr.range));
 			});
-		this.hooks.evaluate.for("ConditionalExpression").tap(CLASS_NAME, _expr => {
-			const expr = /** @type {ConditionalExpression} */ (_expr);
+		this.hooks.evaluate
+			.for("ConditionalExpression")
+			.tap(CLASS_NAME, (_expr) => {
+				const expr = /** @type {ConditionalExpression} */ (_expr);
 
-			const condition = this.evaluateExpression(expr.test);
-			const conditionValue = condition.asBool();
-			let res;
-			if (conditionValue === undefined) {
-				const consequent = this.evaluateExpression(expr.consequent);
-				const alternate = this.evaluateExpression(expr.alternate);
-				res = new BasicEvaluatedExpression();
-				if (consequent.isConditional()) {
-					res.setOptions(
-						/** @type {BasicEvaluatedExpression[]} */ (consequent.options)
-					);
+				const condition = this.evaluateExpression(expr.test);
+				const conditionValue = condition.asBool();
+				/** @type {BasicEvaluatedExpression} */
+				let res;
+				if (conditionValue === undefined) {
+					const consequent = this.evaluateExpression(expr.consequent);
+					const alternate = this.evaluateExpression(expr.alternate);
+					res = new BasicEvaluatedExpression();
+					if (consequent.isConditional()) {
+						res.setOptions(
+							/** @type {BasicEvaluatedExpression[]} */ (consequent.options)
+						);
+					} else {
+						res.setOptions([consequent]);
+					}
+					if (alternate.isConditional()) {
+						res.addOptions(
+							/** @type {BasicEvaluatedExpression[]} */ (alternate.options)
+						);
+					} else {
+						res.addOptions([alternate]);
+					}
 				} else {
-					res.setOptions([consequent]);
-				}
-				if (alternate.isConditional()) {
-					res.addOptions(
-						/** @type {BasicEvaluatedExpression[]} */ (alternate.options)
+					res = this.evaluateExpression(
+						conditionValue ? expr.consequent : expr.alternate
 					);
-				} else {
-					res.addOptions([alternate]);
+					if (condition.couldHaveSideEffects()) res.setSideEffects();
 				}
-			} else {
-				res = this.evaluateExpression(
-					conditionValue ? expr.consequent : expr.alternate
-				);
-				if (condition.couldHaveSideEffects()) res.setSideEffects();
-			}
-			res.setRange(/** @type {Range} */ (expr.range));
-			return res;
-		});
-		this.hooks.evaluate.for("ArrayExpression").tap(CLASS_NAME, _expr => {
+				res.setRange(/** @type {Range} */ (expr.range));
+				return res;
+			});
+		this.hooks.evaluate.for("ArrayExpression").tap(CLASS_NAME, (_expr) => {
 			const expr = /** @type {ArrayExpression} */ (_expr);
 
 			const items = expr.elements.map(
-				element =>
+				(element) =>
 					element !== null &&
 					element.type !== "SpreadElement" &&
 					this.evaluateExpression(element)
@@ -1797,11 +2029,11 @@ class JavascriptParser extends Parser {
 				.setItems(/** @type {BasicEvaluatedExpression[]} */ (items))
 				.setRange(/** @type {Range} */ (expr.range));
 		});
-		this.hooks.evaluate.for("ChainExpression").tap(CLASS_NAME, _expr => {
+		this.hooks.evaluate.for("ChainExpression").tap(CLASS_NAME, (_expr) => {
 			const expr = /** @type {ChainExpression} */ (_expr);
 			/** @type {Expression[]} */
 			const optionalExpressionsStack = [];
-			/** @type {Expression|Super} */
+			/** @type {Expression | Super} */
 			let next = expr.expression;
 
 			while (
@@ -1839,11 +2071,27 @@ class JavascriptParser extends Parser {
 			}
 			return this.evaluateExpression(expr.expression);
 		});
+		this.hooks.evaluate.for("SequenceExpression").tap(CLASS_NAME, (_expr) => {
+			const expr = /** @type {SequenceExpression} */ (_expr);
+			if (!expr.range) return;
+			let commentsStartPos = /** @type {Range} */ (expr.range)[0];
+			for (let i = 0; i < expr.expressions.length - 1; i++) {
+				const item = expr.expressions[i];
+				if (!item.range) return;
+				if (!this.isPure(item, commentsStartPos)) return;
+				commentsStartPos = /** @type {Range} */ (item.range)[1];
+			}
+			const last = expr.expressions[expr.expressions.length - 1];
+			const evaluated = this.evaluateExpression(last);
+			if (!evaluated.isCompileTimeValue()) return;
+			return evaluated.setRange(/** @type {Range} */ (expr.range));
+		});
 	}
 
 	/**
+	 * Destructuring assignment properties for.
 	 * @param {Expression} node node
-	 * @returns {Set<DestructuringAssignmentProperty> | undefined} destructured identifiers
+	 * @returns {DestructuringAssignmentProperties | undefined} destructured identifiers
 	 */
 	destructuringAssignmentPropertiesFor(node) {
 		if (!this.destructuringAssignmentProperties) return;
@@ -1851,10 +2099,20 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Gets rename identifier.
 	 * @param {Expression | SpreadElement} expr expression
 	 * @returns {string | VariableInfo | undefined} identifier
 	 */
 	getRenameIdentifier(expr) {
+		if (
+			expr.type === "Identifier" &&
+			this._evalIdentOwnTaps &&
+			expr.name !== "undefined" &&
+			this._isDefinedPlainVariable(expr.name)
+		) {
+			// the evaluation could only fall through — never an identifier result
+			return;
+		}
 		const result = this.evaluateExpression(expr);
 		if (result.isIdentifier()) {
 			return result.identifier;
@@ -1862,6 +2120,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Processes the provided classy.
 	 * @param {ClassExpression | ClassDeclaration | MaybeNamedClassDeclaration} classy a class node
 	 * @returns {void}
 	 */
@@ -1873,19 +2132,27 @@ class JavascriptParser extends Parser {
 			this.walkExpression(classy.superClass);
 		}
 		if (classy.body && classy.body.type === "ClassBody") {
+			/** @type {Identifier[]} */
 			const scopeParams = [];
 			// Add class name in scope for recursive calls
 			if (classy.id) {
 				scopeParams.push(classy.id);
 			}
 			this.inClassScope(true, scopeParams, () => {
-				for (const classElement of /** @type {TODO} */ (classy.body.body)) {
+				for (const classElement of classy.body.body) {
 					if (!this.hooks.classBodyElement.call(classElement, classy)) {
-						if (classElement.computed && classElement.key) {
-							this.walkExpression(classElement.key);
-						}
-						if (classElement.value) {
+						if (classElement.type === "StaticBlock") {
+							const wasTopLevel = this.scope.topLevelScope;
+							this.scope.topLevelScope = false;
+							this.walkBlockStatement(classElement);
+							this.scope.topLevelScope = wasTopLevel;
+						} else {
+							if (classElement.computed && classElement.key) {
+								this.walkExpression(classElement.key);
+							}
+
 							if (
+								classElement.value &&
 								!this.hooks.classBodyValue.call(
 									classElement.value,
 									classElement,
@@ -1897,15 +2164,36 @@ class JavascriptParser extends Parser {
 								this.walkExpression(classElement.value);
 								this.scope.topLevelScope = wasTopLevel;
 							}
-						} else if (classElement.type === "StaticBlock") {
-							const wasTopLevel = this.scope.topLevelScope;
-							this.scope.topLevelScope = false;
-							this.walkBlockStatement(classElement);
-							this.scope.topLevelScope = wasTopLevel;
 						}
 					}
 				}
 			});
+		}
+	}
+
+	/**
+	 * Module pre walking iterates the scope for import entries
+	 * @param {(Statement | ModuleDeclaration)[]} statements statements
+	 */
+	modulePreWalkStatements(statements) {
+		for (let index = 0, len = statements.length; index < len; index++) {
+			const statement = statements[index];
+			/** @type {StatementPath} */
+			(this.statementPath).push(statement);
+			switch (statement.type) {
+				case "ImportDeclaration":
+					this.modulePreWalkImportDeclaration(statement);
+					break;
+				case "ExportAllDeclaration":
+					this.modulePreWalkExportAllDeclaration(statement);
+					break;
+				case "ExportNamedDeclaration":
+					this.modulePreWalkExportNamedDeclaration(statement);
+					break;
+			}
+			this.prevStatement =
+				/** @type {StatementPath} */
+				(this.statementPath).pop();
 		}
 	}
 
@@ -1964,18 +2252,47 @@ class JavascriptParser extends Parser {
 	preWalkStatement(statement) {
 		/** @type {StatementPath} */
 		(this.statementPath).push(statement);
-		if (this.hooks.preStatement.call(statement)) {
+		const { preStatement, preStatementByType } = this.hooks;
+		// skip the broadcast entirely when nothing taps it; type-keyed taps
+		// only run for their statement type
+		let bail =
+			preStatement.taps.length !== 0 ? preStatement.call(statement) : undefined;
+		if (!bail) {
+			const typed = preStatementByType.get(statement.type);
+			if (typed !== undefined) bail = typed.call(statement);
+		}
+		if (bail) {
 			this.prevStatement =
 				/** @type {StatementPath} */
 				(this.statementPath).pop();
 			return;
 		}
+		// cases ordered by measured statement frequency; the commonest statements
+		// (expressions, returns) intentionally match nothing here
 		switch (statement.type) {
+			case "VariableDeclaration":
+				this.preWalkVariableDeclaration(statement);
+				break;
+			case "IfStatement":
+				this.preWalkIfStatement(statement);
+				break;
 			case "BlockStatement":
 				this.preWalkBlockStatement(statement);
 				break;
-			case "DoWhileStatement":
-				this.preWalkDoWhileStatement(statement);
+			case "FunctionDeclaration":
+				this.preWalkFunctionDeclaration(statement);
+				break;
+			case "ForStatement":
+				this.preWalkForStatement(statement);
+				break;
+			case "TryStatement":
+				this.preWalkTryStatement(statement);
+				break;
+			case "SwitchStatement":
+				this.preWalkSwitchStatement(statement);
+				break;
+			case "WhileStatement":
+				this.preWalkWhileStatement(statement);
 				break;
 			case "ForInStatement":
 				this.preWalkForInStatement(statement);
@@ -1983,29 +2300,11 @@ class JavascriptParser extends Parser {
 			case "ForOfStatement":
 				this.preWalkForOfStatement(statement);
 				break;
-			case "ForStatement":
-				this.preWalkForStatement(statement);
-				break;
-			case "FunctionDeclaration":
-				this.preWalkFunctionDeclaration(statement);
-				break;
-			case "IfStatement":
-				this.preWalkIfStatement(statement);
+			case "DoWhileStatement":
+				this.preWalkDoWhileStatement(statement);
 				break;
 			case "LabeledStatement":
 				this.preWalkLabeledStatement(statement);
-				break;
-			case "SwitchStatement":
-				this.preWalkSwitchStatement(statement);
-				break;
-			case "TryStatement":
-				this.preWalkTryStatement(statement);
-				break;
-			case "VariableDeclaration":
-				this.preWalkVariableDeclaration(statement);
-				break;
-			case "WhileStatement":
-				this.preWalkWhileStatement(statement);
 				break;
 			case "WithStatement":
 				this.preWalkWithStatement(statement);
@@ -2017,38 +2316,43 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Block pre walk statement.
 	 * @param {Statement | ModuleDeclaration | MaybeNamedClassDeclaration | MaybeNamedFunctionDeclaration} statement statement
 	 */
 	blockPreWalkStatement(statement) {
 		/** @type {StatementPath} */
 		(this.statementPath).push(statement);
-		if (this.hooks.blockPreStatement.call(statement)) {
+		const { blockPreStatement, blockPreStatementByType } = this.hooks;
+		let bail =
+			blockPreStatement.taps.length !== 0
+				? blockPreStatement.call(statement)
+				: undefined;
+		if (!bail) {
+			const typed = blockPreStatementByType.get(statement.type);
+			if (typed !== undefined) bail = typed.call(statement);
+		}
+		if (bail) {
 			this.prevStatement =
 				/** @type {StatementPath} */
 				(this.statementPath).pop();
 			return;
 		}
+		// cases ordered by measured statement frequency
 		switch (statement.type) {
-			case "ImportDeclaration":
-				this.blockPreWalkImportDeclaration(statement);
-				break;
-			case "ExportAllDeclaration":
-				this.blockPreWalkExportAllDeclaration(statement);
-				break;
-			case "ExportDefaultDeclaration":
-				this.blockPreWalkExportDefaultDeclaration(statement);
-				break;
-			case "ExportNamedDeclaration":
-				this.blockPreWalkExportNamedDeclaration(statement);
-				break;
 			case "VariableDeclaration":
 				this.blockPreWalkVariableDeclaration(statement);
+				break;
+			case "ExpressionStatement":
+				this.blockPreWalkExpressionStatement(statement);
 				break;
 			case "ClassDeclaration":
 				this.blockPreWalkClassDeclaration(statement);
 				break;
-			case "ExpressionStatement":
-				this.blockPreWalkExpressionStatement(statement);
+			case "ExportNamedDeclaration":
+				this.blockPreWalkExportNamedDeclaration(statement);
+				break;
+			case "ExportDefaultDeclaration":
+				this.blockPreWalkExportDefaultDeclaration(statement);
 		}
 		this.prevStatement =
 			/** @type {StatementPath} */
@@ -2056,56 +2360,48 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Processes the provided statement.
 	 * @param {Statement | ModuleDeclaration | MaybeNamedFunctionDeclaration | MaybeNamedClassDeclaration} statement statement
 	 */
 	walkStatement(statement) {
 		/** @type {StatementPath} */
 		(this.statementPath).push(statement);
-		if (this.hooks.statement.call(statement) !== undefined) {
+		const { statement: statementHook } = this.hooks;
+		if (
+			statementHook.taps.length !== 0 &&
+			statementHook.call(statement) !== undefined
+		) {
 			this.prevStatement =
 				/** @type {StatementPath} */
 				(this.statementPath).pop();
 			return;
 		}
+		// cases ordered by measured statement frequency; V8 compiles this to
+		// sequential compares, so hot types must come first
 		switch (statement.type) {
-			case "BlockStatement":
-				this.walkBlockStatement(statement);
-				break;
-			case "ClassDeclaration":
-				this.walkClassDeclaration(statement);
-				break;
-			case "DoWhileStatement":
-				this.walkDoWhileStatement(statement);
-				break;
-			case "ExportDefaultDeclaration":
-				this.walkExportDefaultDeclaration(statement);
-				break;
-			case "ExportNamedDeclaration":
-				this.walkExportNamedDeclaration(statement);
-				break;
 			case "ExpressionStatement":
 				this.walkExpressionStatement(statement);
 				break;
-			case "ForInStatement":
-				this.walkForInStatement(statement);
+			case "VariableDeclaration":
+				this.walkVariableDeclaration(statement);
 				break;
-			case "ForOfStatement":
-				this.walkForOfStatement(statement);
-				break;
-			case "ForStatement":
-				this.walkForStatement(statement);
-				break;
-			case "FunctionDeclaration":
-				this.walkFunctionDeclaration(statement);
+			case "ReturnStatement":
+				this.walkReturnStatement(statement);
 				break;
 			case "IfStatement":
 				this.walkIfStatement(statement);
 				break;
-			case "LabeledStatement":
-				this.walkLabeledStatement(statement);
+			case "BlockStatement":
+				this.walkBlockStatement(statement);
 				break;
-			case "ReturnStatement":
-				this.walkReturnStatement(statement);
+			case "FunctionDeclaration":
+				this.walkFunctionDeclaration(statement);
+				break;
+			case "ForStatement":
+				this.walkForStatement(statement);
+				break;
+			case "TryStatement":
+				this.walkTryStatement(statement);
 				break;
 			case "SwitchStatement":
 				this.walkSwitchStatement(statement);
@@ -2113,14 +2409,29 @@ class JavascriptParser extends Parser {
 			case "ThrowStatement":
 				this.walkThrowStatement(statement);
 				break;
-			case "TryStatement":
-				this.walkTryStatement(statement);
-				break;
-			case "VariableDeclaration":
-				this.walkVariableDeclaration(statement);
-				break;
 			case "WhileStatement":
 				this.walkWhileStatement(statement);
+				break;
+			case "ClassDeclaration":
+				this.walkClassDeclaration(statement);
+				break;
+			case "ForInStatement":
+				this.walkForInStatement(statement);
+				break;
+			case "ForOfStatement":
+				this.walkForOfStatement(statement);
+				break;
+			case "DoWhileStatement":
+				this.walkDoWhileStatement(statement);
+				break;
+			case "ExportNamedDeclaration":
+				this.walkExportNamedDeclaration(statement);
+				break;
+			case "ExportDefaultDeclaration":
+				this.walkExportDefaultDeclaration(statement);
+				break;
+			case "LabeledStatement":
+				this.walkLabeledStatement(statement);
 				break;
 			case "WithStatement":
 				this.walkWithStatement(statement);
@@ -2144,6 +2455,7 @@ class JavascriptParser extends Parser {
 
 	// Real Statements
 	/**
+	 * Pre walk block statement.
 	 * @param {BlockStatement} statement block statement
 	 */
 	preWalkBlockStatement(statement) {
@@ -2151,7 +2463,8 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
-	 * @param {BlockStatement} statement block statement
+	 * Walk block statement.
+	 * @param {BlockStatement | StaticBlock} statement block statement
 	 */
 	walkBlockStatement(statement) {
 		this.inBlockScope(() => {
@@ -2164,6 +2477,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Walk expression statement.
 	 * @param {ExpressionStatement} statement expression statement
 	 */
 	walkExpressionStatement(statement) {
@@ -2171,6 +2485,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Pre walk if statement.
 	 * @param {IfStatement} statement if statement
 	 */
 	preWalkIfStatement(statement) {
@@ -2181,19 +2496,47 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Walks a conditional branch with its guard frame (if any) pushed onto the
+	 * parser-state guard stack for the duration of the branch body.
+	 * @param {EXPECTED_OBJECT | undefined | null} frame guard frame, or falsy when the branch is unguarded
+	 * @param {() => void} walk branch walk
+	 * @returns {void}
+	 */
+	walkGuardedBranch(frame, walk) {
+		if (!frame) {
+			walk();
+			return;
+		}
+		const stack = this.state.guardStack || (this.state.guardStack = []);
+		stack.push(frame);
+		try {
+			walk();
+		} finally {
+			stack.pop();
+		}
+	}
+
+	/**
+	 * Processes the provided statement.
 	 * @param {IfStatement} statement if statement
 	 */
 	walkIfStatement(statement) {
 		const result = this.hooks.statementIf.call(statement);
 		if (result === undefined) {
+			const guard = this.hooks.collectGuards.call(statement.test);
 			this.walkExpression(statement.test);
-			this.walkNestedStatement(statement.consequent);
+			this.walkGuardedBranch(guard ? guard.consequent : undefined, () =>
+				this.walkNestedStatement(statement.consequent)
+			);
 
 			const consequentTerminated = this.scope.terminated;
 			this.scope.terminated = undefined;
 
 			if (statement.alternate) {
-				this.walkNestedStatement(statement.alternate);
+				const alternate = statement.alternate;
+				this.walkGuardedBranch(guard ? guard.alternate : undefined, () =>
+					this.walkNestedStatement(alternate)
+				);
 			}
 
 			const alternateTerminated = this.scope.terminated;
@@ -2210,6 +2553,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Pre walk labeled statement.
 	 * @param {LabeledStatement} statement with statement
 	 */
 	preWalkLabeledStatement(statement) {
@@ -2217,6 +2561,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Walk labeled statement.
 	 * @param {LabeledStatement} statement with statement
 	 */
 	walkLabeledStatement(statement) {
@@ -2231,6 +2576,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Pre walk with statement.
 	 * @param {WithStatement} statement with statement
 	 */
 	preWalkWithStatement(statement) {
@@ -2238,9 +2584,16 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Walk with statement.
 	 * @param {WithStatement} statement with statement
 	 */
 	walkWithStatement(statement) {
+		if (this._strictInModuleOutput) {
+			this._reportStrictModeViolation(
+				"`with` statements are not allowed",
+				statement
+			);
+		}
 		this.inBlockScope(() => {
 			this.walkExpression(statement.object);
 			this.walkNestedStatement(statement.body);
@@ -2248,6 +2601,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Pre walk switch statement.
 	 * @param {SwitchStatement} statement switch statement
 	 */
 	preWalkSwitchStatement(statement) {
@@ -2255,6 +2609,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Walk switch statement.
 	 * @param {SwitchStatement} statement switch statement
 	 */
 	walkSwitchStatement(statement) {
@@ -2263,6 +2618,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Walk terminating statement.
 	 * @param {ReturnStatement | ThrowStatement} statement return or throw statement
 	 */
 	walkTerminatingStatement(statement) {
@@ -2278,6 +2634,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Walk return statement.
 	 * @param {ReturnStatement} statement return statement
 	 */
 	walkReturnStatement(statement) {
@@ -2285,6 +2642,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Walk throw statement.
 	 * @param {ThrowStatement} statement return statement
 	 */
 	walkThrowStatement(statement) {
@@ -2292,6 +2650,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Pre walk try statement.
 	 * @param {TryStatement} statement try statement
 	 */
 	preWalkTryStatement(statement) {
@@ -2301,6 +2660,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Walk try statement.
 	 * @param {TryStatement} statement try statement
 	 */
 	walkTryStatement(statement) {
@@ -2338,6 +2698,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Pre walk while statement.
 	 * @param {WhileStatement} statement while statement
 	 */
 	preWalkWhileStatement(statement) {
@@ -2345,6 +2706,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Walk while statement.
 	 * @param {WhileStatement} statement while statement
 	 */
 	walkWhileStatement(statement) {
@@ -2355,6 +2717,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Pre walk do while statement.
 	 * @param {DoWhileStatement} statement do while statement
 	 */
 	preWalkDoWhileStatement(statement) {
@@ -2362,6 +2725,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Walk do while statement.
 	 * @param {DoWhileStatement} statement do while statement
 	 */
 	walkDoWhileStatement(statement) {
@@ -2372,6 +2736,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Pre walk for statement.
 	 * @param {ForStatement} statement for statement
 	 */
 	preWalkForStatement(statement) {
@@ -2382,6 +2747,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Walk for statement.
 	 * @param {ForStatement} statement for statement
 	 */
 	walkForStatement(statement) {
@@ -2417,6 +2783,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Pre walk for in statement.
 	 * @param {ForInStatement} statement for statement
 	 */
 	preWalkForInStatement(statement) {
@@ -2427,6 +2794,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Walk for in statement.
 	 * @param {ForInStatement} statement for statement
 	 */
 	walkForInStatement(statement) {
@@ -2455,6 +2823,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Pre walk for of statement.
 	 * @param {ForOfStatement} statement statement
 	 */
 	preWalkForOfStatement(statement) {
@@ -2468,6 +2837,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Walk for of statement.
 	 * @param {ForOfStatement} statement for statement
 	 */
 	walkForOfStatement(statement) {
@@ -2496,6 +2866,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Pre walk function declaration.
 	 * @param {FunctionDeclaration | MaybeNamedFunctionDeclaration} statement function declaration
 	 */
 	preWalkFunctionDeclaration(statement) {
@@ -2505,11 +2876,15 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Walk function declaration.
 	 * @param {FunctionDeclaration | MaybeNamedFunctionDeclaration} statement function declaration
 	 */
 	walkFunctionDeclaration(statement) {
 		const wasTopLevel = this.scope.topLevelScope;
 		this.scope.topLevelScope = false;
+		if (this._strictInModuleOutput) {
+			this._checkStrictModeParams(statement.params);
+		}
 		this.inFunctionScope(true, statement.params, () => {
 			for (const param of statement.params) {
 				this.walkPattern(param);
@@ -2527,6 +2902,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Block pre walk expression statement.
 	 * @param {ExpressionStatement} statement expression statement
 	 */
 	blockPreWalkExpressionStatement(statement) {
@@ -2538,42 +2914,60 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Pre walk assignment expression.
 	 * @param {AssignmentExpression} expression assignment expression
 	 */
 	preWalkAssignmentExpression(expression) {
-		if (
-			expression.left.type !== "ObjectPattern" ||
-			!this.destructuringAssignmentProperties
-		)
-			return;
-		const keys = this._preWalkObjectPattern(expression.left);
-		if (!keys) return;
-
-		// check multiple assignments
-		if (this.destructuringAssignmentProperties.has(expression)) {
-			const set =
-				/** @type {Set<DestructuringAssignmentProperty>} */
-				(this.destructuringAssignmentProperties.get(expression));
-			this.destructuringAssignmentProperties.delete(expression);
-			for (const id of set) keys.add(id);
-		}
-
-		this.destructuringAssignmentProperties.set(
-			expression.right.type === "AwaitExpression"
-				? expression.right.argument
-				: expression.right,
-			keys
-		);
-
-		if (expression.right.type === "AssignmentExpression") {
-			this.preWalkAssignmentExpression(expression.right);
-		}
+		this.enterDestructuringAssignment(expression.left, expression.right);
 	}
 
 	/**
+	 * Enter destructuring assignment.
+	 * @param {Pattern} pattern pattern
+	 * @param {Expression} expression assignment expression
+	 * @returns {Expression | undefined} destructuring expression
+	 */
+	enterDestructuringAssignment(pattern, expression) {
+		if (
+			pattern.type !== "ObjectPattern" ||
+			!this.destructuringAssignmentProperties
+		) {
+			return;
+		}
+
+		const expr =
+			expression.type === "AwaitExpression" ? expression.argument : expression;
+
+		const destructuring =
+			expr.type === "AssignmentExpression"
+				? this.enterDestructuringAssignment(expr.left, expr.right)
+				: this.hooks.collectDestructuringAssignmentProperties.call(expr)
+					? expr
+					: undefined;
+
+		if (destructuring) {
+			const keys = this._preWalkObjectPattern(pattern);
+			if (!keys) return;
+
+			// check multiple assignments
+			if (this.destructuringAssignmentProperties.has(destructuring)) {
+				const set =
+					/** @type {DestructuringAssignmentProperties} */
+					(this.destructuringAssignmentProperties.get(destructuring));
+				for (const id of keys) set.add(id);
+			} else {
+				this.destructuringAssignmentProperties.set(destructuring, keys);
+			}
+		}
+
+		return destructuring;
+	}
+
+	/**
+	 * Module pre walk import declaration.
 	 * @param {ImportDeclaration} statement statement
 	 */
-	blockPreWalkImportDeclaration(statement) {
+	modulePreWalkImportDeclaration(statement) {
 		const source = /** @type {ImportSource} */ (statement.source.value);
 		this.hooks.import.call(statement, source);
 		for (const specifier of statement.specifiers) {
@@ -2616,6 +3010,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Processes the provided declaration.
 	 * @param {Declaration} declaration declaration
 	 * @param {OnIdent} onIdent on ident callback
 	 */
@@ -2641,16 +3036,53 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Module pre walk export named declaration.
+	 * @param {ExportNamedDeclaration} statement statement
+	 */
+	modulePreWalkExportNamedDeclaration(statement) {
+		if (!statement.source) return;
+		const source = /** @type {ImportSource} */ (statement.source.value);
+		this.hooks.exportImport.call(statement, source);
+		if (statement.specifiers) {
+			for (
+				let specifierIndex = 0;
+				specifierIndex < statement.specifiers.length;
+				specifierIndex++
+			) {
+				const specifier = statement.specifiers[specifierIndex];
+				switch (specifier.type) {
+					case "ExportSpecifier": {
+						const localName =
+							/** @type {Identifier} */ (specifier.local).name ||
+							/** @type {string} */ (
+								/** @type {Literal} */ (specifier.local).value
+							);
+						const name =
+							/** @type {Identifier} */
+							(specifier.exported).name ||
+							/** @type {string} */
+							(/** @type {Literal} */ (specifier.exported).value);
+						this.hooks.exportImportSpecifier.call(
+							statement,
+							source,
+							localName,
+							name,
+							specifierIndex
+						);
+						break;
+					}
+				}
+			}
+		}
+	}
+
+	/**
+	 * Block pre walk export named declaration.
 	 * @param {ExportNamedDeclaration} statement statement
 	 */
 	blockPreWalkExportNamedDeclaration(statement) {
-		let source;
-		if (statement.source) {
-			source = /** @type {ImportSource} */ (statement.source.value);
-			this.hooks.exportImport.call(statement, source);
-		} else {
-			this.hooks.export.call(statement);
-		}
+		if (statement.source) return;
+		this.hooks.export.call(statement);
 		if (
 			statement.declaration &&
 			!this.hooks.exportDeclaration.call(statement, statement.declaration)
@@ -2660,7 +3092,7 @@ class JavascriptParser extends Parser {
 			this.prevStatement = prev;
 			this.blockPreWalkStatement(statement.declaration);
 			let index = 0;
-			this.enterDeclaration(statement.declaration, def => {
+			this.enterDeclaration(statement.declaration, (def) => {
 				this.hooks.exportSpecifier.call(statement, def, def, index++);
 			});
 		}
@@ -2683,22 +3115,12 @@ class JavascriptParser extends Parser {
 							(specifier.exported).name ||
 							/** @type {string} */
 							(/** @type {Literal} */ (specifier.exported).value);
-						if (source) {
-							this.hooks.exportImportSpecifier.call(
-								statement,
-								source,
-								localName,
-								name,
-								specifierIndex
-							);
-						} else {
-							this.hooks.exportSpecifier.call(
-								statement,
-								localName,
-								name,
-								specifierIndex
-							);
-						}
+						this.hooks.exportSpecifier.call(
+							statement,
+							localName,
+							name,
+							specifierIndex
+						);
 						break;
 					}
 				}
@@ -2707,6 +3129,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Walk export named declaration.
 	 * @param {ExportNamedDeclaration} statement the statement
 	 */
 	walkExportNamedDeclaration(statement) {
@@ -2716,14 +3139,20 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Block pre walk export default declaration.
 	 * @param {ExportDefaultDeclaration} statement statement
 	 */
 	blockPreWalkExportDefaultDeclaration(statement) {
-		const prev = this.prevStatement;
+		if (
+			statement.declaration.type === "FunctionDeclaration" ||
+			statement.declaration.type === "ClassDeclaration"
+		) {
+			const prev = this.prevStatement;
 
-		this.preWalkStatement(/** @type {TODO} */ (statement.declaration));
-		this.prevStatement = prev;
-		this.blockPreWalkStatement(/** @type {TODO} */ (statement.declaration));
+			this.preWalkStatement(statement.declaration);
+			this.prevStatement = prev;
+			this.blockPreWalkStatement(statement.declaration);
+		}
 
 		if (
 			/** @type {MaybeNamedFunctionDeclaration | MaybeNamedClassDeclaration} */
@@ -2746,6 +3175,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Walk export default declaration.
 	 * @param {ExportDefaultDeclaration} statement statement
 	 */
 	walkExportDefaultDeclaration(statement) {
@@ -2775,22 +3205,15 @@ class JavascriptParser extends Parser {
 				this.walkExpression(statement.declaration);
 			}
 
-			if (!this.hooks.exportExpression.call(statement, statement.declaration)) {
-				this.hooks.exportSpecifier.call(
-					statement,
-					/** @type {TODO} */
-					(statement.declaration),
-					"default",
-					undefined
-				);
-			}
+			this.hooks.exportExpression.call(statement, statement.declaration);
 		}
 	}
 
 	/**
+	 * Module pre walk export all declaration.
 	 * @param {ExportAllDeclaration} statement statement
 	 */
-	blockPreWalkExportAllDeclaration(statement) {
+	modulePreWalkExportAllDeclaration(statement) {
 		const source = /** @type {ImportSource} */ (statement.source.value);
 		const name = statement.exported
 			? /** @type {Identifier} */
@@ -2803,6 +3226,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Pre walk variable declaration.
 	 * @param {VariableDeclaration} statement variable declaration
 	 */
 	preWalkVariableDeclaration(statement) {
@@ -2811,49 +3235,74 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Block pre walk variable declaration.
 	 * @param {VariableDeclaration} statement variable declaration
 	 */
 	blockPreWalkVariableDeclaration(statement) {
 		if (statement.kind === "var") return;
+
 		const hookMap =
 			statement.kind === "const"
 				? this.hooks.varDeclarationConst
-				: this.hooks.varDeclarationLet;
+				: statement.kind === "using" || statement.kind === "await using"
+					? this.hooks.varDeclarationUsing
+					: this.hooks.varDeclarationLet;
 		this._preWalkVariableDeclaration(statement, hookMap);
 	}
 
 	/**
+	 * Pre walk variable declaration.
 	 * @param {VariableDeclaration} statement variable declaration
-	 * @param {TODO} hookMap map of hooks
+	 * @param {HookMap<SyncBailHook<[Identifier], boolean | void>>} hookMap map of hooks
 	 */
 	_preWalkVariableDeclaration(statement, hookMap) {
+		/** @type {OnIdent | undefined} */
+		let onIdent;
 		for (const declarator of statement.declarations) {
-			switch (declarator.type) {
-				case "VariableDeclarator": {
-					this.preWalkVariableDeclarator(declarator);
-					if (!this.hooks.preDeclarator.call(declarator, statement)) {
-						this.enterPattern(declarator.id, (name, decl) => {
-							let hook = hookMap.get(name);
-							if (hook === undefined || !hook.call(decl)) {
-								hook = this.hooks.varDeclaration.get(name);
-								if (hook === undefined || !hook.call(decl)) {
-									this.defineVariable(name);
-								}
-							}
-						});
-					}
-					break;
+			if (declarator.type !== "VariableDeclarator") continue;
+			this.preWalkVariableDeclarator(declarator);
+			if (this.hooks.preDeclarator.call(declarator, statement)) continue;
+			const id = declarator.id;
+			if (id.type === "Identifier") {
+				// fast path: plain `const x =` skips the enterPattern dispatch and
+				// the per-declaration onIdent closure (only patterns need it)
+				if (!this.callHooksForName(this.hooks.pattern, id.name, id)) {
+					this._defineVariableForDeclaration(id.name, id, hookMap);
 				}
+			} else {
+				if (onIdent === undefined) {
+					onIdent = (name, ident) =>
+						this._defineVariableForDeclaration(name, ident, hookMap);
+				}
+				this.enterPattern(id, onIdent);
 			}
 		}
 	}
 
 	/**
+	 * Defines a declared variable unless a declaration hook handles it.
+	 * @param {string} name variable name
+	 * @param {Identifier} ident identifier node
+	 * @param {HookMap<SyncBailHook<[Identifier], boolean | void>>} hookMap kind-specific declaration hooks
+	 * @returns {void}
+	 */
+	_defineVariableForDeclaration(name, ident, hookMap) {
+		let hook = hookMap.get(name);
+		if (hook === undefined || !hook.call(ident)) {
+			hook = this.hooks.varDeclaration.get(name);
+			if (hook === undefined || !hook.call(ident)) {
+				this.defineVariable(name);
+			}
+		}
+	}
+
+	/**
+	 * Pre walk object pattern.
 	 * @param {ObjectPattern} objectPattern object pattern
-	 * @returns {Set<DestructuringAssignmentProperty> | undefined} set of names or undefined if not all keys are identifiers
+	 * @returns {DestructuringAssignmentProperties | undefined} set of names or undefined if not all keys are identifiers
 	 */
 	_preWalkObjectPattern(objectPattern) {
-		/** @type {Set<DestructuringAssignmentProperty>} */
+		/** @type {DestructuringAssignmentProperties} */
 		const props = new Set();
 		const properties = objectPattern.properties;
 		for (let i = 0; i < properties.length; i++) {
@@ -2871,18 +3320,32 @@ class JavascriptParser extends Parser {
 			}
 			const key = property.key;
 			if (key.type === "Identifier" && !property.computed) {
+				const pattern =
+					property.value.type === "ObjectPattern"
+						? this._preWalkObjectPattern(property.value)
+						: property.value.type === "ArrayPattern"
+							? this._preWalkArrayPattern(property.value)
+							: undefined;
 				props.add({
 					id: key.name,
-					range: key.range,
+					range: /** @type {Range} */ (key.range),
+					pattern,
 					shorthand: this.scope.inShorthand
 				});
 			} else {
 				const id = this.evaluateExpression(key);
 				const str = id.asString();
 				if (str) {
+					const pattern =
+						property.value.type === "ObjectPattern"
+							? this._preWalkObjectPattern(property.value)
+							: property.value.type === "ArrayPattern"
+								? this._preWalkArrayPattern(property.value)
+								: undefined;
 					props.add({
 						id: str,
-						range: key.range,
+						range: /** @type {Range} */ (key.range),
+						pattern,
 						shorthand: this.scope.inShorthand
 					});
 				} else {
@@ -2897,31 +3360,47 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Pre walk array pattern.
+	 * @param {ArrayPattern} arrayPattern array pattern
+	 * @returns {Set<DestructuringAssignmentProperty> | undefined} set of names or undefined if not all keys are identifiers
+	 */
+	_preWalkArrayPattern(arrayPattern) {
+		/** @type {Set<DestructuringAssignmentProperty>} */
+		const props = new Set();
+		const elements = arrayPattern.elements;
+		for (let i = 0; i < elements.length; i++) {
+			const element = elements[i];
+			if (!element) continue;
+			if (element.type === "RestElement") return;
+			const pattern =
+				element.type === "ObjectPattern"
+					? this._preWalkObjectPattern(element)
+					: element.type === "ArrayPattern"
+						? this._preWalkArrayPattern(element)
+						: undefined;
+			props.add({
+				id: `${i}`,
+				range: /** @type {Range} */ (element.range),
+				pattern,
+				shorthand: false
+			});
+		}
+
+		return props;
+	}
+
+	/**
+	 * Pre walk variable declarator.
 	 * @param {VariableDeclarator} declarator variable declarator
 	 */
 	preWalkVariableDeclarator(declarator) {
-		if (
-			!declarator.init ||
-			declarator.id.type !== "ObjectPattern" ||
-			!this.destructuringAssignmentProperties
-		)
-			return;
-		const keys = this._preWalkObjectPattern(declarator.id);
-
-		if (!keys) return;
-		this.destructuringAssignmentProperties.set(
-			declarator.init.type === "AwaitExpression"
-				? declarator.init.argument
-				: declarator.init,
-			keys
-		);
-
-		if (declarator.init.type === "AssignmentExpression") {
-			this.preWalkAssignmentExpression(declarator.init);
+		if (declarator.init) {
+			this.enterDestructuringAssignment(declarator.id, declarator.init);
 		}
 	}
 
 	/**
+	 * Walk variable declaration.
 	 * @param {VariableDeclaration} statement variable declaration
 	 */
 	walkVariableDeclaration(statement) {
@@ -2958,6 +3437,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Block pre walk class declaration.
 	 * @param {ClassDeclaration | MaybeNamedClassDeclaration} statement class declaration
 	 */
 	blockPreWalkClassDeclaration(statement) {
@@ -2967,6 +3447,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Walk class declaration.
 	 * @param {ClassDeclaration | MaybeNamedClassDeclaration} statement class declaration
 	 */
 	walkClassDeclaration(statement) {
@@ -2974,6 +3455,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Pre walk switch cases.
 	 * @param {SwitchCase[]} switchCases switch statement
 	 */
 	preWalkSwitchCases(switchCases) {
@@ -2984,6 +3466,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Processes the provided switch case.
 	 * @param {SwitchCase[]} switchCases switch statement
 	 */
 	walkSwitchCases(switchCases) {
@@ -3024,6 +3507,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Pre walk catch clause.
 	 * @param {CatchClause} catchClause catch clause
 	 */
 	preWalkCatchClause(catchClause) {
@@ -3031,13 +3515,14 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Processes the provided catch clause.
 	 * @param {CatchClause} catchClause catch clause
 	 */
 	walkCatchClause(catchClause) {
 		this.inBlockScope(() => {
 			// Error binding is optional in catch clause since ECMAScript 2019
 			if (catchClause.param !== null) {
-				this.enterPattern(catchClause.param, ident => {
+				this.enterPattern(catchClause.param, (ident) => {
 					this.defineVariable(ident);
 				});
 				this.walkPattern(catchClause.param);
@@ -3050,10 +3535,17 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Processes the provided pattern.
 	 * @param {Pattern} pattern pattern
 	 */
 	walkPattern(pattern) {
 		switch (pattern.type) {
+			// plain identifier bindings are the common case and walk nothing
+			case "Identifier":
+				break;
+			case "ObjectPattern":
+				this.walkObjectPattern(pattern);
+				break;
 			case "ArrayPattern":
 				this.walkArrayPattern(pattern);
 				break;
@@ -3063,9 +3555,6 @@ class JavascriptParser extends Parser {
 			case "MemberExpression":
 				this.walkMemberExpression(pattern);
 				break;
-			case "ObjectPattern":
-				this.walkObjectPattern(pattern);
-				break;
 			case "RestElement":
 				this.walkRestElement(pattern);
 				break;
@@ -3073,6 +3562,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Walk assignment pattern.
 	 * @param {AssignmentPattern} pattern assignment pattern
 	 */
 	walkAssignmentPattern(pattern) {
@@ -3081,6 +3571,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Walk object pattern.
 	 * @param {ObjectPattern} pattern pattern
 	 */
 	walkObjectPattern(pattern) {
@@ -3097,6 +3588,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Walk array pattern.
 	 * @param {ArrayPattern} pattern array pattern
 	 */
 	walkArrayPattern(pattern) {
@@ -3107,6 +3599,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Processes the provided pattern.
 	 * @param {RestElement} pattern rest element
 	 */
 	walkRestElement(pattern) {
@@ -3114,10 +3607,12 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Processes the provided expression.
 	 * @param {(Expression | SpreadElement | null)[]} expressions expressions
 	 */
 	walkExpressions(expressions) {
-		for (const expression of expressions) {
+		for (let i = 0, len = expressions.length; i < len; i++) {
+			const expression = expressions[i];
 			if (expression) {
 				this.walkExpression(expression);
 			}
@@ -3125,27 +3620,75 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Processes the provided expression.
 	 * @param {Expression | SpreadElement | PrivateIdentifier | Super} expression expression
 	 */
 	walkExpression(expression) {
+		// cases ordered by measured node frequency (identifiers are ~40% of all
+		// expressions) — V8 compiles this to sequential compares, so hot types
+		// must come first
 		switch (expression.type) {
-			case "ArrayExpression":
-				this.walkArrayExpression(expression);
+			case "Identifier":
+				this.walkIdentifier(expression);
 				break;
-			case "ArrowFunctionExpression":
-				this.walkArrowFunctionExpression(expression);
+			case "MemberExpression":
+				this.walkMemberExpression(expression);
 				break;
-			case "AssignmentExpression":
-				this.walkAssignmentExpression(expression);
+			case "Literal":
+				if (this._strictInModuleOutput) {
+					this._checkStrictModeLiteral(expression);
+				}
 				break;
-			case "AwaitExpression":
-				this.walkAwaitExpression(expression);
+			case "CallExpression":
+				this.walkCallExpression(expression);
 				break;
 			case "BinaryExpression":
 				this.walkBinaryExpression(expression);
 				break;
-			case "CallExpression":
-				this.walkCallExpression(expression);
+			case "AssignmentExpression":
+				this.walkAssignmentExpression(expression);
+				break;
+			case "UnaryExpression":
+				this.walkUnaryExpression(expression);
+				break;
+			case "LogicalExpression":
+				this.walkLogicalExpression(expression);
+				break;
+			case "ArrowFunctionExpression":
+				this.walkArrowFunctionExpression(expression);
+				break;
+			case "ThisExpression":
+				this.walkThisExpression(expression);
+				break;
+			case "ConditionalExpression":
+				this.walkConditionalExpression(expression);
+				break;
+			case "ArrayExpression":
+				this.walkArrayExpression(expression);
+				break;
+			case "ObjectExpression":
+				this.walkObjectExpression(expression);
+				break;
+			case "FunctionExpression":
+				this.walkFunctionExpression(expression);
+				break;
+			case "NewExpression":
+				this.walkNewExpression(expression);
+				break;
+			case "TemplateLiteral":
+				this.walkTemplateLiteral(expression);
+				break;
+			case "SpreadElement":
+				this.walkSpreadElement(expression);
+				break;
+			case "SequenceExpression":
+				this.walkSequenceExpression(expression);
+				break;
+			case "UpdateExpression":
+				this.walkUpdateExpression(expression);
+				break;
+			case "AwaitExpression":
+				this.walkAwaitExpression(expression);
 				break;
 			case "ChainExpression":
 				this.walkChainExpression(expression);
@@ -3153,53 +3696,14 @@ class JavascriptParser extends Parser {
 			case "ClassExpression":
 				this.walkClassExpression(expression);
 				break;
-			case "ConditionalExpression":
-				this.walkConditionalExpression(expression);
-				break;
-			case "FunctionExpression":
-				this.walkFunctionExpression(expression);
-				break;
-			case "Identifier":
-				this.walkIdentifier(expression);
-				break;
 			case "ImportExpression":
 				this.walkImportExpression(expression);
-				break;
-			case "LogicalExpression":
-				this.walkLogicalExpression(expression);
 				break;
 			case "MetaProperty":
 				this.walkMetaProperty(expression);
 				break;
-			case "MemberExpression":
-				this.walkMemberExpression(expression);
-				break;
-			case "NewExpression":
-				this.walkNewExpression(expression);
-				break;
-			case "ObjectExpression":
-				this.walkObjectExpression(expression);
-				break;
-			case "SequenceExpression":
-				this.walkSequenceExpression(expression);
-				break;
-			case "SpreadElement":
-				this.walkSpreadElement(expression);
-				break;
 			case "TaggedTemplateExpression":
 				this.walkTaggedTemplateExpression(expression);
-				break;
-			case "TemplateLiteral":
-				this.walkTemplateLiteral(expression);
-				break;
-			case "ThisExpression":
-				this.walkThisExpression(expression);
-				break;
-			case "UnaryExpression":
-				this.walkUnaryExpression(expression);
-				break;
-			case "UpdateExpression":
-				this.walkUpdateExpression(expression);
 				break;
 			case "YieldExpression":
 				this.walkYieldExpression(expression);
@@ -3208,15 +3712,47 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Reports octal number literals (`0777`) and octal string escapes (`"\47"`),
+	 * both SyntaxErrors in strict-mode ESM output.
+	 * @param {Literal} expression literal
+	 */
+	_checkStrictModeLiteral(expression) {
+		const raw = /** @type {string | undefined} */ (expression.raw);
+		if (raw === undefined) return;
+		if (typeof expression.value === "number") {
+			// Legacy octal (`0777`) or non-octal decimal (`08`) integer literal.
+			if (
+				raw.length > 1 &&
+				raw.charCodeAt(0) === 48 &&
+				raw.charCodeAt(1) >= 48 &&
+				raw.charCodeAt(1) <= 57
+			) {
+				this._reportStrictModeViolation(
+					"Octal literals are not allowed",
+					expression
+				);
+			}
+		} else if (typeof expression.value === "string" && hasOctalEscape(raw)) {
+			this._reportStrictModeViolation(
+				"Octal escape sequences are not allowed",
+				expression
+			);
+		}
+	}
+
+	/**
+	 * Walk await expression.
 	 * @param {AwaitExpression} expression await expression
 	 */
 	walkAwaitExpression(expression) {
-		if (this.scope.topLevelScope === true)
+		if (this.scope.topLevelScope === true) {
 			this.hooks.topLevelAwait.call(expression);
+		}
 		this.walkExpression(expression.argument);
 	}
 
 	/**
+	 * Walk array expression.
 	 * @param {ArrayExpression} expression array expression
 	 */
 	walkArrayExpression(expression) {
@@ -3226,6 +3762,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Walk spread element.
 	 * @param {SpreadElement} expression spread element
 	 */
 	walkSpreadElement(expression) {
@@ -3235,6 +3772,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Walk object expression.
 	 * @param {ObjectExpression} expression object expression
 	 */
 	walkObjectExpression(expression) {
@@ -3249,6 +3787,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Processes the provided prop.
 	 * @param {Property | SpreadElement} prop property or spread element
 	 */
 	walkProperty(prop) {
@@ -3272,18 +3811,21 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Walk function expression.
 	 * @param {FunctionExpression} expression arrow function expression
 	 */
 	walkFunctionExpression(expression) {
 		const wasTopLevel = this.scope.topLevelScope;
 		this.scope.topLevelScope = false;
-		const scopeParams = [...expression.params];
+		// Only copy params when the function name must be added (recursive calls);
+		// inFunctionScope reads params without mutating, like arrow functions.
+		const scopeParams = expression.id
+			? [...expression.params, expression.id]
+			: expression.params;
 
-		// Add function name in scope for recursive calls
-		if (expression.id) {
-			scopeParams.push(expression.id);
+		if (this._strictInModuleOutput) {
+			this._checkStrictModeParams(expression.params);
 		}
-
 		this.inFunctionScope(true, scopeParams, () => {
 			for (const param of expression.params) {
 				this.walkPattern(param);
@@ -3301,11 +3843,15 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Walk arrow function expression.
 	 * @param {ArrowFunctionExpression} expression arrow function expression
 	 */
 	walkArrowFunctionExpression(expression) {
 		const wasTopLevel = this.scope.topLevelScope;
 		this.scope.topLevelScope = wasTopLevel ? "arrow" : false;
+		if (this._strictInModuleOutput) {
+			this._checkStrictModeParams(expression.params);
+		}
 		this.inFunctionScope(false, expression.params, () => {
 			for (const param of expression.params) {
 				this.walkPattern(param);
@@ -3324,6 +3870,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Walk sequence expression.
 	 * @param {SequenceExpression} expression the sequence
 	 */
 	walkSequenceExpression(expression) {
@@ -3362,13 +3909,90 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Walk update expression.
 	 * @param {UpdateExpression} expression the update expression
 	 */
 	walkUpdateExpression(expression) {
+		if (
+			this._strictInModuleOutput &&
+			expression.argument.type === "Identifier"
+		) {
+			this._checkStrictModeAssignTarget(expression.argument.name, expression);
+		}
 		this.walkExpression(expression.argument);
 	}
 
 	/**
+	 * Reports `arguments.callee` / `arguments.caller` — both throw a TypeError
+	 * once the module runs in strict-mode ESM output.
+	 * @param {string} name accessed member name
+	 * @param {Expression} node node to report the violation at
+	 */
+	_checkStrictModeArgumentsMember(name, node) {
+		if ((name === "callee" || name === "caller") && !this.scope.isStrict) {
+			this._reportStrictModeViolation(
+				`Accessing "arguments.${name}" is not allowed`,
+				node
+			);
+		}
+	}
+
+	/**
+	 * Reports an assignment or update target that breaks in strict-mode ESM
+	 * output: `eval` / `arguments` are a SyntaxError, the read-only globals
+	 * (`undefined`, `NaN`, `Infinity`) a TypeError instead of a silent no-op.
+	 * @param {string} name target identifier name
+	 * @param {AssignmentExpression | UpdateExpression} node node to report the violation at
+	 */
+	_checkStrictModeAssignTarget(name, node) {
+		if (name === "eval" || name === "arguments") {
+			this._reportStrictModeViolation(
+				`Assigning to "${name}" is not allowed`,
+				node
+			);
+		} else if (
+			(name === "undefined" || name === "NaN" || name === "Infinity") &&
+			!this.scope.isStrict &&
+			!this.isVariableDefined(name)
+		) {
+			this._reportStrictModeViolation(
+				`Assigning to the read-only global "${name}" is not allowed`,
+				node
+			);
+		}
+	}
+
+	/**
+	 * Reports strict-mode-only errors in a function's parameter list: a duplicate
+	 * simple parameter, or a parameter named `eval` / `arguments`.
+	 * @param {(import("estree").Pattern)[]} params function parameters
+	 */
+	_checkStrictModeParams(params) {
+		/** @type {Set<string> | undefined} */
+		let seen;
+		for (const param of params) {
+			if (param.type !== "Identifier") continue;
+			const name = param.name;
+			if (name === "eval" || name === "arguments") {
+				this._reportStrictModeViolation(
+					`"${name}" is not allowed as a parameter name`,
+					param
+				);
+			}
+			if (seen === undefined) seen = new Set();
+			if (seen.has(name)) {
+				this._reportStrictModeViolation(
+					`Duplicate parameter name "${name}" is not allowed`,
+					param
+				);
+			} else {
+				seen.add(name);
+			}
+		}
+	}
+
+	/**
+	 * Walk unary expression.
 	 * @param {UnaryExpression} expression the unary expression
 	 */
 	walkUnaryExpression(expression) {
@@ -3387,11 +4011,41 @@ class JavascriptParser extends Parser {
 				);
 				if (result === true) return;
 			}
+		} else if (
+			this._strictInModuleOutput &&
+			expression.operator === "delete" &&
+			expression.argument.type === "Identifier"
+		) {
+			this._reportStrictModeViolation(
+				`Deleting the unqualified identifier "${expression.argument.name}" is not allowed`,
+				expression
+			);
 		}
 		this.walkExpression(expression.argument);
 	}
 
 	/**
+	 * Reports a construct that a loose script allows but that breaks once the
+	 * module is emitted as strict-mode ESM output. Severity comes from the
+	 * `strictModeViolations` parser option (`false` disables the checks upfront).
+	 * The location is computed here, on the rare violation path only.
+	 * @param {string} reason what is not allowed
+	 * @param {Statement | Expression | Identifier} node node to report the violation at
+	 */
+	_reportStrictModeViolation(reason, node) {
+		const diagnostic = new WebpackError(
+			`${reason}. The output is an ES module, which runs in strict mode.`
+		);
+		diagnostic.loc = this.getLocation(node);
+		if (this.options.strictModeViolations === "error") {
+			this.state.module.addError(diagnostic);
+		} else {
+			this.state.module.addWarning(diagnostic);
+		}
+	}
+
+	/**
+	 * Walk left right expression.
 	 * @param {LogicalExpression | BinaryExpression} expression the expression
 	 */
 	walkLeftRightExpression(expression) {
@@ -3400,6 +4054,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Walk binary expression.
 	 * @param {BinaryExpression} expression the binary expression
 	 */
 	walkBinaryExpression(expression) {
@@ -3409,6 +4064,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Walk logical expression.
 	 * @param {LogicalExpression} expression the logical expression
 	 */
 	walkLogicalExpression(expression) {
@@ -3421,10 +4077,14 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Walk assignment expression.
 	 * @param {AssignmentExpression} expression assignment expression
 	 */
 	walkAssignmentExpression(expression) {
 		if (expression.left.type === "Identifier") {
+			if (this._strictInModuleOutput) {
+				this._checkStrictModeAssignTarget(expression.left.name, expression);
+			}
 			const renameIdentifier = this.getRenameIdentifier(expression.right);
 			if (
 				renameIdentifier &&
@@ -3452,7 +4112,7 @@ class JavascriptParser extends Parser {
 				return;
 			}
 			this.walkExpression(expression.right);
-			this.enterPattern(expression.left, (name, decl) => {
+			this.enterPattern(expression.left, (name, _decl) => {
 				if (!this.callHooksForName(this.hooks.assign, name, expression)) {
 					this.walkExpression(
 						/** @type {MemberExpression} */
@@ -3462,7 +4122,7 @@ class JavascriptParser extends Parser {
 			});
 		} else if (expression.left.type.endsWith("Pattern")) {
 			this.walkExpression(expression.right);
-			this.enterPattern(expression.left, (name, decl) => {
+			this.enterPattern(expression.left, (name, _decl) => {
 				if (!this.callHooksForName(this.hooks.assign, name, expression)) {
 					this.defineVariable(name);
 				}
@@ -3496,16 +4156,23 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Walk conditional expression.
 	 * @param {ConditionalExpression} expression conditional expression
 	 */
 	walkConditionalExpression(expression) {
 		const result = this.hooks.expressionConditionalOperator.call(expression);
 		if (result === undefined) {
+			const guard = this.hooks.collectGuards.call(expression.test);
 			this.walkExpression(expression.test);
-			this.walkExpression(expression.consequent);
+			this.walkGuardedBranch(guard ? guard.consequent : undefined, () =>
+				this.walkExpression(expression.consequent)
+			);
 
 			if (expression.alternate) {
-				this.walkExpression(expression.alternate);
+				const alternate = expression.alternate;
+				this.walkGuardedBranch(guard ? guard.alternate : undefined, () =>
+					this.walkExpression(alternate)
+				);
 			}
 		} else if (result) {
 			this.walkExpression(expression.consequent);
@@ -3515,6 +4182,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Walk new expression.
 	 * @param {NewExpression} expression new expression
 	 */
 	walkNewExpression(expression) {
@@ -3531,6 +4199,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Walk yield expression.
 	 * @param {YieldExpression} expression yield expression
 	 */
 	walkYieldExpression(expression) {
@@ -3540,6 +4209,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Walk template literal.
 	 * @param {TemplateLiteral} expression template literal
 	 */
 	walkTemplateLiteral(expression) {
@@ -3549,6 +4219,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Walk tagged template expression.
 	 * @param {TaggedTemplateExpression} expression tagged template expression
 	 */
 	walkTaggedTemplateExpression(expression) {
@@ -3563,6 +4234,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Walk class expression.
 	 * @param {ClassExpression} expression the class expression
 	 */
 	walkClassExpression(expression) {
@@ -3570,6 +4242,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Walk chain expression.
 	 * @param {ChainExpression} expression expression
 	 */
 	walkChainExpression(expression) {
@@ -3585,6 +4258,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Processes the provided function expression.
 	 * @private
 	 * @param {FunctionExpression | ArrowFunctionExpression} functionExpression function expression
 	 * @param {(Expression | SpreadElement)[]} options options
@@ -3592,10 +4266,11 @@ class JavascriptParser extends Parser {
 	 */
 	_walkIIFE(functionExpression, options, currentThis) {
 		/**
+		 * Returns var info.
 		 * @param {Expression | SpreadElement} argOrThis arg or this
 		 * @returns {string | VariableInfo | undefined} var info
 		 */
-		const getVarInfo = argOrThis => {
+		const getVarInfo = (argOrThis) => {
 			const renameIdentifier = this.getRenameIdentifier(argOrThis);
 			if (
 				renameIdentifier &&
@@ -3660,6 +4335,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Walk import expression.
 	 * @param {ImportExpression} expression import expression
 	 */
 	walkImportExpression(expression) {
@@ -3670,18 +4346,13 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Walk call expression.
 	 * @param {CallExpression} expression expression
 	 */
 	walkCallExpression(expression) {
-		/**
-		 * @param {FunctionExpression | ArrowFunctionExpression} fn function
-		 * @returns {boolean} true when simple function
-		 */
-		const isSimpleFunction = fn =>
-			fn.params.every(p => p.type === "Identifier");
 		if (
 			expression.callee.type === "MemberExpression" &&
-			expression.callee.object.type.endsWith("FunctionExpression") &&
+			isFunctionExpression(expression.callee.object.type) &&
 			!expression.callee.computed &&
 			/** @type {boolean} */
 			(
@@ -3704,7 +4375,7 @@ class JavascriptParser extends Parser {
 				expression.arguments[0]
 			);
 		} else if (
-			expression.callee.type.endsWith("FunctionExpression") &&
+			isFunctionExpression(expression.callee.type) &&
 			isSimpleFunction(
 				/** @type {FunctionExpression | ArrowFunctionExpression} */
 				(expression.callee)
@@ -3719,36 +4390,70 @@ class JavascriptParser extends Parser {
 			);
 		} else {
 			if (expression.callee.type === "MemberExpression") {
-				const exprInfo = this.getMemberExpressionInfo(
-					expression.callee,
-					ALLOWED_MEMBER_TYPES_CALL_EXPRESSION
-				);
-				if (exprInfo && exprInfo.type === "call") {
-					const result = this.callHooksForInfo(
-						this.hooks.callMemberChainOfCallMemberChain,
-						exprInfo.rootInfo,
-						expression,
-						exprInfo.getCalleeMembers(),
-						exprInfo.call,
-						exprInfo.getMembers(),
-						exprInfo.getMemberRanges()
+				// callMemberChainOfCallMemberChain only applies to call-rooted
+				// chains (e.g. `a().b()`); for the common identifier/this-rooted
+				// callee the CALL lookup always rejects, so gate on the cheap root.
+				if (
+					this.getMemberExpressionRoot(expression.callee).type ===
+					"CallExpression"
+				) {
+					const exprInfo = this.getMemberExpressionInfo(
+						expression.callee,
+						ALLOWED_MEMBER_TYPES_CALL_EXPRESSION
+					);
+					if (exprInfo && exprInfo.type === "call") {
+						const result = this.callHooksForInfo(
+							this.hooks.callMemberChainOfCallMemberChain,
+							exprInfo.rootInfo,
+							expression,
+							exprInfo.getCalleeMembers(),
+							exprInfo.call,
+							exprInfo.getMembers(),
+							exprInfo.getMemberRanges()
+						);
+						if (result === true) return;
+					}
+				}
+				// import("./m").then(m => { ... })
+				if (
+					expression.callee.object.type === "ImportExpression" &&
+					expression.callee.property.type === "Identifier" &&
+					expression.callee.property.name === "then"
+				) {
+					const result = this.hooks.importCall.call(
+						expression.callee.object,
+						expression
 					);
 					if (result === true) return;
 				}
 			}
+			if (
+				expression.callee.type === "Identifier" &&
+				this._evalIdentOwnTaps &&
+				expression.callee.name !== "undefined" &&
+				this._isDefinedPlainVariable(expression.callee.name)
+			) {
+				// a defined, untagged callee can only evaluate to the fallthrough
+				// result, so no call hooks apply — walk callee and arguments
+				// directly, skipping the hook dispatch and its result object
+				this.walkExpression(expression.callee);
+				if (expression.arguments) this.walkExpressions(expression.arguments);
+				return;
+			}
 			const callee = this.evaluateExpression(expression.callee);
 			if (callee.isIdentifier()) {
+				const members =
+					/** @type {NonNullable<BasicEvaluatedExpression["getMembers"]>} */
+					(callee.getMembers)();
 				const result1 = this.callHooksForInfo(
 					this.hooks.callMemberChain,
 					/** @type {NonNullable<BasicEvaluatedExpression["rootInfo"]>} */
 					(callee.rootInfo),
 					expression,
-					/** @type {NonNullable<BasicEvaluatedExpression["getMembers"]>} */
-					(callee.getMembers)(),
+					members,
 					callee.getMembersOptionals
 						? callee.getMembersOptionals()
-						: /** @type {NonNullable<BasicEvaluatedExpression["getMembers"]>} */
-							(callee.getMembers)().map(() => false),
+						: members.map(RETURN_FALSE),
 					callee.getMemberRanges ? callee.getMemberRanges() : []
 				);
 				if (result1 === true) return;
@@ -3765,8 +4470,9 @@ class JavascriptParser extends Parser {
 				if (expression.callee.type === "MemberExpression") {
 					// because of call context we need to walk the call context as expression
 					this.walkExpression(expression.callee.object);
-					if (expression.callee.computed === true)
+					if (expression.callee.computed === true) {
 						this.walkExpression(expression.callee.property);
+					}
 				} else {
 					this.walkExpression(expression.callee);
 				}
@@ -3776,6 +4482,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Walk member expression.
 	 * @param {MemberExpression} expression member expression
 	 */
 	walkMemberExpression(expression) {
@@ -3808,7 +4515,7 @@ class JavascriptParser extends Parser {
 						expression,
 						exprInfo.name,
 						exprInfo.rootInfo,
-						members.slice(),
+						[...members],
 						() =>
 							this.callHooksForInfo(
 								this.hooks.unhandledExpressionMemberChain,
@@ -3842,11 +4549,12 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Walk member expression with expression name.
 	 * @template R
 	 * @param {MemberExpression} expression member expression
 	 * @param {string} name name
 	 * @param {string | VariableInfo} rootInfo root info
-	 * @param {string[]} members members
+	 * @param {Members} members members
 	 * @param {() => R | undefined} onUnhandled on unhandled callback
 	 */
 	walkMemberExpressionWithExpressionName(
@@ -3859,10 +4567,10 @@ class JavascriptParser extends Parser {
 		if (expression.object.type === "MemberExpression") {
 			// optimize the case where expression.object is a MemberExpression too.
 			// we can keep info here when calling walkMemberExpression directly
-			const property =
-				/** @type {Identifier} */
-				(expression.property).name ||
-				`${/** @type {Literal} */ (expression.property).value}`;
+			// Read the property from `members` (already extracted by
+			// extractMemberExpressionChain) since the AST node may be a
+			// TemplateLiteral, which has neither .name nor .value.
+			const property = members[members.length - 1];
 			name = name.slice(0, -property.length - 1);
 			members.pop();
 			const result = this.callHooksForInfo(
@@ -3885,6 +4593,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Walk this expression.
 	 * @param {ThisExpression} expression this expression
 	 */
 	walkThisExpression(expression) {
@@ -3892,6 +4601,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Processes the provided expression.
 	 * @param {Identifier} expression identifier
 	 */
 	walkIdentifier(expression) {
@@ -3899,6 +4609,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Walk meta property.
 	 * @param {MetaProperty} metaProperty meta property
 	 */
 	walkMetaProperty(metaProperty) {
@@ -3906,6 +4617,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Call hooks for expression.
 	 * @template T
 	 * @template R
 	 * @param {HookMap<SyncBailHook<T, R>>} hookMap hooks the should be called
@@ -3924,11 +4636,12 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Call hooks for expression with fallback.
 	 * @template T
 	 * @template R
 	 * @param {HookMap<SyncBailHook<T, R>>} hookMap hooks the should be called
 	 * @param {Expression | Super} expr expression info
-	 * @param {((name: string, rootInfo: string | ScopeInfo | VariableInfo, getMembers: () => string[]) => TODO) | undefined} fallback callback when variable in not handled by hooks
+	 * @param {((name: string, rootInfo: string | ScopeInfo | VariableInfo, getMembers: () => Members) => R) | undefined} fallback callback when variable in not handled by hooks
 	 * @param {((result?: string) => R | undefined) | undefined} defined callback when variable is defined
 	 * @param {AsArray<T>} args args for the hook
 	 * @returns {R | undefined} result of hook
@@ -3950,7 +4663,7 @@ class JavascriptParser extends Parser {
 				hookMap,
 				members.length === 0 ? exprName.rootInfo : exprName.name,
 				fallback &&
-					(name => fallback(name, exprName.rootInfo, exprName.getMembers)),
+					((name) => fallback(name, exprName.rootInfo, exprName.getMembers)),
 				defined && (() => defined(exprName.name)),
 				...args
 			);
@@ -3958,6 +4671,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Call hooks for name.
 	 * @template T
 	 * @template R
 	 * @param {HookMap<SyncBailHook<T, R>>} hookMap hooks the should be called
@@ -3966,16 +4680,17 @@ class JavascriptParser extends Parser {
 	 * @returns {R | undefined} result of hook
 	 */
 	callHooksForName(hookMap, name, ...args) {
-		return this.callHooksForNameWithFallback(
+		return this._callHooksForInfo(
 			hookMap,
-			name,
+			this.getVariableInfo(name),
 			undefined,
 			undefined,
-			...args
+			args
 		);
 	}
 
 	/**
+	 * Call hooks for info.
 	 * @template T
 	 * @template R
 	 * @param {HookMap<SyncBailHook<T, R>>} hookMap hooks that should be called
@@ -3984,26 +4699,39 @@ class JavascriptParser extends Parser {
 	 * @returns {R | undefined} result of hook
 	 */
 	callHooksForInfo(hookMap, info, ...args) {
-		return this.callHooksForInfoWithFallback(
-			hookMap,
-			info,
-			undefined,
-			undefined,
-			...args
-		);
+		return this._callHooksForInfo(hookMap, info, undefined, undefined, args);
 	}
 
 	/**
+	 * Call hooks for info with fallback.
 	 * @template T
 	 * @template R
 	 * @param {HookMap<SyncBailHook<T, R>>} hookMap hooks the should be called
 	 * @param {ExportedVariableInfo} info variable info
-	 * @param {((name: string) => TODO) | undefined} fallback callback when variable in not handled by hooks
-	 * @param {((result?: string) => TODO) | undefined} defined callback when variable is defined
+	 * @param {((name: string) => R | undefined) | undefined} fallback callback when variable in not handled by hooks
+	 * @param {((result?: string) => R | undefined) | undefined} defined callback when variable is defined
 	 * @param {AsArray<T>} args args for the hook
 	 * @returns {R | undefined} result of hook
 	 */
 	callHooksForInfoWithFallback(hookMap, info, fallback, defined, ...args) {
+		return this._callHooksForInfo(hookMap, info, fallback, defined, args);
+	}
+
+	/**
+	 * Shared core for the callHooksFor* helpers. Takes `args` as an already
+	 * collected array so the public wrappers each allocate it once instead of
+	 * re-collecting it through several rest-parameter layers (hot per identifier).
+	 * @template T
+	 * @template R
+	 * @param {HookMap<SyncBailHook<T, R>>} hookMap hooks that should be called
+	 * @param {ExportedVariableInfo} info variable info
+	 * @param {((name: string) => R | undefined) | undefined} fallback callback when variable is not handled by hooks
+	 * @param {((result?: string) => R | undefined) | undefined} defined callback when variable is defined
+	 * @param {AsArray<T>} args args for the hook
+	 * @returns {R | undefined} result of hook
+	 */
+	_callHooksForInfo(hookMap, info, fallback, defined, args) {
+		/** @type {string} */
 		let name;
 		if (typeof info === "string") {
 			name = info;
@@ -4025,13 +4753,13 @@ class JavascriptParser extends Parser {
 				}
 				tagInfo = tagInfo.next;
 			}
-			if (info.freeName === true) {
+			if (!info.isFree() && !info.isTagged()) {
 				if (defined !== undefined) {
 					return defined();
 				}
 				return;
 			}
-			name = info.freeName;
+			name = /** @type {string} */ (info.name);
 		}
 		const hook = hookMap.get(name);
 		if (hook !== undefined) {
@@ -4039,11 +4767,12 @@ class JavascriptParser extends Parser {
 			if (result !== undefined) return result;
 		}
 		if (fallback !== undefined) {
-			return fallback(/** @type {string} */ (name));
+			return fallback(name);
 		}
 	}
 
 	/**
+	 * Call hooks for name with fallback.
 	 * @template T
 	 * @template R
 	 * @param {HookMap<SyncBailHook<T, R>>} hookMap hooks the should be called
@@ -4054,16 +4783,17 @@ class JavascriptParser extends Parser {
 	 * @returns {R | undefined} result of hook
 	 */
 	callHooksForNameWithFallback(hookMap, name, fallback, defined, ...args) {
-		return this.callHooksForInfoWithFallback(
+		return this._callHooksForInfo(
 			hookMap,
 			this.getVariableInfo(name),
 			fallback,
 			defined,
-			...args
+			args
 		);
 	}
 
 	/**
+	 * Processes the provided param.
 	 * @deprecated
 	 * @param {(string | Pattern | Property)[]} params scope params
 	 * @param {() => void} fn inner function
@@ -4084,9 +4814,7 @@ class JavascriptParser extends Parser {
 
 		this.undefineVariable("this");
 
-		this.enterPatterns(params, ident => {
-			this.defineVariable(ident);
-		});
+		this.enterPatterns(params, this._defineVariable);
 
 		fn();
 
@@ -4094,6 +4822,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Processes the provided has thi.
 	 * @param {boolean} hasThis true, when this is defined
 	 * @param {Identifier[]} params scope params
 	 * @param {() => void} fn inner function
@@ -4116,9 +4845,7 @@ class JavascriptParser extends Parser {
 			this.undefineVariable("this");
 		}
 
-		this.enterPatterns(params, ident => {
-			this.defineVariable(ident);
-		});
+		this.enterPatterns(params, this._defineVariable);
 
 		fn();
 
@@ -4126,6 +4853,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Processes the provided has thi.
 	 * @param {boolean} hasThis true, when this is defined
 	 * @param {(Pattern | string)[]} params scope params
 	 * @param {() => void} fn inner function
@@ -4148,9 +4876,7 @@ class JavascriptParser extends Parser {
 			this.undefineVariable("this");
 		}
 
-		this.enterPatterns(params, ident => {
-			this.defineVariable(ident);
-		});
+		this.enterPatterns(params, this._defineVariable);
 
 		fn();
 
@@ -4158,6 +4884,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Processes the provided fn.
 	 * @param {() => void} fn inner function
 	 * @param {boolean} inExecutedPath executed state
 	 * @returns {void}
@@ -4187,37 +4914,34 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
-	 * @param {Array<Directive | Statement | ModuleDeclaration>} statements statements
+	 * Processes the provided statement.
+	 * @param {(Directive | Statement | ModuleDeclaration)[]} statements statements
 	 */
 	detectMode(statements) {
-		const isLiteral =
-			statements.length >= 1 &&
-			statements[0].type === "ExpressionStatement" &&
-			statements[0].expression.type === "Literal";
+		const statement = statements.length >= 1 ? statements[0] : undefined;
 		if (
-			isLiteral &&
-			/** @type {Literal} */
-			(/** @type {ExpressionStatement} */ (statements[0]).expression).value ===
-				"use strict"
+			statement === undefined ||
+			statement.type !== "ExpressionStatement" ||
+			statement.expression.type !== "Literal"
 		) {
-			this.scope.isStrict = true;
+			return;
 		}
-		if (
-			isLiteral &&
-			/** @type {Literal} */
-			(/** @type {ExpressionStatement} */ (statements[0]).expression).value ===
-				"use asm"
-		) {
+		const value = /** @type {Literal} */ (statement.expression).value;
+		if (value === "use strict") {
+			this.scope.isStrict = true;
+		} else if (value === "use asm") {
 			this.scope.isAsmJs = true;
 		}
 	}
 
 	/**
+	 * Processes the provided pattern.
 	 * @param {(string | Pattern | Property)[]} patterns patterns
 	 * @param {OnIdentString} onIdent on ident callback
 	 */
 	enterPatterns(patterns, onIdent) {
-		for (const pattern of patterns) {
+		for (let i = 0, len = patterns.length; i < len; i++) {
+			const pattern = patterns[i];
 			if (typeof pattern !== "string") {
 				this.enterPattern(pattern, onIdent);
 			} else if (pattern) {
@@ -4227,26 +4951,19 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Processes the provided pattern.
 	 * @param {Pattern | Property} pattern pattern
 	 * @param {OnIdent} onIdent on ident callback
 	 */
 	enterPattern(pattern, onIdent) {
 		if (!pattern) return;
+		// plain identifiers dominate bindings, so match them first
 		switch (pattern.type) {
-			case "ArrayPattern":
-				this.enterArrayPattern(pattern, onIdent);
-				break;
-			case "AssignmentPattern":
-				this.enterAssignmentPattern(pattern, onIdent);
-				break;
 			case "Identifier":
 				this.enterIdentifier(pattern, onIdent);
 				break;
 			case "ObjectPattern":
 				this.enterObjectPattern(pattern, onIdent);
-				break;
-			case "RestElement":
-				this.enterRestElement(pattern, onIdent);
 				break;
 			case "Property":
 				if (pattern.shorthand && pattern.value.type === "Identifier") {
@@ -4257,10 +4974,20 @@ class JavascriptParser extends Parser {
 					this.enterPattern(/** @type {Pattern} */ (pattern.value), onIdent);
 				}
 				break;
+			case "ArrayPattern":
+				this.enterArrayPattern(pattern, onIdent);
+				break;
+			case "AssignmentPattern":
+				this.enterAssignmentPattern(pattern, onIdent);
+				break;
+			case "RestElement":
+				this.enterRestElement(pattern, onIdent);
+				break;
 		}
 	}
 
 	/**
+	 * Processes the provided pattern.
 	 * @param {Identifier} pattern identifier pattern
 	 * @param {OnIdent} onIdent callback
 	 */
@@ -4271,6 +4998,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Enter object pattern.
 	 * @param {ObjectPattern} pattern object pattern
 	 * @param {OnIdent} onIdent callback
 	 */
@@ -4286,6 +5014,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Enter array pattern.
 	 * @param {ArrayPattern} pattern object pattern
 	 * @param {OnIdent} onIdent callback
 	 */
@@ -4304,6 +5033,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Enter rest element.
 	 * @param {RestElement} pattern object pattern
 	 * @param {OnIdent} onIdent callback
 	 */
@@ -4312,6 +5042,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Enter assignment pattern.
 	 * @param {AssignmentPattern} pattern object pattern
 	 * @param {OnIdent} onIdent callback
 	 */
@@ -4320,6 +5051,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Evaluate expression.
 	 * @param {Expression | SpreadElement | PrivateIdentifier | Super} expression expression node
 	 * @returns {BasicEvaluatedExpression} evaluation result
 	 */
@@ -4338,12 +5070,13 @@ class JavascriptParser extends Parser {
 			console.warn(err);
 			// ignore error
 		}
-		return new BasicEvaluatedExpression()
-			.setRange(/** @type {Range} */ (expression.range))
-			.setExpression(expression);
+		// no setRange: the range is served lazily from the expression on first
+		// read, so plain results don't materialize the node's range array at all
+		return new BasicEvaluatedExpression().setExpression(expression);
 	}
 
 	/**
+	 * Returns parsed string.
 	 * @param {Expression} expression expression
 	 * @returns {string} parsed string
 	 */
@@ -4365,9 +5098,12 @@ class JavascriptParser extends Parser {
 		);
 	}
 
+	/** @typedef {{ range?: Range, value: string, code: boolean, conditional: false | CalculatedStringResult[] }} CalculatedStringResult */
+
 	/**
+	 * Parses calculated string.
 	 * @param {Expression} expression expression
-	 * @returns {{ range?: Range, value: string, code: boolean, conditional: boolean | TODO }} result
+	 * @returns {CalculatedStringResult} result
 	 */
 	parseCalculatedString(expression) {
 		switch (expression.type) {
@@ -4415,6 +5151,7 @@ class JavascriptParser extends Parser {
 			case "ConditionalExpression": {
 				const consequent = this.parseCalculatedString(expression.consequent);
 				const alternate = this.parseCalculatedString(expression.alternate);
+				/** @type {CalculatedStringResult[]} */
 				const items = [];
 				if (consequent.conditional) {
 					items.push(...consequent.conditional);
@@ -4454,38 +5191,44 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Parses the provided source and updates the parser state.
 	 * @param {string | Buffer | PreparsedAst} source the source to parse
 	 * @param {ParserState} state the parser state
 	 * @returns {ParserState} the parser state
 	 */
 	parse(source, state) {
-		let ast;
-		/** @type {import("acorn").Comment[]} */
-		let comments;
-		const semicolons = new Set();
 		if (source === null) {
 			throw new Error("source must not be null");
 		}
+
 		if (Buffer.isBuffer(source)) {
-			source = source.toString("utf-8");
+			source = source.toString("utf8");
+			// Keep `state.source` as a string so downstream walkers can read
+			// the original text without re-decoding the Buffer on every use.
+			state.source = source;
 		}
+
+		let ast;
+		/** @type {Comment[]} */
+		let comments;
+
 		if (typeof source === "object") {
 			ast = /** @type {Program} */ (source);
 			comments = source.comments;
-			if (source.semicolons) {
-				// Forward semicolon information from the preparsed AST if present
-				// This ensures the output is consistent with that of a fresh AST
-				for (const pos of source.semicolons) {
-					semicolons.add(pos);
-				}
-			}
 		} else {
-			comments = [];
-			ast = JavascriptParser._parse(source, {
-				sourceType: this.sourceType,
-				onComment: comments,
-				onInsertedSemicolon: pos => semicolons.add(pos)
-			});
+			({ ast, comments } = JavascriptParser._parse(
+				source,
+				{
+					sourceType: this.sourceType,
+					// line/column locations are derived from node offsets via
+					// getLocation — parsers never need to track them
+					locations: false,
+					ranges: true,
+					comments: true,
+					importPhases: this.options.importPhases === true
+				},
+				this.options.parse
+			));
 		}
 
 		const oldScope = this.scope;
@@ -4494,6 +5237,18 @@ class JavascriptParser extends Parser {
 		const oldSemicolons = this.semicolons;
 		const oldStatementPath = this.statementPath;
 		const oldPrevStatement = this.prevStatement;
+		const oldStrictInModuleOutput = this._strictInModuleOutput;
+		const oldSource = this._source;
+		const oldLineStarts = this._lineStarts;
+		// a preparsed AST carries no text, but the build passes the module
+		// source in the state — offsets still map for it
+		this._source =
+			typeof source === "string"
+				? source
+				: typeof state.source === "string"
+					? state.source
+					: undefined;
+		this._lineStarts = undefined;
 		this.scope = {
 			topLevelScope: true,
 			inTry: false,
@@ -4504,14 +5259,36 @@ class JavascriptParser extends Parser {
 			terminated: undefined,
 			definitions: new StackedMap()
 		};
-		this.state = /** @type {ParserState} */ (state);
+		this.state = state;
 		this.comments = comments;
-		this.semicolons = semicolons;
+		this.semicolons = undefined;
+		// evaluating a defined, untagged identifier can only fall through when
+		// every `evaluate.for("Identifier")` tap is the parser's own — plugins
+		// tapping or intercepting it disable the callee/rename fast paths
+		const identifierEvalHook = this.hooks.evaluate.get("Identifier");
+		this._evalIdentOwnTaps =
+			identifierEvalHook !== undefined &&
+			identifierEvalHook.interceptors.length === 0 &&
+			identifierEvalHook.taps.every((tap) => tap.name === CLASS_NAME);
 		this.statementPath = [];
 		this.prevStatement = undefined;
+		// The output is emitted as strict-mode ESM, but this module was parsed as
+		// a loose script — acorn skipped the strict early errors that will break
+		// the bundle at runtime. Enables the strict-mode diagnostics below.
+		this._strictInModuleOutput =
+			this.options.strictModeViolations !== false &&
+			state.compilation !== undefined &&
+			state.compilation.runtimeTemplate.isModule();
 		if (this.hooks.program.call(ast, comments) === undefined) {
 			this.destructuringAssignmentProperties = new WeakMap();
 			this.detectMode(ast.body);
+			// a strict program (ESM source, `"use strict"`) keeps its behavior in
+			// strict output — drop the flag so the walk pays no per-node checks
+			if (this._strictInModuleOutput && this.scope.isStrict) {
+				this._strictInModuleOutput = false;
+			}
+			this.modulePreWalkStatements(ast.body);
+			this.prevStatement = undefined;
 			this.preWalkStatements(ast.body);
 			this.prevStatement = undefined;
 			this.blockPreWalkStatements(ast.body);
@@ -4526,18 +5303,54 @@ class JavascriptParser extends Parser {
 		this.semicolons = oldSemicolons;
 		this.statementPath = oldStatementPath;
 		this.prevStatement = oldPrevStatement;
+		this._strictInModuleOutput = oldStrictInModuleOutput;
+		// release — these retain the whole source string and its line table
+		this._source = oldSource;
+		this._lineStarts = oldLineStarts;
 		return state;
 	}
 
 	/**
+	 * Returns evaluation result.
 	 * @param {string} source source code
 	 * @returns {BasicEvaluatedExpression} evaluation result
 	 */
 	evaluate(source) {
-		const ast = JavascriptParser._parse(`(${source})`, {
-			sourceType: this.sourceType,
-			locations: false
-		});
+		const importPhases = this.options.importPhases === true;
+		const compilation = this.state && this.state.compilation;
+		/** @type {Map<string, Program> | undefined} */
+		let cache;
+		// custom parse functions are not necessarily pure, do not cache for them
+		if (compilation !== undefined && typeof this.options.parse !== "function") {
+			cache = evaluateAstCaches.get(compilation);
+			if (cache === undefined) {
+				cache = new Map();
+				evaluateAstCaches.set(compilation, cache);
+			}
+		}
+		const cacheKey =
+			cache === undefined
+				? undefined
+				: `${this.sourceType}|${importPhases}|${source}`;
+		let ast =
+			cacheKey === undefined
+				? undefined
+				: /** @type {Map<string, Program>} */ (cache).get(cacheKey);
+		if (ast === undefined) {
+			({ ast } = JavascriptParser._parse(
+				`(${source})`,
+				{
+					sourceType: this.sourceType,
+					importPhases
+				},
+				this.options.parse
+			));
+			if (cacheKey !== undefined) {
+				const map = /** @type {Map<string, Program>} */ (cache);
+				if (map.size >= EVALUATE_AST_CACHE_LIMIT) map.clear();
+				map.set(cacheKey, ast);
+			}
+		}
 		if (ast.body.length !== 1 || ast.body[0].type !== "ExpressionStatement") {
 			throw new Error("evaluate: Source is not a expression");
 		}
@@ -4545,6 +5358,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Checks whether this javascript parser is pure.
 	 * @param {Expression | Declaration | PrivateIdentifier | MaybeNamedFunctionDeclaration | MaybeNamedClassDeclaration | null | undefined} expr an expression
 	 * @param {number} commentsStartPos source position from which annotation comments are checked
 	 * @returns {boolean} true, when the expression is pure
@@ -4556,7 +5370,6 @@ class JavascriptParser extends Parser {
 			.call(expr, commentsStartPos);
 		if (typeof result === "boolean") return result;
 		switch (expr.type) {
-			// TODO handle more cases
 			case "ClassDeclaration":
 			case "ClassExpression": {
 				if (expr.body.type !== "ClassBody") return false;
@@ -4566,14 +5379,20 @@ class JavascriptParser extends Parser {
 				) {
 					return false;
 				}
-				const items =
-					/** @type {TODO[]} */
-					(expr.body.body);
-				return items.every(item => {
+				const items = expr.body.body;
+				return items.every((item) => {
+					if (item.type === "StaticBlock") {
+						return false;
+					}
+
 					if (
 						item.computed &&
 						item.key &&
-						!this.isPure(item.key, item.range[0])
+						!this.isPure(
+							item.key,
+							/** @type {Range} */
+							(item.range)[0]
+						)
 					) {
 						return false;
 					}
@@ -4583,13 +5402,11 @@ class JavascriptParser extends Parser {
 						item.value &&
 						!this.isPure(
 							item.value,
-							item.key ? item.key.range[1] : item.range[0]
+							item.key
+								? /** @type {Range} */ (item.key.range)[1]
+								: /** @type {Range} */ (item.range)[0]
 						)
 					) {
-						return false;
-					}
-
-					if (item.type === "StaticBlock") {
 						return false;
 					}
 
@@ -4604,21 +5421,101 @@ class JavascriptParser extends Parser {
 					return true;
 				});
 			}
-
+			case "TemplateLiteral":
+				// Thread `commentsStartPos` through the interpolations so a
+				// /*#__PURE__*/ comment that sits inside `${ ... }` (or before
+				// the first interpolation) is part of the scanned range when
+				// the inner expression's purity is evaluated.
+				return expr.expressions.every((e) => {
+					const pureFlag = this.isPure(e, commentsStartPos);
+					commentsStartPos = /** @type {Range} */ (e.range)[1];
+					return pureFlag;
+				});
 			case "FunctionDeclaration":
 			case "FunctionExpression":
 			case "ArrowFunctionExpression":
 			case "ThisExpression":
 			case "Literal":
-			case "TemplateLiteral":
 			case "Identifier":
 			case "PrivateIdentifier":
 				return true;
 
 			case "VariableDeclaration":
-				return expr.declarations.every(decl =>
+				return expr.declarations.every((decl) =>
 					this.isPure(decl.init, /** @type {Range} */ (decl.range)[0])
 				);
+
+			case "ArrayExpression":
+				return expr.elements.every((element) => {
+					if (element === null) return true;
+					if (element.type === "SpreadElement") return false;
+					const pureFlag = this.isPure(element, commentsStartPos);
+					commentsStartPos = /** @type {Range} */ (element.range)[1];
+					return pureFlag;
+				});
+
+			case "ObjectExpression": {
+				return expr.properties.every((property) => {
+					if (property.type === "SpreadElement") return false;
+
+					if (
+						property.computed &&
+						!this.isPure(property.key, commentsStartPos)
+					) {
+						return false;
+					}
+
+					const pureFlag = this.isPure(
+						/** @type {Exclude<Property["value"], AssignmentPattern | ObjectPattern | ArrayPattern | RestElement>} */
+						(property.value),
+						/** @type {Range} */ (property.key.range)[1]
+					);
+					commentsStartPos = /** @type {Range} */ (property.range)[1];
+					return pureFlag;
+				});
+			}
+
+			case "ChainExpression":
+				return this.isPure(expr.expression, commentsStartPos);
+
+			case "UnaryExpression":
+				// Safe unary operators — produce their result without invoking
+				// user code on the operand:
+				//   - `typeof` returns a type tag and never throws, even for
+				//     undeclared identifiers; no coercion.
+				//   - `void` evaluates the operand and discards it, returning
+				//     `undefined`; pure iff the operand is pure.
+				//   - `!` coerces via ToBoolean, which is defined to not call
+				//     any user code (objects → true, etc.).
+				// Other operators (`+`, `-`, `~`, `delete`) fall through to
+				// the generic evaluator which can still recognize literal
+				// cases (e.g. `-1`, `+5`).
+				if (
+					expr.operator === "typeof" ||
+					expr.operator === "void" ||
+					expr.operator === "!"
+				) {
+					return this.isPure(expr.argument, commentsStartPos);
+				}
+				break;
+
+			case "MetaProperty":
+				return true;
+
+			case "BinaryExpression":
+				// Strict (in)equality compares without coercion and never invokes
+				// user code on its operands, so the result is pure iff both sides
+				// are pure. All other binary operators may invoke `valueOf` /
+				// `toString` / `[Symbol.hasInstance]` / Proxy traps and fall through
+				// to the generic evaluator, which can still recognize the cases
+				// where both sides evaluate to known primitive literals.
+				if (expr.operator === "===" || expr.operator === "!==") {
+					return (
+						this.isPure(expr.left, commentsStartPos) &&
+						this.isPure(expr.right, /** @type {Range} */ (expr.left.range)[1])
+					);
+				}
+				break;
 
 			case "ConditionalExpression":
 				return (
@@ -4640,7 +5537,7 @@ class JavascriptParser extends Parser {
 				);
 
 			case "SequenceExpression":
-				return expr.expressions.every(expr => {
+				return expr.expressions.every((expr) => {
 					const pureFlag = this.isPure(expr, commentsStartPos);
 					commentsStartPos = /** @type {Range} */ (expr.range)[1];
 					return pureFlag;
@@ -4653,16 +5550,57 @@ class JavascriptParser extends Parser {
 						commentsStartPos,
 						/** @type {Range} */ (expr.range)[0]
 					]).some(
-						comment =>
+						(comment) =>
 							comment.type === "Block" &&
-							/^\s*(#|@)__PURE__\s*$/.test(comment.value)
+							CompilerHintNotationRegExp.Pure.test(comment.value)
 					);
 				if (!pureFlag) return false;
 				commentsStartPos = /** @type {Range} */ (expr.callee.range)[1];
-				return expr.arguments.every(arg => {
+				return expr.arguments.every((arg) => {
 					if (arg.type === "SpreadElement") return false;
 					const pureFlag = this.isPure(arg, commentsStartPos);
 					commentsStartPos = /** @type {Range} */ (arg.range)[1];
+					return pureFlag;
+				});
+			}
+
+			case "NewExpression": {
+				const pureFlag =
+					/** @type {Range} */ (expr.range)[0] - commentsStartPos > 12 &&
+					this.getComments([
+						commentsStartPos,
+						/** @type {Range} */ (expr.range)[0]
+					]).some(
+						(comment) =>
+							comment.type === "Block" &&
+							CompilerHintNotationRegExp.Pure.test(comment.value)
+					);
+				if (!pureFlag) return false;
+				commentsStartPos = /** @type {Range} */ (expr.callee.range)[1];
+				return expr.arguments.every((arg) => {
+					if (arg.type === "SpreadElement") return false;
+					const pureFlag = this.isPure(arg, commentsStartPos);
+					commentsStartPos = /** @type {Range} */ (arg.range)[1];
+					return pureFlag;
+				});
+			}
+
+			case "TaggedTemplateExpression": {
+				const pureFlag =
+					/** @type {Range} */ (expr.range)[0] - commentsStartPos > 12 &&
+					this.getComments([
+						commentsStartPos,
+						/** @type {Range} */ (expr.range)[0]
+					]).some(
+						(comment) =>
+							comment.type === "Block" &&
+							CompilerHintNotationRegExp.Pure.test(comment.value)
+					);
+				if (!pureFlag) return false;
+				commentsStartPos = /** @type {Range} */ (expr.tag.range)[1];
+				return expr.quasi.expressions.every((e) => {
+					const pureFlag = this.isPure(e, commentsStartPos);
+					commentsStartPos = /** @type {Range} */ (e.range)[1];
 					return pureFlag;
 				});
 			}
@@ -4672,34 +5610,133 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Returns the location of a node or comment, computed from its offsets so
+	 * ASTs from parsers without location support work too. Falls back to the
+	 * node's own `loc` only when no source text is available (preparsed ASTs).
+	 * Offsets can only be mapped while parsing — callbacks deferred past the
+	 * `parse()` call must take the location upfront.
+	 * @param {{ start?: number, end?: number, range?: Range, loc?: SourceLocation | null }} node node or comment
+	 * @returns {DependencyLocation} location of the node
+	 */
+	getLocation(node) {
+		const source = this._source;
+		if (source !== undefined) {
+			const start =
+				typeof node.start === "number"
+					? node.start
+					: node.range
+						? node.range[0]
+						: undefined;
+			if (start !== undefined) {
+				const end =
+					typeof node.end === "number"
+						? node.end
+						: node.range
+							? node.range[1]
+							: start;
+				const lineStarts =
+					this._lineStarts || (this._lineStarts = buildLineStarts(source));
+				return {
+					start: positionAt(lineStarts, start),
+					end: positionAt(lineStarts, end)
+				};
+			}
+		}
+		return /** @type {DependencyLocation} */ (node.loc);
+	}
+
+	/**
+	 * Returns comments in the range.
 	 * @param {Range} range range
 	 * @returns {Comment[]} comments in the range
 	 */
 	getComments(range) {
-		const [rangeStart, rangeEnd] = range;
-		/**
-		 * @param {Comment} comment comment
-		 * @param {number} needle needle
-		 * @returns {number} compared
-		 */
-		const compare = (comment, needle) =>
-			/** @type {Range} */ (comment.range)[0] - needle;
-		const comments = /** @type {Comment[]} */ (this.comments);
-		let idx = binarySearchBounds.ge(comments, rangeStart, compare);
-		/** @type {Comment[]} */
-		const commentsInRange = [];
-		while (
-			comments[idx] &&
-			/** @type {Range} */ (comments[idx].range)[1] <= rangeEnd
-		) {
-			commentsInRange.push(comments[idx]);
-			idx++;
-		}
-
-		return commentsInRange;
+		return getCommentsInRange(
+			/** @type {(Comment & { range: [number, number] })[]} */ (this.comments),
+			range
+		);
 	}
 
 	/**
+	 * First significant char code at or after `pos`, skipping whitespace,
+	 * comments and grouping `)` (a parenthesized node's range excludes its
+	 * wrapping parens, so a `,`/`;` separator can sit behind them), or -1 at
+	 * end of source.
+	 * @param {string} source source text
+	 * @param {number} pos start offset
+	 * @returns {number} char code of the next token, or -1
+	 */
+	_nextTokenCharCode(source, pos) {
+		const len = source.length;
+		for (let i = pos; i < len; i++) {
+			const c = source.charCodeAt(i);
+			// whitespace and line terminators acorn skips between tokens
+			if (
+				c === 32 ||
+				c === 9 ||
+				c === 10 ||
+				c === 13 ||
+				c === 11 ||
+				c === 12 ||
+				c === 41 /* ) */ ||
+				c === 0xa0 ||
+				c === 0xfeff ||
+				c === 0x2028 ||
+				c === 0x2029
+			) {
+				continue;
+			}
+			if (c === 47 /* / */) {
+				const n = source.charCodeAt(i + 1);
+				if (n === 47 /* / */) {
+					i += 2;
+					while (i < len) {
+						const cc = source.charCodeAt(i);
+						if (cc === 10 || cc === 13 || cc === 0x2028 || cc === 0x2029) break;
+						i++;
+					}
+					continue;
+				}
+				if (n === 42 /* * */) {
+					i += 2;
+					while (
+						i < len &&
+						!(source.charCodeAt(i) === 42 && source.charCodeAt(i + 1) === 47)
+					) {
+						i++;
+					}
+					i++;
+					continue;
+				}
+			}
+			return c;
+		}
+		return -1;
+	}
+
+	/**
+	 * Whether a statement ending at `pos` relies on ASI (no real separator).
+	 * Derived from the source text unless overridden by set/unsetAsiPosition.
+	 * A statement terminated by a real `;` or continued by a `,` (a sequence
+	 * element) is not an ASI position; anything else (newline, `}`, eof) is.
+	 * @param {number} pos statement end offset
+	 * @returns {boolean} true when ASI inserts a semicolon at this position
+	 */
+	_isAsiPosition(pos) {
+		if (this.semicolons !== undefined) {
+			const override = this.semicolons.get(pos);
+			if (override !== undefined) return override;
+		}
+		const source = this._source;
+		if (source === undefined) return true;
+		// a real semicolon is the statement's last char (exclusive end at pos)
+		if (source.charCodeAt(pos - 1) === 59 /* ; */) return false;
+		const next = this._nextTokenCharCode(source, pos);
+		return next !== 44 /* , */ && next !== 59; /* ; */
+	}
+
+	/**
+	 * Checks whether this javascript parser is asi position.
 	 * @param {number} pos source code position
 	 * @returns {boolean} true when a semicolon has been inserted before this position, false if not
 	 */
@@ -4715,37 +5752,37 @@ class JavascriptParser extends Parser {
 
 		return (
 			// Either asking directly for the end position of the current statement
-			(range[1] === pos &&
-				/** @type {Set<number>} */ (this.semicolons).has(pos)) ||
+			(range[1] === pos && this._isAsiPosition(pos)) ||
 			// Or asking for the start position of the current statement,
 			// here we have to check multiple things
 			(range[0] === pos &&
 				// is there a previous statement which might be relevant?
 				this.prevStatement !== undefined &&
 				// is the end position of the previous statement an ASI position?
-				/** @type {Set<number>} */ (this.semicolons).has(
-					/** @type {Range} */ (this.prevStatement.range)[1]
-				))
+				this._isAsiPosition(/** @type {Range} */ (this.prevStatement.range)[1]))
 		);
 	}
 
 	/**
+	 * Updates asi position using the provided po.
 	 * @param {number} pos source code position
 	 * @returns {void}
 	 */
 	setAsiPosition(pos) {
-		/** @type {Set<number>} */ (this.semicolons).add(pos);
+		(this.semicolons || (this.semicolons = new Map())).set(pos, true);
 	}
 
 	/**
+	 * Unset asi position.
 	 * @param {number} pos source code position
 	 * @returns {void}
 	 */
 	unsetAsiPosition(pos) {
-		/** @type {Set<number>} */ (this.semicolons).delete(pos);
+		(this.semicolons || (this.semicolons = new Map())).set(pos, false);
 	}
 
 	/**
+	 * Checks whether this javascript parser is statement level expression.
 	 * @param {Expression} expr expression
 	 * @returns {boolean} true, when the expression is a statement level expression
 	 */
@@ -4764,6 +5801,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Returns tag data.
 	 * @param {string} name name
 	 * @param {Tag} tag tag info
 	 * @returns {TagData | undefined} tag data
@@ -4780,28 +5818,35 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Processes the provided name.
 	 * @param {string} name name
 	 * @param {Tag} tag tag info
 	 * @param {TagData=} data data
+	 * @param {VariableInfoFlagsType=} flags flags
 	 */
-	tagVariable(name, tag, data) {
+	tagVariable(name, tag, data, flags = VariableInfoFlags.Tagged) {
 		const oldInfo = this.scope.definitions.get(name);
 		/** @type {VariableInfo} */
 		let newInfo;
 		if (oldInfo === undefined) {
-			newInfo = new VariableInfo(this.scope, name, {
+			newInfo = new VariableInfo(this.scope, name, flags, {
 				tag,
 				data,
 				next: undefined
 			});
 		} else if (oldInfo instanceof VariableInfo) {
-			newInfo = new VariableInfo(oldInfo.declaredScope, oldInfo.freeName, {
-				tag,
-				data,
-				next: oldInfo.tagInfo
-			});
+			newInfo = new VariableInfo(
+				oldInfo.declaredScope,
+				oldInfo.name,
+				/** @type {VariableInfoFlagsType} */ (oldInfo.flags | flags),
+				{
+					tag,
+					data,
+					next: oldInfo.tagInfo
+				}
+			);
 		} else {
-			newInfo = new VariableInfo(oldInfo, true, {
+			newInfo = new VariableInfo(oldInfo, name, flags, {
 				tag,
 				data,
 				next: undefined
@@ -4811,17 +5856,23 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Processes the provided name.
 	 * @param {string} name variable name
 	 */
 	defineVariable(name) {
 		const oldInfo = this.scope.definitions.get(name);
 		// Don't redefine variable in same scope to keep existing tags
-		if (oldInfo instanceof VariableInfo && oldInfo.declaredScope === this.scope)
+		if (
+			oldInfo instanceof VariableInfo &&
+			oldInfo.declaredScope === this.scope
+		) {
 			return;
+		}
 		this.scope.definitions.set(name, this.scope);
 	}
 
 	/**
+	 * Processes the provided name.
 	 * @param {string} name variable name
 	 */
 	undefineVariable(name) {
@@ -4829,6 +5880,7 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Checks whether this javascript parser is variable defined.
 	 * @param {string} name variable name
 	 * @returns {boolean} true, when variable is defined
 	 */
@@ -4836,14 +5888,31 @@ class JavascriptParser extends Parser {
 		const info = this.scope.definitions.get(name);
 		if (info === undefined) return false;
 		if (info instanceof VariableInfo) {
-			return info.freeName === true;
+			return !info.isFree();
 		}
 		return true;
 	}
 
 	/**
+	 * Whether evaluating an identifier of this name can only fall through:
+	 * the exact negative of the identifier evaluator's `getInfo` — defined in
+	 * some scope and neither free nor tagged nor carrying tag info.
 	 * @param {string} name variable name
-	 * @returns {string | ExportedVariableInfo} info for this variable
+	 * @returns {boolean} true when the identifier evaluates to nothing
+	 */
+	_isDefinedPlainVariable(name) {
+		const info = this.scope.definitions.get(name);
+		if (info === undefined) return false;
+		if (info instanceof VariableInfo) {
+			return !(info.isFree() || info.isTagged() || info.tagInfo !== undefined);
+		}
+		return true;
+	}
+
+	/**
+	 * Gets variable info.
+	 * @param {string} name variable name
+	 * @returns {ExportedVariableInfo} info for this variable
 	 */
 	getVariableInfo(name) {
 		const value = this.scope.definitions.get(name);
@@ -4854,8 +5923,9 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Updates variable using the provided name.
 	 * @param {string} name variable name
-	 * @param {string | ExportedVariableInfo} variableInfo new info for this variable
+	 * @param {ExportedVariableInfo} variableInfo new info for this variable
 	 * @returns {void}
 	 */
 	setVariable(name, variableInfo) {
@@ -4865,7 +5935,12 @@ class JavascriptParser extends Parser {
 			} else {
 				this.scope.definitions.set(
 					name,
-					new VariableInfo(this.scope, variableInfo, undefined)
+					new VariableInfo(
+						this.scope,
+						variableInfo,
+						VariableInfoFlags.Free,
+						undefined
+					)
 				);
 			}
 		} else {
@@ -4874,71 +5949,96 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Evaluated variable.
 	 * @param {TagInfo} tagInfo tag info
 	 * @returns {VariableInfo} variable info
 	 */
 	evaluatedVariable(tagInfo) {
-		return new VariableInfo(this.scope, undefined, tagInfo);
+		return new VariableInfo(
+			this.scope,
+			undefined,
+			VariableInfoFlags.Evaluated,
+			tagInfo
+		);
 	}
 
 	/**
+	 * Parses comment options.
 	 * @param {Range} range range of the comment
 	 * @returns {{ options: Record<string, EXPECTED_ANY> | null, errors: (Error & { comment: Comment })[] | null }} result
 	 */
 	parseCommentOptions(range) {
-		const comments = this.getComments(range);
-		if (comments.length === 0) {
-			return EMPTY_COMMENT_OPTIONS;
-		}
-		/** @type {Record<string, EXPECTED_ANY> } */
-		const options = {};
-		/** @type {(Error & { comment: Comment })[]} */
-		const errors = [];
-		for (const comment of comments) {
-			const { value } = comment;
-			if (value && webpackCommentRegExp.test(value)) {
-				// try compile only if webpack options comment is present
-				try {
-					for (let [key, val] of Object.entries(
-						vm.runInContext(
-							`(function(){return {${value}};})()`,
-							this.magicCommentContext
-						)
-					)) {
-						if (typeof val === "object" && val !== null) {
-							val =
-								val.constructor.name === "RegExp"
-									? new RegExp(val)
-									: JSON.parse(JSON.stringify(val));
-						}
-						options[key] = val;
-					}
-				} catch (err) {
-					const newErr = new Error(String(/** @type {Error} */ (err).message));
-					newErr.stack = String(/** @type {Error} */ (err).stack);
-					Object.assign(newErr, { comment });
-					errors.push(/** @type {(Error & { comment: Comment })} */ (newErr));
-				}
-			}
-		}
-		return { options, errors };
+		return parseCommentOptionsInRange(
+			/** @type {(Comment & { range: [number, number], value: string })[]} */ (
+				this.comments
+			),
+			range,
+			this.magicCommentContext
+		);
 	}
 
 	/**
+	 * Finds the root object of a member expression chain without allocating the
+	 * member arrays. The traversal/break logic must stay in sync with
+	 * `extractMemberExpressionChain`; it lets `getMemberExpressionInfo` reject
+	 * unrecognized roots (~77% of calls) before paying for the arrays.
 	 * @param {Expression | Super} expression a member expression
-	 * @returns {{ members: string[], object: Expression | Super, membersOptionals: boolean[], memberRanges: Range[] }} member names (reverse order) and remaining object
+	 * @returns {Expression | Super} the root object of the chain
+	 */
+	getMemberExpressionRoot(expression) {
+		/** @type {Node} */
+		let expr = expression;
+		while (expr.type === "MemberExpression") {
+			if (expr.computed) {
+				const prop = expr.property;
+				if (
+					prop.type !== "Literal" &&
+					!(
+						prop.type === "TemplateLiteral" &&
+						prop.expressions.length === 0 &&
+						typeof prop.quasis[0].value.cooked === "string"
+					)
+				) {
+					break;
+				}
+			} else if (expr.property.type !== "Identifier") {
+				break;
+			}
+			expr = expr.object;
+		}
+		return /** @type {Expression | Super} */ (expr);
+	}
+
+	/**
+	 * Extract member expression chain.
+	 * @param {Expression | Super} expression a member expression
+	 * @returns {{ members: Members, object: Expression | Super, membersOptionals: MembersOptionals, memberRanges: MemberRanges }} member names (reverse order) and remaining object
 	 */
 	extractMemberExpressionChain(expression) {
 		/** @type {Node} */
 		let expr = expression;
+		/** @type {Members} */
 		const members = [];
+		/** @type {MembersOptionals} */
 		const membersOptionals = [];
+		/** @type {MemberRanges} */
 		const memberRanges = [];
 		while (expr.type === "MemberExpression") {
 			if (expr.computed) {
-				if (expr.property.type !== "Literal") break;
-				members.push(`${expr.property.value}`); // the literal
-				memberRanges.push(/** @type {Range} */ (expr.object.range)); // the range of the expression fragment before the literal
+				const prop = expr.property;
+				if (prop.type === "Literal") {
+					members.push(`${prop.value}`); // the literal
+				} else if (
+					prop.type === "TemplateLiteral" &&
+					prop.expressions.length === 0 &&
+					typeof prop.quasis[0].value.cooked === "string"
+				) {
+					// `[`url`]` is statically a string just like `["url"]`
+					members.push(prop.quasis[0].value.cooked);
+				} else {
+					break;
+				}
+				memberRanges.push(/** @type {Range} */ (expr.object.range)); // the range of the expression fragment before the property
 			} else {
 				if (expr.property.type !== "Identifier") break;
 				members.push(expr.property.name); // the identifier
@@ -4957,15 +6057,17 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
+	 * Gets free info from variable.
 	 * @param {string} varName variable name
-	 * @returns {{name: string, info: VariableInfo | string} | undefined} name of the free variable and variable info for that
+	 * @returns {{ name: string, info: VariableInfo | string } | undefined} name of the free variable and variable info for that
 	 */
 	getFreeInfoFromVariable(varName) {
 		const info = this.getVariableInfo(varName);
+		/** @type {string} */
 		let name;
-		if (info instanceof VariableInfo) {
-			name = info.freeName;
-			if (typeof name !== "string") return;
+		if (info instanceof VariableInfo && info.name) {
+			if (!info.isFree()) return;
+			name = info.name;
 		} else if (typeof info !== "string") {
 			return;
 		} else {
@@ -4974,42 +6076,69 @@ class JavascriptParser extends Parser {
 		return { info, name };
 	}
 
-	/** @typedef {{ type: "call", call: CallExpression, calleeName: string, rootInfo: string | VariableInfo, getCalleeMembers: () => string[], name: string, getMembers: () => string[], getMembersOptionals: () => boolean[], getMemberRanges: () => Range[]}} CallExpressionInfo */
-	/** @typedef {{ type: "expression", rootInfo: string | VariableInfo, name: string, getMembers: () => string[], getMembersOptionals: () => boolean[], getMemberRanges: () => Range[]}} ExpressionExpressionInfo */
+	/**
+	 * Gets name info from variable.
+	 * @param {string} varName variable name
+	 * @returns {{ name: string, info: VariableInfo | string } | undefined} name of the free variable and variable info for that
+	 */
+	getNameInfoFromVariable(varName) {
+		const info = this.getVariableInfo(varName);
+		/** @type {string} */
+		let name;
+		if (info instanceof VariableInfo && info.name) {
+			if (!info.isFree() && !info.isTagged()) return;
+			name = info.name;
+		} else if (typeof info !== "string") {
+			return;
+		} else {
+			name = info;
+		}
+		return { info, name };
+	}
+
+	/** @typedef {{ type: "call", call: CallExpression, calleeName: string, rootInfo: string | VariableInfo, getCalleeMembers: () => CalleeMembers, name: string, getMembers: () => Members, getMembersOptionals: () => MembersOptionals, getMemberRanges: () => MemberRanges }} CallExpressionInfo */
+	/** @typedef {{ type: "expression", rootInfo: string | VariableInfo, name: string, getMembers: () => Members, getMembersOptionals: () => MembersOptionals, getMemberRanges: () => MemberRanges }} ExpressionExpressionInfo */
 
 	/**
+	 * Gets member expression info.
 	 * @param {Expression | Super} expression a member expression
 	 * @param {number} allowedTypes which types should be returned, presented in bit mask
 	 * @returns {CallExpressionInfo | ExpressionExpressionInfo | undefined} expression info
 	 */
 	getMemberExpressionInfo(expression, allowedTypes) {
-		const { object, members, membersOptionals, memberRanges } =
-			this.extractMemberExpressionChain(expression);
+		// Resolve the root first (no allocation); most calls reject here and so
+		// never build the member arrays via extractMemberExpressionChain.
+		const object = this.getMemberExpressionRoot(expression);
 		switch (object.type) {
 			case "CallExpression": {
 				if ((allowedTypes & ALLOWED_MEMBER_TYPES_CALL_EXPRESSION) === 0) return;
-				let callee = object.callee;
-				let rootMembers = EMPTY_ARRAY;
-				if (callee.type === "MemberExpression") {
-					({ object: callee, members: rootMembers } =
-						this.extractMemberExpressionChain(callee));
-				}
+				const calleeExpr = object.callee;
+				const callee =
+					calleeExpr.type === "MemberExpression"
+						? this.getMemberExpressionRoot(calleeExpr)
+						: calleeExpr;
 				const rootName = getRootName(callee);
 				if (!rootName) return;
-				const result = this.getFreeInfoFromVariable(rootName);
+				const result = this.getNameInfoFromVariable(rootName);
 				if (!result) return;
 				const { info: rootInfo, name: resolvedRoot } = result;
+				const rootMembers =
+					calleeExpr.type === "MemberExpression"
+						? this.extractMemberExpressionChain(calleeExpr).members
+						: EMPTY_ARRAY;
+				const { members, membersOptionals, memberRanges } =
+					this.extractMemberExpressionChain(expression);
 				const calleeName = objectAndMembersToName(resolvedRoot, rootMembers);
 				return {
 					type: "call",
 					call: object,
 					calleeName,
 					rootInfo,
-					getCalleeMembers: memoize(() => rootMembers.reverse()),
+					getCalleeMembers: lazyReverse(rootMembers),
 					name: objectAndMembersToName(`${calleeName}()`, members),
-					getMembers: memoize(() => members.reverse()),
-					getMembersOptionals: memoize(() => membersOptionals.reverse()),
-					getMemberRanges: memoize(() => memberRanges.reverse())
+					getMembers: lazyReverse(members),
+					getMembersOptionals: lazyReverse(membersOptionals),
+					getMemberRanges: lazyReverse(memberRanges)
 				};
 			}
 			case "Identifier":
@@ -5019,24 +6148,27 @@ class JavascriptParser extends Parser {
 				const rootName = getRootName(object);
 				if (!rootName) return;
 
-				const result = this.getFreeInfoFromVariable(rootName);
+				const result = this.getNameInfoFromVariable(rootName);
 				if (!result) return;
 				const { info: rootInfo, name: resolvedRoot } = result;
+				const { members, membersOptionals, memberRanges } =
+					this.extractMemberExpressionChain(expression);
 				return {
 					type: "expression",
 					name: objectAndMembersToName(resolvedRoot, members),
 					rootInfo,
-					getMembers: memoize(() => members.reverse()),
-					getMembersOptionals: memoize(() => membersOptionals.reverse()),
-					getMemberRanges: memoize(() => memberRanges.reverse())
+					getMembers: lazyReverse(members),
+					getMembersOptionals: lazyReverse(membersOptionals),
+					getMemberRanges: lazyReverse(memberRanges)
 				};
 			}
 		}
 	}
 
 	/**
-	 * @param {MemberExpression} expression an expression
-	 * @returns {{ name: string, rootInfo: ExportedVariableInfo, getMembers: () => string[]} | undefined} name info
+	 * Gets name for expression.
+	 * @param {Expression} expression an expression
+	 * @returns {{ name: string, rootInfo: ExportedVariableInfo, getMembers: () => Members } | undefined} name info
 	 */
 	getNameForExpression(expression) {
 		return this.getMemberExpressionInfo(
@@ -5046,26 +6178,114 @@ class JavascriptParser extends Parser {
 	}
 
 	/**
-	 * @param {string} code source code
-	 * @param {ParseOptions} options parsing options
-	 * @returns {Program} parsed ast
+	 * Get module parse function.
+	 * @param {Compilation} compilation compilation
+	 * @param {Module} module module
+	 * @returns {ParseFunction | undefined} parser
 	 */
-	static _parse(code, options) {
+	static _getModuleParseFunction(compilation, module) {
+		// Get from module if available
+		if (
+			module instanceof NormalModule &&
+			module.parser instanceof JavascriptParser
+		) {
+			return module.parser.options.parse;
+		}
+
+		// Fallback to the global javascript parse function
+		if (typeof compilation.options.module.parser.javascript !== "undefined") {
+			return compilation.options.module.parser.javascript.parse;
+		}
+	}
+
+	/**
+	 * Returns parse result.
+	 * @param {string} code source code
+	 * @param {InternalParseOptions} options parsing options
+	 * @param {ParseFunction=} customParse custom function to parse
+	 * @returns {ParseResult} parse result
+	 */
+	static _parse(code, options, customParse) {
 		const type = options ? options.sourceType : "module";
-		/** @type {AcornOptions} */
-		const parserOptions = {
-			...defaultParserOptions,
-			allowReturnOutsideFunction: type === "script",
-			...options,
-			sourceType: type === "auto" ? "module" : type
+		/** @type {ParseOptions} */
+		let parserOptions;
+		if (typeof customParse === "function") {
+			// a user parse function may retain the options object — keep it fresh
+			parserOptions = {
+				...defaultParserOptions,
+				allowReturnOutsideFunction: type === "script",
+				...options,
+				sourceType: type === "auto" ? "module" : type
+			};
+		} else {
+			// reuse one options object across parses (parsing is synchronous) to
+			// skip re-materializing it per module; acorn copies it via getOptions.
+			// Every non-default key a caller may pass must be reset here.
+			parserOptions = REUSED_PARSER_OPTIONS;
+			parserOptions.importPhases = false;
+			Object.assign(parserOptions, defaultParserOptions);
+			parserOptions.allowReturnOutsideFunction = type === "script";
+			if (options) Object.assign(parserOptions, options);
+			parserOptions.sourceType = type === "auto" ? "module" : type;
+			// let WebpackParser downgrade module->script in place on script-only
+			// syntax so `auto` avoids a second full parse in the common case
+			parserOptions.moduleFallback = type === "auto";
+		}
+		const wantRanges = parserOptions.ranges === true;
+		/**
+		 * Returns parse result.
+		 * @param {string} code source code
+		 * @param {ParseOptions} options parsing options
+		 * @returns {ParseResult} parse result
+		 */
+		const internalParse = (code, options) => {
+			if (typeof customParse === "function") {
+				return customParse(code, options);
+			}
+
+			/** @type {Comment[]} */
+			const comments = [];
+
+			// Whenever ranges are wanted (the main parse path and the concatenation
+			// re-parse), have the parser plugin serve `range` on demand instead of
+			// eagerly. `wantRanges` is hoisted since the auto-fallback re-enters
+			// with the same (mutated) options object.
+			options.lazyNodes = wantRanges;
+			if (wantRanges) {
+				// the lazy plugin replaces acorn's native tracking — disabling it
+				// here lets WebpackParser skip its defensive options copy
+				options.locations = false;
+				options.ranges = false;
+			}
+
+			if (options.comments) {
+				if (wantRanges) {
+					// the parser plugin collects the comments itself, deferring the
+					// text slice until some hook actually reads `value`
+					options.lazyComments = comments;
+				} else {
+					/** @type {AcornOptions} */
+					(options).onComment =
+						/** @type {import("acorn").Comment[]} */
+						(/** @type {unknown} */ (comments));
+				}
+			}
+
+			const ast =
+				/** @type {Program} */
+				(parser.parse(code, /** @type {AcornOptions} */ (options)));
+
+			return { ast, comments };
 		};
 
-		/** @type {import("acorn").Program | undefined} */
+		/** @type {Program | undefined} */
 		let ast;
+		/** @type {Comment[] | undefined} */
+		let comments;
 		let error;
 		let threw = false;
 		try {
-			ast = parser.parse(code, parserOptions);
+			({ ast, comments } = internalParse(code, parserOptions));
 		} catch (err) {
 			error = err;
 			threw = true;
@@ -5073,14 +6293,12 @@ class JavascriptParser extends Parser {
 
 		if (threw && type === "auto") {
 			parserOptions.sourceType = "script";
-			if (!("allowReturnOutsideFunction" in options)) {
-				parserOptions.allowReturnOutsideFunction = true;
-			}
-			if (Array.isArray(parserOptions.onComment)) {
-				parserOptions.onComment.length = 0;
-			}
+			parserOptions.allowReturnOutsideFunction = true;
+			// the retry is already a full script parse — no in-place downgrade
+			parserOptions.moduleFallback = false;
+
 			try {
-				ast = parser.parse(code, parserOptions);
+				({ ast, comments } = internalParse(code, parserOptions));
 				threw = false;
 			} catch (_err) {
 				// we use the error from first parse try
@@ -5088,19 +6306,36 @@ class JavascriptParser extends Parser {
 			}
 		}
 
+		// release per-parse state retained on the (possibly reused) options
+		// object — the comments array retains source text slices
+		parserOptions.lazyComments = undefined;
+		/** @type {AcornOptions} */
+		(parserOptions).onComment = undefined;
+
 		if (threw) {
 			throw error;
 		}
 
-		return /** @type {Program} */ (ast);
+		return /** @type {ParseResult} */ ({ ast, comments });
+	}
+
+	/**
+	 * Returns parser.
+	 * @param {((BaseParser: AcornParser) => AcornParser)[]} plugins parser plugin
+	 * @returns {typeof JavascriptParser} parser
+	 */
+	static extend(...plugins) {
+		parser = parser.extend(...plugins);
+		return JavascriptParser;
 	}
 }
 
 module.exports = JavascriptParser;
 module.exports.ALLOWED_MEMBER_TYPES_ALL = ALLOWED_MEMBER_TYPES_ALL;
-module.exports.ALLOWED_MEMBER_TYPES_EXPRESSION =
-	ALLOWED_MEMBER_TYPES_EXPRESSION;
 module.exports.ALLOWED_MEMBER_TYPES_CALL_EXPRESSION =
 	ALLOWED_MEMBER_TYPES_CALL_EXPRESSION;
-module.exports.getImportAttributes = getImportAttributes;
+module.exports.ALLOWED_MEMBER_TYPES_EXPRESSION =
+	ALLOWED_MEMBER_TYPES_EXPRESSION;
 module.exports.VariableInfo = VariableInfo;
+module.exports.VariableInfoFlags = VariableInfoFlags;
+module.exports.getImportAttributes = getImportAttributes;

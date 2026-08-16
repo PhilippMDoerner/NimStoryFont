@@ -118,6 +118,7 @@ import {
     AST_SymbolLet,
     AST_SymbolMethod,
     AST_SymbolRef,
+    AST_SymbolUsing,
     AST_TemplateString,
     AST_This,
     AST_Toplevel,
@@ -127,6 +128,7 @@ import {
     AST_UnaryPostfix,
     AST_UnaryPrefix,
     AST_Undefined,
+    AST_Using,
     AST_Var,
     AST_VarDef,
     AST_While,
@@ -144,6 +146,7 @@ import {
     defaults,
     HOP,
     make_node,
+    make_void_0,
     makePredicate,
     MAP,
     remove,
@@ -156,11 +159,11 @@ import {
 import { first_in_statement } from "../utils/first_in_statement.js";
 import { equivalent_to } from "../equivalent-to.js";
 import {
-    is_basic_identifier_string,
     JS_Parse_Error,
     parse,
     PRECEDENCE,
 } from "../parse.js";
+import { is_basic_identifier_string } from "../unicode.js";
 import { OutputStream } from "../output.js";
 import { base54, format_mangler_options } from "../scope.js";
 import "../size.js";
@@ -209,9 +212,10 @@ import {
     as_statement_array,
     is_func_expr,
 } from "./common.js";
-import { tighten_body, trim_unreachable_code } from "./tighten-body.js";
+import { tighten_body, extract_from_unreachable_code } from "./tighten-body.js";
 import { inline_into_symbolref, inline_into_call } from "./inline.js";
 import "./global-defs.js";
+import { is_pure_native_fn, is_pure_native_method, is_pure_native_static_fn, is_pure_native_static_property, pure_access_globals } from "./native-objects.js";
 
 class Compressor extends TreeWalker {
     constructor(options, { false_by_default = false, mangle_options = false }) {
@@ -232,6 +236,8 @@ class Compressor extends TreeWalker {
             drop_console  : false,
             drop_debugger : !false_by_default,
             ecma          : 5,
+            builtins_ecma : 5,
+            builtins_pure : false,
             evaluate      : !false_by_default,
             expression    : false,
             global_defs   : false,
@@ -327,6 +333,12 @@ class Compressor extends TreeWalker {
         this._mangle_options = mangle_options
             ? format_mangler_options(mangle_options)
             : mangle_options;
+
+        this.pure_access_globals = pure_access_globals(this);
+        this.is_pure_native_fn = is_pure_native_fn(this);
+        this.is_pure_native_method = is_pure_native_method(this);
+        this.is_pure_native_static_fn = is_pure_native_static_fn(this);
+        this.is_pure_native_static_property = is_pure_native_static_property(this);
     }
 
     mangle_options() {
@@ -376,6 +388,11 @@ class Compressor extends TreeWalker {
         }
     }
 
+    /** True if compressor.self()'s result will be turned into a 32-bit integer.
+     * ex:
+     * ~{expr}
+     * (1, 2, {expr}) | 0
+     **/
     in_32_bit_context(other_operand_must_be_number) {
         if (!this.option("evaluate")) return false;
         var self = this.self();
@@ -393,9 +410,10 @@ class Compressor extends TreeWalker {
             if (
                 p instanceof AST_Binary
                     && (
-                        p.operator == "&&"
-                        || p.operator == "||"
-                        || p.operator == "??"
+                        // Don't talk about p.left. Can change branch taken
+                        p.operator == "&&" && p.right === self
+                        || p.operator == "||" && p.right === self
+                        || p.operator == "??" && p.right === self
                     )
                 || p instanceof AST_Conditional && p.condition !== self
                 || p.tail_node() === self
@@ -554,7 +572,7 @@ AST_Toplevel.DEFMETHOD("drop_console", function(options) {
                 set_flag(exp.expression, SQUEEZED);
                 self.args = [];
             } else {
-                return make_node(AST_Undefined, self);
+                return make_void_0(self);
             }
         }
     });
@@ -582,12 +600,7 @@ AST_Scope.DEFMETHOD("process_expression", function(insert, compressor) {
                     : make_node(AST_EmptyStatement, node);
             }
             return make_node(AST_SimpleStatement, node, {
-                body: node.value || make_node(AST_UnaryPrefix, node, {
-                    operator: "void",
-                    expression: make_node(AST_Number, node, {
-                        value: 0
-                    })
-                })
+                body: node.value || make_void_0(node)
             });
         }
         if (node instanceof AST_Class || node instanceof AST_Lambda && node !== self) {
@@ -660,10 +673,9 @@ function find_variable(compressor, name) {
     return scope.find_variable(name);
 }
 
-var global_names = makePredicate("Array Boolean clearInterval clearTimeout console Date decodeURI decodeURIComponent encodeURI encodeURIComponent Error escape eval EvalError Function isFinite isNaN JSON Math Number parseFloat parseInt RangeError ReferenceError RegExp Object setInterval setTimeout String SyntaxError TypeError unescape URIError");
 AST_SymbolRef.DEFMETHOD("is_declared", function(compressor) {
     return !this.definition().undeclared
-        || compressor.option("unsafe") && global_names.has(this.name);
+        || (compressor.option("unsafe") || compressor.option("builtins_pure")) && compressor.pure_access_globals(this.name);
 });
 
 /* -----[ optimizers ]----- */
@@ -700,6 +712,7 @@ function can_be_extracted_from_if_block(node) {
     return !(
         node instanceof AST_Const
         || node instanceof AST_Let
+        || node instanceof AST_Using
         || node instanceof AST_Class
     );
 }
@@ -878,6 +891,7 @@ AST_Scope.DEFMETHOD("hoist_properties", function(compressor) {
             let def;
             let value;
             if (sym.scope === self
+                && !(sym instanceof AST_SymbolUsing)
                 && (def = sym.definition()).escaped != 1
                 && !def.assignments
                 && !def.direct_access
@@ -996,7 +1010,7 @@ function if_break_in_loop(self, compressor) {
                 body: self.condition
             }));
         }
-        trim_unreachable_code(compressor, self.body, body);
+        extract_from_unreachable_code(compressor, self.body, body);
         return make_node(AST_BlockStatement, self, {
             body: body
         });
@@ -1067,7 +1081,7 @@ def_optimize(AST_For, function(self, compressor) {
             if (cond instanceof AST_Node) cond = self.condition.tail_node().evaluate(compressor);
             if (!cond) {
                 var body = [];
-                trim_unreachable_code(compressor, self.body, body);
+                extract_from_unreachable_code(compressor, self.body, body);
                 if (self.init instanceof AST_Statement) {
                     body.push(self.init);
                 } else if (self.init) {
@@ -1103,7 +1117,7 @@ def_optimize(AST_If, function(self, compressor) {
         if (cond instanceof AST_Node) cond = self.condition.tail_node().evaluate(compressor);
         if (!cond) {
             var body = [];
-            trim_unreachable_code(compressor, self.body, body);
+            extract_from_unreachable_code(compressor, self.body, body);
             body.push(make_node(AST_SimpleStatement, self.condition, {
                 body: self.condition
             }));
@@ -1116,7 +1130,7 @@ def_optimize(AST_If, function(self, compressor) {
             }));
             body.push(self.body);
             if (self.alternative) {
-                trim_unreachable_code(compressor, self.alternative, body);
+                extract_from_unreachable_code(compressor, self.alternative, body);
             }
             return make_node(AST_BlockStatement, self, { body: body }).optimize(compressor);
         }
@@ -1188,8 +1202,8 @@ def_optimize(AST_If, function(self, compressor) {
         return make_node(self.body.CTOR, self, {
             value: make_node(AST_Conditional, self, {
                 condition   : self.condition,
-                consequent  : self.body.value || make_node(AST_Undefined, self.body),
-                alternative : self.alternative.value || make_node(AST_Undefined, self.alternative)
+                consequent  : self.body.value || make_void_0(self.body),
+                alternative : self.alternative.value || make_void_0(self.alternative),
             }).transform(compressor)
         }).optimize(compressor);
     }
@@ -1244,6 +1258,9 @@ def_optimize(AST_Switch, function(self, compressor) {
     var body = [];
     var default_branch;
     var exact_match;
+    // - compress self.body into `body`
+    // - find and deduplicate default branch
+    // - find the exact match (`case 1234` inside `switch(1234)`)
     for (var i = 0, len = self.body.length; i < len && !exact_match; i++) {
         branch = self.body[i];
         if (branch instanceof AST_Default) {
@@ -1273,6 +1290,7 @@ def_optimize(AST_Switch, function(self, compressor) {
         }
         body.push(branch);
     }
+    // i < len if we found an exact_match. eliminate the rest
     while (i < len) eliminate_branch(self.body[i++], body[body.length - 1]);
     self.body = body;
 
@@ -1344,7 +1362,7 @@ def_optimize(AST_Switch, function(self, compressor) {
         let i = body.length - 1;
         for (; i >= 0; i--) {
             let bbody = body[i].body;
-            if (is_break(bbody[bbody.length - 1], compressor)) bbody.pop();
+            while (is_break(bbody[bbody.length - 1], compressor)) bbody.pop();
             if (!is_inert_body(body[i])) break;
         }
         // i now points to the index of a branch that contains a body. By incrementing, it's
@@ -1360,9 +1378,9 @@ def_optimize(AST_Switch, function(self, compressor) {
                 let branch = body[j];
                 if (branch === default_or_exact) {
                     default_or_exact = null;
-                    body.pop();
+                    eliminate_branch(body.pop());
                 } else if (!branch.expression.has_side_effects(compressor)) {
-                    body.pop();
+                    eliminate_branch(body.pop());
                 } else {
                     break;
                 }
@@ -1476,15 +1494,16 @@ def_optimize(AST_Switch, function(self, compressor) {
         // and there's a side-effect somewhere. Just let the below paths take care of it.
     }
 
+    // Reintegrate `decl` (var statements)
     if (body.length > 0) {
         body[0].body = decl.concat(body[0].body);
     }
-
     if (body.length == 0) {
         return make_node(AST_BlockStatement, self, {
             body: decl.concat(statement(self.expression))
         }).optimize(compressor);
     }
+
     if (body.length == 1 && !has_nested_break(self)) {
         // This is the last case body, and we've already pruned any breaks, so it's
         // safe to hoist.
@@ -1564,7 +1583,7 @@ def_optimize(AST_Switch, function(self, compressor) {
         if (prev && !aborts(prev)) {
             prev.body = prev.body.concat(branch.body);
         } else {
-            trim_unreachable_code(compressor, branch, decl);
+            extract_from_unreachable_code(compressor, branch, decl);
         }
     }
     function branches_equivalent(branch, prev, insertBreak) {
@@ -1618,7 +1637,7 @@ def_optimize(AST_Try, function(self, compressor) {
     if (compressor.option("dead_code") && self.body.body.every(is_empty)) {
         var body = [];
         if (self.bcatch) {
-            trim_unreachable_code(compressor, self.bcatch, body);
+            extract_from_unreachable_code(compressor, self.bcatch, body);
         }
         if (self.bfinally) body.push(...self.bfinally.body);
         return make_node(AST_BlockStatement, self, {
@@ -1737,7 +1756,7 @@ def_optimize(AST_Call, function(self, compressor) {
             const value = condition.evaluate(compressor);
     
             if (value === 1 || value === true) {
-                return make_node(AST_Undefined, self);
+                return make_void_0(self).optimize(compressor);
             }
         }
     }    
@@ -2099,6 +2118,10 @@ def_optimize(AST_UnaryPrefix, function(self, compressor) {
     ) {
         return make_sequence(self, [e, make_node(AST_True, self)]).optimize(compressor);
     }
+    // Short-circuit common `void 0`
+    if (self.operator === "void" && e instanceof AST_Number && e.value === 0) {
+        return unsafe_undefined_ref(self, compressor) || self;
+    }
     var seq = self.lift_sequences(compressor);
     if (seq !== self) {
         return seq;
@@ -2109,7 +2132,7 @@ def_optimize(AST_UnaryPrefix, function(self, compressor) {
             self.expression = e;
             return self;
         } else {
-            return make_node(AST_Undefined, self).optimize(compressor);
+            return make_void_0(self).optimize(compressor);
         }
     }
     if (compressor.in_boolean_context()) {
@@ -2295,7 +2318,7 @@ def_optimize(AST_Binary, function(self, compressor) {
             if (expr instanceof AST_SymbolRef ? expr.is_declared(compressor)
                 : !(expr instanceof AST_PropAccess && compressor.option("ie8"))) {
                 self.right = expr;
-                self.left = make_node(AST_Undefined, self.left).optimize(compressor);
+                self.left = make_void_0(self.left).optimize(compressor);
                 if (self.operator.length == 2) self.operator += "=";
             }
         } else if (compressor.option("typeofs")
@@ -2308,7 +2331,7 @@ def_optimize(AST_Binary, function(self, compressor) {
             if (expr instanceof AST_SymbolRef ? expr.is_declared(compressor)
                 : !(expr instanceof AST_PropAccess && compressor.option("ie8"))) {
                 self.left = expr;
-                self.right = make_node(AST_Undefined, self.right).optimize(compressor);
+                self.right = make_void_0(self.right).optimize(compressor);
                 if (self.operator.length == 2) self.operator += "=";
             }
         } else if (self.left instanceof AST_SymbolRef
@@ -2949,7 +2972,8 @@ function is_atomic(lhs, self) {
     return lhs instanceof AST_SymbolRef || lhs.TYPE === self.TYPE;
 }
 
-def_optimize(AST_Undefined, function(self, compressor) {
+/** Apply the `unsafe_undefined` option: find a variable called `undefined` and turn `self` into a reference to it. */
+function unsafe_undefined_ref(self, compressor) {
     if (compressor.option("unsafe_undefined")) {
         var undef = find_variable(compressor, "undefined");
         if (undef) {
@@ -2962,14 +2986,15 @@ def_optimize(AST_Undefined, function(self, compressor) {
             return ref;
         }
     }
+    return null;
+}
+
+def_optimize(AST_Undefined, function(self, compressor) {
+    var symbolref = unsafe_undefined_ref(self, compressor);
+    if (symbolref) return symbolref;
     var lhs = compressor.is_lhs();
     if (lhs && is_atomic(lhs, self)) return self;
-    return make_node(AST_UnaryPrefix, self, {
-        operator: "void",
-        expression: make_node(AST_Number, self, {
-            value: 0
-        })
-    });
+    return make_void_0(self);
 });
 
 def_optimize(AST_Infinity, function(self, compressor) {
@@ -3656,7 +3681,7 @@ def_optimize(AST_Sub, function(self, compressor) {
                 }
             }
             if (retValue instanceof AST_Expansion) break FLATTEN;
-            retValue = retValue instanceof AST_Hole ? make_node(AST_Undefined, retValue) : retValue;
+            retValue = retValue instanceof AST_Hole ? make_void_0(retValue) : retValue;
             if (!flatten) values.unshift(retValue);
             while (--i >= 0) {
                 var value = elements[i];
@@ -3695,7 +3720,7 @@ def_optimize(AST_Chain, function (self, compressor) {
         if (parent instanceof AST_UnaryPrefix && parent.operator === "delete") {
             return make_node_from_constant(0, self);
         }
-        return make_node(AST_Undefined, self);
+        return make_void_0(self).optimize(compressor);
     }
     if (
         self.expression instanceof AST_PropAccess

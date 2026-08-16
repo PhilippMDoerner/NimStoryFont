@@ -7,11 +7,11 @@ import {
   output,
 } from '@angular/core';
 
-import { ShortcutAction } from 'src/app/_models/hotkey';
-import { ElementKind } from 'src/app/design/atoms/_models/button';
-import { BadgeComponent } from 'src/app/design/atoms/badge/badge.component';
-import { InteractiveBadgeComponent } from 'src/app/design/atoms/interactive-badge/interactive-badge.component';
-import { componentId } from 'src/utils/DOM';
+import { componentId } from '../../../../utils/DOM';
+import { HotkeyAction } from '../../../_models/hotkey';
+import { ElementKind } from '../../atoms/_models/button';
+import { BadgeComponent } from '../../atoms/badge/badge.component';
+import { InteractiveBadgeComponent } from '../../atoms/interactive-badge/interactive-badge.component';
 import { BadgeListEntry, BadgeListSelectOptions } from '../_models/badge-list';
 import { SmallCreateFormComponent } from '../small-create-form/small-create-form.component';
 
@@ -21,14 +21,14 @@ interface LinkCreateOptions {
   kind: 'LINK';
   link: string;
   createBadgeLabel?: string;
-  hotkeyAction?: ShortcutAction | undefined;
+  hotkeyAction?: HotkeyAction | undefined;
 }
 interface BadgeCreateOptions<T> {
   kind: 'SELECT';
   config: BadgeListSelectOptions<T>;
   createBadgeLabel?: string;
   formFieldLabel: string;
-  hotkeyAction?: ShortcutAction | undefined;
+  hotkeyAction?: HotkeyAction | undefined;
 }
 type CreateOptions<T> =
   | BadgeCreateOptions<T>
@@ -52,28 +52,28 @@ type CreateOptions<T> =
   },
 })
 export class BadgeListComponent<T, O> {
-  entries = input.required<BadgeListEntry<T>[]>();
-  createOptions = input<CreateOptions<O>>();
-  disableHotkeys = input<boolean>(false);
-  label = input('Entry');
-  canCreate = input(false);
-  canDelete = input(false);
-  submitButtonType = input<ElementKind>('PRIMARY');
-  cancelButtonType = input<ElementKind>('SECONDARY');
+  readonly entries = input.required<BadgeListEntry<T>[]>();
+  readonly createOptions = input<CreateOptions<O>>();
+  readonly disableHotkeys = input<boolean>(false);
+  readonly label = input('Entry');
+  readonly canCreate = input(false);
+  readonly canDelete = input(false);
+  readonly submitButtonType = input<ElementKind>('PRIMARY');
+  readonly cancelButtonType = input<ElementKind>('SECONDARY');
 
   readonly entryDelete = output<T>();
   readonly entryCreate = output<O>();
 
-  headingId = componentId();
-  createKind = computed<CreateBadgeKind | undefined>(
+  readonly headingId = componentId();
+  readonly createKind = computed<CreateBadgeKind | undefined>(
     () => this.createOptions()?.kind,
   );
-  createLink = computed(() =>
+  readonly createLink = computed(() =>
     this.createKind() === 'LINK'
       ? (this.createOptions() as LinkCreateOptions).link
       : undefined,
   );
-  createBadgeLabel = computed(() => {
+  readonly createBadgeLabel = computed(() => {
     if (this.createKind() === 'NONE') return undefined;
     const options = this.createOptions() as
       | BadgeCreateOptions<O>
@@ -81,27 +81,27 @@ export class BadgeListComponent<T, O> {
 
     return options.createBadgeLabel ?? `Add ${this.label()}`;
   });
-  options = computed(() =>
+  readonly options = computed(() =>
     this.createKind() === 'SELECT'
       ? (this.createOptions() as BadgeCreateOptions<O>).config.options
       : undefined,
   );
-  optionLabelProp = computed(() =>
+  readonly optionLabelProp = computed(() =>
     this.createKind() === 'SELECT'
       ? (this.createOptions() as BadgeCreateOptions<O>).config.labelProp
       : undefined,
   );
-  optionValueProp = computed(() =>
+  readonly optionValueProp = computed(() =>
     this.createKind() === 'SELECT'
       ? (this.createOptions() as BadgeCreateOptions<O>).config.valueProp
       : undefined,
   );
-  formFieldLabel = computed(() =>
+  readonly formFieldLabel = computed(() =>
     this.createKind() === 'SELECT'
       ? (this.createOptions() as BadgeCreateOptions<O>).formFieldLabel
       : undefined,
   );
-  hotkeyAction = computed<ShortcutAction | undefined>(() => {
+  readonly hotkeyAction = computed<HotkeyAction | undefined>(() => {
     const createOptions = this.createOptions();
     switch (createOptions?.kind) {
       case 'NONE':

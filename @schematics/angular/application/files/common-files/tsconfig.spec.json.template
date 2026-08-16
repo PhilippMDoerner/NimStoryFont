@@ -3,12 +3,12 @@
 {
   "extends": "<%= relativePathToWorkspaceRoot %>/tsconfig.json",
   "compilerOptions": {
-    "outDir": "<%= relativePathToWorkspaceRoot %>/out-tsc/spec",
     "types": [
-      "jasmine"
+      "<%= testRunner === 'vitest' ? 'vitest/globals' : 'jasmine' %>"
     ]
   },
   "include": [
-    "src/**/*.ts"
+    "src/**/*.d.ts",
+    "src/**/*<% if (standalone) { %>.spec<% } %>.ts"
   ]
 }

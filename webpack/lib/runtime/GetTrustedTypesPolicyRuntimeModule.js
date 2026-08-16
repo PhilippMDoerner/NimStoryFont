@@ -17,10 +17,12 @@ class GetTrustedTypesPolicyRuntimeModule extends HelperRuntimeModule {
 	 */
 	constructor(runtimeRequirements) {
 		super("trusted types policy");
+		/** @type {ReadOnlyRuntimeRequirements} */
 		this.runtimeRequirements = runtimeRequirements;
 	}
 
 	/**
+	 * Generates runtime code for this runtime module.
 	 * @returns {string | null} runtime code
 	 */
 	generate() {
@@ -33,7 +35,7 @@ class GetTrustedTypesPolicyRuntimeModule extends HelperRuntimeModule {
 			: false;
 
 		return Template.asString([
-			"var policy;",
+			`${runtimeTemplate.renderLet()} policy;`,
 			`${fn} = ${runtimeTemplate.basicFunction("", [
 				"// Create Trusted Type policy if Trusted Types are available and the policy doesn't exist yet.",
 				"if (policy === undefined) {",
@@ -69,7 +71,7 @@ class GetTrustedTypesPolicyRuntimeModule extends HelperRuntimeModule {
 										`policy = trustedTypes.createPolicy(${JSON.stringify(
 											trustedTypes.policyName
 										)}, policy);`
-									].map(line =>
+									].map((line) =>
 										wrapPolicyCreationInTryCatch ? Template.indent(line) : line
 									),
 									...(wrapPolicyCreationInTryCatch

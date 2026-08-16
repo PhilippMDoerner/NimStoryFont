@@ -12,12 +12,13 @@ const NullDependency = require("./NullDependency");
 /** @typedef {import("../Dependency")} Dependency */
 /** @typedef {import("../DependencyTemplate").DependencyTemplateContext} DependencyTemplateContext */
 /** @typedef {import("../javascript/JavascriptParser").Range} Range */
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext} ObjectDeserializerContext */
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext} ObjectSerializerContext */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext<[LocalModule, Range | undefined, boolean]>} ObjectDeserializerContext */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext<[LocalModule, Range | undefined, boolean]>} ObjectSerializerContext */
 /** @typedef {import("./LocalModule")} LocalModule */
 
 class LocalModuleDependency extends NullDependency {
 	/**
+	 * Creates an instance of LocalModuleDependency.
 	 * @param {LocalModule} localModule local module
 	 * @param {Range | undefined} range range
 	 * @param {boolean} callNew true, when the local module should be called with new
@@ -25,35 +26,35 @@ class LocalModuleDependency extends NullDependency {
 	constructor(localModule, range, callNew) {
 		super();
 
+		/** @type {LocalModule} */
 		this.localModule = localModule;
 		this.range = range;
+		/** @type {boolean} */
 		this.callNew = callNew;
 	}
 
 	/**
+	 * Serializes this instance into the provided serializer context.
 	 * @param {ObjectSerializerContext} context context
 	 */
 	serialize(context) {
-		const { write } = context;
-
-		write(this.localModule);
-		write(this.range);
-		write(this.callNew);
+		context.write(this.localModule).write(this.range).write(this.callNew);
 
 		super.serialize(context);
 	}
 
 	/**
+	 * Restores this instance from the provided deserializer context.
 	 * @param {ObjectDeserializerContext} context context
 	 */
 	deserialize(context) {
-		const { read } = context;
+		this.localModule = context.read();
+		const c1 = context.rest;
+		this.range = c1.read();
+		const c2 = c1.rest;
+		this.callNew = c2.read();
 
-		this.localModule = read();
-		this.range = read();
-		this.callNew = read();
-
-		super.deserialize(context);
+		super.deserialize(c2.rest);
 	}
 }
 
@@ -66,6 +67,7 @@ LocalModuleDependency.Template = class LocalModuleDependencyTemplate extends (
 	NullDependency.Template
 ) {
 	/**
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Dependency} dependency the dependency for which the template should be applied
 	 * @param {ReplaceSource} source the current replace source which can be modified
 	 * @param {DependencyTemplateContext} templateContext the context object

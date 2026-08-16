@@ -29,30 +29,32 @@ Array.isArray(baseRule.meta.schema)
         },
     },
 });
+const defaultOptions = [
+    {
+        detectObjects: false,
+        enforceConst: false,
+        ignore: [],
+        ignoreArrayIndexes: false,
+        ignoreEnums: false,
+        ignoreNumericLiteralTypes: false,
+        ignoreReadonlyClassProperties: false,
+        ignoreTypeIndexes: false,
+    },
+];
 exports.default = (0, util_1.createRule)({
     name: 'no-magic-numbers',
     meta: {
         type: 'suggestion',
-        // defaultOptions, -- base rule does not use defaultOptions
+        defaultOptions,
         docs: {
             description: 'Disallow magic numbers',
             extendsBaseRule: true,
+            frozen: true,
         },
         messages: baseRule.meta.messages,
         schema: [schema],
     },
-    defaultOptions: [
-        {
-            detectObjects: false,
-            enforceConst: false,
-            ignore: [],
-            ignoreArrayIndexes: false,
-            ignoreEnums: false,
-            ignoreNumericLiteralTypes: false,
-            ignoreReadonlyClassProperties: false,
-            ignoreTypeIndexes: false,
-        },
-    ],
+    defaultOptions,
     create(context, [options]) {
         const rules = baseRule.create(context);
         const ignored = new Set((options.ignore ?? []).map(normalizeIgnoreValue));

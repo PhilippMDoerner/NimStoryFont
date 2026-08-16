@@ -14,5 +14,11 @@ export declare class SourceFileCache extends Map<string, ts.SourceFile> {
     readonly loadResultCache: MemoryLoadResultCache;
     referencedFiles?: readonly string[];
     constructor(persistentCachePath?: string | undefined);
+    /**
+     * Releases all cached content. The cached data is only needed for incremental
+     * rebuilds and can include the emitted contents of every TypeScript file in the
+     * program. The cache is repopulated if a build is performed after this is called.
+     */
+    clear(): void;
     invalidate(files: Iterable<string>): boolean;
 }

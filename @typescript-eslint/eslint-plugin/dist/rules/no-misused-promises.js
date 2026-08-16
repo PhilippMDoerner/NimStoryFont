@@ -37,6 +37,7 @@ const utils_1 = require("@typescript-eslint/utils");
 const tsutils = __importStar(require("ts-api-utils"));
 const ts = __importStar(require("typescript"));
 const util_1 = require("../util");
+const promiseUtils_1 = require("../util/promiseUtils");
 function parseChecksVoidReturn(checksVoidReturn) {
     switch (checksVoidReturn) {
         case false:
@@ -74,7 +75,7 @@ exports.default = (0, util_1.createRule)({
         messages: {
             conditional: 'Expected non-Promise value in a boolean conditional.',
             predicate: 'Expected a non-Promise value to be returned.',
-            spread: 'Expected a non-Promise value to be spreaded in an object.',
+            spread: 'Expected a non-Promise value to be spread in an object.',
             voidReturnArgument: 'Promise returned in function argument where a void return was expected.',
             voidReturnAttribute: 'Promise-returning function provided to attribute where a void return was expected.',
             voidReturnInheritedMethod: "Promise-returning method provided where a void return was expected by extended/implemented type '{{ heritageTypeName }}'.",
@@ -302,6 +303,10 @@ exports.default = (0, util_1.createRule)({
             }
         }
         function checkArguments(node) {
+            if (node.type === utils_1.AST_NODE_TYPES.CallExpression &&
+                isPromiseFinallyMethod(node)) {
+                return;
+            }
             const tsNode = services.esTreeNodeToTSNodeMap.get(node);
             const voidArgs = voidFunctionArguments(checker, tsNode);
             if (voidArgs.size === 0) {
@@ -335,10 +340,26 @@ exports.default = (0, util_1.createRule)({
         }
         function checkVariableDeclaration(node) {
             const tsNode = services.esTreeNodeToTSNodeMap.get(node);
-            if (tsNode.initializer == null ||
-                node.init == null ||
-                node.id.typeAnnotation == null) {
+            if (tsNode.initializer == null || node.init == null) {
                 return;
+            }
+            if (node.parent.kind === 'using' &&
+                hasWellKnownSymbolWithThenableReturn(checker, tsNode.initializer, checker.getTypeAtLocation(tsNode.initializer), 'dispose')) {
+                context.report({
+                    node: node.init,
+                    messageId: 'voidReturnVariable',
+                });
+            }
+            if (node.id.typeAnnotation == null) {
+                return;
+            }
+            const variableType = services.getTypeAtLocation(node.id);
+            if (hasWellKnownSymbolWithVoidReturn(checker, tsNode.name, variableType, 'dispose') &&
+                hasWellKnownSymbolWithThenableReturn(checker, tsNode.initializer, checker.getTypeAtLocation(tsNode.initializer), 'dispose')) {
+                context.report({
+                    node: node.init,
+                    messageId: 'voidReturnVariable',
+                });
             }
             // syntactically ignore some known-good cases to avoid touching type info
             if (!isPossiblyFunctionType(node.id.typeAnnotation)) {
@@ -417,7 +438,10 @@ exports.default = (0, util_1.createRule)({
                 if (objType == null) {
                     return;
                 }
-                const propertySymbol = checker.getPropertyOfType(objType, tsNode.name.text);
+                const propertySymbol = tsutils
+                    .unionConstituents(objType)
+                    .map(t => checker.getPropertyOfType(t, tsNode.name.getText()))
+                    .find(p => p);
                 if (propertySymbol == null) {
                     return;
                 }
@@ -466,6 +490,11 @@ exports.default = (0, util_1.createRule)({
                     messageId: 'voidReturnReturnValue',
                 });
             }
+        }
+        function isPromiseFinallyMethod(node) {
+            const promiseFinallyCall = (0, promiseUtils_1.parseFinallyCall)(node, context);
+            return (promiseFinallyCall != null &&
+                (0, util_1.isPromiseLike)(services.program, (0, util_1.getConstrainedTypeAtLocation)(services, promiseFinallyCall.object)));
         }
         function checkClassLikeOrInterfaceNode(node) {
             const tsNode = services.esTreeNodeToTSNodeMap.get(node);
@@ -517,8 +546,7 @@ exports.default = (0, util_1.createRule)({
             });
         }
         function checkJSXAttribute(node) {
-            if (node.value == null ||
-                node.value.type !== utils_1.AST_NODE_TYPES.JSXExpressionContainer) {
+            if (node.value?.type !== utils_1.AST_NODE_TYPES.JSXExpressionContainer) {
                 return;
             }
             const expressionContainer = services.esTreeNodeToTSNodeMap.get(node.value);
@@ -551,7 +579,7 @@ exports.default = (0, util_1.createRule)({
 });
 function isSometimesThenable(checker, node) {
     const type = checker.getTypeAtLocation(node);
-    for (const subType of tsutils.unionTypeParts(checker.getApparentType(type))) {
+    for (const subType of tsutils.unionConstituents(checker.getApparentType(type))) {
         if (tsutils.isThenableType(checker, node, subType)) {
             return true;
         }
@@ -564,7 +592,7 @@ function isSometimesThenable(checker, node) {
 // branches is thenable.
 function isAlwaysThenable(checker, node) {
     const type = checker.getTypeAtLocation(node);
-    for (const subType of tsutils.unionTypeParts(checker.getApparentType(type))) {
+    for (const subType of tsutils.unionConstituents(checker.getApparentType(type))) {
         const thenProp = subType.getProperty('then');
         // If one of the alternates has no then property, it is not thenable in all
         // cases.
@@ -576,7 +604,7 @@ function isAlwaysThenable(checker, node) {
         // be of the right form to consider it thenable.
         const thenType = checker.getTypeOfSymbolAtLocation(thenProp, node);
         let hasThenableSignature = false;
-        for (const subType of tsutils.unionTypeParts(thenType)) {
+        for (const subType of tsutils.unionConstituents(thenType)) {
             for (const signature of subType.getCallSignatures()) {
                 if (signature.parameters.length !== 0 &&
                     isFunctionParam(checker, signature.parameters[0], node)) {
@@ -602,7 +630,7 @@ function isAlwaysThenable(checker, node) {
 }
 function isFunctionParam(checker, param, node) {
     const type = checker.getApparentType(checker.getTypeOfSymbolAtLocation(param, node));
-    for (const subType of tsutils.unionTypeParts(type)) {
+    for (const subType of tsutils.unionConstituents(type)) {
         if (subType.getCallSignatures().length !== 0) {
             return true;
         }
@@ -641,7 +669,7 @@ function voidFunctionArguments(checker, node) {
     const type = checker.getTypeAtLocation(node.expression);
     // We can't use checker.getResolvedSignature because it prefers an early '() => void' over a later '() => Promise<void>'
     // See https://github.com/microsoft/TypeScript/issues/48077
-    for (const subType of tsutils.unionTypeParts(type)) {
+    for (const subType of tsutils.unionConstituents(type)) {
         // Standard function calls and `new` have two different types of signatures
         const signatures = ts.isCallExpression(node)
             ? subType.getCallSignatures()
@@ -698,7 +726,7 @@ function anySignatureIsThenableType(checker, node, type) {
  * @returns Whether type is a thenable-returning function.
  */
 function isThenableReturningFunctionType(checker, node, type) {
-    for (const subType of tsutils.unionTypeParts(type)) {
+    for (const subType of tsutils.unionConstituents(type)) {
         if (anySignatureIsThenableType(checker, node, subType)) {
             return true;
         }
@@ -710,7 +738,7 @@ function isThenableReturningFunctionType(checker, node, type) {
  */
 function isVoidReturningFunctionType(checker, node, type) {
     let hadVoidReturn = false;
-    for (const subType of tsutils.unionTypeParts(type)) {
+    for (const subType of tsutils.unionConstituents(type)) {
         for (const signature of subType.getCallSignatures()) {
             const returnType = signature.getReturnType();
             // If a certain positional argument accepts both thenable and void returns,
@@ -729,7 +757,7 @@ function isVoidReturningFunctionType(checker, node, type) {
 function returnsThenable(checker, node) {
     const type = checker.getApparentType(checker.getTypeAtLocation(node));
     return tsutils
-        .unionTypeParts(type)
+        .unionConstituents(type)
         .some(t => anySignatureIsThenableType(checker, node, t));
 }
 function getHeritageTypes(checker, tsNode) {
@@ -750,4 +778,26 @@ function isStaticMember(node) {
         node.type === utils_1.AST_NODE_TYPES.PropertyDefinition ||
         node.type === utils_1.AST_NODE_TYPES.AccessorProperty) &&
         node.static);
+}
+function hasWellKnownSymbolWithThenableReturn(checker, node, type, symbolName) {
+    return tsutils
+        .unionConstituents(checker.getApparentType(type))
+        .some(typePart => {
+        const symbol = tsutils.getWellKnownSymbolPropertyOfType(typePart, symbolName, checker);
+        if (symbol == null) {
+            return false;
+        }
+        return isThenableReturningFunctionType(checker, node, checker.getTypeOfSymbolAtLocation(symbol, node));
+    });
+}
+function hasWellKnownSymbolWithVoidReturn(checker, node, type, symbolName) {
+    return tsutils
+        .unionConstituents(checker.getApparentType(type))
+        .some(typePart => {
+        const symbol = tsutils.getWellKnownSymbolPropertyOfType(typePart, symbolName, checker);
+        if (symbol == null) {
+            return false;
+        }
+        return isVoidReturningFunctionType(checker, node, checker.getTypeOfSymbolAtLocation(symbol, node));
+    });
 }

@@ -6,17 +6,15 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.dev/license
  */
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LoadPathsUrlRebasingImporter = exports.ModuleUrlRebasingImporter = exports.RelativeUrlRebasingImporter = void 0;
 exports.sassBindWorkaround = sassBindWorkaround;
-const magic_string_1 = __importDefault(require("magic-string"));
+const magic_string_1 = require("magic-string");
 const node_fs_1 = require("node:fs");
 const node_path_1 = require("node:path");
 const node_url_1 = require("node:url");
 const error_1 = require("../../utils/error");
+const path_1 = require("../../utils/path");
 const lexer_1 = require("./lexer");
 /**
  * A Sass Importer base class that provides the load logic to rebase all `url()` functions
@@ -69,8 +67,8 @@ class UrlRebasingImporter {
             const rebasedPath = (0, node_path_1.relative)(this.entryDirectory, stylesheetDirectory);
             // Normalize path separators and escape characters
             // https://developer.mozilla.org/en-US/docs/Web/CSS/url#syntax
-            const rebasedUrl = rebasedPath.replace(/\\/g, '/').replace(/[()\s'"]/g, '\\$&');
-            updatedContents ??= new magic_string_1.default(contents);
+            const rebasedUrl = (0, path_1.toPosixPath)(rebasedPath).replace(/[()\s'"]/g, '\\$&');
+            updatedContents ??= new magic_string_1.MagicString(contents);
             // Always quote the URL to avoid potential downstream parsing problems
             updatedContents.update(start, end, `"${rebasedUrl}||file:${valueNormalized}"`);
         }
@@ -329,3 +327,4 @@ function sassBindWorkaround(importer) {
     importer.load = importer.load.bind(importer);
     return importer;
 }
+//# sourceMappingURL=rebasing-importer.js.map

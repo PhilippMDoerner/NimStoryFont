@@ -1,1 +1,1 @@
-export declare const copy: <T extends Uint8Array>(arr: T) => T;
+export * from '@jsonjoy.com/buffers/lib/copy';

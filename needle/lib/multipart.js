@@ -39,10 +39,9 @@ function generate_part(name, part, boundary, callback) {
   var return_part = '--' + boundary + '\r\n';
   return_part += 'Content-Disposition: form-data; name="' + name + '"';
 
-  function append(data, filename) {
-
+  function append(data, filename, force_binary) {
     if (data) {
-      var binary = part.content_type.indexOf('text') == -1;
+      var binary = force_binary || part.content_type.indexOf('text') == -1;
       return_part += '; filename="' + encodeURIComponent(filename) + '"\r\n';
       if (binary) return_part += 'Content-Transfer-Encoding: binary\r\n';
       return_part += 'Content-Type: ' + part.content_type + '\r\n\r\n';
@@ -55,14 +54,16 @@ function generate_part(name, part, boundary, callback) {
   if ((part.file || part.buffer) && part.content_type) {
 
     var filename = part.filename ? part.filename : part.file ? basename(part.file) : name;
-    if (part.buffer) return append(part.buffer, filename);
+    if (part.buffer) return append(part.buffer, filename, true);
 
     readFile(part.file, function(err, data) {
       if (err) return callback(err);
-      append(data, filename);
+      append(data, filename, true);
     });
 
   } else {
+    if (!part.value)
+      throw new Error('value missing for multipart!')
 
     if (typeof part.value == 'object')
       return callback(new Error('Object received for ' + name + ', expected string.'))

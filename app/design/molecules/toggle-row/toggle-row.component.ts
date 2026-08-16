@@ -17,7 +17,7 @@ import {
   switchMap,
   withLatestFrom,
 } from 'rxjs';
-import { filterNil } from 'src/utils/rxjs-operators';
+import { filterNil } from '../../../../utils/rxjs-operators';
 import { IconComponent } from '../../atoms/icon/icon.component';
 import { Toggle } from '../_models/toggle';
 
@@ -32,15 +32,15 @@ import { Toggle } from '../_models/toggle';
   },
 })
 export class ToggleRowComponent<T> {
-  host = inject(ElementRef).nativeElement;
+  readonly host = inject(ElementRef).nativeElement;
 
-  toggles = input.required<Toggle<T>[]>();
+  readonly toggles = input.required<Toggle<T>[]>();
 
-  activated = output<Toggle<T>>();
+  readonly activated = output<Toggle<T>>();
 
-  toggleElements = viewChildren<ElementRef<HTMLElement>>('toggle');
+  readonly toggleElements = viewChildren<ElementRef<HTMLElement>>('toggle');
 
-  focusIndex$ = toObservable(this.toggleElements).pipe(
+  readonly focusIndex$ = toObservable(this.toggleElements).pipe(
     switchMap((entries) => {
       const indexOnItemFocus$ = merge(
         ...entries.map((entry, index) =>

@@ -7,5 +7,5 @@
  */
 // THIS CODE IS GENERATED - DO NOT MODIFY.
 const u = undefined;
-export default [[["mid", "n", "mor", "aft", "eve", "night"], ["midnight", "noon", "in the morning", "in the afternoon", "in the evening", "at night"], u], [["mid", "noon", "mor", "aft", "eve", "night"], ["midnight", "noon", "morning", "afternoon", "evening", "night"], u], ["00:00", "12:00", ["06:00", "12:00"], ["12:00", "18:00"], ["18:00", "21:00"], ["21:00", "06:00"]]];
+export default [[["mid", "n", "mor", "aft", "eve", "night"], ["midnight", "noon", "in the morning", "in the afternoon", "in the evening", "at night"], u], [["mid", "noon", "mor", "aft", "eve", "night"], ["midnight", "noon", "morning", "afternoon", "evening", "night"], u], ["00:00", "12:00", ["00:00", "12:00"], ["12:00", "18:00"], ["18:00", "21:00"], ["21:00", "24:00"]]];
 //# sourceMappingURL=en-CA.js.map

@@ -4,8 +4,8 @@ import { Injectable } from '@angular/core';
 import {
   CharacterDetails,
   OrganizationMembership,
-} from 'src/app/_models/character';
-import { OverviewItem } from 'src/app/_models/overview';
+} from '../../_models/character';
+import { OverviewItem } from '../../_models/overview';
 import { BaseService } from '../base.service';
 
 @Injectable({

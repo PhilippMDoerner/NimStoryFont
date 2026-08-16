@@ -1590,6 +1590,7 @@ typedef struct MDB_pgstate {
 	int 		mf_position;
 	int 		mf_written_start; /* start of modified entries in free-list */
 	int 		mf_written_end; /* start of modified entries in free-list */
+	int			mf_no_reverse_iteration; /* when modifying the free-list, don't iterate the free-list in reverse as it is not safe */
 } MDB_pgstate;
 /*<lmdb-js>*/
 struct MDB_last_map {
@@ -1654,6 +1655,7 @@ struct MDB_env {
 #	define		me_freelist_position	me_pgstate.mf_position
 #	define		me_freelist_written_start	me_pgstate.mf_written_start
 #	define		me_freelist_written_end	me_pgstate.mf_written_end
+#	define		me_freelist_no_reverse_iteration	me_pgstate.mf_no_reverse_iteration
 	unsigned int me_maxfreepgs_to_load; /**< max freelist entries to load into memory */
 	unsigned int me_maxfreepgs_to_retain; /**< max freelist entries to load into memory */
 	MDB_page	*me_dpages;		/**< list of malloc'd blocks for re-use */
@@ -2765,7 +2767,7 @@ restart_search:
 		if (start > mop_len) {
 			start = 1;
 		}
-		if (mop_len && (ssize_t) mop[start - 1] < 0) start++; // don't start in the middle of a length block
+		if (mop_len && (ssize_t) mop[start - 1] < 0 && (ssize_t) mop[start] > 0) start++; // don't start in the middle of a length block
 		unsigned end = start + mop_len;
 		unsigned check_point = start + MAX_SCAN_SEGMENT;
 		if (check_point > mop_len) check_point = mop_len;
@@ -2913,6 +2915,8 @@ restart_search:
 			if (last >= oldest || rc == MDB_NOTFOUND) {
 				env->me_freelist_end = oldest;
 				// no more newer transactions, go to the beginning of the range and look for older txns
+				// unless we are forbidden to use reverse iteration:
+				if (env->me_freelist_no_reverse_iteration) break;
 				op = MDB_SET_RANGE;
 				if (env->me_freelist_start <= 1) break; // should be no zero entry, break out
 				last = env->me_freelist_start - 1;
@@ -4251,12 +4255,18 @@ mdb_freelist_save(MDB_txn *txn)
 				unsigned end = mop_len;
 				mop_len -= len;
 				unsigned start = mop_len > 0 ? mop_len - 1 : 0;
-				char do_write = env->me_freelist_written_start <= end && env->me_freelist_written_end >= start;
+				char do_write = freelist_written_start <= end && freelist_written_end >= start;
 				fl_writes[i++] = do_write;
 				// determine if it is in the range of actively written pages
 				if (freelist_written_start <= end && freelist_written_end >= start) {
 					// we will reserve one entry for size and potentially one extra entry in case we are splitting an entry
 					data.mv_size = (len + (head_id < pglast ? 2 : 1)) * sizeof(pgno_t);
+					if (data.mv_size <= 0) {
+						last_error = malloc(100);
+						sprintf(last_error, "attempt to reserve freelist had a data entry with zero-size, last len %i\n", len);
+						return MDB_BAD_TXN;
+					}
+
 					//fprintf(stderr, "id: %u size: %u", head_id, data.mv_size);
 					rc = mdb_cursor_put(&mc, &key, &data, MDB_RESERVE);
 					*(pgno_t*)data.mv_data = 0; // set the size of the entry to zero in case it doesn't get overwritten
@@ -4286,6 +4296,7 @@ mdb_freelist_save(MDB_txn *txn)
 				total_room = head_room = 0;
 				mdb_tassert(txn, head_id >= env->me_freelist_start);
 				//fprintf(stderr, "Deleting free list record %u\n", head_id);
+				env->me_freelist_no_reverse_iteration = 1; // once we started deleting, could lead to unsafe reverse iteration
 				rc = mdb_cursor_del(&mc, 0);
 				if (rc) {
 					last_error = "Attempting to delete free-space record";
@@ -4298,21 +4309,25 @@ mdb_freelist_save(MDB_txn *txn)
 			mop[0] = 0;
 		}
 		mop_len = (mop ? mop[0] : 0) + txn->mt_loose_count;
-		//fprintf(stderr, "mop_len %u = mop[0] %u + txn->mt_loose_count %u, reserved_sape,", mop_len, (mop ? mop[0] : 0), txn->mt_loose_count, reserved_space);
-		if (freelist_written_start != env->me_freelist_written_start)
-		freelist_written_end = env->me_freelist_written_end;
+		if (txn->mt_loose_count > 0) {
+			// loose pages are appended to the end, so we have to expand the range to the end
+			env->me_freelist_written_end = mop_len;
+			env->me_freelist_written_start = 1;
+		}
 	} while(reserved_space != mop_len ||
 		 (start_written > env->me_freelist_start && env->me_freelist_start > 0) ||
 		 freecnt < txn->mt_free_pgs[0] ||
 		 freelist_written_start != env->me_freelist_written_start ||
 		 freelist_written_end != env->me_freelist_written_end);
+	env->me_freelist_no_reverse_iteration = 0; // restore reverse iteration
 
 	/* Return loose page numbers to me_pghead, though usually none are
 	 * left at this point.	The pages themselves remain in dirty_list.
 	 */
 	if (txn->mt_loose_pgs) {
 		MDB_page *mp = txn->mt_loose_pgs;
-		if (!env->me_pghead) env->me_pghead = mdb_midl_alloc(1);
+		if (!env->me_pghead)
+			env->me_pghead = mdb_midl_alloc(1);
 		unsigned count = txn->mt_loose_count;
 		lost_loose += count;
 		for (; mp; mp = NEXT_LOOSE_PAGE(mp))
@@ -4343,6 +4358,13 @@ mdb_freelist_save(MDB_txn *txn)
 		key.mv_size = sizeof(id);
 		key.mv_data = &id;
 		rc = mdb_cursor_get(&mc, &key, &data, MDB_SET_KEY);
+		if (data.mv_size == 0) {
+			last_error = malloc(100);
+			sprintf(last_error, "reserved freelist had a data entry with zero-size, last id %u\n", id);
+			rc = MDB_BAD_TXN;
+			break;
+		}
+
 		if (rc == MDB_NOTFOUND) {
 			if (freelist_written_start < mop_len) {
 				fprintf(stderr, "Freelist record not found %u %u %u %u %u %u %i %i %i %i %i %u %u\n", id, mop_len, start_written,
@@ -4448,6 +4470,12 @@ mdb_freelist_save(MDB_txn *txn)
 				fprintf(stderr, "updated freelist key wrong size between %u and %u, last %u\n", start_written, env->me_freelist_written_end, last);
 				last_error = malloc(100);
 				sprintf(last_error, "updated freelist key wrong size between %u and %u, last %u\n", start_written, env->me_freelist_written_end, last);
+				rc = MDB_BAD_TXN;
+				break;
+			}
+			if (data.mv_size == 0) {
+				last_error = malloc(100);
+				sprintf(last_error, "updated freelist had a data entry with zero-size, last %u\n", last);
 				rc = MDB_BAD_TXN;
 				break;
 			}
@@ -8464,7 +8492,10 @@ mdb_cursor_sibling(MDB_cursor *mc, int move_right)
 		DPRINTF(("just moving to %s index key %u",
 				move_right ? "right" : "left", mc->mc_ki[mc->mc_top]));
 	}
-	mdb_cassert(mc, IS_BRANCH(mc->mc_pg[mc->mc_top]));
+	if (!IS_BRANCH(mc->mc_pg[mc->mc_top])) {
+		last_error = "expected node to be branch, but was not";
+		return MDB_PROBLEM;
+	}
 
 	MDB_PAGE_UNREF(mc->mc_txn, op);
 

@@ -59,7 +59,11 @@ async function _renderUniversal(options, context, browserResult, serverResult, s
     const browserOptions = await context.validateOptions(rawBrowserOptions, browserBuilderName);
     // Locate zone.js to load in the render worker
     const root = context.workspaceRoot;
-    const zonePackage = require.resolve('zone.js', { paths: [root] });
+    let zonePackage;
+    try {
+        zonePackage = require.resolve('zone.js', { paths: [root] });
+    }
+    catch { }
     const projectName = context.target && context.target.project;
     if (!projectName) {
         throw new Error('The builder requires a target.');
@@ -87,10 +91,11 @@ async function _renderUniversal(options, context, browserResult, serverResult, s
             const browserIndexOutputPath = path.join(outputPath, 'index.html');
             const indexHtml = await fs.promises.readFile(browserIndexOutputPath, 'utf8');
             const serverBundlePath = await _getServerModuleBundlePath(options, context, serverResult, localeDirectory);
+            const route = options.route;
             let html = await renderWorker.run({
                 serverBundlePath,
                 document: indexHtml,
-                url: options.route,
+                url: route?.[0] === '/' ? route : '/' + route,
             });
             // Overwrite the client index file.
             const outputIndexPath = options.outputIndexPath
@@ -136,6 +141,8 @@ async function _getServerModuleBundlePath(options, context, serverResult, browse
     return path.join(outputPath, maybeMain);
 }
 async function _appShellBuilder(options, context) {
+    context.logger.warn('The "@angular-devkit/build-angular:app-shell" builder is deprecated as part of Angular\'s Webpack support deprecation. ' +
+        'Use "@angular/build:application" instead. For more information, see https://angular.dev/tools/cli/build-system-migration.');
     const browserTarget = (0, architect_1.targetFromTargetString)(options.browserTarget);
     const serverTarget = (0, architect_1.targetFromTargetString)(options.serverTarget);
     // Never run the browser target in watch mode.
@@ -160,10 +167,10 @@ async function _appShellBuilder(options, context) {
     });
     let spinner;
     try {
-        const [browserResult, serverResult] = await Promise.all([
+        const [browserResult, serverResult] = (await Promise.all([
             browserTargetRun.result,
             serverTargetRun.result,
-        ]);
+        ]));
         if (browserResult.success === false || browserResult.baseOutputPath === undefined) {
             return browserResult;
         }
@@ -186,3 +193,4 @@ async function _appShellBuilder(options, context) {
     }
 }
 exports.default = (0, architect_1.createBuilder)(_appShellBuilder);
+//# sourceMappingURL=index.js.map

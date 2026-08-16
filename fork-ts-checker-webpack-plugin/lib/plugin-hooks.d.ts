@@ -9,7 +9,7 @@ declare function createPluginHooks(): {
     error: SyncHook<[unknown, webpack.Compilation], void, import("tapable").UnsetAdditionalOptions>;
     issues: SyncWaterfallHook<[Issue[], webpack.Compilation | undefined], void>;
 };
-declare type ForkTsCheckerWebpackPluginHooks = ReturnType<typeof createPluginHooks>;
+type ForkTsCheckerWebpackPluginHooks = ReturnType<typeof createPluginHooks>;
 declare function getPluginHooks(compiler: webpack.Compiler | webpack.MultiCompiler): {
     start: AsyncSeriesWaterfallHook<[FilesChange, webpack.Compilation], import("tapable").UnsetAdditionalOptions>;
     waiting: SyncHook<[webpack.Compilation], void, import("tapable").UnsetAdditionalOptions>;

@@ -8,27 +8,29 @@ import {
   LinkerEnvironment,
   assert,
   isFatalLinkerError
-} from "../../chunk-TDMVX35I.js";
+} from "../../chunk-DYU4R5IG.js";
 import {
   ConsoleLogger,
   LogLevel
-} from "../../chunk-H5Y7P5GQ.js";
-import "../../chunk-NVYT6OPE.js";
-import "../../chunk-M3WWDK6S.js";
+} from "../../chunk-SEJGUMO2.js";
+import "../../chunk-Y5V7YWTG.js";
+import "../../chunk-ZUYMYKXC.js";
 import {
   NodeJSFileSystem
-} from "../../chunk-U5SKOFKE.js";
-import "../../chunk-KPQ72R34.js";
+} from "../../chunk-KWAGEHJJ.js";
+import "../../chunk-IEBNHER4.js";
 
-// bazel-out/darwin_arm64-fastbuild/bin/packages/compiler-cli/linker/babel/src/es2015_linker_plugin.js
+// packages/compiler-cli/linker/babel/src/es2015_linker_plugin.js
 import { types as t4 } from "@babel/core";
 
-// bazel-out/darwin_arm64-fastbuild/bin/packages/compiler-cli/linker/babel/src/ast/babel_ast_factory.js
+// packages/compiler-cli/linker/babel/src/ast/babel_ast_factory.js
 import { types as t } from "@babel/core";
 var BabelAstFactory = class {
-  sourceUrl;
-  constructor(sourceUrl) {
-    this.sourceUrl = sourceUrl;
+  sourcePath;
+  typesEnabled;
+  constructor(sourcePath) {
+    this.sourcePath = sourcePath;
+    this.typesEnabled = sourcePath.endsWith(".ts") || sourcePath.endsWith(".mts");
   }
   attachComments(statement, leadingComments) {
     for (let i = leadingComments.length - 1; i >= 0; i--) {
@@ -37,9 +39,9 @@ var BabelAstFactory = class {
     }
   }
   createArrayLiteral = t.arrayExpression;
-  createAssignment(target, value) {
+  createAssignment(target, operator, value) {
     assert(target, isLExpression, "must be a left hand side expression");
-    return t.assignmentExpression("=", target, value);
+    return t.assignmentExpression(operator, target, value);
   }
   createBinaryExpression(leftOperand, operator, rightOperand) {
     switch (operator) {
@@ -47,48 +49,110 @@ var BabelAstFactory = class {
       case "||":
       case "??":
         return t.logicalExpression(operator, leftOperand, rightOperand);
+      case "=":
+      case "+=":
+      case "-=":
+      case "*=":
+      case "/=":
+      case "%=":
+      case "**=":
+      case "&&=":
+      case "||=":
+      case "??=":
+      case "|=":
+      case "&=":
+      case ">>=":
+      case ">>>=":
+      case "<<=":
+      case "^=":
+        throw new Error(`Unexpected assignment operator ${operator}`);
       default:
         return t.binaryExpression(operator, leftOperand, rightOperand);
     }
   }
   createBlock = t.blockStatement;
+  createCallChain(callee, args, pure, isOptional) {
+    const call = t.optionalCallExpression(
+      callee,
+      args,
+      /* optional */
+      isOptional
+    );
+    if (pure) {
+      t.addComment(
+        call,
+        "leading",
+        " @__PURE__ ",
+        /* line */
+        false
+      );
+    }
+    return call;
+  }
   createCallExpression(callee, args, pure) {
     const call = t.callExpression(callee, args);
     if (pure) {
-      t.addComment(call, "leading", " @__PURE__ ", false);
+      t.addComment(
+        call,
+        "leading",
+        " @__PURE__ ",
+        /* line */
+        false
+      );
     }
     return call;
   }
   createConditional = t.conditionalExpression;
   createElementAccess(expression, element) {
-    return t.memberExpression(expression, element, true);
+    return t.memberExpression(
+      expression,
+      element,
+      /* computed */
+      true
+    );
+  }
+  createElementAccessChain(expression, element, isOptional) {
+    return t.optionalMemberExpression(
+      expression,
+      element,
+      /* computed */
+      true,
+      /* optional */
+      isOptional
+    );
   }
   createExpressionStatement = t.expressionStatement;
+  createSpreadElement(expression) {
+    return t.spreadElement(expression);
+  }
   createFunctionDeclaration(functionName, parameters, body) {
     assert(body, t.isBlockStatement, "a block");
-    return t.functionDeclaration(t.identifier(functionName), parameters.map((param) => t.identifier(param)), body);
+    return t.functionDeclaration(t.identifier(functionName), parameters.map((param) => this.identifierWithType(param.name, param.type)), body);
   }
   createArrowFunctionExpression(parameters, body) {
     if (t.isStatement(body)) {
       assert(body, t.isBlockStatement, "a block");
     }
-    return t.arrowFunctionExpression(parameters.map((param) => t.identifier(param)), body);
+    return t.arrowFunctionExpression(parameters.map((param) => this.identifierWithType(param.name, param.type)), body);
   }
   createFunctionExpression(functionName, parameters, body) {
     assert(body, t.isBlockStatement, "a block");
     const name = functionName !== null ? t.identifier(functionName) : null;
-    return t.functionExpression(name, parameters.map((param) => t.identifier(param)), body);
+    return t.functionExpression(name, parameters.map((param) => this.identifierWithType(param.name, param.type)), body);
   }
   createIdentifier = t.identifier;
   createIfStatement = t.ifStatement;
   createDynamicImport(url) {
-    return this.createCallExpression(t.import(), [typeof url === "string" ? t.stringLiteral(url) : url], false);
+    return t.importExpression(typeof url === "string" ? t.stringLiteral(url) : url);
   }
   createLiteral(value) {
     if (typeof value === "string") {
       return t.stringLiteral(value);
     } else if (typeof value === "number") {
-      return t.numericLiteral(value);
+      if (Number.isNaN(value)) {
+        return t.identifier("NaN");
+      }
+      return t.valueToNode(value);
     } else if (typeof value === "boolean") {
       return t.booleanLiteral(value);
     } else if (value === void 0) {
@@ -99,18 +163,40 @@ var BabelAstFactory = class {
       throw new Error(`Invalid literal: ${value} (${typeof value})`);
     }
   }
-  createNewExpression = t.newExpression;
+  createNewExpression(expression, args) {
+    return t.newExpression(expression, args);
+  }
   createObjectLiteral(properties) {
     return t.objectExpression(properties.map((prop) => {
+      if (prop.kind === "spread") {
+        return t.spreadElement(prop.expression);
+      }
       const key = prop.quoted ? t.stringLiteral(prop.propertyName) : t.identifier(prop.propertyName);
       return t.objectProperty(key, prop.value);
     }));
   }
   createParenthesizedExpression = t.parenthesizedExpression;
   createPropertyAccess(expression, propertyName) {
-    return t.memberExpression(expression, t.identifier(propertyName), false);
+    return t.memberExpression(
+      expression,
+      t.identifier(propertyName),
+      /* computed */
+      false
+    );
   }
-  createReturnStatement = t.returnStatement;
+  createPropertyAccessChain(expression, propertyName, isOptional) {
+    return t.optionalMemberExpression(
+      expression,
+      t.identifier(propertyName),
+      /* computed */
+      false,
+      /* optional */
+      isOptional
+    );
+  }
+  createReturnStatement(expression) {
+    return t.returnStatement(expression);
+  }
   createTaggedTemplate(tag, template) {
     return t.taggedTemplateExpression(tag, this.createTemplateLiteral(template));
   }
@@ -126,23 +212,31 @@ var BabelAstFactory = class {
     return t.unaryExpression("void", expression);
   }
   createUnaryExpression = t.unaryExpression;
-  createVariableDeclaration(variableName, initializer, type) {
-    return t.variableDeclaration(type, [
-      t.variableDeclarator(t.identifier(variableName), initializer)
+  createVariableDeclaration(variableName, initializer, variableType, type) {
+    return t.variableDeclaration(variableType, [
+      t.variableDeclarator(this.identifierWithType(variableName, type), initializer)
     ]);
+  }
+  createRegularExpressionLiteral(body, flags) {
+    return t.regExpLiteral(body, flags ?? void 0);
   }
   setSourceMapRange(node, sourceMapRange) {
     if (sourceMapRange === null) {
       return node;
     }
     node.loc = {
-      filename: sourceMapRange.url !== this.sourceUrl ? sourceMapRange.url : void 0,
+      // Add in the filename so that we can map to external template files.
+      // Note that Babel gets confused if you specify a filename when it is the original source
+      // file. This happens when the template is inline, in which case just use `undefined`.
+      filename: sourceMapRange.url !== this.sourcePath ? sourceMapRange.url : void 0,
       start: {
         line: sourceMapRange.start.line + 1,
+        // lines are 1-based in Babel.
         column: sourceMapRange.start.column
       },
       end: {
         line: sourceMapRange.end.line + 1,
+        // lines are 1-based in Babel.
         column: sourceMapRange.end.column
       }
     };
@@ -150,12 +244,67 @@ var BabelAstFactory = class {
     node.end = sourceMapRange.end.offset;
     return node;
   }
+  createBuiltInType(type) {
+    switch (type) {
+      case "any":
+        return t.tsAnyKeyword();
+      case "boolean":
+        return t.tsBooleanKeyword();
+      case "number":
+        return t.tsNumberKeyword();
+      case "string":
+        return t.tsStringKeyword();
+      case "function":
+        return t.tsTypeReference(t.identifier("Function"));
+      case "never":
+        return t.tsNeverKeyword();
+      case "unknown":
+        return t.tsUnknownKeyword();
+    }
+  }
+  createExpressionType(expression, typeParams) {
+    const typeName = getEntityTypeFromExpression(expression);
+    return t.tsTypeReference(typeName, typeParams ? t.tsTypeParameterInstantiation(typeParams) : null);
+  }
+  createArrayType(elementType) {
+    return t.tsArrayType(elementType);
+  }
+  createMapType(valueType) {
+    const keySignature = this.identifierWithType("key", this.createBuiltInType("string"));
+    return t.tsTypeLiteral([t.tsIndexSignature([keySignature], t.tsTypeAnnotation(valueType))]);
+  }
+  transplantType(type) {
+    if (t.isNode(type) && t.isTSType(type)) {
+      return type;
+    }
+    throw new Error("Attempting to transplant a type node from a non-Babel AST: " + type);
+  }
+  identifierWithType(name, type) {
+    const node = t.identifier(name);
+    if (this.typesEnabled && type != null) {
+      node.typeAnnotation = t.tsTypeAnnotation(type);
+    }
+    return node;
+  }
 };
+function getEntityTypeFromExpression(expression) {
+  if (t.isIdentifier(expression)) {
+    return expression;
+  }
+  if (t.isMemberExpression(expression)) {
+    const left = getEntityTypeFromExpression(expression.object);
+    if (!t.isIdentifier(expression.property)) {
+      throw new Error(`Unsupported property access for type reference: ${expression.property.type}`);
+    }
+    return t.tsQualifiedName(left, expression.property);
+  }
+  throw new Error(`Unsupported expression for type reference: ${expression.type}`);
+}
 function isLExpression(expr) {
   return t.isLVal(expr);
 }
 
-// bazel-out/darwin_arm64-fastbuild/bin/packages/compiler-cli/linker/babel/src/ast/babel_ast_host.js
+// packages/compiler-cli/linker/babel/src/ast/babel_ast_host.js
 import { types as t2 } from "@babel/core";
 var BabelAstHost = class {
   getSymbolName(node) {
@@ -259,6 +408,7 @@ var BabelAstHost = class {
     }
     return {
       startLine: node.loc.start.line - 1,
+      // Babel lines are 1-based
       startCol: node.loc.start.column,
       startPos: node.start,
       endPos: node.end
@@ -281,13 +431,28 @@ function isMinifiedBooleanLiteral(node) {
   return t2.isUnaryExpression(node) && node.prefix && node.operator === "!" && t2.isNumericLiteral(node.argument) && (node.argument.value === 0 || node.argument.value === 1);
 }
 
-// bazel-out/darwin_arm64-fastbuild/bin/packages/compiler-cli/linker/babel/src/babel_declaration_scope.js
+// packages/compiler-cli/linker/babel/src/babel_declaration_scope.js
 import { types as t3 } from "@babel/core";
 var BabelDeclarationScope = class {
   declarationScope;
+  /**
+   * Construct a new `BabelDeclarationScope`.
+   *
+   * @param declarationScope the Babel scope containing the declaration call expression.
+   */
   constructor(declarationScope) {
     this.declarationScope = declarationScope;
   }
+  /**
+   * Compute the Babel `NodePath` that can be used to reference the lexical scope where any
+   * shared constant statements would be inserted.
+   *
+   * There will only be a shared constant scope if the expression is in an ECMAScript module, or a
+   * UMD module. Otherwise `null` is returned to indicate that constant statements must be emitted
+   * locally to the generated linked definition, to avoid polluting the global scope.
+   *
+   * @param expression the expression that points to the Angular core framework import.
+   */
   getConstantScopeRef(expression) {
     let bindingExpression = expression;
     while (t3.isMemberExpression(bindingExpression)) {
@@ -308,12 +473,15 @@ var BabelDeclarationScope = class {
   }
 };
 
-// bazel-out/darwin_arm64-fastbuild/bin/packages/compiler-cli/linker/babel/src/es2015_linker_plugin.js
+// packages/compiler-cli/linker/babel/src/es2015_linker_plugin.js
 function createEs2015LinkerPlugin({ fileSystem, logger, ...options }) {
   let fileLinker = null;
   return {
     visitor: {
       Program: {
+        /**
+         * Create a new `FileLinker` as we enter each file (`t.Program` in Babel).
+         */
         enter(_, state) {
           assertNull(fileLinker);
           const file = state.file;
@@ -325,6 +493,10 @@ function createEs2015LinkerPlugin({ fileSystem, logger, ...options }) {
           const linkerEnvironment = LinkerEnvironment.create(fileSystem, logger, new BabelAstHost(), new BabelAstFactory(sourceUrl), options);
           fileLinker = new FileLinker(linkerEnvironment, sourceUrl, file.code);
         },
+        /**
+         * On exiting the file, insert any shared constant statements that were generated during
+         * linking of the partial declarations.
+         */
         exit() {
           assertNotNull(fileLinker);
           for (const { constantScope, statements } of fileLinker.getConstantStatements()) {
@@ -333,6 +505,10 @@ function createEs2015LinkerPlugin({ fileSystem, logger, ...options }) {
           fileLinker = null;
         }
       },
+      /**
+       * Test each call expression to see if it is a partial declaration; it if is then replace it
+       * with the results of linking the declaration.
+       */
       CallExpression(call, state) {
         if (fileLinker === null) {
           return;
@@ -404,13 +580,13 @@ function assertNotNull(obj) {
 }
 function buildCodeFrameError(file, message, node) {
   const filename = file.opts.filename || "(unknown file)";
-  const error = file.hub.buildError(node, message);
+  const error = file.hub.buildError(node, message, Error);
   return `${filename}: ${error.message}`;
 }
 
-// bazel-out/darwin_arm64-fastbuild/bin/packages/compiler-cli/linker/babel/src/babel_plugin.js
+// packages/compiler-cli/linker/babel/src/babel_plugin.js
 function defaultLinkerPlugin(api, options) {
-  api.assertVersion(7);
+  api.assertVersion(8);
   return createEs2015LinkerPlugin({
     ...options,
     fileSystem: new NodeJSFileSystem(),
@@ -418,7 +594,7 @@ function defaultLinkerPlugin(api, options) {
   });
 }
 
-// bazel-out/darwin_arm64-fastbuild/bin/packages/compiler-cli/linker/babel/index.js
+// packages/compiler-cli/linker/babel/index.ts
 var babel_default = defaultLinkerPlugin;
 export {
   createEs2015LinkerPlugin,

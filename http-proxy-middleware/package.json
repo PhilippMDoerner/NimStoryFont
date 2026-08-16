@@ -1,108 +1,121 @@
 {
   "name": "http-proxy-middleware",
-  "type": "commonjs",
-  "version": "3.0.5",
+  "version": "4.2.0",
   "description": "The one-liner node.js proxy middleware for connect, express, next.js and more",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "files": [
-    "dist"
+  "keywords": [
+    "browser-sync",
+    "connect",
+    "cors",
+    "express",
+    "fastify",
+    "grunt-contrib-connect",
+    "gulp",
+    "hono",
+    "http",
+    "https",
+    "middleware",
+    "next.js",
+    "polka",
+    "proxy",
+    "reverse",
+    "websocket",
+    "ws"
   ],
-  "scripts": {
-    "clean": "rm -rf dist coverage tsconfig.tsbuildinfo .eslintcache",
-    "install:all": "yarn && (cd examples && yarn)",
-    "lint": "yarn prettier && yarn eslint",
-    "lint:fix": "yarn prettier:fix && yarn eslint:fix",
-    "eslint": "eslint '{src,test,examples}/**/*.{js,ts}' --cache",
-    "eslint:fix": "yarn eslint --fix",
-    "prettier": "prettier --list-different \"**/*.{js,ts,md,yml,json,html}\"",
-    "prettier:fix": "prettier --write \"**/*.{js,ts,md,yml,json,html}\"",
-    "build": "tsc --build",
-    "test": "jest",
-    "coverage": "jest --coverage",
-    "prepare": "husky && patch-package",
-    "prepack": "yarn clean && yarn test && yarn build",
-    "spellcheck": "npx --yes cspell --show-context --show-suggestions '**/*.*'"
+  "homepage": "https://github.com/chimurai/http-proxy-middleware#readme",
+  "bugs": {
+    "url": "https://github.com/chimurai/http-proxy-middleware/issues"
   },
-  "publishConfig": {
-    "provenance": true
-  },
+  "license": "MIT",
+  "author": "Steven Chim",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/chimurai/http-proxy-middleware.git"
   },
-  "keywords": [
-    "reverse",
-    "proxy",
-    "middleware",
-    "http",
-    "https",
-    "connect",
-    "express",
-    "fastify",
-    "polka",
-    "next.js",
-    "browser-sync",
-    "gulp",
-    "grunt-contrib-connect",
-    "websocket",
-    "ws",
-    "cors"
+  "files": [
+    "dist"
   ],
-  "author": "Steven Chim",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/chimurai/http-proxy-middleware/issues"
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./hono": {
+      "types": "./dist/index-hono.d.ts",
+      "import": "./dist/index-hono.js",
+      "default": "./dist/index-hono.js"
+    }
   },
-  "homepage": "https://github.com/chimurai/http-proxy-middleware#readme",
-  "devDependencies": {
-    "@commitlint/cli": "19.8.0",
-    "@commitlint/config-conventional": "19.8.0",
-    "@eslint/js": "9.23.0",
-    "@types/debug": "4.1.12",
-    "@types/eslint": "9.6.1",
-    "@types/express": "4.17.21",
-    "@types/is-glob": "4.0.4",
-    "@types/jest": "29.5.14",
-    "@types/micromatch": "4.0.9",
-    "@types/node": "22.10.2",
-    "@types/supertest": "6.0.2",
-    "@types/ws": "8.18.0",
-    "body-parser": "1.20.3",
-    "eslint": "9.23.0",
-    "eslint-config-prettier": "10.1.1",
-    "eslint-plugin-prettier": "5.2.3",
-    "express": "4.21.2",
-    "get-port": "5.1.1",
-    "globals": "16.0.0",
-    "husky": "9.1.7",
-    "jest": "29.7.0",
-    "lint-staged": "15.5.0",
-    "mockttp": "3.17.0",
-    "open": "8.4.2",
-    "patch-package": "8.0.0",
-    "pkg-pr-new": "0.0.41",
-    "prettier": "3.5.3",
-    "supertest": "7.1.0",
-    "ts-jest": "29.2.6",
-    "typescript": "5.8.2",
-    "typescript-eslint": "8.27.0",
-    "ws": "8.18.1"
+  "publishConfig": {
+    "provenance": true
+  },
+  "scripts": {
+    "clean": "rm -rf dist coverage tsconfig.tsbuildinfo .eslintcache",
+    "install:all": "yarn && (cd examples && yarn)",
+    "lint": "yarn format && yarn eslint",
+    "lint:fix": "yarn format:fix && yarn eslint:fix",
+    "eslint": "eslint --cache '**/*.{js,ts,mjs,mts}'",
+    "eslint:fix": "yarn eslint --fix",
+    "format": "oxfmt --list-different \"**/*.{js,ts,mjs,mts,md,yml,json,html}\"",
+    "format:fix": "oxfmt --write \"**/*.{js,ts,mjs,mts,md,yml,json,html}\"",
+    "build": "tsc --build",
+    "test": "vitest run",
+    "test:types": "tsc --project tsconfig.test.json --noEmit",
+    "coverage": "vitest run --coverage",
+    "prepare": "husky",
+    "prepack": "yarn clean && yarn test && yarn build",
+    "spellcheck": "npx --yes cspell --show-context --show-suggestions '**/*.*'"
   },
   "dependencies": {
-    "@types/http-proxy": "^1.17.15",
-    "debug": "^4.3.6",
-    "http-proxy": "^1.18.1",
+    "debug": "^4.4.3",
+    "httpxy": "^0.5.4",
     "is-glob": "^4.0.3",
-    "is-plain-object": "^5.0.0",
+    "is-plain-obj": "^4.1.0",
     "micromatch": "^4.0.8"
   },
-  "engines": {
-    "node": "^14.15.0 || ^16.10.0 || >=18.0.0"
+  "devDependencies": {
+    "@commitlint/cli": "21.2.0",
+    "@commitlint/config-conventional": "21.2.0",
+    "@eslint/js": "10.0.1",
+    "@hono/node-server": "2.0.8",
+    "@types/debug": "4.1.13",
+    "@types/eslint": "9.6.1",
+    "@types/express": "5.0.6",
+    "@types/is-glob": "4.0.4",
+    "@types/micromatch": "4.0.10",
+    "@types/node": "26.1.0",
+    "@types/supertest": "7.2.0",
+    "@types/ws": "8.18.1",
+    "@vitest/coverage-v8": "4.1.9",
+    "body-parser": "2.3.0",
+    "eslint": "10.6.0",
+    "express": "5.2.1",
+    "get-port": "7.2.0",
+    "globals": "17.7.0",
+    "hono": "4.12.27",
+    "husky": "9.1.7",
+    "lint-staged": "17.0.8",
+    "mockttp": "4.4.2",
+    "msw": "2.14.6",
+    "nock": "14.0.16",
+    "open": "11.0.0",
+    "oxfmt": "0.57.0",
+    "pkg-pr-new": "0.0.75",
+    "supertest": "7.2.2",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.62.1",
+    "vitest": "4.1.9",
+    "ws": "8.21.0"
   },
   "commitlint": {
     "extends": [
       "@commitlint/config-conventional"
     ]
+  },
+  "engines": {
+    "node": "^22.15.0 || ^24.0.0 || >=26.0.0"
   }
 }

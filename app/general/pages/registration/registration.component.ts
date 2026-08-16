@@ -3,12 +3,12 @@ import { toObservable } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { FormlyFieldConfig } from '@ngx-formly/core';
 import { filter, take } from 'rxjs';
-import { User } from 'src/app/_models/user';
-import { FormlyService } from 'src/app/_services/formly/formly-service.service';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { SiteAdministrationPageStore } from 'src/app/administration/pages/site-administration-page/site-administration-page.store';
-import { NavigationStore } from 'src/app/navigation.store';
+import { User } from '../../../_models/user';
+import { FormlyService } from '../../../_services/formly/formly-service.service';
+import { RoutingService } from '../../../_services/routing.service';
+import { SiteAdministrationPageStore } from '../../../administration/pages/site-administration-page/site-administration-page.store';
 import { CreateUpdateComponent } from '../../../design/templates/create-update/create-update.component';
+import { NavigationStore } from '../../../navigation.store';
 
 @Component({
   selector: 'app-registration',
@@ -28,8 +28,8 @@ export class RegistrationComponent {
     this.store.createUserRequestState,
   );
 
-  userModel: Partial<User> = {};
-  userFields: FormlyFieldConfig[] = [
+  readonly userModel: Partial<User> = {};
+  readonly userFields: FormlyFieldConfig[] = [
     this.formlyService.buildInputConfig({
       key: 'username',
       inputKind: 'NAME',

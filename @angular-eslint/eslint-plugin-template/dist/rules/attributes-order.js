@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RULE_NAME = exports.OrderType = void 0;
+exports.RULE_DOCS_EXTENSION = exports.RULE_NAME = exports.OrderType = void 0;
 const bundled_angular_compiler_1 = require("@angular-eslint/bundled-angular-compiler");
 const utils_1 = require("@angular-eslint/utils");
 const create_eslint_rule_1 = require("../utils/create-eslint-rule");
@@ -232,7 +232,8 @@ function toTemplateReferenceVariableOrderType(reference) {
 }
 function isImplicitTemplate(node) {
     return (isTmplAstTemplate(node) &&
-        (node.tagName === null || !/^(:svg:)?ng-template$/.test(node.tagName)));
+        (node.tagName === null ||
+            !/^(:svg:)?ng-template$/.test(node.tagName.toLowerCase())));
 }
 function extractTemplateAttrs(node) {
     if (isTmplAstTemplate(node)) {
@@ -252,7 +253,7 @@ function extractTemplateAttrs(node) {
      * There may be multiple "attributes" for a structural directive even though
      * there is only a single HTML attribute:
      * e.g. `<ng-container *ngFor="let foo of bar"></ng-container>`
-     * will parsed as two attributes (`ngFor` and `ngForOf`)
+     * will be parsed as two attributes (`ngFor` and `ngForOf`)
      */
     const attrs = node.parent.templateAttrs.map(toStructuralDirectiveOrderType);
     let keyEnd = attrs[0].keySpan?.end;
@@ -447,3 +448,6 @@ function getHtmlAttributeNameAndOrderType(attr, inputs) {
         isI18nForAttribute,
     };
 }
+exports.RULE_DOCS_EXTENSION = {
+    rationale: 'Consistent ordering of template attributes makes templates easier to read and scan visually. When attributes are always ordered the same way across a codebase (for example: structural directives first, then template references, then inputs, then outputs), developers can quickly locate specific attributes without having to scan randomly-ordered attribute lists. This is especially valuable for elements with many attributes. The rule supports both semantic ordering (grouping by attribute type) and alphabetical sorting within groups, allowing teams to choose the organizational pattern that works best for them.',
+};

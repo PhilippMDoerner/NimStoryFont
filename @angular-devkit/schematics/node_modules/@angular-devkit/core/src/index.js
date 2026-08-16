@@ -54,3 +54,4 @@ __exportStar(require("./exception"), exports);
 __exportStar(require("./json/index"), exports);
 __exportStar(require("./utils/index"), exports);
 __exportStar(require("./virtual-fs/index"), exports);
+//# sourceMappingURL=index.js.map

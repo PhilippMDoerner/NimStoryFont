@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RULE_NAME = void 0;
+exports.RULE_DOCS_EXTENSION = exports.RULE_NAME = void 0;
 const utils_1 = require("@angular-eslint/utils");
 const create_eslint_rule_1 = require("../utils/create-eslint-rule");
 exports.RULE_NAME = 'no-output-on-prefix';
@@ -43,3 +43,6 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
         };
     },
 });
+exports.RULE_DOCS_EXTENSION = {
+    rationale: "Angular's template syntax allows both '(eventName)' and 'on-eventName' for event bindings. If you prefix an output with 'on', this creates awkward template syntax like '(onUserClick)' or the even more redundant 'on-onUserClick'. This violates the principle of least surprise and makes templates harder to read. Instead, name outputs as simple actions or events (like 'userClick'), which Angular templates will bind as '(userClick)' or 'on-userClick'.",
+};

@@ -5,13 +5,14 @@
 
 "use strict";
 
-/** @typedef {import("../declarations/WebpackOptions").WebpackOptionsNormalized} WebpackOptions */
+/** @typedef {import("./config/defaults").WebpackOptionsNormalizedWithDefaults} WebpackOptions */
 /** @typedef {import("./Compilation")} Compilation */
 /** @typedef {import("./NormalModule")} NormalModule */
 
 /** @typedef {Record<string, EXPECTED_ANY>} PreparsedAst */
 
 /**
+ * Defines the parser state base type used by this module.
  * @typedef {object} ParserStateBase
  * @property {string | Buffer} source
  * @property {NormalModule} current
@@ -20,18 +21,20 @@
  * @property {WebpackOptions} options
  */
 
-/** @typedef {Record<string, EXPECTED_ANY> & ParserStateBase} ParserState */
+/** @typedef {ParserStateBase & Record<string, EXPECTED_ANY>} ParserState */
 
 class Parser {
 	/* istanbul ignore next */
 	/**
+	 * Parses the provided source and updates the parser state.
 	 * @abstract
 	 * @param {string | Buffer | PreparsedAst} source the source to parse
 	 * @param {ParserState} state the parser state
 	 * @returns {ParserState} the parser state
 	 */
 	parse(source, state) {
-		const AbstractMethodError = require("./AbstractMethodError");
+		const AbstractMethodError = require("./errors/AbstractMethodError");
+
 		throw new AbstractMethodError();
 	}
 }

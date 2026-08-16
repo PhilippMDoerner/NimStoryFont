@@ -6,8 +6,8 @@ import {
   Signal,
 } from '@angular/core';
 import { Observable } from 'rxjs';
-import { SpellsTemplateComponent } from 'src/app/design/templates/spells-template/spells-template.component';
-import { GlobalStore } from 'src/app/global.store';
+import { SpellsTemplateComponent } from '../../../design/templates/spells-template/spells-template.component';
+import { GlobalStore } from '../../../global.store';
 import { SpellsPageStore } from './spells-page.store';
 
 @Component({
@@ -18,8 +18,8 @@ import { SpellsPageStore } from './spells-page.store';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SpellsPageComponent {
-  store = inject(SpellsPageStore);
-  globalStore = inject(GlobalStore);
+  readonly store = inject(SpellsPageStore);
+  readonly globalStore = inject(GlobalStore);
 
   private readonly isPageLoading: Observable<boolean> | Signal<boolean> =
     computed(

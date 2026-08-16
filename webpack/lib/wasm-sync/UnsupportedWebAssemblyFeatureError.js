@@ -4,13 +4,21 @@
 
 "use strict";
 
-const WebpackError = require("../WebpackError");
+const WebpackError = require("../errors/WebpackError");
 
-module.exports = class UnsupportedWebAssemblyFeatureError extends WebpackError {
-	/** @param {string} message Error message */
+class UnsupportedWebAssemblyFeatureError extends WebpackError {
+	/**
+	 * Creates an instance of UnsupportedWebAssemblyFeatureError.
+	 * @param {string} message Error message
+	 */
 	constructor(message) {
 		super(message);
+
+		/** @type {string} */
 		this.name = "UnsupportedWebAssemblyFeatureError";
+		/** @type {boolean} */
 		this.hideStack = true;
 	}
-};
+}
+
+module.exports = UnsupportedWebAssemblyFeatureError;

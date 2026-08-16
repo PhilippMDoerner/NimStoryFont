@@ -1,26 +1,26 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.updatePackage = updatePackage;
-var schematics_1 = require("@angular-devkit/schematics");
+const schematics_1 = require("@angular-devkit/schematics");
 function updatePackage(name) {
-    return function (tree, context) {
-        var pkgPath = '/package.json';
-        var buffer = tree.read(pkgPath);
+    return (tree, context) => {
+        const pkgPath = '/package.json';
+        const buffer = tree.read(pkgPath);
         if (buffer === null) {
             throw new schematics_1.SchematicsException('Could not read package.json');
         }
-        var content = buffer.toString();
-        var pkg = JSON.parse(content);
+        const content = buffer.toString();
+        const pkg = JSON.parse(content);
         if (pkg === null || typeof pkg !== 'object' || Array.isArray(pkg)) {
             throw new schematics_1.SchematicsException('Error reading package.json');
         }
-        var dependencyCategories = ['dependencies', 'devDependencies'];
-        dependencyCategories.forEach(function (category) {
-            var packageName = "@ngrx/".concat(name);
+        const dependencyCategories = ['dependencies', 'devDependencies'];
+        dependencyCategories.forEach((category) => {
+            const packageName = `@ngrx/${name}`;
             if (pkg[category] && pkg[category][packageName]) {
-                var firstChar = pkg[category][packageName][0];
-                var suffix = match(firstChar, '^') || match(firstChar, '~');
-                pkg[category][packageName] = "".concat(suffix, "6.0.0");
+                const firstChar = pkg[category][packageName][0];
+                const suffix = match(firstChar, '^') || match(firstChar, '~');
+                pkg[category][packageName] = `${suffix}6.0.0`;
             }
         });
         tree.overwrite(pkgPath, JSON.stringify(pkg, null, 2));

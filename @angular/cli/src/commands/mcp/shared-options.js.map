@@ -1,0 +1,1 @@
+{"version":3,"file":"shared-options.js","sourceRoot":"","sources":["shared-options.ts"],"names":[],"mappings":";AAAA;;;;;;GAMG;;;AAEH,6BAAwB;AAEX,QAAA,0BAA0B,GAAG;IACxC,SAAS,EAAE,OAAC;SACT,MAAM,EAAE;SACR,QAAQ,EAAE;SACV,QAAQ,CACP,6GAA6G,CAC9G;IACH,OAAO,EAAE,OAAC;SACP,MAAM,EAAE;SACR,QAAQ,EAAE;SACV,QAAQ,CACP,8FAA8F,CAC/F;CACJ,CAAC"}

@@ -43,7 +43,7 @@ const evenNumOfBackslashesRegExp = /(?<!(?:[^\\]|^)(?:\\\\)*\\)/;
 // '\\\\$' <- true
 // '\\\\\\$' <- false
 function endsWithUnescapedDollarSign(str) {
-    return new RegExp(`${String(evenNumOfBackslashesRegExp.source)}\\$$`).test(str);
+    return new RegExp(`${evenNumOfBackslashesRegExp.source}\\$$`).test(str);
 }
 exports.default = (0, util_1.createRule)({
     name: 'no-unnecessary-template-expression',
@@ -77,7 +77,7 @@ exports.default = (0, util_1.createRule)({
             return isStringLike(type);
         }
         function isEnumMemberType(type) {
-            return tsutils.typeParts(type).some(t => {
+            return tsutils.typeConstituents(type).some(t => {
                 const symbol = t.getSymbol();
                 return !!(symbol?.valueDeclaration && ts.isEnumMember(symbol.valueDeclaration));
             });
@@ -148,7 +148,7 @@ exports.default = (0, util_1.createRule)({
                 },
             });
         }
-        function isUnncessaryValueInterpolation({ interpolation, nextQuasi, prevQuasi, }) {
+        function isUnnecessaryValueInterpolation({ interpolation, nextQuasi, prevQuasi, }) {
             if (hasCommentsBetweenQuasi(prevQuasi, nextQuasi)) {
                 return false;
             }
@@ -173,7 +173,7 @@ exports.default = (0, util_1.createRule)({
             }
             return false;
         }
-        function isUnncessaryTypeInterpolation({ interpolation, nextQuasi, prevQuasi, }) {
+        function isUnnecessaryTypeInterpolation({ interpolation, nextQuasi, prevQuasi, }) {
             if (hasCommentsBetweenQuasi(prevQuasi, nextQuasi)) {
                 return false;
             }
@@ -233,7 +233,7 @@ exports.default = (0, util_1.createRule)({
                         // \\` -> \\\`
                         // \${ -> \${
                         // \\${ -> \\\${
-                        .replaceAll(new RegExp(`${String(evenNumOfBackslashesRegExp.source)}(\`|\\\${)`, 'g'), '\\$1');
+                        .replaceAll(new RegExp(`${evenNumOfBackslashesRegExp.source}(\`|\\\${)`, 'g'), '\\$1');
                     // `...${'...$'}{...`
                     //           ^^^^
                     if (nextCharacterIsOpeningCurlyBrace &&
@@ -320,7 +320,7 @@ exports.default = (0, util_1.createRule)({
                         return;
                     }
                 }
-                const infos = getInterpolationInfos(node).filter(isUnncessaryValueInterpolation);
+                const infos = getInterpolationInfos(node).filter(isUnnecessaryValueInterpolation);
                 for (const reportDescriptor of getReportDescriptors(infos)) {
                     context.report(reportDescriptor);
                 }
@@ -337,7 +337,7 @@ exports.default = (0, util_1.createRule)({
                         return;
                     }
                 }
-                const infos = getInterpolationInfos(node).filter(isUnncessaryTypeInterpolation);
+                const infos = getInterpolationInfos(node).filter(isUnnecessaryTypeInterpolation);
                 for (const reportDescriptor of getReportDescriptors(infos)) {
                     context.report(reportDescriptor);
                 }
@@ -357,5 +357,5 @@ function isWhitespace(x) {
     return /^\s*$/.test(x);
 }
 function startsWithNewLine(x) {
-    return x.startsWith('\n') || x.startsWith('\r\n');
+    return utils_1.ASTUtils.LINEBREAK_MATCHER.exec(x)?.index === 0;
 }

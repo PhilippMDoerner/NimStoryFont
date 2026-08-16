@@ -13,30 +13,42 @@ function encodeString(value) {
 function* stringifyChunked(value, ...args) {
     const { replacer, getKeys, space, ...options } = utils.normalizeStringifyOptions(...args);
     const highWaterMark = Number(options.highWaterMark) || 0x4000; // 16kb by default
+    const roots = utils.resolveStringifyMode(options.mode) === 'jsonl' && Array.isArray(value) ? value : [value];
 
+    const rootCount = roots.length;
     const keyStrings = new Map();
     const stack = [];
-    const rootValue = { '': value };
+    let rootValue = null;
     let prevState = null;
-    let state = () => printEntry('', value);
-    let stateValue = rootValue;
+    let state = null;
+    let stateValue = null;
     let stateEmpty = true;
-    let stateKeys = [''];
+    let stateKeys = [];
     let stateIndex = 0;
     let buffer = '';
 
-    while (true) {
-        state();
-
-        if (buffer.length >= highWaterMark || prevState === null) {
-            // flush buffer
-            yield buffer;
-            buffer = '';
-
-            if (prevState === null) {
-                break;
-            }
+    for (let i = 0; i < rootCount; i++) {
+        if (rootValue !== null) {
+            buffer += '\n';
         }
+
+        rootValue = { '': roots[i] };
+        prevState = null;
+        state = () => printEntry('', roots[i]);
+        stateValue = rootValue;
+        stateEmpty = true;
+        stateKeys = [''];
+        stateIndex = 0;
+
+        do {
+            state();
+
+            if (buffer.length >= highWaterMark || (prevState === null && i === rootCount - 1)) {
+                // flush buffer
+                yield buffer;
+                buffer = '';
+            }
+        } while (prevState !== null);
     }
 
     function printObject() {

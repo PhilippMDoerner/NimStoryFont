@@ -10,13 +10,13 @@ const { DEFAULTS } = require("./config/defaults");
 const createHash = require("./util/createHash");
 const memoize = require("./util/memoize");
 
-/** @typedef {import("../declarations/WebpackOptions").DevtoolModuleFilenameTemplate} DevtoolModuleFilenameTemplate */
 /** @typedef {import("../declarations/WebpackOptions").HashFunction} HashFunction */
 /** @typedef {import("./ChunkGraph")} ChunkGraph */
 /** @typedef {import("./Module")} Module */
 /** @typedef {import("./RequestShortener")} RequestShortener */
 
-/** @typedef {string | RegExp | (string | RegExp)[]} Matcher */
+/** @typedef {(str: string) => boolean} MatcherFn */
+/** @typedef {string | RegExp | MatcherFn | (string | RegExp | MatcherFn)[]} Matcher */
 /** @typedef {{ test?: Matcher, include?: Matcher, exclude?: Matcher }} MatchObject */
 
 const ModuleFilenameHelpers = module.exports;
@@ -85,24 +85,25 @@ const getHash =
 	() => {
 		const hash = createHash(hashFunction);
 		hash.update(strFn());
-		const digest = /** @type {string} */ (hash.digest("hex"));
+		const digest = hash.digest("hex");
 		return digest.slice(0, 4);
 	};
 
 /**
+ * Returns the lazy access object.
  * @template T
  * Returns a lazy object. The object is lazy in the sense that the properties are
  * only evaluated when they are accessed. This is only obtained by setting a function as the value for each key.
  * @param {Record<string, () => T>} obj the object to convert to a lazy access object
- * @returns {T} the lazy access object
+ * @returns {Record<string, T>} the lazy access object
  */
-const lazyObject = obj => {
-	const newObj = /** @type {T} */ ({});
+const lazyObject = (obj) => {
+	const newObj = /** @type {Record<string, T>} */ ({});
 	for (const key of Object.keys(obj)) {
 		const fn = obj[key];
 		Object.defineProperty(newObj, key, {
 			get: () => fn(),
-			set: v => {
+			set: (v) => {
 				Object.defineProperty(newObj, key, {
 					value: v,
 					enumerable: true,
@@ -116,12 +117,27 @@ const lazyObject = obj => {
 	return newObj;
 };
 
-const SQUARE_BRACKET_TAG_REGEXP = /\[\\*([\w-]+)\\*\]/gi;
-
-/** @typedef {((context: TODO) => string)} ModuleFilenameTemplateFunction */
+const SQUARE_BRACKET_TAG_REGEXP = /\[\\*([\w-]+)\\*\]/g;
+/**
+ * Defines the module filename template context type used by this module.
+ * @typedef {object} ModuleFilenameTemplateContext
+ * @property {string} identifier the identifier of the module
+ * @property {string} shortIdentifier the shortened identifier of the module
+ * @property {string} resource the resource of the module request
+ * @property {string} resourcePath the resource path of the module request
+ * @property {string} absoluteResourcePath the absolute resource path of the module request
+ * @property {string} loaders the loaders of the module request
+ * @property {string} allLoaders the all loaders of the module request
+ * @property {string} query the query of the module identifier
+ * @property {string} moduleId the module id of the module
+ * @property {string} hash the hash of the module identifier
+ * @property {string} namespace the module namespace
+ */
+/** @typedef {((context: ModuleFilenameTemplateContext) => string)} ModuleFilenameTemplateFunction */
 /** @typedef {string | ModuleFilenameTemplateFunction} ModuleFilenameTemplate */
 
 /**
+ * Returns the filename.
  * @param {Module | string} module the module
  * @param {{ namespace?: string, moduleFilenameTemplate?: ModuleFilenameTemplate }} options options
  * @param {{ requestShortener: RequestShortener, chunkGraph: ChunkGraph, hashFunction?: HashFunction }} contextInfo context info
@@ -145,6 +161,7 @@ ModuleFilenameHelpers.createFilename = (
 
 	/** @type {ReturnStringCallback} */
 	let absoluteResourcePath;
+	/** @type {ReturnStringCallback} */
 	let hash;
 	/** @type {ReturnStringCallback} */
 	let identifier;
@@ -152,11 +169,14 @@ ModuleFilenameHelpers.createFilename = (
 	let moduleId;
 	/** @type {ReturnStringCallback} */
 	let shortIdentifier;
+	/** @type {ReturnStringCallback} */
+	let resourceIdentifier;
 	if (typeof module === "string") {
 		shortIdentifier =
 			/** @type {ReturnStringCallback} */
 			(memoize(() => requestShortener.shorten(module)));
 		identifier = shortIdentifier;
+		resourceIdentifier = shortIdentifier;
 		moduleId = () => "";
 		absoluteResourcePath = () =>
 			/** @type {string} */ (module.split("!").pop());
@@ -164,6 +184,14 @@ ModuleFilenameHelpers.createFilename = (
 	} else {
 		shortIdentifier = memoize(() =>
 			module.readableIdentifier(requestShortener)
+		);
+		// `[resource]` and `[loaders]` must stay request paths: a subclass's
+		// readable identifier may carry display-only decorations (e.g. CssModule's
+		// `css ` prefix)
+		resourceIdentifier = memoize(() =>
+			module instanceof NormalModule
+				? /** @type {string} */ (requestShortener.shorten(module.userRequest))
+				: module.readableIdentifier(requestShortener)
 		);
 		identifier =
 			/** @type {ReturnStringCallback} */
@@ -179,9 +207,9 @@ ModuleFilenameHelpers.createFilename = (
 	}
 	const resource =
 		/** @type {ReturnStringCallback} */
-		(memoize(() => shortIdentifier().split("!").pop()));
+		(memoize(() => resourceIdentifier().split("!").pop()));
 
-	const loaders = getBefore(shortIdentifier, "!");
+	const loaders = getBefore(resourceIdentifier, "!");
 	const allLoaders = getBefore(identifier, "!");
 	const query = getAfter(resource, "?");
 	const resourcePath = () => {
@@ -190,19 +218,22 @@ ModuleFilenameHelpers.createFilename = (
 	};
 	if (typeof opts.moduleFilenameTemplate === "function") {
 		return opts.moduleFilenameTemplate(
-			lazyObject({
-				identifier,
-				shortIdentifier,
-				resource,
-				resourcePath: memoize(resourcePath),
-				absoluteResourcePath: memoize(absoluteResourcePath),
-				loaders: memoize(loaders),
-				allLoaders: memoize(allLoaders),
-				query: memoize(query),
-				moduleId: memoize(moduleId),
-				hash: memoize(hash),
-				namespace: () => opts.namespace
-			})
+			/** @type {ModuleFilenameTemplateContext} */
+			(
+				lazyObject({
+					identifier,
+					shortIdentifier,
+					resource,
+					resourcePath: memoize(resourcePath),
+					absoluteResourcePath: memoize(absoluteResourcePath),
+					loaders: memoize(loaders),
+					allLoaders: memoize(allLoaders),
+					query: memoize(query),
+					moduleId: memoize(moduleId),
+					hash: memoize(hash),
+					namespace: () => opts.namespace
+				})
+			)
 		);
 	}
 
@@ -266,7 +297,7 @@ ModuleFilenameHelpers.createFilename = (
  * @template T
  * @param {T[]} array the array with duplicates to be replaced
  * @param {(duplicateItem: T, duplicateItemIndex: number, numberOfTimesReplaced: number) => T} fn callback function to generate new values for the duplicate items
- * @param {(firstElement:T, nextElement:T) => -1 | 0 | 1=} comparator optional comparator function to sort the duplicate items
+ * @param {(firstElement: T, nextElement: T) => -1 | 0 | 1=} comparator optional comparator function to sort the duplicate items
  * @returns {T[]} the array with duplicates replaced
  * @example
  * ```js
@@ -307,9 +338,9 @@ ModuleFilenameHelpers.replaceDuplicates = (array, fn, comparator) => {
  * ```js
  * ModuleFilenameHelpers.matchPart("foo.js", "foo"); // true
  * ModuleFilenameHelpers.matchPart("foo.js", "foo.js"); // true
- * ModuleFilenameHelpers.matchPart("foo.js", "foo."); // false
+ * ModuleFilenameHelpers.matchPart("foo.js", "foo."); // true
  * ModuleFilenameHelpers.matchPart("foo.js", "foo*"); // false
- * ModuleFilenameHelpers.matchPart("foo.js", "foo.*"); // true
+ * ModuleFilenameHelpers.matchPart("foo.js", "foo.*"); // false
  * ModuleFilenameHelpers.matchPart("foo.js", /^foo/); // true
  * ModuleFilenameHelpers.matchPart("foo.js", [/^foo/, "bar"]); // true
  * ModuleFilenameHelpers.matchPart("foo.js", [/^foo/, "bar"]); // true
@@ -319,13 +350,15 @@ ModuleFilenameHelpers.replaceDuplicates = (array, fn, comparator) => {
  */
 const matchPart = (str, test) => {
 	if (!test) return true;
-	if (Array.isArray(test)) {
-		return test.some(test => matchPart(str, test));
-	}
-	if (typeof test === "string") {
+	if (test instanceof RegExp) {
+		return test.test(str);
+	} else if (typeof test === "string") {
 		return str.startsWith(test);
+	} else if (typeof test === "function") {
+		return test(str);
 	}
-	return test.test(str);
+
+	return test.some((test) => matchPart(str, test));
 };
 
 ModuleFilenameHelpers.matchPart = matchPart;

@@ -1,1 +1,1 @@
-export declare const cmpUint8Array: (a: Uint8Array, b: Uint8Array) => boolean;
+export * from '@jsonjoy.com/buffers/lib/cmpUint8Array';

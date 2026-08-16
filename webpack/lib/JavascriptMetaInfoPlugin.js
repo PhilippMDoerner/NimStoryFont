@@ -10,17 +10,18 @@ const {
 	JAVASCRIPT_MODULE_TYPE_DYNAMIC,
 	JAVASCRIPT_MODULE_TYPE_ESM
 } = require("./ModuleTypeConstants");
-const InnerGraph = require("./optimize/InnerGraph");
+const { getInnerGraphUtils } = require("./optimize/InnerGraph");
 
 /** @typedef {import("./Compiler")} Compiler */
 /** @typedef {import("./Module").BuildInfo} BuildInfo */
+/** @typedef {import("./javascript/JavascriptModule").JavascriptModuleBuildInfo} JavascriptModuleBuildInfo */
 /** @typedef {import("./javascript/JavascriptParser")} JavascriptParser */
 
 const PLUGIN_NAME = "JavascriptMetaInfoPlugin";
 
 class JavascriptMetaInfoPlugin {
 	/**
-	 * Apply the plugin
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Compiler} compiler the compiler instance
 	 * @returns {void}
 	 */
@@ -28,22 +29,23 @@ class JavascriptMetaInfoPlugin {
 		compiler.hooks.compilation.tap(
 			PLUGIN_NAME,
 			(compilation, { normalModuleFactory }) => {
+				const innerGraph = getInnerGraphUtils(compilation);
 				/**
+				 * Handles the hook callback for this code path.
 				 * @param {JavascriptParser} parser the parser
 				 * @returns {void}
 				 */
-				const handler = parser => {
+				const handler = (parser) => {
 					parser.hooks.call.for("eval").tap(PLUGIN_NAME, () => {
 						const buildInfo =
-							/** @type {BuildInfo} */
+							/** @type {JavascriptModuleBuildInfo} */
 							(parser.state.module.buildInfo);
 						buildInfo.moduleConcatenationBailout = "eval()";
-						buildInfo.usingEval = true;
-						const currentSymbol = InnerGraph.getTopLevelSymbol(parser.state);
+						const currentSymbol = innerGraph.getTopLevelSymbol(parser.state);
 						if (currentSymbol) {
-							InnerGraph.addUsage(parser.state, null, currentSymbol);
+							innerGraph.addUsage(parser.state, null, currentSymbol);
 						} else {
-							InnerGraph.bailout(parser.state);
+							innerGraph.bailout(parser.state);
 						}
 					});
 					parser.hooks.finish.tap(PLUGIN_NAME, () => {
@@ -55,8 +57,7 @@ class JavascriptMetaInfoPlugin {
 							topLevelDeclarations = buildInfo.topLevelDeclarations = new Set();
 						}
 						for (const name of parser.scope.definitions.asSet()) {
-							const freeInfo = parser.getFreeInfoFromVariable(name);
-							if (freeInfo === undefined) {
+							if (parser.isVariableDefined(name)) {
 								topLevelDeclarations.add(name);
 							}
 						}

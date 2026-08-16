@@ -9,16 +9,15 @@ const ModuleDependency = require("./ModuleDependency");
 
 /** @typedef {import("../Dependency").GetConditionFn} GetConditionFn */
 /** @typedef {import("../ModuleGraph")} ModuleGraph */
-/** @typedef {import("../ModuleGraphConnection")} ModuleGraphConnection */
-/** @typedef {import("../ModuleGraphConnection").ConnectionState} ConnectionState */
-/** @typedef {import("../util/runtime").RuntimeSpec} RuntimeSpec */
 
 class LoaderImportDependency extends ModuleDependency {
 	/**
+	 * Creates an instance of LoaderImportDependency.
 	 * @param {string} request request string
 	 */
 	constructor(request) {
 		super(request);
+		/** @type {boolean} */
 		this.weak = true;
 	}
 
@@ -31,6 +30,7 @@ class LoaderImportDependency extends ModuleDependency {
 	}
 
 	/**
+	 * Returns function to determine if the connection is active.
 	 * @param {ModuleGraph} moduleGraph module graph
 	 * @returns {null | false | GetConditionFn} function to determine if the connection is active
 	 */

@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
 import { FormlyFieldConfig } from '@ngx-formly/core';
 import { Observable, map, of } from 'rxjs';
+import { sortByProp } from '../../../utils/array';
+import { capitalize } from '../../../utils/string';
 import {
   CustomTypeaheadProps,
   FormlyCheckboxConfig,
@@ -15,10 +17,8 @@ import {
   FormlyCustomStringSelectConfig as FormlyStaticStringSelectConfig,
   FormlyTypeaheadConfig,
   StaticOption,
-} from 'src/app/_models/formly';
-import { FormlySelectDisableFieldComponent } from 'src/app/design/organisms/formly-select-disable/formly-select-disable-field.component';
-import { sortByProp } from 'src/utils/array';
-import { capitalize } from 'src/utils/string';
+} from '../../_models/formly';
+import { FormlySelectDisableFieldComponent } from '../../design/organisms/formly-select-disable/formly-select-disable-field.component';
 
 @Injectable({
   providedIn: 'root',

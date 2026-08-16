@@ -6,42 +6,15 @@
 "use strict";
 
 const NormalModule = require("../NormalModule");
+const { URIRegEx, decodeDataURI } = require("../util/dataURL");
 
 /** @typedef {import("../Compiler")} Compiler */
-
-// data URL scheme: "data:text/javascript;charset=utf-8;base64,some-string"
-// http://www.ietf.org/rfc/rfc2397.txt
-const URIRegEx = /^data:([^;,]+)?((?:;[^;,]+)*?)(?:;(base64)?)?,(.*)$/i;
-
-/**
- * @param {string} uri data URI
- * @returns {Buffer | null} decoded data
- */
-const decodeDataURI = uri => {
-	const match = URIRegEx.exec(uri);
-	if (!match) return null;
-
-	const isBase64 = match[3];
-	const body = match[4];
-
-	if (isBase64) {
-		return Buffer.from(body, "base64");
-	}
-
-	// CSS allows to use `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" style="stroke: rgb(223,224,225); stroke-width: 2px; fill: none; stroke-dasharray: 6px 3px" /></svg>`
-	// so we return original body if we can't `decodeURIComponent`
-	try {
-		return Buffer.from(decodeURIComponent(body), "ascii");
-	} catch (_) {
-		return Buffer.from(body, "ascii");
-	}
-};
 
 const PLUGIN_NAME = "DataUriPlugin";
 
 class DataUriPlugin {
 	/**
-	 * Apply the plugin
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Compiler} compiler the compiler instance
 	 * @returns {void}
 	 */
@@ -51,7 +24,7 @@ class DataUriPlugin {
 			(compilation, { normalModuleFactory }) => {
 				normalModuleFactory.hooks.resolveForScheme
 					.for("data")
-					.tap(PLUGIN_NAME, resourceData => {
+					.tap(PLUGIN_NAME, (resourceData, resolveData) => {
 						const match = URIRegEx.exec(resourceData.resource);
 						if (match) {
 							resourceData.data.mimetype = match[1] || "";
@@ -61,10 +34,23 @@ class DataUriPlugin {
 							);
 							resourceData.data.encodedContent = match[4] || "";
 						}
+						// Inherit the issuer's resolution context so any nested
+						// dependencies discovered while parsing the data URI's body
+						// (e.g. `url(...)` / `@import` inside an inline CSS data
+						// URI) resolve relative to where the URI was referenced
+						// from, instead of against the synthetic `data:.../` path
+						// that `getContext("data:…")` would otherwise infer.
+						if (
+							resourceData.context === undefined &&
+							resolveData.context !== undefined
+						) {
+							resourceData.context = resolveData.context;
+						}
 					});
+
 				NormalModule.getCompilationHooks(compilation)
 					.readResourceForScheme.for("data")
-					.tap(PLUGIN_NAME, resource => decodeDataURI(resource));
+					.tap(PLUGIN_NAME, (resource) => decodeDataURI(resource));
 			}
 		);
 	}

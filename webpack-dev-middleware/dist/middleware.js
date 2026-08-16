@@ -1,93 +1,287 @@
 "use strict";
 
-const path = require("path");
+const path = require("node:path");
+const querystring = require("node:querystring");
 const mime = require("mime-types");
 const onFinishedStream = require("on-finished");
-const getFilenameFromUrl = require("./utils/getFilenameFromUrl");
 const {
-  setStatusCode,
-  getStatusCode,
+  createReadStreamOrReadFile,
+  destroyStream,
+  escapeHtml,
+  etag,
+  finish,
+  getHeadersSent,
+  getOutgoing,
   getRequestHeader,
   getRequestMethod,
   getRequestURL,
   getResponseHeader,
-  setResponseHeader,
-  removeResponseHeader,
   getResponseHeaders,
-  getHeadersSent,
-  send,
-  finish,
-  pipe,
-  createReadStreamOrReadFileSync,
-  getOutgoing,
+  getStatusCode,
+  getValueContentRangeHeader,
   initState,
+  memorize,
+  parseHttpDate,
+  parseTokenList,
+  pipe,
+  removeResponseHeader,
+  send,
+  setResponseHeader,
   setState,
-  getReadyReadableStreamState
-} = require("./utils/compatibleAPI");
-const ready = require("./utils/ready");
-const parseTokenList = require("./utils/parseTokenList");
-const memorize = require("./utils/memorize");
+  setStatusCode
+} = require("./utils");
 
+/** @typedef {import("fs").ReadStream} ReadStream */
+/** @typedef {import("webpack").Compiler} Compiler */
+/** @typedef {import("webpack").Stats} Stats */
+/** @typedef {import("webpack").MultiStats} MultiStats */
+/** @typedef {import("webpack").Asset} Asset */
 /** @typedef {import("./index.js").NextFunction} NextFunction */
 /** @typedef {import("./index.js").IncomingMessage} IncomingMessage */
 /** @typedef {import("./index.js").ServerResponse} ServerResponse */
 /** @typedef {import("./index.js").NormalizedHeaders} NormalizedHeaders */
-/** @typedef {import("fs").ReadStream} ReadStream */
+/** @typedef {import("./index.js").OutputFileSystem} OutputFileSystem */
 
 const BYTES_RANGE_REGEXP = /^ *bytes/i;
 
 /**
- * @param {string} type
- * @param {number} size
- * @param {import("range-parser").Range} [range]
+ * @param {string} input input
+ * @returns {string} unescape input
+ */
+function decode(input) {
+  return querystring.unescape(input);
+}
+const memoizedParse = memorize(url => {
+  const urlObject = new URL(url, "http://localhost");
+
+  // We can't change pathname in URL object directly because don't decode correctly
+  return {
+    ...urlObject,
+    pathname: decode(urlObject.pathname)
+  };
+}, undefined);
+const UP_PATH_REGEXP = /(?:^|[\\/])\.\.(?:[\\/]|$)/;
+
+/** @typedef {import("fs").Stats} FSStats */
+
+/**
+ * @typedef {object} Extra
+ * @property {FSStats} stats stats
+ * @property {boolean=} immutable true when immutable, otherwise false
+ * @property {OutputFileSystem} outputFileSystem outputFileSystem
+ */
+
+/**
+ * decodeURIComponent.
+ *
+ * Allows V8 to only deoptimize this fn instead of all of send().
+ * @param {string} input
  * @returns {string}
  */
-function getValueContentRangeHeader(type, size, range) {
-  return `${type} ${range ? `${range.start}-${range.end}` : "*"}/${size}`;
+
+class FilenameError extends Error {
+  /**
+   * @param {string} message message
+   * @param {number=} code error code
+   */
+  constructor(message, code) {
+    super(message);
+    this.name = "FilenameError";
+    this.statusCode = code;
+  }
+}
+
+/** @typedef {{ filename: string, extra: Extra }} FilenameWithExtra */
+
+/**
+ * @param {unknown} error error
+ * @returns {boolean} true when error is like not found, otherwise false
+ */
+function isNotFoundError(error) {
+  switch (/** @type {NodeJS.ErrnoException} */error.code) {
+    case "ENAMETOOLONG":
+    case "ENOENT":
+    case "ENOTDIR":
+      return true;
+    default:
+      return false;
+  }
 }
 
 /**
- * Parse an HTTP Date into a number.
- *
- * @param {string} date
- * @returns {number}
+ * @template {IncomingMessage} Request
+ * @template {ServerResponse} Response
+ * @param {import("./index.js").FilledContext<Request, Response>} context context
+ * @param {string} url url
+ * @returns {Promise<FilenameWithExtra | undefined>} result of get filename from url
  */
-function parseHttpDate(date) {
-  const timestamp = date && Date.parse(date);
+async function getFilenameFromUrl(context, url) {
+  /** @type {URL} */
+  let urlObject;
+  try {
+    // The `url` property of the `request` is contains only  `pathname`, `search` and `hash`
+    urlObject = memoizedParse(url);
+  } catch {
+    return;
+  }
+  const {
+    options,
+    stats
+  } = context;
 
-  // istanbul ignore next: guard against date.js Date.parse patching
-  return typeof timestamp === "number" ? timestamp : NaN;
+  /** @type {Stats[]} */
+  const allStats = /** @type {MultiStats} */
+  stats.stats || [(/** @type {Stats} */stats)];
+  const index = options.index === false ? (/** @type {string[]} */[]) : typeof options.index === "undefined" || options.index === true ? ["index.html"] : [options.index];
+  for (const {
+    compilation
+  } of allStats) {
+    if (compilation.options.devServer === false) {
+      continue;
+    }
+
+    /** @type {URL} */
+    let publicPathObject;
+    const publicPath = options.publicPath || compilation.options.output.publicPath || "";
+    try {
+      publicPathObject = memoizedParse(publicPath === "auto" ? "/" : compilation.getPath(publicPath));
+    } catch {
+      continue;
+    }
+    const {
+      pathname
+    } = urlObject;
+    const {
+      pathname: publicPathPathname
+    } = publicPathObject;
+
+    /** @type {string | undefined} */
+    let filename;
+    if (pathname && publicPathPathname && pathname.startsWith(publicPathPathname)) {
+      // Null byte(s)
+      if (pathname.includes("\0")) {
+        throw new FilenameError("Bad Request", 400);
+      }
+
+      // ".." is malicious
+      if (UP_PATH_REGEXP.test(path.normalize(`./${pathname}`))) {
+        throw new FilenameError("Forbidden", 403);
+      }
+
+      // send file logic
+      // The `output.path` is always present and always absolute
+      const outputPath = compilation.getPath(compilation.outputOptions.path || "");
+
+      // Strip the `pathname` property from the `publicPath` option from the start of requested url
+      // `/complex/foo.js` => `foo.js`
+      // and add outputPath
+      // `foo.js` => `/home/user/my-project/dist/foo.js`
+      filename = path.join(outputPath, pathname.slice(publicPathPathname.length));
+      const {
+        assetsInfo
+      } = compilation;
+      const {
+        outputFileSystem
+      } = /** @type {Compiler & { outputFileSystem: OutputFileSystem }} */
+      compilation.compiler;
+
+      /**
+       * @param {string} filename filename
+       * @returns {Promise<FilenameWithExtra | undefined>} filename when found, otherwise undefined
+       */
+      const resolveIndex = async filename => {
+        if (index.length === 0) {
+          return;
+        }
+        filename = path.join(filename, index[0]);
+        let stats;
+        try {
+          stats = await new Promise((resolve, reject) => {
+            outputFileSystem.stat(filename, (err, res) => {
+              if (err) {
+                reject(err);
+                return;
+              }
+              resolve(res);
+            });
+          });
+        } catch (err) {
+          if (isNotFoundError(err)) return;
+          throw err;
+        }
+        if (/** @type {FSStats} */stats.isDirectory()) {
+          return resolveIndex(filename);
+        }
+        const extra = {
+          immutable: assetsInfo ? assetsInfo.get(pathname.slice(publicPathPathname.length))?.immutable : false,
+          outputFileSystem,
+          stats: (/** @type {FSStats} */stats)
+        };
+        return {
+          filename,
+          extra
+        };
+      };
+
+      /**
+       * @param {string} filename filename
+       * @returns {Promise<FilenameWithExtra | undefined>} filename when found, otherwise undefined
+       */
+      const resolveFile = async filename => {
+        let stats;
+        try {
+          stats = await new Promise((resolve, reject) => {
+            outputFileSystem.stat(filename, (err, res) => {
+              if (err) {
+                reject(err);
+                return;
+              }
+              resolve(res);
+            });
+          });
+        } catch (err) {
+          if (isNotFoundError(err)) return;
+          throw err;
+        }
+        if (/** @type {FSStats} */stats.isDirectory()) {
+          // Different between `send` and our logic is here, `send` makes a redirect, we just return a file.
+          return resolveIndex(filename);
+        }
+        if (filename.endsWith(path.sep)) {
+          return;
+        }
+
+        /** @type {Extra} */
+        const extra = {
+          immutable: assetsInfo ? assetsInfo.get(pathname.slice(publicPathPathname.length))?.immutable : false,
+          outputFileSystem,
+          stats: (/** @type {FSStats} */stats)
+        };
+        return {
+          filename,
+          extra
+        };
+      };
+
+      // send index logic
+      if (index.length > 0 && pathname.endsWith("/")) {
+        const result = await resolveIndex(filename);
+        if (!result) {
+          continue;
+        }
+        return result;
+      }
+
+      // send file logic
+      const result = await resolveFile(filename);
+      if (!result) {
+        continue;
+      }
+      return result;
+    }
+  }
 }
 const CACHE_CONTROL_NO_CACHE_REGEXP = /(?:^|,)\s*?no-cache\s*?(?:,|$)/;
-
-/**
- * @param {import("fs").ReadStream} stream stream
- * @param {boolean} suppress do need suppress?
- * @returns {void}
- */
-function destroyStream(stream, suppress) {
-  if (typeof stream.destroy === "function") {
-    stream.destroy();
-  }
-  if (typeof stream.close === "function") {
-    // Node.js core bug workaround
-    stream.on("open",
-    /**
-     * @this {import("fs").ReadStream}
-     */
-    function onOpenClose() {
-      // @ts-ignore
-      if (typeof this.fd === "number") {
-        // actually close down the fd
-        this.close();
-      }
-    });
-  }
-  if (typeof stream.addListener === "function" && suppress) {
-    stream.removeAllListeners("error");
-    stream.addListener("error", () => {});
-  }
-}
 
 /** @type {Record<number, string>} */
 const statuses = {
@@ -99,13 +293,11 @@ const statuses = {
 };
 const parseRangeHeaders = memorize(
 /**
- * @param {string} value
- * @returns {import("range-parser").Result | import("range-parser").Ranges}
+ * @param {string} value value
+ * @returns {import("range-parser").Result | import("range-parser").Ranges} ranges
  */
 value => {
   const [len, rangeHeader] = value.split("|");
-
-  // eslint-disable-next-line global-require
   return require("range-parser")(Number(len), rangeHeader, {
     combine: true
   });
@@ -115,7 +307,7 @@ const MAX_MAX_AGE = 31536000000;
 /**
  * @template {IncomingMessage} Request
  * @template {ServerResponse} Response
- * @typedef {Object} SendErrorOptions send error options
+ * @typedef {object} SendErrorOptions send error options
  * @property {Record<string, number | string | string[] | undefined>=} headers headers
  * @property {import("./index").ModifyResponseData<Request, Response>=} modifyResponseData modify response data callback
  */
@@ -123,26 +315,48 @@ const MAX_MAX_AGE = 31536000000;
 /**
  * @template {IncomingMessage} Request
  * @template {ServerResponse} Response
- * @param {import("./index.js").FilledContext<Request, Response>} context
- * @return {import("./index.js").Middleware<Request, Response>}
+ * @param {import("./index.js").FilledContext<Request, Response>} context context
+ * @param {import("./index.js").Callback} callback callback
+ * @param {Request=} req req
+ * @returns {void}
+ */
+function ready(context, callback, req) {
+  if (context.state) {
+    callback(context.stats);
+    return;
+  }
+  const name = req && req.url || callback.name;
+  context.logger.info(`wait until bundle finished${name ? `: ${name}` : ""}`);
+  context.callbacks.push(callback);
+}
+
+/**
+ * @template {IncomingMessage} Request
+ * @template {ServerResponse} Response
+ * @param {import("./index.js").FilledContext<Request, Response>} context context
+ * @returns {import("./index.js").Middleware<Request, Response>} wrapper
  */
 function wrapper(context) {
   return async function middleware(req, res, next) {
-    const acceptedMethods = context.options.methods || ["GET", "HEAD"];
-    initState(res);
-    async function goNext() {
+    /**
+     * @param {NodeJS.ErrnoException=} err an error
+     * @returns {Promise<void>}
+     */
+    async function goNext(err) {
       if (!context.options.serverSideRender) {
-        return next();
+        return next(err);
       }
       return new Promise(resolve => {
         ready(context, () => {
           setState(res, "webpack", {
             devMiddleware: context
           });
-          resolve(next());
+          resolve(next(err));
         }, req);
       });
     }
+    const acceptedMethods = context.options.methods || ["GET", "HEAD"];
+    initState(res);
     const method = getRequestMethod(req);
     if (method && !acceptedMethods.includes(method)) {
       await goNext();
@@ -150,13 +364,27 @@ function wrapper(context) {
     }
 
     /**
+     * @param {string} message an error message
      * @param {number} status status
      * @param {Partial<SendErrorOptions<Request, Response>>=} options options
-     * @returns {void}
+     * @returns {Promise<void>}
      */
-    function sendError(status, options) {
-      // eslint-disable-next-line global-require
-      const escapeHtml = require("./utils/escapeHtml");
+    async function sendError(message, status, options) {
+      if (context.options.forwardError) {
+        if (!getHeadersSent(res)) {
+          const headers = getResponseHeaders(res);
+          for (let i = 0; i < headers.length; i++) {
+            removeResponseHeader(res, headers[i]);
+          }
+        }
+        const error = /** @type {Error & { statusCode: number }} */
+        new Error(message);
+        error.statusCode = status;
+        await goNext(error);
+
+        // need the return for prevent to execute the code below and override the status and body set by user in the next middleware
+        return;
+      }
       const content = statuses[status] || String(status);
       let document = Buffer.from(`<!DOCTYPE html>
 <html lang="en">
@@ -167,7 +395,7 @@ function wrapper(context) {
 <body>
 <pre>${escapeHtml(content)}</pre>
 </body>
-</html>`, "utf-8");
+</html>`, "utf8");
 
       // Clear existing headers
       const headers = getResponseHeaders(res);
@@ -195,7 +423,7 @@ function wrapper(context) {
         ({
           data: document,
           byteLength
-        } = /** @type {{ data: Buffer, byteLength: number }} */
+        } = /** @type {{ data: Buffer<ArrayBuffer>, byteLength: number }} */
         options.modifyResponseData(req, res, document, byteLength));
       }
       setResponseHeader(res, "Content-Length", byteLength);
@@ -203,27 +431,38 @@ function wrapper(context) {
     }
 
     /**
-     * @param {NodeJS.ErrnoException} error
+     * @param {NodeJS.ErrnoException} error error
+     * @param {string=} message override message
+     * @param {number=} code override code
+     * @returns {Promise<void>}
      */
-    function errorHandler(error) {
+    async function errorHandler(error, message, code) {
       switch (error.code) {
         case "ENAMETOOLONG":
         case "ENOENT":
         case "ENOTDIR":
-          sendError(404, {
+          await sendError(error.message, 404, {
             modifyResponseData: context.options.modifyResponseData
           });
           break;
         default:
-          sendError(500, {
+          await sendError(message || error.message, code || 500, {
             modifyResponseData: context.options.modifyResponseData
           });
           break;
       }
     }
+
+    /**
+     * @returns {string | string[] | undefined} something when conditional get exist
+     */
     function isConditionalGET() {
       return getRequestHeader(req, "if-match") || getRequestHeader(req, "if-unmodified-since") || getRequestHeader(req, "if-none-match") || getRequestHeader(req, "if-modified-since");
     }
+
+    /**
+     * @returns {boolean} true when precondition failure, otherwise false
+     */
     function isPreconditionFailure() {
       // if-match
       const ifMatch = /** @type {string} */getRequestHeader(req, "if-match");
@@ -246,9 +485,9 @@ function wrapper(context) {
 
         // A recipient MUST ignore the If-Unmodified-Since header field if the
         // received field-value is not a valid HTTP-date.
-        if (!isNaN(unmodifiedSince)) {
-          const lastModified = parseHttpDate( /** @type {string} */getResponseHeader(res, "Last-Modified"));
-          return isNaN(lastModified) || lastModified > unmodifiedSince;
+        if (!Number.isNaN(unmodifiedSince)) {
+          const lastModified = parseHttpDate(/** @type {string} */getResponseHeader(res, "Last-Modified"));
+          return Number.isNaN(lastModified) || lastModified > unmodifiedSince;
         }
       }
       return false;
@@ -265,8 +504,8 @@ function wrapper(context) {
     }
 
     /**
-     * @param {import("http").OutgoingHttpHeaders} resHeaders
-     * @returns {boolean}
+     * @param {import("http").OutgoingHttpHeaders} resHeaders res header
+     * @returns {boolean} true when fresh, otherwise false
      */
     function isFresh(resHeaders) {
       // Always return stale when Cache-Control: no-cache to support end-to-end reload requests
@@ -328,6 +567,10 @@ function wrapper(context) {
       }
       return true;
     }
+
+    /**
+     * @returns {boolean} true when range is fresh, otherwise false
+     */
     function isRangeFresh() {
       const ifRange = /** @type {string | undefined} */
       getRequestHeader(req, "if-range");
@@ -336,13 +579,13 @@ function wrapper(context) {
       }
 
       // if-range as etag
-      if (ifRange.indexOf('"') !== -1) {
+      if (ifRange.includes('"')) {
         const etag = /** @type {string | undefined} */
         getResponseHeader(res, "ETag");
         if (!etag) {
           return true;
         }
-        return Boolean(etag && ifRange.indexOf(etag) !== -1);
+        return Boolean(etag && ifRange.includes(etag));
       }
 
       // if-range as modified date
@@ -355,21 +598,19 @@ function wrapper(context) {
     }
 
     /**
-     * @returns {string | undefined}
+     * @returns {string | undefined} range header
      */
     function getRangeHeader() {
       const range = /** @type {string} */getRequestHeader(req, "range");
       if (range && BYTES_RANGE_REGEXP.test(range)) {
         return range;
       }
-
-      // eslint-disable-next-line no-undefined
       return undefined;
     }
 
     /**
-     * @param {import("range-parser").Range} range
-     * @returns {[number, number]}
+     * @param {import("range-parser").Range} range range
+     * @returns {[number, number]} offset and length
      */
     function getOffsetAndLenFromRange(range) {
       const offset = range.start;
@@ -378,31 +619,36 @@ function wrapper(context) {
     }
 
     /**
-     * @param {number} offset
-     * @param {number} len
-     * @returns {[number, number]}
+     * @param {number} offset offset
+     * @param {number} len len
+     * @returns {[number, number]} start and end
      */
     function calcStartAndEnd(offset, len) {
       const start = offset;
       const end = Math.max(offset, offset + len - 1);
       return [start, end];
     }
+
+    /**
+     * @returns {Promise<void>}
+     */
     async function processRequest() {
       // Pipe and SendFile
-      /** @type {import("./utils/getFilenameFromUrl").Extra} */
-      const extra = {};
-      const filename = getFilenameFromUrl(context, /** @type {string} */getRequestURL(req), extra);
-      if (extra.errorCode) {
-        if (extra.errorCode === 403) {
-          context.logger.error(`Malicious path "${filename}".`);
+      /** @type {FilenameWithExtra | undefined} */
+      let resolved;
+      const requestUrl = /** @type {string} */getRequestURL(req);
+      try {
+        resolved = await getFilenameFromUrl(context, requestUrl);
+      } catch (err) {
+        // Fallback to 403 for unknown errors
+        const errorCode = typeof err === "object" && err !== null && typeof (/** @type {FilenameError} */err.statusCode) !== "undefined" ? /** @type {FilenameError} */err.statusCode : undefined;
+        if (errorCode === 403) {
+          context.logger.error(`Malicious path "${requestUrl}".`);
         }
-        sendError(extra.errorCode, {
-          modifyResponseData: context.options.modifyResponseData
-        });
-        await goNext();
+        await errorHandler(/** @type {NodeJS.ErrnoException} */err, errorCode === 400 ? "Bad Request" : errorCode === 403 ? "Forbidden" : undefined, errorCode);
         return;
       }
-      if (!filename) {
+      if (!resolved) {
         await goNext();
         return;
       }
@@ -411,8 +657,12 @@ function wrapper(context) {
         return;
       }
       const {
+        extra,
+        filename
+      } = resolved;
+      const {
         size
-      } = /** @type {import("fs").Stats} */extra.stats;
+      } = extra.stats;
       let len = size;
       let offset = 0;
 
@@ -427,12 +677,11 @@ function wrapper(context) {
         }
 
         /**
-         * @type {{key: string, value: string | number}[]}
+         * @type {{ key: string, value: string | number }[]}
          */
         const allHeaders = [];
         if (typeof headers !== "undefined") {
           if (!Array.isArray(headers)) {
-            // eslint-disable-next-line guard-for-in
             for (const name in headers) {
               allHeaders.push({
                 key: name,
@@ -453,32 +702,33 @@ function wrapper(context) {
         setResponseHeader(res, "Accept-Ranges", "bytes");
       }
       if (!getResponseHeader(res, "Cache-Control")) {
-        // TODO enable the `cacheImmutable` by default for the next major release
-        const cacheControl = context.options.cacheImmutable && extra.immutable ? {
-          immutable: true
-        } : context.options.cacheControl;
-        if (cacheControl) {
-          let cacheControlValue;
-          if (typeof cacheControl === "boolean") {
-            cacheControlValue = "public, max-age=31536000";
-          } else if (typeof cacheControl === "number") {
-            const maxAge = Math.floor(Math.min(Math.max(0, cacheControl), MAX_MAX_AGE) / 1000);
-            cacheControlValue = `public, max-age=${maxAge}`;
-          } else if (typeof cacheControl === "string") {
-            cacheControlValue = cacheControl;
-          } else {
-            const maxAge = cacheControl.maxAge ? Math.floor(Math.min(Math.max(0, cacheControl.maxAge), MAX_MAX_AGE) / 1000) : MAX_MAX_AGE / 1000;
-            cacheControlValue = `public, max-age=${maxAge}`;
-            if (cacheControl.immutable) {
-              cacheControlValue += ", immutable";
-            }
+        const {
+          cacheControl,
+          cacheImmutable
+        } = context.options;
+        let cacheControlValue;
+        if ((cacheImmutable === undefined || cacheImmutable) && extra.immutable) {
+          cacheControlValue = `public, max-age=${Math.floor(MAX_MAX_AGE / 1000)}, immutable`;
+        } else if (typeof cacheControl === "boolean") {
+          cacheControlValue = `public, max-age=${Math.floor(MAX_MAX_AGE / 1000)}`;
+        } else if (typeof cacheControl === "number") {
+          const maxAge = Math.min(Math.max(0, cacheControl), MAX_MAX_AGE);
+          cacheControlValue = `public, max-age=${Math.floor(maxAge / 1000)}`;
+        } else if (typeof cacheControl === "string") {
+          cacheControlValue = cacheControl;
+        } else if (cacheControl) {
+          const maxAge = cacheControl.maxAge !== undefined ? Math.min(Math.max(0, cacheControl.maxAge), MAX_MAX_AGE) : MAX_MAX_AGE;
+          cacheControlValue = `public, max-age=${Math.floor(maxAge / 1000)}`;
+          if (cacheControl.immutable) {
+            cacheControlValue += ", immutable";
           }
+        }
+        if (cacheControlValue) {
           setResponseHeader(res, "Cache-Control", cacheControlValue);
         }
       }
       if (context.options.lastModified && !getResponseHeader(res, "Last-Modified")) {
-        const modified = /** @type {import("fs").Stats} */
-        extra.stats.mtime.toUTCString();
+        const modified = extra.stats.mtime.toUTCString();
         setResponseHeader(res, "Last-Modified", modified);
       }
 
@@ -493,13 +743,10 @@ function wrapper(context) {
       let byteLength;
       const rangeHeader = getRangeHeader();
       if (context.options.etag && !getResponseHeader(res, "ETag")) {
-        /** @type {import("fs").Stats | Buffer | ReadStream | undefined} */
-        let value;
+        const isStrongETag = context.options.etag === "strong";
 
-        // TODO cache etag generation?
-        if (context.options.etag === "weak") {
-          value = /** @type {import("fs").Stats} */extra.stats;
-        } else {
+        // TODO cache strong etag generation?
+        if (isStrongETag) {
           if (rangeHeader) {
             const parsedRanges = /** @type {import("range-parser").Ranges | import("range-parser").Result} */
             parseRangeHeaders(`${size}|${rangeHeader}`);
@@ -509,32 +756,27 @@ function wrapper(context) {
           }
           [start, end] = calcStartAndEnd(offset, len);
           try {
-            const result = createReadStreamOrReadFileSync(filename, context.outputFileSystem, start, end);
-            value = result.bufferOrStream;
+            const result = createReadStreamOrReadFile(filename, extra.outputFileSystem, start, end);
             ({
               bufferOrStream,
               byteLength
             } = result);
           } catch (error) {
-            errorHandler( /** @type {NodeJS.ErrnoException} */error);
-            await goNext();
+            await errorHandler(/** @type {NodeJS.ErrnoException} */error);
             return;
           }
         }
-        if (value) {
-          // eslint-disable-next-line global-require
-          const result = await require("./utils/etag")(value);
+        const result = await etag(isStrongETag ? (/** @type {Buffer | ReadStream} */bufferOrStream) : extra.stats);
 
-          // Because we already read stream, we can cache buffer to avoid extra read from fs
-          if (result.buffer) {
-            bufferOrStream = result.buffer;
-          }
-          setResponseHeader(res, "ETag", result.hash);
+        // Because we already read stream, we can cache buffer to avoid extra read from fs
+        if (result.buffer) {
+          bufferOrStream = result.buffer;
         }
+        setResponseHeader(res, "ETag", result.hash);
       }
       if (!getResponseHeader(res, "Content-Type") || getStatusCode(res) === 404) {
         removeResponseHeader(res, "Content-Type");
-        // content-type name(like application/javascript; charset=utf-8) or false
+        // content-type name (like application/javascript; charset=utf-8) or false
         const contentType = mime.contentType(path.extname(filename));
 
         // Only set content-type header if media type is known
@@ -549,16 +791,15 @@ function wrapper(context) {
       // Conditional GET support
       if (isConditionalGET()) {
         if (isPreconditionFailure()) {
-          sendError(412, {
+          await sendError("Precondition Failed", 412, {
             modifyResponseData: context.options.modifyResponseData
           });
-          await goNext();
           return;
         }
         if (isCachable() && isFresh({
-          etag: ( /** @type {string | undefined} */
+          etag: (/** @type {string | undefined} */
           getResponseHeader(res, "ETag")),
-          "last-modified": ( /** @type {string | undefined} */
+          "last-modified": (/** @type {string | undefined} */
           getResponseHeader(res, "Last-Modified"))
         })) {
           setStatusCode(res, 304);
@@ -570,7 +811,6 @@ function wrapper(context) {
           removeResponseHeader(res, "Content-Range");
           removeResponseHeader(res, "Content-Type");
           finish(res);
-          await goNext();
           return;
         }
       }
@@ -586,13 +826,12 @@ function wrapper(context) {
         if (parsedRanges === -1) {
           context.logger.error("Unsatisfiable range for 'Range' header.");
           setResponseHeader(res, "Content-Range", getValueContentRangeHeader("bytes", size));
-          sendError(416, {
+          await sendError("Range Not Satisfiable", 416, {
             headers: {
               "Content-Range": getResponseHeader(res, "Content-Range")
             },
             modifyResponseData: context.options.modifyResponseData
           });
-          await goNext();
           return;
         } else if (parsedRanges === -2) {
           context.logger.error("A malformed 'Range' header was provided. A regular response will be sent for this request.");
@@ -615,10 +854,9 @@ function wrapper(context) {
           ({
             bufferOrStream,
             byteLength
-          } = createReadStreamOrReadFileSync(filename, context.outputFileSystem, start, end));
+          } = createReadStreamOrReadFile(filename, extra.outputFileSystem, start, end));
         } catch (error) {
-          errorHandler( /** @type {NodeJS.ErrnoException} */error);
-          await goNext();
+          await errorHandler(/** @type {NodeJS.ErrnoException} */error);
           return;
         }
       }
@@ -636,42 +874,40 @@ function wrapper(context) {
           setStatusCode(res, 200);
         }
         finish(res);
-        await goNext();
         return;
       }
       if (!isPartialContent) {
         setStatusCode(res, 200);
       }
-      const isPipeSupports = typeof ( /** @type {import("fs").ReadStream} */bufferOrStream.pipe) === "function";
+      const isPipeSupports = typeof (/** @type {import("fs").ReadStream} */bufferOrStream.pipe) === "function";
       if (!isPipeSupports) {
         send(res, /** @type {Buffer} */bufferOrStream);
-        await goNext();
         return;
       }
-
-      // Cleanup
-      const cleanup = () => {
-        destroyStream( /** @type {import("fs").ReadStream} */bufferOrStream, true);
-      };
 
       // Error handling
       /** @type {import("fs").ReadStream} */
       bufferOrStream.on("error", error => {
+        context.logger.error("Stream error:", error);
         // clean up stream early
-        cleanup();
+        destroyStream(/** @type {import("fs").ReadStream} */bufferOrStream, true);
         errorHandler(error);
-        goNext();
-      }).on(getReadyReadableStreamState(res), () => {
-        goNext();
       });
       pipe(res, /** @type {ReadStream} */bufferOrStream);
       const outgoing = getOutgoing(res);
       if (outgoing) {
         // Response finished, cleanup
-        onFinishedStream(outgoing, cleanup);
+        onFinishedStream(outgoing, err => {
+          if (err) {
+            context.logger.error("Stream error:", err);
+          }
+          destroyStream(/** @type {import("fs").ReadStream} */bufferOrStream, true);
+        });
       }
     }
     ready(context, processRequest, req);
   };
 }
 module.exports = wrapper;
+module.exports.getFilenameFromUrl = getFilenameFromUrl;
+module.exports.ready = ready;

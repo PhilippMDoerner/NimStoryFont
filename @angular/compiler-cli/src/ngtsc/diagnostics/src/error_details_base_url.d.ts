@@ -5,6 +5,7 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.dev/license
  */
+export declare const DOC_PAGE_BASE_URL: string;
 /**
  * Base URL for the error details page.
  *
@@ -12,4 +13,4 @@
  *  - packages/compiler-cli/src/ngtsc/diagnostics/src/error_details_base_url.ts
  *  - packages/core/src/error_details_base_url.ts
  */
-export declare const ERROR_DETAILS_PAGE_BASE_URL = "https://angular.dev/errors";
+export declare const ERROR_DETAILS_PAGE_BASE_URL: string;

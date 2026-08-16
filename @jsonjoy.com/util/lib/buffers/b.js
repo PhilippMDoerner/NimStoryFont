@@ -1,6 +1,5 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.b = void 0;
-const b = (...args) => new Uint8Array(args);
-exports.b = b;
+const tslib_1 = require("tslib");
+tslib_1.__exportStar(require("@jsonjoy.com/buffers/lib/b"), exports);
 //# sourceMappingURL=b.js.map

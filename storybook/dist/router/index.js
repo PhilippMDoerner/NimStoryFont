@@ -1,1201 +1,64 @@
-var Sr = Object.create;
-var Ae = Object.defineProperty;
-var Dr = Object.getOwnPropertyDescriptor;
-var Nr = Object.getOwnPropertyNames;
-var Or = Object.getPrototypeOf, Pr = Object.prototype.hasOwnProperty;
-var a = (e, t) => Ae(e, "name", { value: t, configurable: !0 }), re = /* @__PURE__ */ ((e) => typeof require < "u" ? require : typeof Proxy <
-"u" ? new Proxy(e, {
-  get: (t, r) => (typeof require < "u" ? require : t)[r]
-}) : e)(function(e) {
-  if (typeof require < "u") return require.apply(this, arguments);
-  throw Error('Dynamic require of "' + e + '" is not supported');
-});
-var T = (e, t) => () => (t || e((t = { exports: {} }).exports, t), t.exports);
-var Cr = (e, t, r, o) => {
-  if (t && typeof t == "object" || typeof t == "function")
-    for (let n of Nr(t))
-      !Pr.call(e, n) && n !== r && Ae(e, n, { get: () => t[n], enumerable: !(o = Dr(t, n)) || o.enumerable });
-  return e;
-};
-var lt = (e, t, r) => (r = e != null ? Sr(Or(e)) : {}, Cr(
-  // If the importer is in node compatibility mode or this is not an ESM
-  // file that has been converted to a CommonJS file using a Babel-
-  // compatible transform (i.e. "__esModule" has not been set), then set
-  // "default" to the CommonJS "module.exports" for node compatibility.
-  t || !e || !e.__esModule ? Ae(r, "default", { value: e, enumerable: !0 }) : r,
-  e
-));
-
-// ../node_modules/memoizerific/memoizerific.js
-var Tt = T((Mt, Me) => {
-  (function(e) {
-    if (typeof Mt == "object" && typeof Me < "u")
-      Me.exports = e();
-    else if (typeof define == "function" && define.amd)
-      define([], e);
-    else {
-      var t;
-      typeof window < "u" ? t = window : typeof global < "u" ? t = global : typeof self < "u" ? t = self : t = this, t.memoizerific = e();
-    }
-  })(function() {
-    var e, t, r;
-    return (/* @__PURE__ */ a(function o(n, i, s) {
-      function l(f, h) {
-        if (!i[f]) {
-          if (!n[f]) {
-            var m = typeof re == "function" && re;
-            if (!h && m) return m(f, !0);
-            if (u) return u(f, !0);
-            var x = new Error("Cannot find module '" + f + "'");
-            throw x.code = "MODULE_NOT_FOUND", x;
-          }
-          var y = i[f] = { exports: {} };
-          n[f][0].call(y.exports, function(d) {
-            var p = n[f][1][d];
-            return l(p || d);
-          }, y, y.exports, o, n, i, s);
-        }
-        return i[f].exports;
-      }
-      a(l, "s");
-      for (var u = typeof re == "function" && re, c = 0; c < s.length; c++) l(s[c]);
-      return l;
-    }, "e"))({ 1: [function(o, n, i) {
-      n.exports = function(s) {
-        if (typeof Map != "function" || s) {
-          var l = o("./similar");
-          return new l();
-        } else
-          return /* @__PURE__ */ new Map();
-      };
-    }, { "./similar": 2 }], 2: [function(o, n, i) {
-      function s() {
-        return this.list = [], this.lastItem = void 0, this.size = 0, this;
-      }
-      a(s, "Similar"), s.prototype.get = function(l) {
-        var u;
-        if (this.lastItem && this.isEqual(this.lastItem.key, l))
-          return this.lastItem.val;
-        if (u = this.indexOf(l), u >= 0)
-          return this.lastItem = this.list[u], this.list[u].val;
-      }, s.prototype.set = function(l, u) {
-        var c;
-        return this.lastItem && this.isEqual(this.lastItem.key, l) ? (this.lastItem.val = u, this) : (c = this.indexOf(l), c >= 0 ? (this.lastItem =
-        this.list[c], this.list[c].val = u, this) : (this.lastItem = { key: l, val: u }, this.list.push(this.lastItem), this.size++, this));
-      }, s.prototype.delete = function(l) {
-        var u;
-        if (this.lastItem && this.isEqual(this.lastItem.key, l) && (this.lastItem = void 0), u = this.indexOf(l), u >= 0)
-          return this.size--, this.list.splice(u, 1)[0];
-      }, s.prototype.has = function(l) {
-        var u;
-        return this.lastItem && this.isEqual(this.lastItem.key, l) ? !0 : (u = this.indexOf(l), u >= 0 ? (this.lastItem = this.list[u], !0) :
-        !1);
-      }, s.prototype.forEach = function(l, u) {
-        var c;
-        for (c = 0; c < this.size; c++)
-          l.call(u || this, this.list[c].val, this.list[c].key, this);
-      }, s.prototype.indexOf = function(l) {
-        var u;
-        for (u = 0; u < this.size; u++)
-          if (this.isEqual(this.list[u].key, l))
-            return u;
-        return -1;
-      }, s.prototype.isEqual = function(l, u) {
-        return l === u || l !== l && u !== u;
-      }, n.exports = s;
-    }, {}], 3: [function(o, n, i) {
-      var s = o("map-or-similar");
-      n.exports = function(f) {
-        var h = new s(!1), m = [];
-        return function(x) {
-          var y = /* @__PURE__ */ a(function() {
-            var d = h, p, v, g = arguments.length - 1, R = Array(g + 1), w = !0, S;
-            if ((y.numArgs || y.numArgs === 0) && y.numArgs !== g + 1)
-              throw new Error("Memoizerific functions should always be called with the same number of arguments");
-            for (S = 0; S < g; S++) {
-              if (R[S] = {
-                cacheItem: d,
-                arg: arguments[S]
-              }, d.has(arguments[S])) {
-                d = d.get(arguments[S]);
-                continue;
-              }
-              w = !1, p = new s(!1), d.set(arguments[S], p), d = p;
-            }
-            return w && (d.has(arguments[g]) ? v = d.get(arguments[g]) : w = !1), w || (v = x.apply(null, arguments), d.set(arguments[g], v)),
-            f > 0 && (R[g] = {
-              cacheItem: d,
-              arg: arguments[g]
-            }, w ? l(m, R) : m.push(R), m.length > f && u(m.shift())), y.wasMemoized = w, y.numArgs = g + 1, v;
-          }, "memoizerific");
-          return y.limit = f, y.wasMemoized = !1, y.cache = h, y.lru = m, y;
-        };
-      };
-      function l(f, h) {
-        var m = f.length, x = h.length, y, d, p;
-        for (d = 0; d < m; d++) {
-          for (y = !0, p = 0; p < x; p++)
-            if (!c(f[d][p].arg, h[p].arg)) {
-              y = !1;
-              break;
-            }
-          if (y)
-            break;
-        }
-        f.push(f.splice(d, 1)[0]);
-      }
-      a(l, "moveToMostRecentLru");
-      function u(f) {
-        var h = f.length, m = f[h - 1], x, y;
-        for (m.cacheItem.delete(m.arg), y = h - 2; y >= 0 && (m = f[y], x = m.cacheItem.get(m.arg), !x || !x.size); y--)
-          m.cacheItem.delete(m.arg);
-      }
-      a(u, "removeCachedResult");
-      function c(f, h) {
-        return f === h || f !== f && h !== h;
-      }
-      a(c, "isEqual");
-    }, { "map-or-similar": 1 }] }, {}, [3])(3);
-  });
-});
-
-// ../node_modules/picoquery/lib/string-util.js
-var Ie = T((Te) => {
-  "use strict";
-  Object.defineProperty(Te, "__esModule", { value: !0 });
-  Te.encodeString = Ar;
-  var C = Array.from({ length: 256 }, (e, t) => "%" + ((t < 16 ? "0" : "") + t.toString(16)).toUpperCase()), _r = new Int8Array([
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    1,
-    0,
-    0,
-    0,
-    0,
-    0,
-    1,
-    1,
-    1,
-    1,
-    0,
-    0,
-    1,
-    1,
-    0,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    0,
-    0,
-    0,
-    0,
-    1,
-    0,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    0,
-    0,
-    0,
-    1,
-    0
-  ]);
-  function Ar(e) {
-    let t = e.length;
-    if (t === 0)
-      return "";
-    let r = "", o = 0, n = 0;
-    e: for (; n < t; n++) {
-      let i = e.charCodeAt(n);
-      for (; i < 128; ) {
-        if (_r[i] !== 1 && (o < n && (r += e.slice(o, n)), o = n + 1, r += C[i]), ++n === t)
-          break e;
-        i = e.charCodeAt(n);
-      }
-      if (o < n && (r += e.slice(o, n)), i < 2048) {
-        o = n + 1, r += C[192 | i >> 6] + C[128 | i & 63];
-        continue;
-      }
-      if (i < 55296 || i >= 57344) {
-        o = n + 1, r += C[224 | i >> 12] + C[128 | i >> 6 & 63] + C[128 | i & 63];
-        continue;
-      }
-      if (++n, n >= t)
-        throw new Error("URI malformed");
-      let s = e.charCodeAt(n) & 1023;
-      o = n + 1, i = 65536 + ((i & 1023) << 10 | s), r += C[240 | i >> 18] + C[128 | i >> 12 & 63] + C[128 | i >> 6 & 63] + C[128 | i & 63];
-    }
-    return o === 0 ? e : o < t ? r + e.slice(o) : r;
-  }
-  a(Ar, "encodeString");
-});
-
-// ../node_modules/picoquery/lib/shared.js
-var ge = T((_) => {
-  "use strict";
-  Object.defineProperty(_, "__esModule", { value: !0 });
-  _.defaultOptions = _.defaultShouldSerializeObject = _.defaultValueSerializer = void 0;
-  var Be = Ie(), Lr = /* @__PURE__ */ a((e) => {
-    switch (typeof e) {
-      case "string":
-        return (0, Be.encodeString)(e);
-      case "bigint":
-      case "boolean":
-        return "" + e;
-      case "number":
-        if (Number.isFinite(e))
-          return e < 1e21 ? "" + e : (0, Be.encodeString)("" + e);
-        break;
-    }
-    return e instanceof Date ? (0, Be.encodeString)(e.toISOString()) : "";
-  }, "defaultValueSerializer");
-  _.defaultValueSerializer = Lr;
-  var Fr = /* @__PURE__ */ a((e) => e instanceof Date, "defaultShouldSerializeObject");
-  _.defaultShouldSerializeObject = Fr;
-  var It = /* @__PURE__ */ a((e) => e, "identityFunc");
-  _.defaultOptions = {
-    nesting: !0,
-    nestingSyntax: "dot",
-    arrayRepeat: !1,
-    arrayRepeatSyntax: "repeat",
-    delimiter: 38,
-    valueDeserializer: It,
-    valueSerializer: _.defaultValueSerializer,
-    keyDeserializer: It,
-    shouldSerializeObject: _.defaultShouldSerializeObject
-  };
-});
-
-// ../node_modules/picoquery/lib/object-util.js
-var ze = T((ye) => {
-  "use strict";
-  Object.defineProperty(ye, "__esModule", { value: !0 });
-  ye.getDeepObject = Mr;
-  ye.stringifyObject = Bt;
-  var k = ge(), jr = Ie();
-  function Ur(e) {
-    return e === "__proto__" || e === "constructor" || e === "prototype";
-  }
-  a(Ur, "isPrototypeKey");
-  function Mr(e, t, r, o, n) {
-    if (Ur(t))
-      return e;
-    let i = e[t];
-    return typeof i == "object" && i !== null ? i : !o && (n || typeof r == "number" || typeof r == "string" && r * 0 === 0 && r.indexOf(".") ===
-    -1) ? e[t] = [] : e[t] = {};
-  }
-  a(Mr, "getDeepObject");
-  var Tr = 20, Ir = "[]", Br = "[", zr = "]", kr = ".";
-  function Bt(e, t, r = 0, o, n) {
-    let { nestingSyntax: i = k.defaultOptions.nestingSyntax, arrayRepeat: s = k.defaultOptions.arrayRepeat, arrayRepeatSyntax: l = k.defaultOptions.
-    arrayRepeatSyntax, nesting: u = k.defaultOptions.nesting, delimiter: c = k.defaultOptions.delimiter, valueSerializer: f = k.defaultOptions.
-    valueSerializer, shouldSerializeObject: h = k.defaultOptions.shouldSerializeObject } = t, m = typeof c == "number" ? String.fromCharCode(
-    c) : c, x = n === !0 && s, y = i === "dot" || i === "js" && !n;
-    if (r > Tr)
-      return "";
-    let d = "", p = !0, v = !1;
-    for (let g in e) {
-      let R = e[g], w;
-      o ? (w = o, x ? l === "bracket" && (w += Ir) : y ? (w += kr, w += g) : (w += Br, w += g, w += zr)) : w = g, p || (d += m), typeof R ==
-      "object" && R !== null && !h(R) ? (v = R.pop !== void 0, (u || s && v) && (d += Bt(R, t, r + 1, w, v))) : (d += (0, jr.encodeString)(w),
-      d += "=", d += f(R, g)), p && (p = !1);
-    }
-    return d;
-  }
-  a(Bt, "stringifyObject");
-});
-
-// ../node_modules/fast-decode-uri-component/index.js
-var Wt = T((zo, Vt) => {
-  "use strict";
-  var zt = 12, Vr = 0, ke = [
-    // The first part of the table maps bytes to character to a transition.
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    1,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    3,
-    3,
-    3,
-    3,
-    3,
-    3,
-    3,
-    3,
-    3,
-    3,
-    3,
-    3,
-    3,
-    3,
-    3,
-    3,
-    3,
-    3,
-    3,
-    3,
-    3,
-    3,
-    3,
-    3,
-    3,
-    3,
-    3,
-    3,
-    3,
-    3,
-    3,
-    3,
-    4,
-    4,
-    5,
-    5,
-    5,
-    5,
-    5,
-    5,
-    5,
-    5,
-    5,
-    5,
-    5,
-    5,
-    5,
-    5,
-    5,
-    5,
-    5,
-    5,
-    5,
-    5,
-    5,
-    5,
-    5,
-    5,
-    5,
-    5,
-    5,
-    5,
-    5,
-    5,
-    6,
-    7,
-    7,
-    7,
-    7,
-    7,
-    7,
-    7,
-    7,
-    7,
-    7,
-    7,
-    7,
-    8,
-    7,
-    7,
-    10,
-    9,
-    9,
-    9,
-    11,
-    4,
-    4,
-    4,
-    4,
-    4,
-    4,
-    4,
-    4,
-    4,
-    4,
-    4,
-    // The second part of the table maps a state to a new state when adding a
-    // transition.
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    12,
-    0,
-    0,
-    0,
-    0,
-    24,
-    36,
-    48,
-    60,
-    72,
-    84,
-    96,
-    0,
-    12,
-    12,
-    12,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    24,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    24,
-    24,
-    24,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    24,
-    24,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    48,
-    48,
-    48,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    48,
-    48,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    48,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    // The third part maps the current transition to a mask that needs to apply
-    // to the byte.
-    127,
-    63,
-    63,
-    63,
-    0,
-    31,
-    15,
-    15,
-    15,
-    7,
-    7,
-    7
-  ];
-  function Wr(e) {
-    var t = e.indexOf("%");
-    if (t === -1) return e;
-    for (var r = e.length, o = "", n = 0, i = 0, s = t, l = zt; t > -1 && t < r; ) {
-      var u = kt(e[t + 1], 4), c = kt(e[t + 2], 0), f = u | c, h = ke[f];
-      if (l = ke[256 + l + h], i = i << 6 | f & ke[364 + h], l === zt)
-        o += e.slice(n, s), o += i <= 65535 ? String.fromCharCode(i) : String.fromCharCode(
-          55232 + (i >> 10),
-          56320 + (i & 1023)
-        ), i = 0, n = t + 3, t = s = e.indexOf("%", n);
-      else {
-        if (l === Vr)
-          return null;
-        if (t += 3, t < r && e.charCodeAt(t) === 37) continue;
-        return null;
-      }
-    }
-    return o + e.slice(n);
-  }
-  a(Wr, "decodeURIComponent");
-  var Hr = {
-    0: 0,
-    1: 1,
-    2: 2,
-    3: 3,
-    4: 4,
-    5: 5,
-    6: 6,
-    7: 7,
-    8: 8,
-    9: 9,
-    a: 10,
-    A: 10,
-    b: 11,
-    B: 11,
-    c: 12,
-    C: 12,
-    d: 13,
-    D: 13,
-    e: 14,
-    E: 14,
-    f: 15,
-    F: 15
-  };
-  function kt(e, t) {
-    var r = Hr[e];
-    return r === void 0 ? 255 : r << t;
-  }
-  a(kt, "hexCodeToInt");
-  Vt.exports = Wr;
-});
-
-// ../node_modules/picoquery/lib/parse.js
-var $t = T((M) => {
-  "use strict";
-  var Kr = M && M.__importDefault || function(e) {
-    return e && e.__esModule ? e : { default: e };
-  };
-  Object.defineProperty(M, "__esModule", { value: !0 });
-  M.numberValueDeserializer = M.numberKeyDeserializer = void 0;
-  M.parse = Jr;
-  var ve = ze(), V = ge(), Ht = Kr(Wt()), qr = /* @__PURE__ */ a((e) => {
-    let t = Number(e);
-    return Number.isNaN(t) ? e : t;
-  }, "numberKeyDeserializer");
-  M.numberKeyDeserializer = qr;
-  var $r = /* @__PURE__ */ a((e) => {
-    let t = Number(e);
-    return Number.isNaN(t) ? e : t;
-  }, "numberValueDeserializer");
-  M.numberValueDeserializer = $r;
-  var Kt = /\+/g, qt = /* @__PURE__ */ a(function() {
-  }, "Empty");
-  qt.prototype = /* @__PURE__ */ Object.create(null);
-  function Re(e, t, r, o, n) {
-    let i = e.substring(t, r);
-    return o && (i = i.replace(Kt, " ")), n && (i = (0, Ht.default)(i) || i), i;
-  }
-  a(Re, "computeKeySlice");
-  function Jr(e, t) {
-    let { valueDeserializer: r = V.defaultOptions.valueDeserializer, keyDeserializer: o = V.defaultOptions.keyDeserializer, arrayRepeatSyntax: n = V.
-    defaultOptions.arrayRepeatSyntax, nesting: i = V.defaultOptions.nesting, arrayRepeat: s = V.defaultOptions.arrayRepeat, nestingSyntax: l = V.
-    defaultOptions.nestingSyntax, delimiter: u = V.defaultOptions.delimiter } = t ?? {}, c = typeof u == "string" ? u.charCodeAt(0) : u, f = l ===
-    "js", h = new qt();
-    if (typeof e != "string")
-      return h;
-    let m = e.length, x = "", y = -1, d = -1, p = -1, v = h, g, R = "", w = "", S = !1, q = !1, F = !1, _e = !1, X = !1, G = !1, he = !1, j = 0,
-    Z = -1, ee = -1, st = -1;
-    for (let D = 0; D < m + 1; D++) {
-      if (j = D !== m ? e.charCodeAt(D) : c, j === c) {
-        if (he = d > y, he || (d = D), p !== d - 1 && (w = Re(e, p + 1, Z > -1 ? Z : d, F, S), R = o(w), g !== void 0 && (v = (0, ve.getDeepObject)(
-        v, g, R, f && X, f && G))), he || R !== "") {
-          he && (x = e.slice(d + 1, D), _e && (x = x.replace(Kt, " ")), q && (x = (0, Ht.default)(x) || x));
-          let te = r(x, R);
-          if (s) {
-            let pe = v[R];
-            pe === void 0 ? Z > -1 ? v[R] = [te] : v[R] = te : pe.pop ? pe.push(te) : v[R] = [pe, te];
-          } else
-            v[R] = te;
-        }
-        x = "", y = D, d = D, S = !1, q = !1, F = !1, _e = !1, X = !1, G = !1, Z = -1, p = D, v = h, g = void 0, R = "";
-      } else j === 93 ? (s && n === "bracket" && st === 91 && (Z = ee), i && (l === "index" || f) && d <= y && (p !== ee && (w = Re(e, p + 1,
-      D, F, S), R = o(w), g !== void 0 && (v = (0, ve.getDeepObject)(v, g, R, void 0, f)), g = R, F = !1, S = !1), p = D, G = !0, X = !1)) :
-      j === 46 ? i && (l === "dot" || f) && d <= y && (p !== ee && (w = Re(e, p + 1, D, F, S), R = o(w), g !== void 0 && (v = (0, ve.getDeepObject)(
-      v, g, R, f)), g = R, F = !1, S = !1), X = !0, G = !1, p = D) : j === 91 ? i && (l === "index" || f) && d <= y && (p !== ee && (w = Re(
-      e, p + 1, D, F, S), R = o(w), f && g !== void 0 && (v = (0, ve.getDeepObject)(v, g, R, f)), g = R, F = !1, S = !1, X = !1, G = !0), p =
-      D) : j === 61 ? d <= y ? d = D : q = !0 : j === 43 ? d > y ? _e = !0 : F = !0 : j === 37 && (d > y ? q = !0 : S = !0);
-      ee = D, st = j;
-    }
-    return h;
-  }
-  a(Jr, "parse");
-});
-
-// ../node_modules/picoquery/lib/stringify.js
-var Jt = T((Ve) => {
-  "use strict";
-  Object.defineProperty(Ve, "__esModule", { value: !0 });
-  Ve.stringify = Qr;
-  var Yr = ze();
-  function Qr(e, t) {
-    if (e === null || typeof e != "object")
-      return "";
-    let r = t ?? {};
-    return (0, Yr.stringifyObject)(e, r);
-  }
-  a(Qr, "stringify");
-});
-
-// ../node_modules/picoquery/lib/main.js
-var Yt = T((P) => {
-  "use strict";
-  var Xr = P && P.__createBinding || (Object.create ? function(e, t, r, o) {
-    o === void 0 && (o = r);
-    var n = Object.getOwnPropertyDescriptor(t, r);
-    (!n || ("get" in n ? !t.__esModule : n.writable || n.configurable)) && (n = { enumerable: !0, get: /* @__PURE__ */ a(function() {
-      return t[r];
-    }, "get") }), Object.defineProperty(e, o, n);
-  } : function(e, t, r, o) {
-    o === void 0 && (o = r), e[o] = t[r];
-  }), Gr = P && P.__exportStar || function(e, t) {
-    for (var r in e) r !== "default" && !Object.prototype.hasOwnProperty.call(t, r) && Xr(t, e, r);
-  };
-  Object.defineProperty(P, "__esModule", { value: !0 });
-  P.stringify = P.parse = void 0;
-  var Zr = $t();
-  Object.defineProperty(P, "parse", { enumerable: !0, get: /* @__PURE__ */ a(function() {
-    return Zr.parse;
-  }, "get") });
-  var en = Jt();
-  Object.defineProperty(P, "stringify", { enumerable: !0, get: /* @__PURE__ */ a(function() {
-    return en.stringify;
-  }, "get") });
-  Gr(ge(), P);
-});
+import {
+  isReviewSummaryPath
+} from "../_browser-chunks/chunk-YI2IBIQS.js";
+import {
+  parse,
+  stringify
+} from "../_browser-chunks/chunk-SFVA4SBT.js";
+import {
+  require_memoizerific
+} from "../_browser-chunks/chunk-DRQKCCAG.js";
+import {
+  isEqual,
+  isPlainObject
+} from "../_browser-chunks/chunk-Z3B64JMR.js";
+import "../_browser-chunks/chunk-NZMVUW5T.js";
+import {
+  dedent
+} from "../_browser-chunks/chunk-3LY4VQVK.js";
+import {
+  __toESM
+} from "../_browser-chunks/chunk-IMSF75WX.js";
 
 // src/router/utils.ts
-import { once as tn } from "storybook/internal/client-logger";
-
-// ../node_modules/es-toolkit/dist/function/noop.mjs
-function ut() {
-}
-a(ut, "noop");
-
-// ../node_modules/es-toolkit/dist/compat/_internal/getSymbols.mjs
-function Le(e) {
-  return Object.getOwnPropertySymbols(e).filter((t) => Object.prototype.propertyIsEnumerable.call(e, t));
-}
-a(Le, "getSymbols");
-
-// ../node_modules/es-toolkit/dist/compat/_internal/getTag.mjs
-function Fe(e) {
-  return e == null ? e === void 0 ? "[object Undefined]" : "[object Null]" : Object.prototype.toString.call(e);
-}
-a(Fe, "getTag");
-
-// ../node_modules/es-toolkit/dist/compat/_internal/tags.mjs
-var ct = "[object RegExp]", ft = "[object String]", dt = "[object Number]", ht = "[object Boolean]", je = "[object Arguments]", pt = "[objec\
-t Symbol]", mt = "[object Date]", gt = "[object Map]", yt = "[object Set]", vt = "[object Array]", Rt = "[object Function]", xt = "[object A\
-rrayBuffer]", me = "[object Object]", bt = "[object Error]", Et = "[object DataView]", wt = "[object Uint8Array]", St = "[object Uint8Clampe\
-dArray]", Dt = "[object Uint16Array]", Nt = "[object Uint32Array]", Ot = "[object BigUint64Array]", Pt = "[object Int8Array]", Ct = "[object\
- Int16Array]", _t = "[object Int32Array]", At = "[object BigInt64Array]", Lt = "[object Float32Array]", Ft = "[object Float64Array]";
-
-// ../node_modules/es-toolkit/dist/predicate/isPlainObject.mjs
-function U(e) {
-  if (!e || typeof e != "object")
-    return !1;
-  let t = Object.getPrototypeOf(e);
-  return t === null || t === Object.prototype || Object.getPrototypeOf(t) === null ? Object.prototype.toString.call(e) === "[object Object]" :
-  !1;
-}
-a(U, "isPlainObject");
-
-// ../node_modules/es-toolkit/dist/compat/util/eq.mjs
-function jt(e, t) {
-  return e === t || Number.isNaN(e) && Number.isNaN(t);
-}
-a(jt, "eq");
-
-// ../node_modules/es-toolkit/dist/predicate/isEqualWith.mjs
-function Ut(e, t, r) {
-  return ne(e, t, void 0, void 0, void 0, void 0, r);
-}
-a(Ut, "isEqualWith");
-function ne(e, t, r, o, n, i, s) {
-  let l = s(e, t, r, o, n, i);
-  if (l !== void 0)
-    return l;
-  if (typeof e == typeof t)
-    switch (typeof e) {
-      case "bigint":
-      case "string":
-      case "boolean":
-      case "symbol":
-      case "undefined":
-        return e === t;
-      case "number":
-        return e === t || Object.is(e, t);
-      case "function":
-        return e === t;
-      case "object":
-        return oe(e, t, i, s);
-    }
-  return oe(e, t, i, s);
-}
-a(ne, "isEqualWithImpl");
-function oe(e, t, r, o) {
-  if (Object.is(e, t))
-    return !0;
-  let n = Fe(e), i = Fe(t);
-  if (n === je && (n = me), i === je && (i = me), n !== i)
-    return !1;
-  switch (n) {
-    case ft:
-      return e.toString() === t.toString();
-    case dt: {
-      let u = e.valueOf(), c = t.valueOf();
-      return jt(u, c);
-    }
-    case ht:
-    case mt:
-    case pt:
-      return Object.is(e.valueOf(), t.valueOf());
-    case ct:
-      return e.source === t.source && e.flags === t.flags;
-    case Rt:
-      return e === t;
-  }
-  r = r ?? /* @__PURE__ */ new Map();
-  let s = r.get(e), l = r.get(t);
-  if (s != null && l != null)
-    return s === t;
-  r.set(e, t), r.set(t, e);
-  try {
-    switch (n) {
-      case gt: {
-        if (e.size !== t.size)
-          return !1;
-        for (let [u, c] of e.entries())
-          if (!t.has(u) || !ne(c, t.get(u), u, e, t, r, o))
-            return !1;
-        return !0;
-      }
-      case yt: {
-        if (e.size !== t.size)
-          return !1;
-        let u = Array.from(e.values()), c = Array.from(t.values());
-        for (let f = 0; f < u.length; f++) {
-          let h = u[f], m = c.findIndex((x) => ne(h, x, void 0, e, t, r, o));
-          if (m === -1)
-            return !1;
-          c.splice(m, 1);
-        }
-        return !0;
-      }
-      case vt:
-      case wt:
-      case St:
-      case Dt:
-      case Nt:
-      case Ot:
-      case Pt:
-      case Ct:
-      case _t:
-      case At:
-      case Lt:
-      case Ft: {
-        if (typeof Buffer < "u" && Buffer.isBuffer(e) !== Buffer.isBuffer(t) || e.length !== t.length)
-          return !1;
-        for (let u = 0; u < e.length; u++)
-          if (!ne(e[u], t[u], u, e, t, r, o))
-            return !1;
-        return !0;
-      }
-      case xt:
-        return e.byteLength !== t.byteLength ? !1 : oe(new Uint8Array(e), new Uint8Array(t), r, o);
-      case Et:
-        return e.byteLength !== t.byteLength || e.byteOffset !== t.byteOffset ? !1 : oe(new Uint8Array(e), new Uint8Array(t), r, o);
-      case bt:
-        return e.name === t.name && e.message === t.message;
-      case me: {
-        if (!(oe(e.constructor, t.constructor, r, o) || U(e) && U(t)))
-          return !1;
-        let c = [...Object.keys(e), ...Le(e)], f = [...Object.keys(t), ...Le(t)];
-        if (c.length !== f.length)
-          return !1;
-        for (let h = 0; h < c.length; h++) {
-          let m = c[h], x = e[m];
-          if (!Object.hasOwn(t, m))
-            return !1;
-          let y = t[m];
-          if (!ne(x, y, m, e, t, r, o))
-            return !1;
-        }
-        return !0;
-      }
-      default:
-        return !1;
-    }
-  } finally {
-    r.delete(e), r.delete(t);
-  }
-}
-a(oe, "areObjectsEqual");
-
-// ../node_modules/es-toolkit/dist/predicate/isEqual.mjs
-function Ue(e, t) {
-  return Ut(e, t, ut);
-}
-a(Ue, "isEqual");
-
-// src/router/utils.ts
-var be = lt(Tt(), 1), ae = lt(Yt(), 1);
-
-// ../node_modules/ts-dedent/esm/index.js
-function Qt(e) {
-  for (var t = [], r = 1; r < arguments.length; r++)
-    t[r - 1] = arguments[r];
-  var o = Array.from(typeof e == "string" ? [e] : e);
-  o[o.length - 1] = o[o.length - 1].replace(/\r?\n([\t ]*)$/, "");
-  var n = o.reduce(function(l, u) {
-    var c = u.match(/\n([\t ]+|(?!\s).)/g);
-    return c ? l.concat(c.map(function(f) {
-      var h, m;
-      return (m = (h = f.match(/[\t ]/g)) === null || h === void 0 ? void 0 : h.length) !== null && m !== void 0 ? m : 0;
-    })) : l;
-  }, []);
-  if (n.length) {
-    var i = new RegExp(`
-[	 ]{` + Math.min.apply(Math, n) + "}", "g");
-    o = o.map(function(l) {
-      return l.replace(i, `
-`);
-    });
-  }
-  o[0] = o[0].replace(/^\r?\n/, "");
-  var s = o[0];
-  return t.forEach(function(l, u) {
-    var c = s.match(/(?:^|\n)( *)$/), f = c ? c[1] : "", h = l;
-    typeof l == "string" && l.includes(`
-`) && (h = String(l).split(`
-`).map(function(m, x) {
-      return x === 0 ? m : "" + f + m;
-    }).join(`
-`)), s += h + o[u + 1];
-  }), s;
-}
-a(Qt, "dedent");
-
-// src/router/utils.ts
-var rn = /\/([^/]+)\/(?:(.*)_)?([^/]+)?/, Gt = (0, be.default)(1e3)((e) => {
-  let t = {
+import { once } from "storybook/internal/client-logger";
+var import_memoizerific = __toESM(require_memoizerific(), 1);
+var splitPathRegex = /\/([^/]+)\/(?:(.*)_)?([^/]+)?/, parsePath = (0, import_memoizerific.default)(1e3)((path) => {
+  let result = {
     viewMode: void 0,
     storyId: void 0,
     refId: void 0
   };
-  if (e) {
-    let [, r, o, n] = e.toLowerCase().match(rn) || [];
-    r && Object.assign(t, {
-      viewMode: r,
-      storyId: n,
-      refId: o
-    });
+  if (path) {
+    let [, viewMode, refId, storyId] = path.toLowerCase().match(splitPathRegex) || [];
+    viewMode ? Object.assign(result, {
+      viewMode,
+      storyId,
+      refId
+    }) : isReviewSummaryPath(path) && (result.viewMode = "review");
   }
-  return t;
-}), xe = Symbol("Deeply equal"), We = /* @__PURE__ */ a((e, t) => {
-  if (typeof e != typeof t)
-    return t;
-  if (Ue(e, t))
-    return xe;
-  if (Array.isArray(e) && Array.isArray(t)) {
-    let r = t.reduce((o, n, i) => {
-      let s = We(e[i], n);
-      return s !== xe && (o[i] = s), o;
-    }, new Array(t.length));
-    return t.length >= e.length ? r : r.concat(new Array(e.length - t.length).fill(void 0));
+  return result;
+}), DEEPLY_EQUAL = /* @__PURE__ */ Symbol("Deeply equal"), deepDiff = (value, update) => {
+  if (typeof value != typeof update)
+    return update;
+  if (isEqual(value, update))
+    return DEEPLY_EQUAL;
+  if (Array.isArray(value) && Array.isArray(update)) {
+    let res = update.reduce((acc, upd, index) => {
+      let diff = deepDiff(value[index], upd);
+      return diff !== DEEPLY_EQUAL && (acc[index] = diff), acc;
+    }, new Array(update.length));
+    return update.length >= value.length ? res : res.concat(new Array(value.length - update.length).fill(void 0));
   }
-  return U(e) && U(t) ? Object.keys({ ...e, ...t }).reduce((r, o) => {
-    let n = We(e?.[o], t?.[o]);
-    return n === xe ? r : Object.assign(r, { [o]: n });
-  }, {}) : t;
-}, "deepDiff"), Xt = /^[a-zA-Z0-9 _-]*$/, nn = /^-?[0-9]+(\.[0-9]+)?$/, Zt = /^#([a-f0-9]{3,4}|[a-f0-9]{6}|[a-f0-9]{8})$/i, er = /^(rgba?|hsla?)\(([0-9]{1,3}),\s?([0-9]{1,3})%?,\s?([0-9]{1,3})%?,?\s?([0-9](\.[0-9]{1,2})?)?\)$/i,
-He = /* @__PURE__ */ a((e = "", t) => e === null || e === "" || !Xt.test(e) ? !1 : t == null || t instanceof Date || typeof t == "number" ||
-typeof t == "boolean" ? !0 : typeof t == "string" ? Xt.test(t) || nn.test(t) || Zt.test(t) || er.test(t) : Array.isArray(t) ? t.every((r) => He(
-e, r)) : U(t) ? Object.entries(t).every(([r, o]) => He(r, o)) : !1, "validateArgs"), Ke = /* @__PURE__ */ a((e) => e === void 0 ? "!undefine\
-d" : e === null ? "!null" : typeof e == "string" ? Zt.test(e) ? `!hex(${e.slice(1)})` : er.test(e) ? `!${e.replace(/[\s%]/g, "")}` : e : typeof e ==
-"boolean" ? `!${e}` : e instanceof Date ? `!date(${e.toISOString()})` : Array.isArray(e) ? e.map(Ke) : U(e) ? Object.entries(e).reduce(
-  (t, [r, o]) => Object.assign(t, { [r]: Ke(o) }),
+  return isPlainObject(value) && isPlainObject(update) ? Object.keys({ ...value, ...update }).reduce((acc, key) => {
+    let diff = deepDiff(value?.[key], update?.[key]);
+    return diff === DEEPLY_EQUAL ? acc : Object.assign(acc, { [key]: diff });
+  }, {}) : update;
+}, VALIDATION_REGEXP = /^[a-zA-Z0-9 _-]*$/, NUMBER_REGEXP = /^-?[0-9]+(\.[0-9]+)?$/, HEX_REGEXP = /^#([a-f0-9]{3,4}|[a-f0-9]{6}|[a-f0-9]{8})$/i, COLOR_REGEXP = /^(rgba?|hsla?)\(([0-9]{1,3}),\s?([0-9]{1,3})%?,\s?([0-9]{1,3})%?,?\s?([0-9](\.[0-9]{1,2})?)?\)$/i, validateArgs = (key = "", value) => key === null || key === "" || !VALIDATION_REGEXP.test(key) ? !1 : value == null || value instanceof Date || typeof value == "number" || typeof value == "boolean" ? !0 : typeof value == "string" ? VALIDATION_REGEXP.test(value) || NUMBER_REGEXP.test(value) || HEX_REGEXP.test(value) || COLOR_REGEXP.test(value) : Array.isArray(value) ? value.every((v) => validateArgs(key, v)) : isPlainObject(value) ? Object.entries(value).every(([k, v]) => validateArgs(k, v)) : !1, encodeSpecialValues = (value) => value === void 0 ? "!undefined" : value === null ? "!null" : typeof value == "string" ? HEX_REGEXP.test(value) ? `!hex(${value.slice(1)})` : COLOR_REGEXP.test(value) ? `!${value.replace(/[\s%]/g, "")}` : value : typeof value == "boolean" ? `!${value}` : value instanceof Date ? `!date(${value.toISOString()})` : Array.isArray(value) ? value.map(encodeSpecialValues) : isPlainObject(value) ? Object.entries(value).reduce(
+  (acc, [key, val]) => Object.assign(acc, { [key]: encodeSpecialValues(val) }),
   {}
-) : e, "encodeSpecialValues"), on = /* @__PURE__ */ a((e) => {
-  switch (e) {
+) : value, decodeKnownQueryChar = (chr) => {
+  switch (chr) {
     case "%20":
       return "+";
     case "%5B":
@@ -1207,1083 +70,1142 @@ d" : e === null ? "!null" : typeof e == "string" ? Zt.test(e) ? `!hex(${e.slice(
     case "%3A":
       return ":";
   }
-  return e;
-}, "decodeKnownQueryChar"), an = /%[0-9A-F]{2}/g, Zo = /* @__PURE__ */ a((e, t) => {
-  let r = We(e, t);
-  if (!r || r === xe)
+  return chr;
+}, knownQueryChar = /%[0-9A-F]{2}/g, buildArgsParam = (initialArgs, args) => {
+  let update = deepDiff(initialArgs, args);
+  if (!update || update === DEEPLY_EQUAL)
     return "";
-  let o = Object.entries(r).reduce((n, [i, s]) => He(i, s) ? Object.assign(n, { [i]: s }) : (tn.warn(Qt`
+  let object = Object.entries(update).reduce((acc, [key, value]) => validateArgs(key, value) ? Object.assign(acc, { [key]: value }) : (once.warn(dedent`
       Omitted potentially unsafe URL args.
 
-      More info: https://storybook.js.org/docs/writing-stories/args#setting-args-through-the-url
-    `), n), {});
-  return (0, ae.stringify)(Ke(o), {
+      More info: https://storybook.js.org/docs/writing-stories/args?ref=error#setting-args-through-the-url
+    `), acc), {});
+  return stringify(encodeSpecialValues(object), {
     delimiter: ";",
     // we don't actually create multiple query params
     nesting: !0,
     nestingSyntax: "js"
     // encode objects using dot notation: obj.key=val
-  }).replace(an, on).split(";").map((n) => n.replace("=", ":")).join(";");
-}, "buildArgsParam"), sn = (0, be.default)(1e3)((e) => e !== void 0 ? (0, ae.parse)(e) : {}), tr = /* @__PURE__ */ a((e) => sn(e.search ? e.
-search.slice(1) : ""), "queryFromLocation"), ea = /* @__PURE__ */ a((e) => {
-  let t = (0, ae.stringify)(e);
-  return t ? "?" + t : "";
-}, "stringifyQuery"), rr = (0, be.default)(1e3)((e, t, r = !0) => {
-  if (r) {
-    if (typeof t != "string")
+  }).replace(knownQueryChar, decodeKnownQueryChar).split(";").map((part) => part.replace("=", ":")).join(";");
+}, queryFromString = (0, import_memoizerific.default)(1e3)((s) => s !== void 0 ? parse(s) : {}), queryFromLocation = (location) => queryFromString(location?.search ? location.search.slice(1) : ""), stringifyQuery = (query) => {
+  let queryStr = stringify(query);
+  return queryStr ? "?" + queryStr : "";
+}, getMatch = (0, import_memoizerific.default)(1e3)((current, target, startsWith = !0) => {
+  if (startsWith) {
+    if (typeof target != "string")
       throw new Error("startsWith only works with string targets");
-    return e && e.startsWith(t) ? { path: e } : null;
+    return current && current.startsWith(target) ? { path: current } : null;
   }
-  let o = typeof t == "string" && e === t, n = e && t && e.match(t);
-  return o || n ? { path: e } : null;
+  let currentIsTarget = typeof target == "string" && current === target, matchTarget = current && target && current.match(target);
+  return currentIsTarget || matchTarget ? { path: current } : null;
 });
 
 // src/router/router.tsx
-import de, { useCallback as to } from "react";
-import { global as ro } from "@storybook/global";
+import React3, { useCallback as useCallback3 } from "react";
+import { global } from "@storybook/global";
 
-// ../node_modules/react-router-dom/dist/index.js
-import * as E from "react";
+// ../../node_modules/react-router-dom/dist/index.js
+import * as React2 from "react";
 
-// ../node_modules/react-router/dist/index.js
-import * as b from "react";
+// ../../node_modules/react-router/dist/index.js
+import * as React from "react";
 
-// ../node_modules/@remix-run/router/dist/router.js
-function ie() {
-  return ie = Object.assign ? Object.assign.bind() : function(e) {
-    for (var t = 1; t < arguments.length; t++) {
-      var r = arguments[t];
-      for (var o in r)
-        Object.prototype.hasOwnProperty.call(r, o) && (e[o] = r[o]);
+// ../../node_modules/@remix-run/router/dist/router.js
+function _extends() {
+  return _extends = Object.assign ? Object.assign.bind() : function(target) {
+    for (var i = 1; i < arguments.length; i++) {
+      var source = arguments[i];
+      for (var key in source)
+        Object.prototype.hasOwnProperty.call(source, key) && (target[key] = source[key]);
     }
-    return e;
-  }, ie.apply(this, arguments);
+    return target;
+  }, _extends.apply(this, arguments);
 }
-a(ie, "_extends");
-var A;
-(function(e) {
-  e.Pop = "POP", e.Push = "PUSH", e.Replace = "REPLACE";
-})(A || (A = {}));
-var nr = "popstate";
-function ir(e) {
-  e === void 0 && (e = {});
-  function t(o, n) {
+var Action;
+(function(Action2) {
+  Action2.Pop = "POP", Action2.Push = "PUSH", Action2.Replace = "REPLACE";
+})(Action || (Action = {}));
+var PopStateEventType = "popstate";
+function createMemoryHistory(options) {
+  options === void 0 && (options = {});
+  let {
+    initialEntries = ["/"],
+    initialIndex,
+    v5Compat = !1
+  } = options, entries;
+  entries = initialEntries.map((entry, index2) => createMemoryLocation(entry, typeof entry == "string" ? null : entry.state, index2 === 0 ? "default" : void 0));
+  let index = clampIndex(initialIndex ?? entries.length - 1), action = Action.Pop, listener = null;
+  function clampIndex(n) {
+    return Math.min(Math.max(n, 0), entries.length - 1);
+  }
+  function getCurrentLocation() {
+    return entries[index];
+  }
+  function createMemoryLocation(to, state, key) {
+    state === void 0 && (state = null);
+    let location = createLocation(entries ? getCurrentLocation().pathname : "/", to, state, key);
+    return warning(location.pathname.charAt(0) === "/", "relative pathnames are not supported in memory history: " + JSON.stringify(to)), location;
+  }
+  function createHref(to) {
+    return typeof to == "string" ? to : createPath(to);
+  }
+  return {
+    get index() {
+      return index;
+    },
+    get action() {
+      return action;
+    },
+    get location() {
+      return getCurrentLocation();
+    },
+    createHref,
+    createURL(to) {
+      return new URL(createHref(to), "http://localhost");
+    },
+    encodeLocation(to) {
+      let path = typeof to == "string" ? parsePath2(to) : to;
+      return {
+        pathname: path.pathname || "",
+        search: path.search || "",
+        hash: path.hash || ""
+      };
+    },
+    push(to, state) {
+      action = Action.Push;
+      let nextLocation = createMemoryLocation(to, state);
+      index += 1, entries.splice(index, entries.length, nextLocation), v5Compat && listener && listener({
+        action,
+        location: nextLocation,
+        delta: 1
+      });
+    },
+    replace(to, state) {
+      action = Action.Replace;
+      let nextLocation = createMemoryLocation(to, state);
+      entries[index] = nextLocation, v5Compat && listener && listener({
+        action,
+        location: nextLocation,
+        delta: 0
+      });
+    },
+    go(delta) {
+      action = Action.Pop;
+      let nextIndex = clampIndex(index + delta), nextLocation = entries[nextIndex];
+      index = nextIndex, listener && listener({
+        action,
+        location: nextLocation,
+        delta
+      });
+    },
+    listen(fn) {
+      return listener = fn, () => {
+        listener = null;
+      };
+    }
+  };
+}
+function createBrowserHistory(options) {
+  options === void 0 && (options = {});
+  function createBrowserLocation(window2, globalHistory) {
     let {
-      pathname: i,
-      search: s,
-      hash: l
-    } = o.location;
-    return $e(
+      pathname,
+      search,
+      hash
+    } = window2.location;
+    return createLocation(
       "",
       {
-        pathname: i,
-        search: s,
-        hash: l
+        pathname,
+        search,
+        hash
       },
       // state defaults to `null` because `window.history.state` does
-      n.state && n.state.usr || null,
-      n.state && n.state.key || "default"
+      globalHistory.state && globalHistory.state.usr || null,
+      globalHistory.state && globalHistory.state.key || "default"
     );
   }
-  a(t, "createBrowserLocation");
-  function r(o, n) {
-    return typeof n == "string" ? n : I(n);
+  function createBrowserHref(window2, to) {
+    return typeof to == "string" ? to : createPath(to);
   }
-  return a(r, "createBrowserHref"), un(t, r, null, e);
+  return getUrlBasedHistory(createBrowserLocation, createBrowserHref, null, options);
 }
-a(ir, "createBrowserHistory");
-function N(e, t) {
-  if (e === !1 || e === null || typeof e > "u")
-    throw new Error(t);
+function invariant(value, message) {
+  if (value === !1 || value === null || typeof value > "u")
+    throw new Error(message);
 }
-a(N, "invariant");
-function W(e, t) {
-  if (!e) {
-    typeof console < "u" && console.warn(t);
+function warning(cond, message) {
+  if (!cond) {
+    typeof console < "u" && console.warn(message);
     try {
-      throw new Error(t);
+      throw new Error(message);
     } catch {
     }
   }
 }
-a(W, "warning");
-function ln() {
+function createKey() {
   return Math.random().toString(36).substr(2, 8);
 }
-a(ln, "createKey");
-function or(e, t) {
+function getHistoryState(location, index) {
   return {
-    usr: e.state,
-    key: e.key,
-    idx: t
+    usr: location.state,
+    key: location.key,
+    idx: index
   };
 }
-a(or, "getHistoryState");
-function $e(e, t, r, o) {
-  return r === void 0 && (r = null), ie({
-    pathname: typeof e == "string" ? e : e.pathname,
+function createLocation(current, to, state, key) {
+  return state === void 0 && (state = null), _extends({
+    pathname: typeof current == "string" ? current : current.pathname,
     search: "",
     hash: ""
-  }, typeof t == "string" ? H(t) : t, {
-    state: r,
+  }, typeof to == "string" ? parsePath2(to) : to, {
+    state,
     // TODO: This could be cleaned up.  push/replace should probably just take
     // full Locations now and avoid the need to run through this flow at all
     // But that's a pretty big refactor to the current test suite so going to
     // keep as is for the time being and just let any incoming keys take precedence
-    key: t && t.key || o || ln()
+    key: to && to.key || key || createKey()
   });
 }
-a($e, "createLocation");
-function I(e) {
+function createPath(_ref) {
   let {
-    pathname: t = "/",
-    search: r = "",
-    hash: o = ""
-  } = e;
-  return r && r !== "?" && (t += r.charAt(0) === "?" ? r : "?" + r), o && o !== "#" && (t += o.charAt(0) === "#" ? o : "#" + o), t;
+    pathname = "/",
+    search = "",
+    hash = ""
+  } = _ref;
+  return search && search !== "?" && (pathname += search.charAt(0) === "?" ? search : "?" + search), hash && hash !== "#" && (pathname += hash.charAt(0) === "#" ? hash : "#" + hash), pathname;
 }
-a(I, "createPath");
-function H(e) {
-  let t = {};
-  if (e) {
-    let r = e.indexOf("#");
-    r >= 0 && (t.hash = e.substr(r), e = e.substr(0, r));
-    let o = e.indexOf("?");
-    o >= 0 && (t.search = e.substr(o), e = e.substr(0, o)), e && (t.pathname = e);
+function parsePath2(path) {
+  let parsedPath = {};
+  if (path) {
+    let hashIndex = path.indexOf("#");
+    hashIndex >= 0 && (parsedPath.hash = path.substr(hashIndex), path = path.substr(0, hashIndex));
+    let searchIndex = path.indexOf("?");
+    searchIndex >= 0 && (parsedPath.search = path.substr(searchIndex), path = path.substr(0, searchIndex)), path && (parsedPath.pathname = path);
   }
-  return t;
+  return parsedPath;
 }
-a(H, "parsePath");
-function un(e, t, r, o) {
-  o === void 0 && (o = {});
+function getUrlBasedHistory(getLocation, createHref, validateLocation, options) {
+  options === void 0 && (options = {});
   let {
-    window: n = document.defaultView,
-    v5Compat: i = !1
-  } = o, s = n.history, l = A.Pop, u = null, c = f();
-  c == null && (c = 0, s.replaceState(ie({}, s.state, {
-    idx: c
+    window: window2 = document.defaultView,
+    v5Compat = !1
+  } = options, globalHistory = window2.history, action = Action.Pop, listener = null, index = getIndex();
+  index == null && (index = 0, globalHistory.replaceState(_extends({}, globalHistory.state, {
+    idx: index
   }), ""));
-  function f() {
-    return (s.state || {
+  function getIndex() {
+    return (globalHistory.state || {
       idx: null
     }).idx;
   }
-  a(f, "getIndex");
-  function h() {
-    l = A.Pop;
-    let p = f(), v = p == null ? null : p - c;
-    c = p, u && u({
-      action: l,
-      location: d.location,
-      delta: v
+  function handlePop() {
+    action = Action.Pop;
+    let nextIndex = getIndex(), delta = nextIndex == null ? null : nextIndex - index;
+    index = nextIndex, listener && listener({
+      action,
+      location: history.location,
+      delta
     });
   }
-  a(h, "handlePop");
-  function m(p, v) {
-    l = A.Push;
-    let g = $e(d.location, p, v);
-    r && r(g, p), c = f() + 1;
-    let R = or(g, c), w = d.createHref(g);
+  function push(to, state) {
+    action = Action.Push;
+    let location = createLocation(history.location, to, state);
+    validateLocation && validateLocation(location, to), index = getIndex() + 1;
+    let historyState = getHistoryState(location, index), url = history.createHref(location);
     try {
-      s.pushState(R, "", w);
-    } catch (S) {
-      if (S instanceof DOMException && S.name === "DataCloneError")
-        throw S;
-      n.location.assign(w);
+      globalHistory.pushState(historyState, "", url);
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "DataCloneError")
+        throw error;
+      window2.location.assign(url);
     }
-    i && u && u({
-      action: l,
-      location: d.location,
+    v5Compat && listener && listener({
+      action,
+      location: history.location,
       delta: 1
     });
   }
-  a(m, "push");
-  function x(p, v) {
-    l = A.Replace;
-    let g = $e(d.location, p, v);
-    r && r(g, p), c = f();
-    let R = or(g, c), w = d.createHref(g);
-    s.replaceState(R, "", w), i && u && u({
-      action: l,
-      location: d.location,
+  function replace(to, state) {
+    action = Action.Replace;
+    let location = createLocation(history.location, to, state);
+    validateLocation && validateLocation(location, to), index = getIndex();
+    let historyState = getHistoryState(location, index), url = history.createHref(location);
+    globalHistory.replaceState(historyState, "", url), v5Compat && listener && listener({
+      action,
+      location: history.location,
       delta: 0
     });
   }
-  a(x, "replace");
-  function y(p) {
-    let v = n.location.origin !== "null" ? n.location.origin : n.location.href, g = typeof p == "string" ? p : I(p);
-    return N(v, "No window.location.(origin|href) available to create URL for href: " + g), new URL(g, v);
+  function createURL(to) {
+    let base = window2.location.origin !== "null" ? window2.location.origin : window2.location.href, href = typeof to == "string" ? to : createPath(to);
+    return invariant(base, "No window.location.(origin|href) available to create URL for href: " + href), new URL(href, base);
   }
-  a(y, "createURL");
-  let d = {
+  let history = {
     get action() {
-      return l;
+      return action;
     },
     get location() {
-      return e(n, s);
+      return getLocation(window2, globalHistory);
     },
-    listen(p) {
-      if (u)
+    listen(fn) {
+      if (listener)
         throw new Error("A history only accepts one active listener");
-      return n.addEventListener(nr, h), u = p, () => {
-        n.removeEventListener(nr, h), u = null;
+      return window2.addEventListener(PopStateEventType, handlePop), listener = fn, () => {
+        window2.removeEventListener(PopStateEventType, handlePop), listener = null;
       };
     },
-    createHref(p) {
-      return t(n, p);
+    createHref(to) {
+      return createHref(window2, to);
     },
-    createURL: y,
-    encodeLocation(p) {
-      let v = y(p);
+    createURL,
+    encodeLocation(to) {
+      let url = createURL(to);
       return {
-        pathname: v.pathname,
-        search: v.search,
-        hash: v.hash
+        pathname: url.pathname,
+        search: url.search,
+        hash: url.hash
       };
     },
-    push: m,
-    replace: x,
-    go(p) {
-      return s.go(p);
+    push,
+    replace,
+    go(n) {
+      return globalHistory.go(n);
     }
   };
-  return d;
+  return history;
 }
-a(un, "getUrlBasedHistory");
-var ar;
-(function(e) {
-  e.data = "data", e.deferred = "deferred", e.redirect = "redirect", e.error = "error";
-})(ar || (ar = {}));
-function K(e, t) {
-  if (t === "/") return e;
-  if (!e.toLowerCase().startsWith(t.toLowerCase()))
+var ResultType;
+(function(ResultType2) {
+  ResultType2.data = "data", ResultType2.deferred = "deferred", ResultType2.redirect = "redirect", ResultType2.error = "error";
+})(ResultType || (ResultType = {}));
+function stripBasename(pathname, basename) {
+  if (basename === "/") return pathname;
+  if (!pathname.toLowerCase().startsWith(basename.toLowerCase()))
     return null;
-  let r = t.endsWith("/") ? t.length - 1 : t.length, o = e.charAt(r);
-  return o && o !== "/" ? null : e.slice(r) || "/";
+  let startIndex = basename.endsWith("/") ? basename.length - 1 : basename.length, nextChar = pathname.charAt(startIndex);
+  return nextChar && nextChar !== "/" ? null : pathname.slice(startIndex) || "/";
 }
-a(K, "stripBasename");
-function Je(e, t) {
-  t === void 0 && (t = "/");
+function resolvePath(to, fromPathname) {
+  fromPathname === void 0 && (fromPathname = "/");
   let {
-    pathname: r,
-    search: o = "",
-    hash: n = ""
-  } = typeof e == "string" ? H(e) : e;
+    pathname: toPathname,
+    search = "",
+    hash = ""
+  } = typeof to == "string" ? parsePath2(to) : to;
   return {
-    pathname: r ? r.startsWith("/") ? r : cn(r, t) : t,
-    search: fn(o),
-    hash: dn(n)
+    pathname: toPathname ? toPathname.startsWith("/") ? toPathname : resolvePathname(toPathname, fromPathname) : fromPathname,
+    search: normalizeSearch(search),
+    hash: normalizeHash(hash)
   };
 }
-a(Je, "resolvePath");
-function cn(e, t) {
-  let r = t.replace(/\/+$/, "").split("/");
-  return e.split("/").forEach((n) => {
-    n === ".." ? r.length > 1 && r.pop() : n !== "." && r.push(n);
-  }), r.length > 1 ? r.join("/") : "/";
+function resolvePathname(relativePath, fromPathname) {
+  let segments = fromPathname.replace(/\/+$/, "").split("/");
+  return relativePath.split("/").forEach((segment) => {
+    segment === ".." ? segments.length > 1 && segments.pop() : segment !== "." && segments.push(segment);
+  }), segments.length > 1 ? segments.join("/") : "/";
 }
-a(cn, "resolvePathname");
-function qe(e, t, r, o) {
-  return "Cannot include a '" + e + "' character in a manually specified " + ("`to." + t + "` field [" + JSON.stringify(o) + "].  Please sep\
-arate it out to the ") + ("`to." + r + "` field. Alternatively you may provide the full path as ") + 'a string in <Link to="..."> and the ro\
-uter will parse it for you.';
+function getInvalidPathError(char, field, dest, path) {
+  return "Cannot include a '" + char + "' character in a manually specified " + ("`to." + field + "` field [" + JSON.stringify(path) + "].  Please separate it out to the ") + ("`to." + dest + "` field. Alternatively you may provide the full path as ") + 'a string in <Link to="..."> and the router will parse it for you.';
 }
-a(qe, "getInvalidPathError");
-function Ye(e) {
-  return e.filter((t, r) => r === 0 || t.route.path && t.route.path.length > 0);
+function getPathContributingMatches(matches) {
+  return matches.filter((match, index) => index === 0 || match.route.path && match.route.path.length > 0);
 }
-a(Ye, "getPathContributingMatches");
-function Qe(e, t, r, o) {
-  o === void 0 && (o = !1);
-  let n;
-  typeof e == "string" ? n = H(e) : (n = ie({}, e), N(!n.pathname || !n.pathname.includes("?"), qe("?", "pathname", "search", n)), N(!n.pathname ||
-  !n.pathname.includes("#"), qe("#", "pathname", "hash", n)), N(!n.search || !n.search.includes("#"), qe("#", "search", "hash", n)));
-  let i = e === "" || n.pathname === "", s = i ? "/" : n.pathname, l;
-  if (o || s == null)
-    l = r;
+function resolveTo(toArg, routePathnames, locationPathname, isPathRelative) {
+  isPathRelative === void 0 && (isPathRelative = !1);
+  let to;
+  typeof toArg == "string" ? to = parsePath2(toArg) : (to = _extends({}, toArg), invariant(!to.pathname || !to.pathname.includes("?"), getInvalidPathError("?", "pathname", "search", to)), invariant(!to.pathname || !to.pathname.includes("#"), getInvalidPathError("#", "pathname", "hash", to)), invariant(!to.search || !to.search.includes("#"), getInvalidPathError("#", "search", "hash", to)));
+  let isEmptyPath = toArg === "" || to.pathname === "", toPathname = isEmptyPath ? "/" : to.pathname, from;
+  if (isPathRelative || toPathname == null)
+    from = locationPathname;
   else {
-    let h = t.length - 1;
-    if (s.startsWith("..")) {
-      let m = s.split("/");
-      for (; m[0] === ".."; )
-        m.shift(), h -= 1;
-      n.pathname = m.join("/");
+    let routePathnameIndex = routePathnames.length - 1;
+    if (toPathname.startsWith("..")) {
+      let toSegments = toPathname.split("/");
+      for (; toSegments[0] === ".."; )
+        toSegments.shift(), routePathnameIndex -= 1;
+      to.pathname = toSegments.join("/");
     }
-    l = h >= 0 ? t[h] : "/";
+    from = routePathnameIndex >= 0 ? routePathnames[routePathnameIndex] : "/";
   }
-  let u = Je(n, l), c = s && s !== "/" && s.endsWith("/"), f = (i || s === ".") && r.endsWith("/");
-  return !u.pathname.endsWith("/") && (c || f) && (u.pathname += "/"), u;
+  let path = resolvePath(to, from), hasExplicitTrailingSlash = toPathname && toPathname !== "/" && toPathname.endsWith("/"), hasCurrentTrailingSlash = (isEmptyPath || toPathname === ".") && locationPathname.endsWith("/");
+  return !path.pathname.endsWith("/") && (hasExplicitTrailingSlash || hasCurrentTrailingSlash) && (path.pathname += "/"), path;
 }
-a(Qe, "resolveTo");
-var se = /* @__PURE__ */ a((e) => e.join("/").replace(/\/\/+/g, "/"), "joinPaths");
-var fn = /* @__PURE__ */ a((e) => !e || e === "?" ? "" : e.startsWith("?") ? e : "?" + e, "normalizeSearch"), dn = /* @__PURE__ */ a((e) => !e ||
-e === "#" ? "" : e.startsWith("#") ? e : "#" + e, "normalizeHash");
-var sr = ["post", "put", "patch", "delete"], na = new Set(sr), hn = ["get", ...sr], oa = new Set(hn);
-var aa = Symbol("deferred");
+var joinPaths = (paths) => paths.join("/").replace(/\/\/+/g, "/");
+var normalizeSearch = (search) => !search || search === "?" ? "" : search.startsWith("?") ? search : "?" + search, normalizeHash = (hash) => !hash || hash === "#" ? "" : hash.startsWith("#") ? hash : "#" + hash;
+function isRouteErrorResponse(error) {
+  return error != null && typeof error.status == "number" && typeof error.statusText == "string" && typeof error.internal == "boolean" && "data" in error;
+}
+var validMutationMethodsArr = ["post", "put", "patch", "delete"], validMutationMethods = new Set(validMutationMethodsArr), validRequestMethodsArr = ["get", ...validMutationMethodsArr], validRequestMethods = new Set(validRequestMethodsArr);
 
-// ../node_modules/react-router/dist/index.js
-function Xe() {
-  return Xe = Object.assign ? Object.assign.bind() : function(e) {
-    for (var t = 1; t < arguments.length; t++) {
-      var r = arguments[t];
-      for (var o in r)
-        Object.prototype.hasOwnProperty.call(r, o) && (e[o] = r[o]);
+// ../../node_modules/react-router/dist/index.js
+function _extends2() {
+  return _extends2 = Object.assign ? Object.assign.bind() : function(target) {
+    for (var i = 1; i < arguments.length; i++) {
+      var source = arguments[i];
+      for (var key in source)
+        Object.prototype.hasOwnProperty.call(source, key) && (target[key] = source[key]);
     }
-    return e;
-  }, Xe.apply(this, arguments);
+    return target;
+  }, _extends2.apply(this, arguments);
 }
-a(Xe, "_extends");
-var $ = /* @__PURE__ */ b.createContext(null);
-$.displayName = "DataRouter";
-var J = /* @__PURE__ */ b.createContext(null);
-J.displayName = "DataRouterState";
-var xn = /* @__PURE__ */ b.createContext(null);
-xn.displayName = "Await";
-var O = /* @__PURE__ */ b.createContext(null);
-O.displayName = "Navigation";
-var le = /* @__PURE__ */ b.createContext(null);
-le.displayName = "Location";
-var B = /* @__PURE__ */ b.createContext({
+var DataRouterContext = React.createContext(null);
+process.env.NODE_ENV !== "production" && (DataRouterContext.displayName = "DataRouter");
+var DataRouterStateContext = React.createContext(null);
+process.env.NODE_ENV !== "production" && (DataRouterStateContext.displayName = "DataRouterState");
+var AwaitContext = React.createContext(null);
+process.env.NODE_ENV !== "production" && (AwaitContext.displayName = "Await");
+var NavigationContext = React.createContext(null);
+process.env.NODE_ENV !== "production" && (NavigationContext.displayName = "Navigation");
+var LocationContext = React.createContext(null);
+process.env.NODE_ENV !== "production" && (LocationContext.displayName = "Location");
+var RouteContext = React.createContext({
   outlet: null,
   matches: [],
   isDataRoute: !1
 });
-B.displayName = "Route";
-var bn = /* @__PURE__ */ b.createContext(null);
-bn.displayName = "RouteError";
-function Ge(e, t) {
+process.env.NODE_ENV !== "production" && (RouteContext.displayName = "Route");
+var RouteErrorContext = React.createContext(null);
+process.env.NODE_ENV !== "production" && (RouteErrorContext.displayName = "RouteError");
+function useHref(to, _temp) {
   let {
-    relative: r
-  } = t === void 0 ? {} : t;
-  ue() || N(
+    relative
+  } = _temp === void 0 ? {} : _temp;
+  useInRouterContext() || (process.env.NODE_ENV !== "production" ? invariant(
     !1,
     // TODO: This error is probably because they somehow have 2 versions of the
     // router loaded. We can help them understand how to avoid that.
     "useHref() may be used only in the context of a <Router> component."
-  );
+  ) : invariant(!1));
   let {
-    basename: o,
-    navigator: n
-  } = b.useContext(O), {
-    hash: i,
-    pathname: s,
-    search: l
-  } = Y(e, {
-    relative: r
-  }), u = s;
-  return o !== "/" && (u = s === "/" ? o : se([o, s])), n.createHref({
-    pathname: u,
-    search: l,
-    hash: i
+    basename,
+    navigator
+  } = React.useContext(NavigationContext), {
+    hash,
+    pathname,
+    search
+  } = useResolvedPath(to, {
+    relative
+  }), joinedPathname = pathname;
+  return basename !== "/" && (joinedPathname = pathname === "/" ? basename : joinPaths([basename, pathname])), navigator.createHref({
+    pathname: joinedPathname,
+    search,
+    hash
   });
 }
-a(Ge, "useHref");
-function ue() {
-  return b.useContext(le) != null;
+function useInRouterContext() {
+  return React.useContext(LocationContext) != null;
 }
-a(ue, "useInRouterContext");
-function L() {
-  return ue() || N(
+function useLocation() {
+  return useInRouterContext() || (process.env.NODE_ENV !== "production" ? invariant(
     !1,
     // TODO: This error is probably because they somehow have 2 versions of the
     // router loaded. We can help them understand how to avoid that.
     "useLocation() may be used only in the context of a <Router> component."
-  ), b.useContext(le).location;
+  ) : invariant(!1)), React.useContext(LocationContext).location;
 }
-a(L, "useLocation");
-var dr = "You should call navigate() in a React.useEffect(), not when your component is first rendered.";
-function hr(e) {
-  b.useContext(O).static || b.useLayoutEffect(e);
+var navigateEffectWarning = "You should call navigate() in a React.useEffect(), not when your component is first rendered.";
+function useIsomorphicLayoutEffect(cb) {
+  React.useContext(NavigationContext).static || React.useLayoutEffect(cb);
 }
-a(hr, "useIsomorphicLayoutEffect");
-function ce() {
+function useNavigate() {
   let {
-    isDataRoute: e
-  } = b.useContext(B);
-  return e ? Dn() : En();
+    isDataRoute
+  } = React.useContext(RouteContext);
+  return isDataRoute ? useNavigateStable() : useNavigateUnstable();
 }
-a(ce, "useNavigate");
-function En() {
-  ue() || N(
+function useNavigateUnstable() {
+  useInRouterContext() || (process.env.NODE_ENV !== "production" ? invariant(
     !1,
     // TODO: This error is probably because they somehow have 2 versions of the
     // router loaded. We can help them understand how to avoid that.
     "useNavigate() may be used only in the context of a <Router> component."
-  );
-  let e = b.useContext($), {
-    basename: t,
-    navigator: r
-  } = b.useContext(O), {
-    matches: o
-  } = b.useContext(B), {
-    pathname: n
-  } = L(), i = JSON.stringify(Ye(o).map((u) => u.pathnameBase)), s = b.useRef(!1);
-  return hr(() => {
-    s.current = !0;
-  }), b.useCallback(function(u, c) {
-    if (c === void 0 && (c = {}), W(s.current, dr), !s.current) return;
-    if (typeof u == "number") {
-      r.go(u);
+  ) : invariant(!1));
+  let dataRouterContext = React.useContext(DataRouterContext), {
+    basename,
+    navigator
+  } = React.useContext(NavigationContext), {
+    matches
+  } = React.useContext(RouteContext), {
+    pathname: locationPathname
+  } = useLocation(), routePathnamesJson = JSON.stringify(getPathContributingMatches(matches).map((match) => match.pathnameBase)), activeRef = React.useRef(!1);
+  return useIsomorphicLayoutEffect(() => {
+    activeRef.current = !0;
+  }), React.useCallback(function(to, options) {
+    if (options === void 0 && (options = {}), process.env.NODE_ENV !== "production" && warning(activeRef.current, navigateEffectWarning), !activeRef.current) return;
+    if (typeof to == "number") {
+      navigator.go(to);
       return;
     }
-    let f = Qe(u, JSON.parse(i), n, c.relative === "path");
-    e == null && t !== "/" && (f.pathname = f.pathname === "/" ? t : se([t, f.pathname])), (c.replace ? r.replace : r.push)(f, c.state, c);
-  }, [t, r, i, n, e]);
+    let path = resolveTo(to, JSON.parse(routePathnamesJson), locationPathname, options.relative === "path");
+    dataRouterContext == null && basename !== "/" && (path.pathname = path.pathname === "/" ? basename : joinPaths([basename, path.pathname])), (options.replace ? navigator.replace : navigator.push)(path, options.state, options);
+  }, [basename, navigator, routePathnamesJson, locationPathname, dataRouterContext]);
 }
-a(En, "useNavigateUnstable");
-function Y(e, t) {
+var OutletContext = React.createContext(null);
+function useResolvedPath(to, _temp2) {
   let {
-    relative: r
-  } = t === void 0 ? {} : t, {
-    matches: o
-  } = b.useContext(B), {
-    pathname: n
-  } = L(), i = JSON.stringify(Ye(o).map((s) => s.pathnameBase));
-  return b.useMemo(() => Qe(e, JSON.parse(i), n, r === "path"), [e, i, n, r]);
+    relative
+  } = _temp2 === void 0 ? {} : _temp2, {
+    matches
+  } = React.useContext(RouteContext), {
+    pathname: locationPathname
+  } = useLocation(), routePathnamesJson = JSON.stringify(getPathContributingMatches(matches).map((match) => match.pathnameBase));
+  return React.useMemo(() => resolveTo(to, JSON.parse(routePathnamesJson), locationPathname, relative === "path"), [to, routePathnamesJson, locationPathname, relative]);
 }
-a(Y, "useResolvedPath");
-var pr = /* @__PURE__ */ function(e) {
-  return e.UseBlocker = "useBlocker", e.UseRevalidator = "useRevalidator", e.UseNavigateStable = "useNavigate", e;
-}(pr || {}), fe = /* @__PURE__ */ function(e) {
-  return e.UseBlocker = "useBlocker", e.UseLoaderData = "useLoaderData", e.UseActionData = "useActionData", e.UseRouteError = "useRouteError",
-  e.UseNavigation = "useNavigation", e.UseRouteLoaderData = "useRouteLoaderData", e.UseMatches = "useMatches", e.UseRevalidator = "useRevali\
-dator", e.UseNavigateStable = "useNavigate", e.UseRouteId = "useRouteId", e;
-}(fe || {});
-function Ze(e) {
-  return e + " must be used within a data router.  See https://reactrouter.com/routers/picking-a-router.";
+function DefaultErrorComponent() {
+  let error = useRouteError(), message = isRouteErrorResponse(error) ? error.status + " " + error.statusText : error instanceof Error ? error.message : JSON.stringify(error), stack = error instanceof Error ? error.stack : null, lightgrey = "rgba(200,200,200, 0.5)", preStyles = {
+    padding: "0.5rem",
+    backgroundColor: lightgrey
+  }, codeStyles = {
+    padding: "2px 4px",
+    backgroundColor: lightgrey
+  }, devInfo = null;
+  return process.env.NODE_ENV !== "production" && (console.error("Error handled by React Router default ErrorBoundary:", error), devInfo = React.createElement(React.Fragment, null, React.createElement("p", null, "\u{1F4BF} Hey developer \u{1F44B}"), React.createElement("p", null, "You can provide a way better UX than this when your app throws errors by providing your own ", React.createElement("code", {
+    style: codeStyles
+  }, "ErrorBoundary"), " or", " ", React.createElement("code", {
+    style: codeStyles
+  }, "errorElement"), " prop on your route."))), React.createElement(React.Fragment, null, React.createElement("h2", null, "Unexpected Application Error!"), React.createElement("h3", {
+    style: {
+      fontStyle: "italic"
+    }
+  }, message), stack ? React.createElement("pre", {
+    style: preStyles
+  }, stack) : null, devInfo);
 }
-a(Ze, "getDataRouterConsoleError");
-function wn(e) {
-  let t = b.useContext($);
-  return t || N(!1, Ze(e)), t;
+var defaultErrorElement = React.createElement(DefaultErrorComponent, null);
+var DataRouterHook = (function(DataRouterHook3) {
+  return DataRouterHook3.UseBlocker = "useBlocker", DataRouterHook3.UseRevalidator = "useRevalidator", DataRouterHook3.UseNavigateStable = "useNavigate", DataRouterHook3;
+})(DataRouterHook || {}), DataRouterStateHook = (function(DataRouterStateHook3) {
+  return DataRouterStateHook3.UseBlocker = "useBlocker", DataRouterStateHook3.UseLoaderData = "useLoaderData", DataRouterStateHook3.UseActionData = "useActionData", DataRouterStateHook3.UseRouteError = "useRouteError", DataRouterStateHook3.UseNavigation = "useNavigation", DataRouterStateHook3.UseRouteLoaderData = "useRouteLoaderData", DataRouterStateHook3.UseMatches = "useMatches", DataRouterStateHook3.UseRevalidator = "useRevalidator", DataRouterStateHook3.UseNavigateStable = "useNavigate", DataRouterStateHook3.UseRouteId = "useRouteId", DataRouterStateHook3;
+})(DataRouterStateHook || {});
+function getDataRouterConsoleError(hookName) {
+  return hookName + " must be used within a data router.  See https://reactrouter.com/routers/picking-a-router.";
 }
-a(wn, "useDataRouterContext");
-function mr(e) {
-  let t = b.useContext(J);
-  return t || N(!1, Ze(e)), t;
+function useDataRouterContext(hookName) {
+  let ctx = React.useContext(DataRouterContext);
+  return ctx || (process.env.NODE_ENV !== "production" ? invariant(!1, getDataRouterConsoleError(hookName)) : invariant(!1)), ctx;
 }
-a(mr, "useDataRouterState");
-function Sn(e) {
-  let t = b.useContext(B);
-  return t || N(!1, Ze(e)), t;
+function useDataRouterState(hookName) {
+  let state = React.useContext(DataRouterStateContext);
+  return state || (process.env.NODE_ENV !== "production" ? invariant(!1, getDataRouterConsoleError(hookName)) : invariant(!1)), state;
 }
-a(Sn, "useRouteContext");
-function gr(e) {
-  let t = Sn(e), r = t.matches[t.matches.length - 1];
-  return r.route.id || N(!1, e + ' can only be used on routes that contain a unique "id"'), r.route.id;
+function useRouteContext(hookName) {
+  let route = React.useContext(RouteContext);
+  return route || (process.env.NODE_ENV !== "production" ? invariant(!1, getDataRouterConsoleError(hookName)) : invariant(!1)), route;
 }
-a(gr, "useCurrentRouteId");
-function et() {
-  return gr(fe.UseRouteId);
+function useCurrentRouteId(hookName) {
+  let route = useRouteContext(hookName), thisRoute = route.matches[route.matches.length - 1];
+  return thisRoute.route.id || (process.env.NODE_ENV !== "production" ? invariant(!1, hookName + ' can only be used on routes that contain a unique "id"') : invariant(!1)), thisRoute.route.id;
 }
-a(et, "useRouteId");
-function tt() {
-  return mr(fe.UseNavigation).navigation;
+function useRouteId() {
+  return useCurrentRouteId(DataRouterStateHook.UseRouteId);
 }
-a(tt, "useNavigation");
-function rt() {
+function useNavigation() {
+  return useDataRouterState(DataRouterStateHook.UseNavigation).navigation;
+}
+function useMatches() {
   let {
-    matches: e,
-    loaderData: t
-  } = mr(fe.UseMatches);
-  return b.useMemo(() => e.map((r) => {
+    matches,
+    loaderData
+  } = useDataRouterState(DataRouterStateHook.UseMatches);
+  return React.useMemo(() => matches.map((match) => {
     let {
-      pathname: o,
-      params: n
-    } = r;
+      pathname,
+      params
+    } = match;
     return {
-      id: r.route.id,
-      pathname: o,
-      params: n,
-      data: t[r.route.id],
-      handle: r.route.handle
+      id: match.route.id,
+      pathname,
+      params,
+      data: loaderData[match.route.id],
+      handle: match.route.handle
     };
-  }), [e, t]);
+  }), [matches, loaderData]);
 }
-a(rt, "useMatches");
-function Dn() {
-  let {
-    router: e
-  } = wn(pr.UseNavigateStable), t = gr(fe.UseNavigateStable), r = b.useRef(!1);
-  return hr(() => {
-    r.current = !0;
-  }), b.useCallback(function(n, i) {
-    i === void 0 && (i = {}), W(r.current, dr), r.current && (typeof n == "number" ? e.navigate(n) : e.navigate(n, Xe({
-      fromRouteId: t
-    }, i)));
-  }, [e, t]);
+function useRouteError() {
+  var _state$errors;
+  let error = React.useContext(RouteErrorContext), state = useDataRouterState(DataRouterStateHook.UseRouteError), routeId = useCurrentRouteId(DataRouterStateHook.UseRouteError);
+  return error || ((_state$errors = state.errors) == null ? void 0 : _state$errors[routeId]);
 }
-a(Dn, "useNavigateStable");
-var Nn = "startTransition", fa = b[Nn];
-function Q(e) {
+function useNavigateStable() {
   let {
-    basename: t = "/",
-    children: r = null,
-    location: o,
-    navigationType: n = A.Pop,
-    navigator: i,
-    static: s = !1
-  } = e;
-  ue() && N(!1, "You cannot render a <Router> inside another <Router>. You should never have more than one in your app.");
-  let l = t.replace(/^\/*/, "/"), u = b.useMemo(() => ({
-    basename: l,
-    navigator: i,
-    static: s
-  }), [l, i, s]);
-  typeof o == "string" && (o = H(o));
+    router
+  } = useDataRouterContext(DataRouterHook.UseNavigateStable), id = useCurrentRouteId(DataRouterStateHook.UseNavigateStable), activeRef = React.useRef(!1);
+  return useIsomorphicLayoutEffect(() => {
+    activeRef.current = !0;
+  }), React.useCallback(function(to, options) {
+    options === void 0 && (options = {}), process.env.NODE_ENV !== "production" && warning(activeRef.current, navigateEffectWarning), activeRef.current && (typeof to == "number" ? router.navigate(to) : router.navigate(to, _extends2({
+      fromRouteId: id
+    }, options)));
+  }, [router, id]);
+}
+var START_TRANSITION = "startTransition", startTransitionImpl = React[START_TRANSITION];
+function MemoryRouter(_ref3) {
   let {
-    pathname: c = "/",
-    search: f = "",
-    hash: h = "",
-    state: m = null,
-    key: x = "default"
-  } = o, y = b.useMemo(() => {
-    let d = K(c, l);
-    return d == null ? null : {
+    basename,
+    children,
+    initialEntries,
+    initialIndex,
+    future
+  } = _ref3, historyRef = React.useRef();
+  historyRef.current == null && (historyRef.current = createMemoryHistory({
+    initialEntries,
+    initialIndex,
+    v5Compat: !0
+  }));
+  let history = historyRef.current, [state, setStateImpl] = React.useState({
+    action: history.action,
+    location: history.location
+  }), {
+    v7_startTransition
+  } = future || {}, setState = React.useCallback((newState) => {
+    v7_startTransition && startTransitionImpl ? startTransitionImpl(() => setStateImpl(newState)) : setStateImpl(newState);
+  }, [setStateImpl, v7_startTransition]);
+  return React.useLayoutEffect(() => history.listen(setState), [history, setState]), React.createElement(Router, {
+    basename,
+    children,
+    location: state.location,
+    navigationType: state.action,
+    navigator: history
+  });
+}
+function Router(_ref5) {
+  let {
+    basename: basenameProp = "/",
+    children = null,
+    location: locationProp,
+    navigationType = Action.Pop,
+    navigator,
+    static: staticProp = !1
+  } = _ref5;
+  useInRouterContext() && (process.env.NODE_ENV !== "production" ? invariant(!1, "You cannot render a <Router> inside another <Router>. You should never have more than one in your app.") : invariant(!1));
+  let basename = basenameProp.replace(/^\/*/, "/"), navigationContext = React.useMemo(() => ({
+    basename,
+    navigator,
+    static: staticProp
+  }), [basename, navigator, staticProp]);
+  typeof locationProp == "string" && (locationProp = parsePath2(locationProp));
+  let {
+    pathname = "/",
+    search = "",
+    hash = "",
+    state = null,
+    key = "default"
+  } = locationProp, locationContext = React.useMemo(() => {
+    let trailingPathname = stripBasename(pathname, basename);
+    return trailingPathname == null ? null : {
       location: {
-        pathname: d,
-        search: f,
-        hash: h,
-        state: m,
-        key: x
+        pathname: trailingPathname,
+        search,
+        hash,
+        state,
+        key
       },
-      navigationType: n
+      navigationType
     };
-  }, [l, c, f, h, m, x, n]);
-  return W(y != null, '<Router basename="' + l + '"> is not able to match the URL ' + ('"' + c + f + h + '" because it does not start with t\
-he ') + "basename, so the <Router> won't render anything."), y == null ? null : /* @__PURE__ */ b.createElement(O.Provider, {
-    value: u
-  }, /* @__PURE__ */ b.createElement(le.Provider, {
-    children: r,
-    value: y
+  }, [basename, pathname, search, hash, state, key, navigationType]);
+  return process.env.NODE_ENV !== "production" && warning(locationContext != null, '<Router basename="' + basename + '"> is not able to match the URL ' + ('"' + pathname + search + hash + '" because it does not start with the ') + "basename, so the <Router> won't render anything."), locationContext == null ? null : React.createElement(NavigationContext.Provider, {
+    value: navigationContext
+  }, React.createElement(LocationContext.Provider, {
+    children,
+    value: locationContext
   }));
 }
-a(Q, "Router");
-var da = new Promise(() => {
+var AwaitRenderStatus = (function(AwaitRenderStatus2) {
+  return AwaitRenderStatus2[AwaitRenderStatus2.pending = 0] = "pending", AwaitRenderStatus2[AwaitRenderStatus2.success = 1] = "success", AwaitRenderStatus2[AwaitRenderStatus2.error = 2] = "error", AwaitRenderStatus2;
+})(AwaitRenderStatus || {}), neverSettledPromise = new Promise(() => {
 });
 
-// ../node_modules/react-router-dom/dist/index.js
-function z() {
-  return z = Object.assign ? Object.assign.bind() : function(e) {
-    for (var t = 1; t < arguments.length; t++) {
-      var r = arguments[t];
-      for (var o in r)
-        Object.prototype.hasOwnProperty.call(r, o) && (e[o] = r[o]);
+// ../../node_modules/react-router-dom/dist/index.js
+function _extends3() {
+  return _extends3 = Object.assign ? Object.assign.bind() : function(target) {
+    for (var i = 1; i < arguments.length; i++) {
+      var source = arguments[i];
+      for (var key in source)
+        Object.prototype.hasOwnProperty.call(source, key) && (target[key] = source[key]);
     }
-    return e;
-  }, z.apply(this, arguments);
+    return target;
+  }, _extends3.apply(this, arguments);
 }
-a(z, "_extends");
-function at(e, t) {
-  if (e == null) return {};
-  var r = {}, o = Object.keys(e), n, i;
-  for (i = 0; i < o.length; i++)
-    n = o[i], !(t.indexOf(n) >= 0) && (r[n] = e[n]);
-  return r;
+function _objectWithoutPropertiesLoose(source, excluded) {
+  if (source == null) return {};
+  var target = {}, sourceKeys = Object.keys(source), key, i;
+  for (i = 0; i < sourceKeys.length; i++)
+    key = sourceKeys[i], !(excluded.indexOf(key) >= 0) && (target[key] = source[key]);
+  return target;
 }
-a(at, "_objectWithoutPropertiesLoose");
-var Se = "get", De = "application/x-www-form-urlencoded";
-function Pe(e) {
-  return e != null && typeof e.tagName == "string";
+var defaultMethod = "get", defaultEncType = "application/x-www-form-urlencoded";
+function isHtmlElement(object) {
+  return object != null && typeof object.tagName == "string";
 }
-a(Pe, "isHtmlElement");
-function Cn(e) {
-  return Pe(e) && e.tagName.toLowerCase() === "button";
+function isButtonElement(object) {
+  return isHtmlElement(object) && object.tagName.toLowerCase() === "button";
 }
-a(Cn, "isButtonElement");
-function _n(e) {
-  return Pe(e) && e.tagName.toLowerCase() === "form";
+function isFormElement(object) {
+  return isHtmlElement(object) && object.tagName.toLowerCase() === "form";
 }
-a(_n, "isFormElement");
-function An(e) {
-  return Pe(e) && e.tagName.toLowerCase() === "input";
+function isInputElement(object) {
+  return isHtmlElement(object) && object.tagName.toLowerCase() === "input";
 }
-a(An, "isInputElement");
-function Ln(e) {
-  return !!(e.metaKey || e.altKey || e.ctrlKey || e.shiftKey);
+function isModifiedEvent(event) {
+  return !!(event.metaKey || event.altKey || event.ctrlKey || event.shiftKey);
 }
-a(Ln, "isModifiedEvent");
-function Fn(e, t) {
-  return e.button === 0 && // Ignore everything but left clicks
-  (!t || t === "_self") && // Let browser handle "target=_blank" etc.
-  !Ln(e);
+function shouldProcessLinkClick(event, target) {
+  return event.button === 0 && // Ignore everything but left clicks
+  (!target || target === "_self") && // Let browser handle "target=_blank" etc.
+  !isModifiedEvent(event);
 }
-a(Fn, "shouldProcessLinkClick");
-var Ee = null;
-function jn() {
-  if (Ee === null)
+var _formDataSupportsSubmitter = null;
+function isFormDataSubmitterSupported() {
+  if (_formDataSupportsSubmitter === null)
     try {
       new FormData(
         document.createElement("form"),
         // @ts-expect-error if FormData supports the submitter parameter, this will throw
         0
-      ), Ee = !1;
+      ), _formDataSupportsSubmitter = !1;
     } catch {
-      Ee = !0;
+      _formDataSupportsSubmitter = !0;
     }
-  return Ee;
+  return _formDataSupportsSubmitter;
 }
-a(jn, "isFormDataSubmitterSupported");
-var Un = /* @__PURE__ */ new Set(["application/x-www-form-urlencoded", "multipart/form-data", "text/plain"]);
-function nt(e) {
-  return e != null && !Un.has(e) ? (W(!1, '"' + e + '" is not a valid `encType` for `<Form>`/`<fetcher.Form>` ' + ('and will default to "' +
-  De + '"')), null) : e;
+var supportedFormEncTypes = /* @__PURE__ */ new Set(["application/x-www-form-urlencoded", "multipart/form-data", "text/plain"]);
+function getFormEncType(encType) {
+  return encType != null && !supportedFormEncTypes.has(encType) ? (process.env.NODE_ENV !== "production" && warning(!1, '"' + encType + '" is not a valid `encType` for `<Form>`/`<fetcher.Form>` ' + ('and will default to "' + defaultEncType + '"')), null) : encType;
 }
-a(nt, "getFormEncType");
-function Mn(e, t) {
-  let r, o, n, i, s;
-  if (_n(e)) {
-    let l = e.getAttribute("action");
-    o = l ? K(l, t) : null, r = e.getAttribute("method") || Se, n = nt(e.getAttribute("enctype")) || De, i = new FormData(e);
-  } else if (Cn(e) || An(e) && (e.type === "submit" || e.type === "image")) {
-    let l = e.form;
-    if (l == null)
+function getFormSubmissionInfo(target, basename) {
+  let method, action, encType, formData, body;
+  if (isFormElement(target)) {
+    let attr = target.getAttribute("action");
+    action = attr ? stripBasename(attr, basename) : null, method = target.getAttribute("method") || defaultMethod, encType = getFormEncType(target.getAttribute("enctype")) || defaultEncType, formData = new FormData(target);
+  } else if (isButtonElement(target) || isInputElement(target) && (target.type === "submit" || target.type === "image")) {
+    let form = target.form;
+    if (form == null)
       throw new Error('Cannot submit a <button> or <input type="submit"> without a <form>');
-    let u = e.getAttribute("formaction") || l.getAttribute("action");
-    if (o = u ? K(u, t) : null, r = e.getAttribute("formmethod") || l.getAttribute("method") || Se, n = nt(e.getAttribute("formenctype")) ||
-    nt(l.getAttribute("enctype")) || De, i = new FormData(l, e), !jn()) {
+    let attr = target.getAttribute("formaction") || form.getAttribute("action");
+    if (action = attr ? stripBasename(attr, basename) : null, method = target.getAttribute("formmethod") || form.getAttribute("method") || defaultMethod, encType = getFormEncType(target.getAttribute("formenctype")) || getFormEncType(form.getAttribute("enctype")) || defaultEncType, formData = new FormData(form, target), !isFormDataSubmitterSupported()) {
       let {
-        name: c,
-        type: f,
-        value: h
-      } = e;
-      if (f === "image") {
-        let m = c ? c + "." : "";
-        i.append(m + "x", "0"), i.append(m + "y", "0");
-      } else c && i.append(c, h);
+        name,
+        type,
+        value
+      } = target;
+      if (type === "image") {
+        let prefix = name ? name + "." : "";
+        formData.append(prefix + "x", "0"), formData.append(prefix + "y", "0");
+      } else name && formData.append(name, value);
     }
   } else {
-    if (Pe(e))
+    if (isHtmlElement(target))
       throw new Error('Cannot submit element that is not <form>, <button>, or <input type="submit|image">');
-    r = Se, o = null, n = De, s = e;
+    method = defaultMethod, action = null, encType = defaultEncType, body = target;
   }
-  return i && n === "text/plain" && (s = i, i = void 0), {
-    action: o,
-    method: r.toLowerCase(),
-    encType: n,
-    formData: i,
-    body: s
+  return formData && encType === "text/plain" && (body = formData, formData = void 0), {
+    action,
+    method: method.toLowerCase(),
+    encType,
+    formData,
+    body
   };
 }
-a(Mn, "getFormSubmissionInfo");
-var Tn = ["onClick", "relative", "reloadDocument", "replace", "state", "target", "to", "preventScrollReset"], In = ["aria-current", "caseSen\
-sitive", "className", "end", "style", "to", "children"], Bn = ["reloadDocument", "replace", "state", "method", "action", "onSubmit", "submit",
-"relative", "preventScrollReset"];
-var zn = "startTransition", Ne = E[zn];
-function vr(e) {
+var _excluded = ["onClick", "relative", "reloadDocument", "replace", "state", "target", "to", "preventScrollReset"], _excluded2 = ["aria-current", "caseSensitive", "className", "end", "style", "to", "children"], _excluded3 = ["reloadDocument", "replace", "state", "method", "action", "onSubmit", "submit", "relative", "preventScrollReset"];
+var START_TRANSITION2 = "startTransition", startTransitionImpl2 = React2[START_TRANSITION2];
+function BrowserRouter(_ref) {
   let {
-    basename: t,
-    children: r,
-    future: o,
-    window: n
-  } = e, i = E.useRef();
-  i.current == null && (i.current = ir({
-    window: n,
+    basename,
+    children,
+    future,
+    window: window2
+  } = _ref, historyRef = React2.useRef();
+  historyRef.current == null && (historyRef.current = createBrowserHistory({
+    window: window2,
     v5Compat: !0
   }));
-  let s = i.current, [l, u] = E.useState({
-    action: s.action,
-    location: s.location
+  let history = historyRef.current, [state, setStateImpl] = React2.useState({
+    action: history.action,
+    location: history.location
   }), {
-    v7_startTransition: c
-  } = o || {}, f = E.useCallback((h) => {
-    c && Ne ? Ne(() => u(h)) : u(h);
-  }, [u, c]);
-  return E.useLayoutEffect(() => s.listen(f), [s, f]), /* @__PURE__ */ E.createElement(Q, {
-    basename: t,
-    children: r,
-    location: l.location,
-    navigationType: l.action,
-    navigator: s
+    v7_startTransition
+  } = future || {}, setState = React2.useCallback((newState) => {
+    v7_startTransition && startTransitionImpl2 ? startTransitionImpl2(() => setStateImpl(newState)) : setStateImpl(newState);
+  }, [setStateImpl, v7_startTransition]);
+  return React2.useLayoutEffect(() => history.listen(setState), [history, setState]), React2.createElement(Router, {
+    basename,
+    children,
+    location: state.location,
+    navigationType: state.action,
+    navigator: history
   });
 }
-a(vr, "BrowserRouter");
-function kn(e) {
+function HistoryRouter(_ref3) {
   let {
-    basename: t,
-    children: r,
-    future: o,
-    history: n
-  } = e, [i, s] = E.useState({
-    action: n.action,
-    location: n.location
+    basename,
+    children,
+    future,
+    history
+  } = _ref3, [state, setStateImpl] = React2.useState({
+    action: history.action,
+    location: history.location
   }), {
-    v7_startTransition: l
-  } = o || {}, u = E.useCallback((c) => {
-    l && Ne ? Ne(() => s(c)) : s(c);
-  }, [s, l]);
-  return E.useLayoutEffect(() => n.listen(u), [n, u]), /* @__PURE__ */ E.createElement(Q, {
-    basename: t,
-    children: r,
-    location: i.location,
-    navigationType: i.action,
-    navigator: n
+    v7_startTransition
+  } = future || {}, setState = React2.useCallback((newState) => {
+    v7_startTransition && startTransitionImpl2 ? startTransitionImpl2(() => setStateImpl(newState)) : setStateImpl(newState);
+  }, [setStateImpl, v7_startTransition]);
+  return React2.useLayoutEffect(() => history.listen(setState), [history, setState]), React2.createElement(Router, {
+    basename,
+    children,
+    location: state.location,
+    navigationType: state.action,
+    navigator: history
   });
 }
-a(kn, "HistoryRouter");
-kn.displayName = "unstable_HistoryRouter";
-var Vn = typeof window < "u" && typeof window.document < "u" && typeof window.document.createElement < "u", Wn = /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i,
-Ce = /* @__PURE__ */ E.forwardRef(/* @__PURE__ */ a(function(t, r) {
+process.env.NODE_ENV !== "production" && (HistoryRouter.displayName = "unstable_HistoryRouter");
+var isBrowser = typeof window < "u" && typeof window.document < "u" && typeof window.document.createElement < "u", ABSOLUTE_URL_REGEX = /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i, Link = React2.forwardRef(function(_ref4, ref) {
   let {
-    onClick: o,
-    relative: n,
-    reloadDocument: i,
-    replace: s,
-    state: l,
-    target: u,
-    to: c,
-    preventScrollReset: f
-  } = t, h = at(t, Tn), {
-    basename: m
-  } = E.useContext(O), x, y = !1;
-  if (typeof c == "string" && Wn.test(c) && (x = c, Vn))
+    onClick,
+    relative,
+    reloadDocument,
+    replace,
+    state,
+    target,
+    to,
+    preventScrollReset
+  } = _ref4, rest = _objectWithoutPropertiesLoose(_ref4, _excluded), {
+    basename
+  } = React2.useContext(NavigationContext), absoluteHref, isExternal = !1;
+  if (typeof to == "string" && ABSOLUTE_URL_REGEX.test(to) && (absoluteHref = to, isBrowser))
     try {
-      let g = new URL(window.location.href), R = c.startsWith("//") ? new URL(g.protocol + c) : new URL(c), w = K(R.pathname, m);
-      R.origin === g.origin && w != null ? c = w + R.search + R.hash : y = !0;
+      let currentUrl = new URL(window.location.href), targetUrl = to.startsWith("//") ? new URL(currentUrl.protocol + to) : new URL(to), path = stripBasename(targetUrl.pathname, basename);
+      targetUrl.origin === currentUrl.origin && path != null ? to = path + targetUrl.search + targetUrl.hash : isExternal = !0;
     } catch {
-      W(!1, '<Link to="' + c + '"> contains an invalid URL which will probably break when clicked - please update to a valid URL path.');
+      process.env.NODE_ENV !== "production" && warning(!1, '<Link to="' + to + '"> contains an invalid URL which will probably break when clicked - please update to a valid URL path.');
     }
-  let d = Ge(c, {
-    relative: n
-  }), p = Jn(c, {
-    replace: s,
-    state: l,
-    target: u,
-    preventScrollReset: f,
-    relative: n
+  let href = useHref(to, {
+    relative
+  }), internalOnClick = useLinkClickHandler(to, {
+    replace,
+    state,
+    target,
+    preventScrollReset,
+    relative
   });
-  function v(g) {
-    o && o(g), g.defaultPrevented || p(g);
+  function handleClick(event) {
+    onClick && onClick(event), event.defaultPrevented || internalOnClick(event);
   }
-  return a(v, "handleClick"), // eslint-disable-next-line jsx-a11y/anchor-has-content
-  /* @__PURE__ */ E.createElement("a", z({}, h, {
-    href: x || d,
-    onClick: y || i ? o : v,
-    ref: r,
-    target: u
-  }));
-}, "LinkWithRef"));
-Ce.displayName = "Link";
-var Hn = /* @__PURE__ */ E.forwardRef(/* @__PURE__ */ a(function(t, r) {
+  return (
+    // eslint-disable-next-line jsx-a11y/anchor-has-content
+    React2.createElement("a", _extends3({}, rest, {
+      href: absoluteHref || href,
+      onClick: isExternal || reloadDocument ? onClick : handleClick,
+      ref,
+      target
+    }))
+  );
+});
+process.env.NODE_ENV !== "production" && (Link.displayName = "Link");
+var NavLink = React2.forwardRef(function(_ref5, ref) {
   let {
-    "aria-current": o = "page",
-    caseSensitive: n = !1,
-    className: i = "",
-    end: s = !1,
-    style: l,
-    to: u,
-    children: c
-  } = t, f = at(t, In), h = Y(u, {
-    relative: f.relative
-  }), m = L(), x = E.useContext(J), {
-    navigator: y
-  } = E.useContext(O), d = y.encodeLocation ? y.encodeLocation(h).pathname : h.pathname, p = m.pathname, v = x && x.navigation && x.navigation.
-  location ? x.navigation.location.pathname : null;
-  n || (p = p.toLowerCase(), v = v ? v.toLowerCase() : null, d = d.toLowerCase());
-  let g = p === d || !s && p.startsWith(d) && p.charAt(d.length) === "/", R = v != null && (v === d || !s && v.startsWith(d) && v.charAt(d.length) ===
-  "/"), w = g ? o : void 0, S;
-  typeof i == "function" ? S = i({
-    isActive: g,
-    isPending: R
-  }) : S = [i, g ? "active" : null, R ? "pending" : null].filter(Boolean).join(" ");
-  let q = typeof l == "function" ? l({
-    isActive: g,
-    isPending: R
-  }) : l;
-  return /* @__PURE__ */ E.createElement(Ce, z({}, f, {
-    "aria-current": w,
-    className: S,
-    ref: r,
-    style: q,
-    to: u
-  }), typeof c == "function" ? c({
-    isActive: g,
-    isPending: R
-  }) : c);
-}, "NavLinkWithRef"));
-Hn.displayName = "NavLink";
-var Kn = /* @__PURE__ */ E.forwardRef((e, t) => {
-  let r = Qn();
-  return /* @__PURE__ */ E.createElement(Rr, z({}, e, {
-    submit: r,
-    ref: t
+    "aria-current": ariaCurrentProp = "page",
+    caseSensitive = !1,
+    className: classNameProp = "",
+    end = !1,
+    style: styleProp,
+    to,
+    children
+  } = _ref5, rest = _objectWithoutPropertiesLoose(_ref5, _excluded2), path = useResolvedPath(to, {
+    relative: rest.relative
+  }), location = useLocation(), routerState = React2.useContext(DataRouterStateContext), {
+    navigator
+  } = React2.useContext(NavigationContext), toPathname = navigator.encodeLocation ? navigator.encodeLocation(path).pathname : path.pathname, locationPathname = location.pathname, nextLocationPathname = routerState && routerState.navigation && routerState.navigation.location ? routerState.navigation.location.pathname : null;
+  caseSensitive || (locationPathname = locationPathname.toLowerCase(), nextLocationPathname = nextLocationPathname ? nextLocationPathname.toLowerCase() : null, toPathname = toPathname.toLowerCase());
+  let isActive = locationPathname === toPathname || !end && locationPathname.startsWith(toPathname) && locationPathname.charAt(toPathname.length) === "/", isPending = nextLocationPathname != null && (nextLocationPathname === toPathname || !end && nextLocationPathname.startsWith(toPathname) && nextLocationPathname.charAt(toPathname.length) === "/"), ariaCurrent = isActive ? ariaCurrentProp : void 0, className;
+  typeof classNameProp == "function" ? className = classNameProp({
+    isActive,
+    isPending
+  }) : className = [classNameProp, isActive ? "active" : null, isPending ? "pending" : null].filter(Boolean).join(" ");
+  let style = typeof styleProp == "function" ? styleProp({
+    isActive,
+    isPending
+  }) : styleProp;
+  return React2.createElement(Link, _extends3({}, rest, {
+    "aria-current": ariaCurrent,
+    className,
+    ref,
+    style,
+    to
+  }), typeof children == "function" ? children({
+    isActive,
+    isPending
+  }) : children);
+});
+process.env.NODE_ENV !== "production" && (NavLink.displayName = "NavLink");
+var Form = React2.forwardRef((props, ref) => {
+  let submit = useSubmit();
+  return React2.createElement(FormImpl, _extends3({}, props, {
+    submit,
+    ref
   }));
 });
-Kn.displayName = "Form";
-var Rr = /* @__PURE__ */ E.forwardRef((e, t) => {
+process.env.NODE_ENV !== "production" && (Form.displayName = "Form");
+var FormImpl = React2.forwardRef((_ref6, forwardedRef) => {
   let {
-    reloadDocument: r,
-    replace: o,
-    state: n,
-    method: i = Se,
-    action: s,
-    onSubmit: l,
-    submit: u,
-    relative: c,
-    preventScrollReset: f
-  } = e, h = at(e, Bn), m = i.toLowerCase() === "get" ? "get" : "post", x = Xn(s, {
-    relative: c
+    reloadDocument,
+    replace,
+    state,
+    method = defaultMethod,
+    action,
+    onSubmit,
+    submit,
+    relative,
+    preventScrollReset
+  } = _ref6, props = _objectWithoutPropertiesLoose(_ref6, _excluded3), formMethod = method.toLowerCase() === "get" ? "get" : "post", formAction = useFormAction(action, {
+    relative
   });
-  return /* @__PURE__ */ E.createElement("form", z({
-    ref: t,
-    method: m,
-    action: x,
-    onSubmit: r ? l : /* @__PURE__ */ a((d) => {
-      if (l && l(d), d.defaultPrevented) return;
-      d.preventDefault();
-      let p = d.nativeEvent.submitter, v = p?.getAttribute("formmethod") || i;
-      u(p || d.currentTarget, {
-        method: v,
-        replace: o,
-        state: n,
-        relative: c,
-        preventScrollReset: f
+  return React2.createElement("form", _extends3({
+    ref: forwardedRef,
+    method: formMethod,
+    action: formAction,
+    onSubmit: reloadDocument ? onSubmit : (event) => {
+      if (onSubmit && onSubmit(event), event.defaultPrevented) return;
+      event.preventDefault();
+      let submitter = event.nativeEvent.submitter, submitMethod = submitter?.getAttribute("formmethod") || method;
+      submit(submitter || event.currentTarget, {
+        method: submitMethod,
+        replace,
+        state,
+        relative,
+        preventScrollReset
       });
-    }, "submitHandler")
-  }, h));
+    }
+  }, props));
 });
-Rr.displayName = "FormImpl";
-function qn(e) {
+process.env.NODE_ENV !== "production" && (FormImpl.displayName = "FormImpl");
+function ScrollRestoration(_ref7) {
   let {
-    getKey: t,
-    storageKey: r
-  } = e;
-  return Gn({
-    getKey: t,
-    storageKey: r
+    getKey,
+    storageKey
+  } = _ref7;
+  return useScrollRestoration({
+    getKey,
+    storageKey
   }), null;
 }
-a(qn, "ScrollRestoration");
-qn.displayName = "ScrollRestoration";
-var Oe;
-(function(e) {
-  e.UseScrollRestoration = "useScrollRestoration", e.UseSubmit = "useSubmit", e.UseSubmitFetcher = "useSubmitFetcher", e.UseFetcher = "useFe\
-tcher";
-})(Oe || (Oe = {}));
-var ot;
-(function(e) {
-  e.UseFetchers = "useFetchers", e.UseScrollRestoration = "useScrollRestoration";
-})(ot || (ot = {}));
-function xr(e) {
-  return e + " must be used within a data router.  See https://reactrouter.com/routers/picking-a-router.";
+process.env.NODE_ENV !== "production" && (ScrollRestoration.displayName = "ScrollRestoration");
+var DataRouterHook2;
+(function(DataRouterHook3) {
+  DataRouterHook3.UseScrollRestoration = "useScrollRestoration", DataRouterHook3.UseSubmit = "useSubmit", DataRouterHook3.UseSubmitFetcher = "useSubmitFetcher", DataRouterHook3.UseFetcher = "useFetcher";
+})(DataRouterHook2 || (DataRouterHook2 = {}));
+var DataRouterStateHook2;
+(function(DataRouterStateHook3) {
+  DataRouterStateHook3.UseFetchers = "useFetchers", DataRouterStateHook3.UseScrollRestoration = "useScrollRestoration";
+})(DataRouterStateHook2 || (DataRouterStateHook2 = {}));
+function getDataRouterConsoleError2(hookName) {
+  return hookName + " must be used within a data router.  See https://reactrouter.com/routers/picking-a-router.";
 }
-a(xr, "getDataRouterConsoleError");
-function br(e) {
-  let t = E.useContext($);
-  return t || N(!1, xr(e)), t;
+function useDataRouterContext2(hookName) {
+  let ctx = React2.useContext(DataRouterContext);
+  return ctx || (process.env.NODE_ENV !== "production" ? invariant(!1, getDataRouterConsoleError2(hookName)) : invariant(!1)), ctx;
 }
-a(br, "useDataRouterContext");
-function $n(e) {
-  let t = E.useContext(J);
-  return t || N(!1, xr(e)), t;
+function useDataRouterState2(hookName) {
+  let state = React2.useContext(DataRouterStateContext);
+  return state || (process.env.NODE_ENV !== "production" ? invariant(!1, getDataRouterConsoleError2(hookName)) : invariant(!1)), state;
 }
-a($n, "useDataRouterState");
-function Jn(e, t) {
+function useLinkClickHandler(to, _temp) {
   let {
-    target: r,
-    replace: o,
-    state: n,
-    preventScrollReset: i,
-    relative: s
-  } = t === void 0 ? {} : t, l = ce(), u = L(), c = Y(e, {
-    relative: s
+    target,
+    replace: replaceProp,
+    state,
+    preventScrollReset,
+    relative
+  } = _temp === void 0 ? {} : _temp, navigate = useNavigate(), location = useLocation(), path = useResolvedPath(to, {
+    relative
   });
-  return E.useCallback((f) => {
-    if (Fn(f, r)) {
-      f.preventDefault();
-      let h = o !== void 0 ? o : I(u) === I(c);
-      l(e, {
-        replace: h,
-        state: n,
-        preventScrollReset: i,
-        relative: s
+  return React2.useCallback((event) => {
+    if (shouldProcessLinkClick(event, target)) {
+      event.preventDefault();
+      let replace = replaceProp !== void 0 ? replaceProp : createPath(location) === createPath(path);
+      navigate(to, {
+        replace,
+        state,
+        preventScrollReset,
+        relative
       });
     }
-  }, [u, l, c, o, n, r, e, i, s]);
+  }, [location, navigate, path, replaceProp, state, target, to, preventScrollReset, relative]);
 }
-a(Jn, "useLinkClickHandler");
-function Yn() {
+function validateClientSideSubmission() {
   if (typeof document > "u")
     throw new Error("You are calling submit during the server render. Try calling submit within a `useEffect` or callback instead.");
 }
-a(Yn, "validateClientSideSubmission");
-function Qn() {
+function useSubmit() {
   let {
-    router: e
-  } = br(Oe.UseSubmit), {
-    basename: t
-  } = E.useContext(O), r = et();
-  return E.useCallback(function(o, n) {
-    n === void 0 && (n = {}), Yn();
+    router
+  } = useDataRouterContext2(DataRouterHook2.UseSubmit), {
+    basename
+  } = React2.useContext(NavigationContext), currentRouteId = useRouteId();
+  return React2.useCallback(function(target, options) {
+    options === void 0 && (options = {}), validateClientSideSubmission();
     let {
-      action: i,
-      method: s,
-      encType: l,
-      formData: u,
-      body: c
-    } = Mn(o, t);
-    e.navigate(n.action || i, {
-      preventScrollReset: n.preventScrollReset,
-      formData: u,
-      body: c,
-      formMethod: n.method || s,
-      formEncType: n.encType || l,
-      replace: n.replace,
-      state: n.state,
-      fromRouteId: r
+      action,
+      method,
+      encType,
+      formData,
+      body
+    } = getFormSubmissionInfo(target, basename);
+    router.navigate(options.action || action, {
+      preventScrollReset: options.preventScrollReset,
+      formData,
+      body,
+      formMethod: options.method || method,
+      formEncType: options.encType || encType,
+      replace: options.replace,
+      state: options.state,
+      fromRouteId: currentRouteId
     });
-  }, [e, t, r]);
+  }, [router, basename, currentRouteId]);
 }
-a(Qn, "useSubmit");
-function Xn(e, t) {
+function useFormAction(action, _temp2) {
   let {
-    relative: r
-  } = t === void 0 ? {} : t, {
-    basename: o
-  } = E.useContext(O), n = E.useContext(B);
-  n || N(!1, "useFormAction must be used inside a RouteContext");
-  let [i] = n.matches.slice(-1), s = z({}, Y(e || ".", {
-    relative: r
-  })), l = L();
-  if (e == null && (s.search = l.search, i.route.index)) {
-    let u = new URLSearchParams(s.search);
-    u.delete("index"), s.search = u.toString() ? "?" + u.toString() : "";
+    relative
+  } = _temp2 === void 0 ? {} : _temp2, {
+    basename
+  } = React2.useContext(NavigationContext), routeContext = React2.useContext(RouteContext);
+  routeContext || (process.env.NODE_ENV !== "production" ? invariant(!1, "useFormAction must be used inside a RouteContext") : invariant(!1));
+  let [match] = routeContext.matches.slice(-1), path = _extends3({}, useResolvedPath(action || ".", {
+    relative
+  })), location = useLocation();
+  if (action == null && (path.search = location.search, match.route.index)) {
+    let params = new URLSearchParams(path.search);
+    params.delete("index"), path.search = params.toString() ? "?" + params.toString() : "";
   }
-  return (!e || e === ".") && i.route.index && (s.search = s.search ? s.search.replace(/^\?/, "?index&") : "?index"), o !== "/" && (s.pathname =
-  s.pathname === "/" ? o : se([o, s.pathname])), I(s);
+  return (!action || action === ".") && match.route.index && (path.search = path.search ? path.search.replace(/^\?/, "?index&") : "?index"), basename !== "/" && (path.pathname = path.pathname === "/" ? basename : joinPaths([basename, path.pathname])), createPath(path);
 }
-a(Xn, "useFormAction");
-var yr = "react-router-scroll-positions", we = {};
-function Gn(e) {
+var SCROLL_RESTORATION_STORAGE_KEY = "react-router-scroll-positions", savedScrollPositions = {};
+function useScrollRestoration(_temp3) {
   let {
-    getKey: t,
-    storageKey: r
-  } = e === void 0 ? {} : e, {
-    router: o
-  } = br(Oe.UseScrollRestoration), {
-    restoreScrollPosition: n,
-    preventScrollReset: i
-  } = $n(ot.UseScrollRestoration), {
-    basename: s
-  } = E.useContext(O), l = L(), u = rt(), c = tt();
-  E.useEffect(() => (window.history.scrollRestoration = "manual", () => {
+    getKey,
+    storageKey
+  } = _temp3 === void 0 ? {} : _temp3, {
+    router
+  } = useDataRouterContext2(DataRouterHook2.UseScrollRestoration), {
+    restoreScrollPosition,
+    preventScrollReset
+  } = useDataRouterState2(DataRouterStateHook2.UseScrollRestoration), {
+    basename
+  } = React2.useContext(NavigationContext), location = useLocation(), matches = useMatches(), navigation = useNavigation();
+  React2.useEffect(() => (window.history.scrollRestoration = "manual", () => {
     window.history.scrollRestoration = "auto";
-  }), []), Zn(E.useCallback(() => {
-    if (c.state === "idle") {
-      let f = (t ? t(l, u) : null) || l.key;
-      we[f] = window.scrollY;
+  }), []), usePageHide(React2.useCallback(() => {
+    if (navigation.state === "idle") {
+      let key = (getKey ? getKey(location, matches) : null) || location.key;
+      savedScrollPositions[key] = window.scrollY;
     }
-    sessionStorage.setItem(r || yr, JSON.stringify(we)), window.history.scrollRestoration = "auto";
-  }, [r, t, c.state, l, u])), typeof document < "u" && (E.useLayoutEffect(() => {
+    sessionStorage.setItem(storageKey || SCROLL_RESTORATION_STORAGE_KEY, JSON.stringify(savedScrollPositions)), window.history.scrollRestoration = "auto";
+  }, [storageKey, getKey, navigation.state, location, matches])), typeof document < "u" && (React2.useLayoutEffect(() => {
     try {
-      let f = sessionStorage.getItem(r || yr);
-      f && (we = JSON.parse(f));
+      let sessionPositions = sessionStorage.getItem(storageKey || SCROLL_RESTORATION_STORAGE_KEY);
+      sessionPositions && (savedScrollPositions = JSON.parse(sessionPositions));
     } catch {
     }
-  }, [r]), E.useLayoutEffect(() => {
-    let f = t && s !== "/" ? (m, x) => t(
+  }, [storageKey]), React2.useLayoutEffect(() => {
+    let getKeyWithoutBasename = getKey && basename !== "/" ? (location2, matches2) => getKey(
       // Strip the basename to match useLocation()
-      z({}, m, {
-        pathname: K(m.pathname, s) || m.pathname
+      _extends3({}, location2, {
+        pathname: stripBasename(location2.pathname, basename) || location2.pathname
       }),
-      x
-    ) : t, h = o?.enableScrollRestoration(we, () => window.scrollY, f);
-    return () => h && h();
-  }, [o, s, t]), E.useLayoutEffect(() => {
-    if (n !== !1) {
-      if (typeof n == "number") {
-        window.scrollTo(0, n);
+      matches2
+    ) : getKey, disableScrollRestoration = router?.enableScrollRestoration(savedScrollPositions, () => window.scrollY, getKeyWithoutBasename);
+    return () => disableScrollRestoration && disableScrollRestoration();
+  }, [router, basename, getKey]), React2.useLayoutEffect(() => {
+    if (restoreScrollPosition !== !1) {
+      if (typeof restoreScrollPosition == "number") {
+        window.scrollTo(0, restoreScrollPosition);
         return;
       }
-      if (l.hash) {
-        let f = document.getElementById(decodeURIComponent(l.hash.slice(1)));
-        if (f) {
-          f.scrollIntoView();
+      if (location.hash) {
+        let el = document.getElementById(decodeURIComponent(location.hash.slice(1)));
+        if (el) {
+          el.scrollIntoView();
           return;
         }
       }
-      i !== !0 && window.scrollTo(0, 0);
+      preventScrollReset !== !0 && window.scrollTo(0, 0);
     }
-  }, [l, n, i]));
+  }, [location, restoreScrollPosition, preventScrollReset]));
 }
-a(Gn, "useScrollRestoration");
-function Zn(e, t) {
+function usePageHide(callback, options) {
   let {
-    capture: r
-  } = t || {};
-  E.useEffect(() => {
-    let o = r != null ? {
-      capture: r
+    capture
+  } = options || {};
+  React2.useEffect(() => {
+    let opts = capture != null ? {
+      capture
     } : void 0;
-    return window.addEventListener("pagehide", e, o), () => {
-      window.removeEventListener("pagehide", e, o);
+    return window.addEventListener("pagehide", callback, opts), () => {
+      window.removeEventListener("pagehide", callback, opts);
     };
-  }, [e, r]);
+  }, [callback, capture]);
 }
-a(Zn, "usePageHide");
 
 // src/router/router.tsx
-var { document: it } = ro, no = /* @__PURE__ */ a(() => `${it.location.pathname}?`, "getBase"), Ja = /* @__PURE__ */ a(() => {
-  let e = ce();
-  return to((t, { plain: r, ...o } = {}) => {
-    if (typeof t == "string" && t.startsWith("#")) {
-      t === "#" ? e(it.location.search) : it.location.hash = t;
+var { document: document2 } = global, getBase = () => `${document2.location.pathname}?`, useNavigate2 = () => {
+  let navigate = useNavigate();
+  return useCallback3((to, { plain, ...options } = {}) => {
+    if (typeof to == "string" && to.startsWith("#")) {
+      to === "#" ? navigate(document2.location.search) : document2.location.hash = to;
       return;
     }
-    if (typeof t == "string") {
-      let n = r ? t : `?path=${t}`;
-      return e(n, o);
+    if (typeof to == "string") {
+      let target = plain ? to : `?path=${to}`;
+      return navigate(target, options);
     }
-    if (typeof t == "number")
-      return e(t);
+    if (typeof to == "number")
+      return navigate(to);
   }, []);
-}, "useNavigate"), oo = /* @__PURE__ */ a(({ to: e, children: t, ...r }) => /* @__PURE__ */ de.createElement(Ce, { to: `${no()}path=${e}`, ...r },
-t), "Link");
-oo.displayName = "QueryLink";
-var Er = /* @__PURE__ */ a(({ children: e }) => {
-  let t = L(), { path: r, singleStory: o } = tr(t), { viewMode: n, storyId: i, refId: s } = Gt(r);
-  return /* @__PURE__ */ de.createElement(de.Fragment, null, e({
-    path: r || "/",
-    location: t,
-    viewMode: n,
-    storyId: i,
-    refId: s,
-    singleStory: o === "true"
+}, Link2 = ({ to, children, ...rest }) => React3.createElement(Link, { to: `${getBase()}path=${to}`, ...rest }, children);
+Link2.displayName = "QueryLink";
+var Location = ({ children }) => {
+  let location = useLocation(), { path = "", singleStory } = queryFromLocation(location), { viewMode, storyId, refId } = parsePath(path);
+  return React3.createElement(React3.Fragment, null, children({
+    path: path || "/",
+    location,
+    viewMode,
+    storyId,
+    refId,
+    singleStory: singleStory === "true"
   }));
-}, "Location");
-Er.displayName = "QueryLocation";
-function wr({
-  children: e,
-  path: t,
-  startsWith: r = !1
+};
+Location.displayName = "QueryLocation";
+function Match({
+  children,
+  path: targetPath,
+  startsWith = !1
 }) {
-  return /* @__PURE__ */ de.createElement(Er, null, ({ path: o, ...n }) => e({
-    match: rr(o, t, r),
-    ...n
+  return React3.createElement(Location, null, ({ path: urlPath, ...rest }) => children({
+    match: getMatch(urlPath, targetPath, startsWith),
+    ...rest
   }));
 }
-a(wr, "Match");
-wr.displayName = "QueryMatch";
-function ao(e) {
-  let { children: t, ...r } = e;
-  return r.startsWith === void 0 && (r.startsWith = !1), /* @__PURE__ */ de.createElement(wr, { ...r }, ({ match: n }) => n ? t : null);
+Match.displayName = "QueryMatch";
+function Route2(input) {
+  let { children, ...rest } = input;
+  return rest.startsWith === void 0 && (rest.startsWith = !1), React3.createElement(Match, { ...rest }, ({ match }) => match ? children : null);
 }
-a(ao, "Route");
-ao.displayName = "Route";
-var Ya = /* @__PURE__ */ a((...e) => vr(...e), "LocationProvider"), Qa = /* @__PURE__ */ a((...e) => Q(...e), "BaseLocationProvider");
+Route2.displayName = "Route";
+var LocationProvider = (...args) => BrowserRouter(...args), BaseLocationProvider = (...args) => Router(...args), MemoryRouter2 = (...args) => MemoryRouter(...args);
 export {
-  Qa as BaseLocationProvider,
-  xe as DEEPLY_EQUAL,
-  oo as Link,
-  Er as Location,
-  Ya as LocationProvider,
-  wr as Match,
-  ao as Route,
-  Zo as buildArgsParam,
-  We as deepDiff,
-  rr as getMatch,
-  Gt as parsePath,
-  tr as queryFromLocation,
-  ea as stringifyQuery,
-  Ja as useNavigate
+  BaseLocationProvider,
+  DEEPLY_EQUAL,
+  Link2 as Link,
+  Location,
+  LocationProvider,
+  Match,
+  MemoryRouter2 as MemoryRouter,
+  Route2 as Route,
+  buildArgsParam,
+  deepDiff,
+  getMatch,
+  parsePath,
+  queryFromLocation,
+  stringifyQuery,
+  useNavigate2 as useNavigate
 };

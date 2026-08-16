@@ -41,7 +41,9 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ExistingBehavior = exports.InstallBehavior = exports.DependencyType = void 0;
+exports.getDependency = getDependency;
 exports.addDependency = addDependency;
+exports.removeDependency = removeDependency;
 const tasks_1 = require("@angular-devkit/schematics/tasks");
 const path = __importStar(require("node:path"));
 const installTasks = new WeakMap();
@@ -98,6 +100,28 @@ var ExistingBehavior;
     ExistingBehavior[ExistingBehavior["Replace"] = 1] = "Replace";
 })(ExistingBehavior || (exports.ExistingBehavior = ExistingBehavior = {}));
 /**
+ * Gets information about a dependency from a `package.json` file.
+ *
+ * @param tree The schematic's virtual file system representation.
+ * @param name The name of the package to check.
+ * @param packageJsonPath The path to the `package.json` file. Defaults to `/package.json`.
+ * @returns An object containing the dependency's type and version, or null if not found.
+ */
+function getDependency(tree, name, packageJsonPath = '/package.json') {
+    const manifest = tree.readJson(packageJsonPath);
+    for (const type of [DependencyType.Default, DependencyType.Dev, DependencyType.Peer]) {
+        const section = manifest[type];
+        if (section?.[name]) {
+            return {
+                type,
+                name,
+                version: section[name],
+            };
+        }
+    }
+    return null;
+}
+/**
  * Adds a package as a dependency to a `package.json`. By default the `package.json` located
  * at the schematic's root will be used. The `manifestPath` option can be used to explicitly specify
  * a `package.json` in different location. The type of the dependency can also be specified instead
@@ -153,3 +177,35 @@ function addDependency(name, specifier, options = {}) {
         }
     };
 }
+/**
+ * Removes a package from the package.json in the project root.
+ *
+ * @param name The name of the package to remove.
+ * @param options An optional object that can contain a path of a manifest file to modify.
+ * @returns A Schematics {@link Rule}
+ */
+function removeDependency(name, options = {}) {
+    const { packageJsonPath = '/package.json', install = InstallBehavior.Auto } = options;
+    return (tree, context) => {
+        const manifest = tree.readJson(packageJsonPath);
+        let wasRemoved = false;
+        for (const type of [DependencyType.Default, DependencyType.Dev, DependencyType.Peer]) {
+            const dependencySection = manifest[type];
+            if (dependencySection?.[name]) {
+                delete dependencySection[name];
+                wasRemoved = true;
+            }
+        }
+        if (wasRemoved) {
+            tree.overwrite(packageJsonPath, JSON.stringify(manifest, null, 2));
+            const installPaths = installTasks.get(context) ?? new Set();
+            if (install === InstallBehavior.Always ||
+                (install === InstallBehavior.Auto && !installPaths.has(packageJsonPath))) {
+                context.addTask(new tasks_1.NodePackageInstallTask({ workingDirectory: path.dirname(packageJsonPath) }));
+                installPaths.add(packageJsonPath);
+                installTasks.set(context, installPaths);
+            }
+        }
+    };
+}
+//# sourceMappingURL=dependency.js.map

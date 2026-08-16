@@ -65,7 +65,9 @@ export type Schema = {
      * Defines the type of loader to use with a specified file extension when used with a
      * JavaScript `import`. `text` inlines the content as a string; `binary` inlines the content
      * as a Uint8Array; `file` emits the file and provides the runtime location of the file;
-     * `empty` considers the content to be empty and not include it in bundles.
+     * `dataurl` inlines the content as a data URL with best guess of MIME type; `base64`
+     * inlines the content as a Base64-encoded string; `empty` considers the content to be empty
+     * and not include it in bundles.
      */
     loader?: {
         [key: string]: any;
@@ -118,7 +120,7 @@ export type Schema = {
      */
     tsConfig: string;
     /**
-     * Run build when files change.
+     * Re-run tests when source files change.
      */
     watch?: boolean;
     /**

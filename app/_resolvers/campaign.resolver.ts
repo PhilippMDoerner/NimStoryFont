@@ -1,6 +1,6 @@
 import { inject } from '@angular/core';
 import { ActivatedRouteSnapshot, ResolveFn } from '@angular/router';
-import { GlobalUrlParamsService } from 'src/app/_services/utils/global-url-params.service';
+import { GlobalUrlParamsService } from '../_services/utils/global-url-params.service';
 import { GlobalStore } from '../global.store';
 
 export const campaignSetResolver: ResolveFn<void> = () => {

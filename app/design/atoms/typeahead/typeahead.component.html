@@ -24,10 +24,10 @@
   [resultFormatter]="formatItem.bind(this)"
   [inputFormatter]="formatItem.bind(this)"
   [attr.aria-invalid]="!selectedItem()"
-  [required]="true"
+  [required]="false"
   [editable]="false"
   [focusOnRender]="autofocus()"
   (selectItem)="onSelect($event)"
   (keydown.Backspace)="clearOnEmptyInput($event.target)"
-  (keydown.Escape)="resetValueAndText()"
+  (keydown.Escape)="resetValueAndText($event)"
 />

@@ -1,6 +1,6 @@
-import { Plugin } from '../../types';
+import type { Plugin } from '../../types.js';
 /**
- * Implements option.on object to subscribe to http-proxy events.
+ * Implements option.on object to subscribe to `httpxy` events.
  *
  * @example
  * ```js

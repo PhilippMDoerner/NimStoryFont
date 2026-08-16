@@ -13,9 +13,9 @@ import { AstFactory } from '../../../src/ngtsc/translator/src/api/ast_factory';
  * Generic translator helper class, which exposes methods for translating expressions and
  * statements.
  */
-export declare class Translator<TStatement, TExpression> {
+export declare class Translator<TStatement, TExpression, TType> {
     private factory;
-    constructor(factory: AstFactory<TStatement, TExpression>);
+    constructor(factory: AstFactory<TStatement, TExpression, TType>);
     /**
      * Translate the given output AST in the context of an expression.
      */

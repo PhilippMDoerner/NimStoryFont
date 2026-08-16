@@ -10,6 +10,7 @@ export interface Config {
 }
 export type Options = ['nofunc' | Config];
 export type MessageIds = 'noUseBeforeDefine';
-declare const _default: TSESLint.RuleModule<"noUseBeforeDefine", Options, import("../../rules").ESLintPluginDocs, TSESLint.RuleListener>;
+declare const _default: TSESLint.RuleModule<"noUseBeforeDefine", Options, import("../../rules").ESLintPluginDocs, TSESLint.RuleListener> & {
+    name: string;
+};
 export default _default;
-//# sourceMappingURL=no-use-before-define.d.ts.map

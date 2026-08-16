@@ -9,13 +9,15 @@ const RuntimeGlobals = require("../RuntimeGlobals");
 
 /** @typedef {import("../Module").BuildInfo} BuildInfo */
 /** @typedef {import("../Module").BuildMeta} BuildMeta */
-/** @typedef {import("../Parser").ParserState} ParserState */
+/** @typedef {import("../javascript/JavascriptModule").JavascriptModuleBuildMeta} JavascriptModuleBuildMeta */
+/** @typedef {import("../javascript/JavascriptParser").JavascriptParserState} JavascriptParserState */
 
-/** @type {WeakMap<ParserState, boolean>} */
+/** @type {WeakMap<JavascriptParserState, boolean>} */
 const parserStateExportsState = new WeakMap();
 
 /**
- * @param {ParserState} parserState parser state
+ * Processes the provided parser state.
+ * @param {JavascriptParserState} parserState parser state
  * @param {boolean} isStrictHarmony strict harmony mode should be enabled
  * @returns {void}
  */
@@ -24,7 +26,9 @@ module.exports.enable = (parserState, isStrictHarmony) => {
 	if (value === false) return;
 	parserStateExportsState.set(parserState, true);
 	if (value !== true) {
-		const buildMeta = /** @type {BuildMeta} */ (parserState.module.buildMeta);
+		const buildMeta =
+			/** @type {JavascriptModuleBuildMeta} */
+			(parserState.module.buildMeta);
 		buildMeta.exportsType = "namespace";
 		const buildInfo = /** @type {BuildInfo} */ (parserState.module.buildInfo);
 		buildInfo.strict = true;
@@ -37,10 +41,11 @@ module.exports.enable = (parserState, isStrictHarmony) => {
 };
 
 /**
- * @param {ParserState} parserState parser state
+ * Returns true, when enabled.
+ * @param {JavascriptParserState} parserState parser state
  * @returns {boolean} true, when enabled
  */
-module.exports.isEnabled = parserState => {
+module.exports.isEnabled = (parserState) => {
 	const value = parserStateExportsState.get(parserState);
 	return value === true;
 };

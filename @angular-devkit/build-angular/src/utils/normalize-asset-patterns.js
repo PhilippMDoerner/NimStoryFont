@@ -71,7 +71,7 @@ function normalizeAssetPatterns(assetPatterns, workspaceRoot, projectRoot, proje
                 throw new MissingAssetSourceRootException(assetPattern);
             }
             let glob, input;
-            let isDirectory = false;
+            let isDirectory;
             try {
                 isDirectory = (0, node_fs_1.statSync)(resolvedAssetPath).isDirectory();
             }
@@ -95,6 +95,10 @@ function normalizeAssetPatterns(assetPatterns, workspaceRoot, projectRoot, proje
             assetPattern = { glob, input, output };
         }
         else {
+            const resolvedInput = path.resolve(workspaceRoot, assetPattern.input);
+            if (!resolvedInput.startsWith(workspaceRoot)) {
+                throw new Error(`The ${assetPattern.input} asset path must be within the workspace root.`);
+            }
             assetPattern.output = path.join('.', assetPattern.output ?? '');
         }
         (0, node_assert_1.default)(assetPattern.output !== undefined);
@@ -104,3 +108,4 @@ function normalizeAssetPatterns(assetPatterns, workspaceRoot, projectRoot, proje
         return assetPattern;
     });
 }
+//# sourceMappingURL=normalize-asset-patterns.js.map

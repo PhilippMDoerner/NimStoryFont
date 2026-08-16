@@ -9,15 +9,15 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { FormlyFieldConfig } from '@ngx-formly/core';
 import { filter, map, Observable, of, skip, take } from 'rxjs';
-import { Location, LocationRaw } from 'src/app/_models/location';
-import { OverviewItem } from 'src/app/_models/overview';
-import { FormlyService } from 'src/app/_services/formly/formly-service.service';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { formatSearchTerm } from 'src/app/design/atoms/_models/typeahead';
-import { CreateUpdateState } from 'src/app/design/templates/_models/create-update-states';
-import { CreateUpdateComponent } from 'src/app/design/templates/create-update/create-update.component';
-import { GlobalStore } from 'src/app/global.store';
-import { filterNil } from 'src/utils/rxjs-operators';
+import { filterNil } from '../../../../utils/rxjs-operators';
+import { Location, LocationRaw } from '../../../_models/location';
+import { OverviewItem } from '../../../_models/overview';
+import { FormlyService } from '../../../_services/formly/formly-service.service';
+import { RoutingService } from '../../../_services/routing.service';
+import { formatSearchTerm } from '../../../design/atoms/_models/typeahead';
+import { CreateUpdateState } from '../../../design/templates/_models/create-update-states';
+import { CreateUpdateComponent } from '../../../design/templates/create-update/create-update.component';
+import { GlobalStore } from '../../../global.store';
 import { LocationCreateUpdateStore } from './location-create-update-page.store';
 
 @Component({
@@ -28,22 +28,22 @@ import { LocationCreateUpdateStore } from './location-create-update-page.store';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LocationCreateUpdatePageComponent {
-  globalStore = inject(GlobalStore);
-  store = inject(LocationCreateUpdateStore);
+  readonly globalStore = inject(GlobalStore);
+  readonly store = inject(LocationCreateUpdateStore);
 
-  private route = inject(ActivatedRoute);
-  private routeUrlSegments = toSignal(this.route.url);
-  private routingService = inject(RoutingService);
-  private formlyService = inject(FormlyService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly routeUrlSegments = toSignal(this.route.url);
+  private readonly routingService = inject(RoutingService);
+  private readonly formlyService = inject(FormlyService);
 
-  campaignLocations$ = toObservable(this.store.campaignLocations).pipe(
+  readonly campaignLocations$ = toObservable(this.store.campaignLocations).pipe(
     filterNil(),
   );
-  locationQueryState$ = toObservable(this.store.locationQueryState);
-  locationCreateState$ = toObservable(this.store.createState);
-  locationUpdateState$ = toObservable(this.store.locationUpdateState);
+  readonly locationQueryState$ = toObservable(this.store.locationQueryState);
+  readonly locationCreateState$ = toObservable(this.store.createState);
+  readonly locationUpdateState$ = toObservable(this.store.locationUpdateState);
 
-  state = computed<CreateUpdateState>(() => {
+  readonly state = computed<CreateUpdateState>(() => {
     const pathSegments = this.routeUrlSegments()?.map(
       (segment) => segment.path,
     );
@@ -60,7 +60,7 @@ export class LocationCreateUpdatePageComponent {
     }
   });
 
-  userModel = computed(() => {
+  readonly userModel = computed(() => {
     switch (this.state()) {
       case 'CREATE':
         return {
@@ -72,7 +72,7 @@ export class LocationCreateUpdatePageComponent {
     }
   });
 
-  heading = computed(() => {
+  readonly heading = computed(() => {
     switch (this.state()) {
       case 'CREATE':
         return 'Create Location';
@@ -82,7 +82,7 @@ export class LocationCreateUpdatePageComponent {
     }
   });
 
-  formlyFields = computed<FormlyFieldConfig[]>(() => [
+  readonly formlyFields = computed<FormlyFieldConfig[]>(() => [
     this.formlyService.buildInputConfig({ key: 'name', inputKind: 'NAME' }),
     this.formlyService.buildTypeaheadConfig<
       LocationRaw | Location,

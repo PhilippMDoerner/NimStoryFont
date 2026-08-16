@@ -1,12 +1,5 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Uint8ArrayCut = void 0;
-class Uint8ArrayCut {
-    constructor(uint8, start, size) {
-        this.uint8 = uint8;
-        this.start = start;
-        this.size = size;
-    }
-}
-exports.Uint8ArrayCut = Uint8ArrayCut;
+const tslib_1 = require("tslib");
+tslib_1.__exportStar(require("@jsonjoy.com/buffers/lib/Uint8ArrayCut"), exports);
 //# sourceMappingURL=Uint8ArrayCut.js.map

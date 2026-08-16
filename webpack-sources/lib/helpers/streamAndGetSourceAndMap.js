@@ -5,28 +5,51 @@
 
 "use strict";
 
-const createMappingsSerializer = require("./createMappingsSerializer");
+const { createMappingsWriter } = require("./createMappingsSerializer");
 const streamChunks = require("./streamChunks");
 
+/** @typedef {import("../Source").RawSourceMap} RawSourceMap */
+/** @typedef {import("./streamChunks").GeneratedSourceInfo} GeneratedSourceInfo */
+/** @typedef {import("./streamChunks").OnChunk} OnChunk */
+/** @typedef {import("./streamChunks").OnName} OnName */
+/** @typedef {import("./streamChunks").OnSource} OnSource */
+/** @typedef {import("./streamChunks").Options} Options */
+/** @typedef {import("./streamChunks").SourceMaybeWithStreamChunksFunction} SourceMaybeWithStreamChunksFunction */
+
+/**
+ * @param {SourceMaybeWithStreamChunksFunction} inputSource input source
+ * @param {Options} options options
+ * @param {OnChunk} onChunk on chunk
+ * @param {OnSource} onSource on source
+ * @param {OnName} onName on name
+ * @returns {{ result: GeneratedSourceInfo, source: string, map: RawSourceMap | null }} result
+ */
 const streamAndGetSourceAndMap = (
 	inputSource,
 	options,
 	onChunk,
 	onSource,
-	onName
+	onName,
 ) => {
 	let code = "";
-	let mappings = "";
-	let sources = [];
-	let sourcesContent = [];
-	let names = [];
-	const addMapping = createMappingsSerializer(
-		Object.assign({}, options, { columns: true })
-	);
-	const finalSource = !!(options && options.finalSource);
+	/** @type {(string | null)[]} */
+	const potentialSources = [];
+	/** @type {(string | null)[]} */
+	const potentialSourcesContent = [];
+	/** @type {(string | null)[]} */
+	const potentialNames = [];
+	const mappingsWriter = createMappingsWriter({ ...options, columns: true });
+	const addMapping = mappingsWriter.add;
+	const finalSource = Boolean(options && options.finalSource);
+	// The caller may have passed `source: false` (getMap does), but this
+	// helper caches the source text, so the inner stream must produce it.
+	const innerOptions =
+		options && options.source === false
+			? { ...options, source: true }
+			: options;
 	const { generatedLine, generatedColumn, source } = streamChunks(
 		inputSource,
-		options,
+		innerOptions,
 		(
 			chunk,
 			generatedLine,
@@ -34,16 +57,16 @@ const streamAndGetSourceAndMap = (
 			sourceIndex,
 			originalLine,
 			originalColumn,
-			nameIndex
+			nameIndex,
 		) => {
 			if (chunk !== undefined) code += chunk;
-			mappings += addMapping(
+			addMapping(
 				generatedLine,
 				generatedColumn,
 				sourceIndex,
 				originalLine,
 				originalColumn,
-				nameIndex
+				nameIndex,
 			);
 			return onChunk(
 				finalSource ? undefined : chunk,
@@ -52,36 +75,38 @@ const streamAndGetSourceAndMap = (
 				sourceIndex,
 				originalLine,
 				originalColumn,
-				nameIndex
+				nameIndex,
 			);
 		},
 		(sourceIndex, source, sourceContent) => {
-			while (sources.length < sourceIndex) {
-				sources.push(null);
+			while (potentialSources.length < sourceIndex) {
+				potentialSources.push(null);
 			}
-			sources[sourceIndex] = source;
+			potentialSources[sourceIndex] = source;
 			if (sourceContent !== undefined) {
-				while (sourcesContent.length < sourceIndex) {
-					sourcesContent.push(null);
+				while (potentialSourcesContent.length < sourceIndex) {
+					potentialSourcesContent.push(null);
 				}
-				sourcesContent[sourceIndex] = sourceContent;
+				potentialSourcesContent[sourceIndex] = sourceContent;
 			}
 			return onSource(sourceIndex, source, sourceContent);
 		},
 		(nameIndex, name) => {
-			while (names.length < nameIndex) {
-				names.push(null);
+			while (potentialNames.length < nameIndex) {
+				potentialNames.push(null);
 			}
-			names[nameIndex] = name;
+			potentialNames[nameIndex] = name;
 			return onName(nameIndex, name);
-		}
+		},
 	);
 	const resultSource = source !== undefined ? source : code;
+	const mappings = mappingsWriter.finish();
+
 	return {
 		result: {
 			generatedLine,
 			generatedColumn,
-			source: finalSource ? resultSource : undefined
+			source: finalSource ? resultSource : undefined,
 		},
 		source: resultSource,
 		map:
@@ -90,12 +115,15 @@ const streamAndGetSourceAndMap = (
 						version: 3,
 						file: "x",
 						mappings,
-						sources,
+						// We handle broken sources as `null`, in spec this field should be string, but no information what we should do in such cases if we change type it will be breaking change
+						sources: /** @type {string[]} */ (potentialSources),
 						sourcesContent:
-							sourcesContent.length > 0 ? sourcesContent : undefined,
-						names
-				  }
-				: null
+							potentialSourcesContent.length > 0
+								? /** @type {string[]} */ (potentialSourcesContent)
+								: undefined,
+						names: /** @type {string[]} */ (potentialNames),
+					}
+				: null,
 	};
 };
 

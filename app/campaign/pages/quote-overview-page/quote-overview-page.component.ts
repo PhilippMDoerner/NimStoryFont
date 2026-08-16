@@ -7,11 +7,11 @@ import {
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Observable } from 'rxjs';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { PageContainerComponent } from 'src/app/design//organisms/page-container/page-container.component';
-import { QuotesComponent } from 'src/app/design//organisms/quotes/quotes.component';
-import { ButtonLinkComponent } from 'src/app/design/atoms/button-link/button-link.component';
-import { GlobalStore } from 'src/app/global.store';
+import { RoutingService } from '../../../_services/routing.service';
+import { ButtonLinkComponent } from '../../../design/atoms/button-link/button-link.component';
+import { PageContainerComponent } from '../../../design/organisms/page-container/page-container.component';
+import { QuotesComponent } from '../../../design/organisms/quotes/quotes.component';
+import { GlobalStore } from '../../../global.store';
 import { QuoteOverviewPageStore } from './quote-overview-page.store';
 
 @Component({
@@ -28,11 +28,11 @@ import { QuoteOverviewPageStore } from './quote-overview-page.store';
   providers: [],
 })
 export class QuoteOverviewPageComponent {
-  store = inject(QuoteOverviewPageStore);
-  globalStore = inject(GlobalStore);
+  readonly store = inject(QuoteOverviewPageStore);
+  readonly globalStore = inject(GlobalStore);
 
-  routingService = inject(RoutingService);
-  characterUrl = computed(() =>
+  readonly routingService = inject(RoutingService);
+  readonly characterUrl = computed(() =>
     this.routingService.getRoutePath('character', {
       campaign: this.globalStore.campaignName(),
       name: this.store.character()?.name,

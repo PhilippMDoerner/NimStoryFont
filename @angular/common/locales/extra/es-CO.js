@@ -7,5 +7,5 @@
  */
 // THIS CODE IS GENERATED - DO NOT MODIFY.
 const u = undefined;
-export default [[["del mediodía", "de la madrugada", "de la mañana", "de la tarde", "de la noche"], ["m.", "de la madrugada", "de la mañana", "de la tarde", "de la noche"], ["del mediodía", "de la madrugada", "de la mañana", "de la tarde", "de la noche"]], [["m.", "madrugada", "mañana", "tarde", "noche"], u, ["mediodía", "madrugada", "mañana", "tarde", "noche"]], ["12:00", ["00:00", "06:00"], ["06:00", "12:00"], ["12:00", "20:00"], ["20:00", "24:00"]]];
+export default [[["m.", "de la madrugada", "de la mañana", "de la tarde", "de la noche"], u, u], [["m.", "madrugada", "mañana", "tarde", "noche"], u, u], ["12:00", ["00:00", "06:00"], ["06:00", "12:00"], ["12:00", "20:00"], ["20:00", "24:00"]]];
 //# sourceMappingURL=es-CO.js.map

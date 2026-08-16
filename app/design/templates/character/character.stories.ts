@@ -1,12 +1,12 @@
 import { RouterTestingModule } from '@angular/router/testing';
-import { action } from 'storybook/actions';
 import { Meta, StoryFn, moduleMetadata } from '@storybook/angular';
-import { CharacterDetails } from 'src/app/_models/character';
-import { OverviewItem } from 'src/app/_models/overview';
-import { Quote } from 'src/app/_models/quote';
+import { action } from 'storybook/actions';
+import { CharacterDetails } from '../../../_models/character';
+import { OverviewItem } from '../../../_models/overview';
+import { Quote } from '../../../_models/quote';
 
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { FORMLY_MODULE } from 'src/app/_modules/formly_constants';
+import { FORMLY_MODULE } from '../../../_modules/formly_constants';
 import { CharacterComponent } from './character.component';
 
 const dummyCharacters: OverviewItem[] = [
@@ -740,7 +740,6 @@ export default {
     canCreate: true,
     canUpdate: true,
     canDelete: true,
-    campaignNPCCharacters: dummyCharacters,
     character: dummyCharacter,
     characterServerModel: undefined,
     campaignCharacters: dummyCharacters,

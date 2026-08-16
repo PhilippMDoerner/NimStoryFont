@@ -19,8 +19,8 @@ import { IconComponent } from '../../atoms/icon/icon.component';
   },
 })
 export class SidebarButtonEntryComponent {
-  icon = input<Icon>();
-  label = input.required<string>();
+  readonly icon = input<Icon>();
+  readonly label = input.required<string>();
 
-  entryClicked = output<MouseEvent>();
+  readonly entryClicked = output<MouseEvent>();
 }

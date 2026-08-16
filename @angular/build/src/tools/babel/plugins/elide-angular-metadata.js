@@ -44,7 +44,7 @@ const angularMetadataFunctions = {
  *
  * @returns A babel plugin object instance.
  */
-function default_1() {
+function default_1({ types: t }) {
     return {
         visitor: {
             CallExpression(path) {
@@ -70,7 +70,7 @@ function default_1() {
                     if (parent && (parent.isFunctionExpression() || parent.isArrowFunctionExpression())) {
                         // Replace the metadata function with `void 0` which is the equivalent return value
                         // of the metadata function.
-                        path.replaceWith(path.scope.buildUndefinedNode());
+                        path.replaceWith(t.buildUndefinedNode());
                     }
                 }
             },
@@ -107,3 +107,4 @@ function isSetClassDebugInfoCall(callArguments) {
 function isInlineFunction(path) {
     return path.isFunctionExpression() || path.isArrowFunctionExpression();
 }
+//# sourceMappingURL=elide-angular-metadata.js.map

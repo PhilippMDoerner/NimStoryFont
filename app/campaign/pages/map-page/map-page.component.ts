@@ -6,10 +6,10 @@ import {
   Signal,
 } from '@angular/core';
 import { Observable } from 'rxjs';
-import { OverviewItem } from 'src/app/_models/overview';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { MapComponent } from 'src/app/design/templates/map/map.component';
-import { GlobalStore } from 'src/app/global.store';
+import { OverviewItem } from '../../../_models/overview';
+import { RoutingService } from '../../../_services/routing.service';
+import { MapComponent } from '../../../design/templates/map/map.component';
+import { GlobalStore } from '../../../global.store';
 import { MapPageStore } from './map-page.store';
 
 @Component({
@@ -20,10 +20,10 @@ import { MapPageStore } from './map-page.store';
   imports: [MapComponent],
 })
 export class MapPageComponent {
-  serverUrl = '';
-  store = inject(MapPageStore);
-  globalStore = inject(GlobalStore);
-  routingService = inject(RoutingService);
+  readonly serverUrl = '';
+  readonly store = inject(MapPageStore);
+  readonly globalStore = inject(GlobalStore);
+  readonly routingService = inject(RoutingService);
 
   private readonly isPageLoading: Observable<boolean> | Signal<boolean> =
     computed(() => this.store.map() == null);

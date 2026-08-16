@@ -21,3 +21,4 @@ class JobDoesNotExistException extends core_1.BaseException {
     }
 }
 exports.JobDoesNotExistException = JobDoesNotExistException;
+//# sourceMappingURL=exception.js.map

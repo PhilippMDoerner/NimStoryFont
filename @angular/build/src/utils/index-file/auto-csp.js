@@ -74,10 +74,7 @@ function isJavascriptMimeType(mimeType) {
  * @returns whether to add the script tag to the dynamically loaded script tag
  */
 function shouldDynamicallyLoadScriptTagBasedOnType(scriptType) {
-    return (scriptType === undefined ||
-        scriptType === '' ||
-        scriptType === 'module' ||
-        isJavascriptMimeType(scriptType));
+    return !scriptType || scriptType === 'module' || isJavascriptMimeType(scriptType);
 }
 /**
  * Calculates a CSP compatible hash of an inline script.
@@ -86,7 +83,11 @@ function shouldDynamicallyLoadScriptTagBasedOnType(scriptType) {
  * @returns The hash of the text formatted appropriately for CSP.
  */
 function hashTextContent(scriptText) {
-    const hash = crypto.createHash(HASH_FUNCTION).update(scriptText, 'utf-8').digest('base64');
+    // Normalize CRLF to LF to ensure consistent since the rewriter might normalize the line endings.
+    const hash = crypto
+        .createHash(HASH_FUNCTION)
+        .update(scriptText.replace(/\r\n?/g, '\n'), 'utf-8')
+        .digest('base64');
     return `'${HASH_FUNCTION}-${hash}'`;
 }
 /**
@@ -291,3 +292,4 @@ function createLoaderScript(srcList, enableTrustedTypes = false) {
     document.lastElementChild.appendChild(s);
   });\n`;
 }
+//# sourceMappingURL=auto-csp.js.map

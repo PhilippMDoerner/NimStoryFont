@@ -5,9 +5,9 @@
 
 "use strict";
 
-const WebpackError = require("../WebpackError");
+const WebpackError = require("../errors/WebpackError");
 
-module.exports = class NoAsyncChunksWarning extends WebpackError {
+class NoAsyncChunksWarning extends WebpackError {
 	constructor() {
 		super(
 			"webpack performance recommendations: \n" +
@@ -15,6 +15,9 @@ module.exports = class NoAsyncChunksWarning extends WebpackError {
 				"For more info visit https://webpack.js.org/guides/code-splitting/"
 		);
 
+		/** @type {string} */
 		this.name = "NoAsyncChunksWarning";
 	}
-};
+}
+
+module.exports = NoAsyncChunksWarning;

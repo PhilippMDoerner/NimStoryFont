@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RULE_NAME = void 0;
+exports.RULE_DOCS_EXTENSION = exports.RULE_NAME = void 0;
 const utils_1 = require("@angular-eslint/utils");
 const create_eslint_rule_1 = require("../utils/create-eslint-rule");
 exports.RULE_NAME = 'pipe-prefix';
@@ -27,7 +27,8 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
             },
         ],
         messages: {
-            pipePrefix: '@Pipes should be prefixed by {{prefixes}}',
+            pipePrefix: '@Pipes should be prefixed with {{prefixes}}',
+            selectorAfterPrefixFailure: '@Pipes should have a selector after the {{prefixes}} prefix',
         },
     },
     defaultOptions: [
@@ -50,7 +51,8 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
                     return;
                 }
                 const allowPrefixesExpression = prefixes.join('|');
-                const prefixValidator = utils_1.SelectorUtils.SelectorValidator.prefix(allowPrefixesExpression, 'camelCase');
+                const prefixValidator = utils_1.SelectorUtils.SelectorValidator.prefix(allowPrefixesExpression, utils_1.ASTUtils.OPTION_STYLE_CAMEL_CASE);
+                const selectorAfterPrefixValidator = utils_1.SelectorUtils.SelectorValidator.selectorAfterPrefix(allowPrefixesExpression);
                 let nameValue;
                 if (utils_1.ASTUtils.isStringLiteral(nameSelector)) {
                     nameValue = nameSelector.value;
@@ -70,8 +72,21 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
                             prefixes: (0, utils_1.toHumanReadableText)(prefixes),
                         },
                     });
+                    return;
+                }
+                if (!selectorAfterPrefixValidator.apply(this, [nameValue])) {
+                    context.report({
+                        node: nameSelector,
+                        messageId: 'selectorAfterPrefixFailure',
+                        data: {
+                            prefixes: (0, utils_1.toHumanReadableText)(prefixes),
+                        },
+                    });
                 }
             },
         };
     },
 });
+exports.RULE_DOCS_EXTENSION = {
+    rationale: "Prefixing pipe names helps prevent naming collisions between pipes from different libraries or modules, and makes it clear which pipes belong to your application versus third-party libraries. For example, prefixing with 'app' creates pipe names like 'appCurrency' instead of just 'currency', avoiding conflicts with Angular's built-in pipes.",
+};

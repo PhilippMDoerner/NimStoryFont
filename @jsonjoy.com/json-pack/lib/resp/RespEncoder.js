@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RespEncoder = void 0;
-const Writer_1 = require("@jsonjoy.com/util/lib/buffers/Writer");
+const Writer_1 = require("@jsonjoy.com/buffers/lib/Writer");
 const utf8_1 = require("@jsonjoy.com/util/lib/strings/utf8");
 const extensions_1 = require("./extensions");
 const JsonPackExtension_1 = require("../JsonPackExtension");

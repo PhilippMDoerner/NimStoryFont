@@ -6,5 +6,7 @@
  * found in the LICENSE file at https://angular.dev/license
  */
 import type { ServerResponse } from 'node:http';
-import type { Connect } from 'vite';
+import type { Connect } from 'vite' with {
+    'resolution-mode': 'import'
+};
 export declare function angularHtmlFallbackMiddleware(req: Connect.IncomingMessage, _res: ServerResponse, next: Connect.NextFunction): void;

@@ -6,25 +6,29 @@
 "use strict";
 
 const util = require("util");
+const { version: WEBPACK_VERSION } = require("../../package.json");
 const { WEBPACK_MODULE_TYPE_RUNTIME } = require("../ModuleTypeConstants");
 const ModuleDependency = require("../dependencies/ModuleDependency");
-const formatLocation = require("../formatLocation");
 const { LogType } = require("../logging/Logger");
 const AggressiveSplittingPlugin = require("../optimize/AggressiveSplittingPlugin");
 const SizeLimitsPlugin = require("../performance/SizeLimitsPlugin");
 const { countIterable } = require("../util/IterableHelpers");
 const {
-	compareLocations,
 	compareChunksById,
-	compareNumbers,
 	compareIds,
-	concatComparators,
+	compareLocations,
+	compareModulesByIdentifier,
+	compareNumbers,
 	compareSelect,
-	compareModulesByIdentifier
+	concatComparators
 } = require("../util/comparators");
+const formatLocation = require("../util/formatLocation");
 const { makePathsRelative, parseResource } = require("../util/identifier");
 
 /** @typedef {import("webpack-sources").Source} Source */
+/** @typedef {import("../../declarations/WebpackOptions").StatsValue} StatsValue */
+/** @typedef {import("./StatsFactory")} StatsFactory */
+/** @typedef {import("./StatsFactory").StatsFactoryContext} StatsFactoryContext */
 /** @typedef {import("../Chunk")} Chunk */
 /** @typedef {import("../Chunk").ChunkId} ChunkId */
 /** @typedef {import("../Chunk").ChunkName} ChunkName */
@@ -41,30 +45,33 @@ const { makePathsRelative, parseResource } = require("../util/identifier");
 /** @typedef {import("../Dependency")} Dependency */
 /** @typedef {import("../Dependency").DependencyLocation} DependencyLocation */
 /** @typedef {import("../Module")} Module */
+/** @typedef {import("../Module").NameForCondition} NameForCondition */
 /** @typedef {import("../Module").BuildInfo} BuildInfo */
+/** @typedef {import("../ModuleGraph")} ModuleGraph */
 /** @typedef {import("../ModuleGraphConnection")} ModuleGraphConnection */
 /** @typedef {import("../ModuleProfile")} ModuleProfile */
-/** @typedef {import("../RequestShortener")} RequestShortener */
-/** @typedef {import("../TemplatedPathPlugin").TemplatePath} TemplatePath */
-/** @typedef {import("../WebpackError")} WebpackError */
-/** @typedef {import("../util/runtime").RuntimeSpec} RuntimeSpec */
-/** @typedef {import("./StatsFactory")} StatsFactory */
-/** @typedef {import("./StatsFactory").StatsFactoryContext} StatsFactoryContext */
+/** @typedef {import("../errors/WebpackError")} WebpackError */
+/** @typedef {import("../serialization/AggregateErrorSerializer").AggregateError} AggregateError */
+/** @typedef {import("../serialization/ErrorObjectSerializer").ErrorWithCause} ErrorWithCause */
+/** @typedef {import("../ExportsInfo").ExportInfoName} ExportInfoName */
 
 /**
+ * Defines the shared type used by this module.
  * @template T
  * @typedef {import("../util/comparators").Comparator<T>} Comparator<T>
  */
 
 /**
- * @template T, R
- * @typedef {import("../util/smartGrouping").GroupConfig<T, R>} GroupConfig
+ * Defines the group config type used by this module.
+ * @template I, G
+ * @typedef {import("../util/smartGrouping").GroupConfig<I, G>} GroupConfig
  */
 
 /** @typedef {KnownStatsCompilation & Record<string, EXPECTED_ANY>} StatsCompilation */
 /**
+ * Defines the known stats compilation type used by this module.
  * @typedef {object} KnownStatsCompilation
- * @property {Record<string, EXPECTED_ANY>=} env
+ * @property {EXPECTED_ANY=} env
  * @property {string=} name
  * @property {string=} hash
  * @property {string=} version
@@ -93,6 +100,7 @@ const { makePathsRelative, parseResource } = require("../util/identifier");
 
 /** @typedef {KnownStatsLogging & Record<string, EXPECTED_ANY>} StatsLogging */
 /**
+ * Defines the known stats logging type used by this module.
  * @typedef {object} KnownStatsLogging
  * @property {StatsLoggingEntry[]} entries
  * @property {number} filteredEntries
@@ -101,6 +109,7 @@ const { makePathsRelative, parseResource } = require("../util/identifier");
 
 /** @typedef {KnownStatsLoggingEntry & Record<string, EXPECTED_ANY>} StatsLoggingEntry */
 /**
+ * Defines the known stats logging entry type used by this module.
  * @typedef {object} KnownStatsLoggingEntry
  * @property {string} type
  * @property {string=} message
@@ -111,10 +120,9 @@ const { makePathsRelative, parseResource } = require("../util/identifier");
  */
 
 /** @typedef {KnownStatsAsset & Record<string, EXPECTED_ANY>} StatsAsset */
-/** @typedef {ChunkId} KnownStatsAssetChunk */
-/** @typedef {ChunkName} KnownStatsAssetChunkName */
-/** @typedef {string} KnownStatsAssetChunkIdHint */
+/** @typedef {string[]} ChunkIdHints */
 /**
+ * Defines the known stats asset type used by this module.
  * @typedef {object} KnownStatsAsset
  * @property {string} type
  * @property {string} name
@@ -124,59 +132,62 @@ const { makePathsRelative, parseResource } = require("../util/identifier");
  * @property {boolean} comparedForEmit
  * @property {boolean} cached
  * @property {StatsAsset[]=} related
- * @property {KnownStatsAssetChunk[]=} chunks
- * @property {KnownStatsAssetChunkName[]=} chunkNames
- * @property {KnownStatsAssetChunkIdHint[]=} chunkIdHints
- * @property {KnownStatsAssetChunk[]=} auxiliaryChunks
- * @property {KnownStatsAssetChunkName[]=} auxiliaryChunkNames
- * @property {KnownStatsAssetChunkIdHint[]=} auxiliaryChunkIdHints
+ * @property {ChunkId[]=} chunks
+ * @property {ChunkName[]=} chunkNames
+ * @property {ChunkIdHints=} chunkIdHints
+ * @property {ChunkId[]=} auxiliaryChunks
+ * @property {ChunkName[]=} auxiliaryChunkNames
+ * @property {ChunkIdHints=} auxiliaryChunkIdHints
  * @property {number=} filteredRelated
  * @property {boolean=} isOverSizeLimit
  */
 
 /** @typedef {KnownStatsChunkGroup & Record<string, EXPECTED_ANY>} StatsChunkGroup */
 /**
+ * Defines the known stats chunk group type used by this module.
  * @typedef {object} KnownStatsChunkGroup
- * @property {(string | null)=} name
- * @property {(string | number)[]=} chunks
+ * @property {ChunkName=} name
+ * @property {ChunkId[]=} chunks
  * @property {({ name: string, size?: number })[]=} assets
  * @property {number=} filteredAssets
  * @property {number=} assetsSize
  * @property {({ name: string, size?: number })[]=} auxiliaryAssets
  * @property {number=} filteredAuxiliaryAssets
  * @property {number=} auxiliaryAssetsSize
- * @property {{ [x: string]: StatsChunkGroup[] }=} children
- * @property {{ [x: string]: string[] }=} childAssets
+ * @property {Record<string, StatsChunkGroup[]>=} children
+ * @property {Record<string, string[]>=} childAssets
  * @property {boolean=} isOverSizeLimit
  */
 
 /** @typedef {Module[]} ModuleIssuerPath */
 /** @typedef {KnownStatsModule & Record<string, EXPECTED_ANY>} StatsModule */
 /**
+ * Defines the known stats module type used by this module.
  * @typedef {object} KnownStatsModule
  * @property {string=} type
  * @property {string=} moduleType
  * @property {(string | null)=} layer
  * @property {string=} identifier
  * @property {string=} name
- * @property {(string | null)=} nameForCondition
+ * @property {NameForCondition | null=} nameForCondition
  * @property {number=} index
  * @property {number=} preOrderIndex
  * @property {number=} index2
  * @property {number=} postOrderIndex
  * @property {number=} size
- * @property {{ [x: string]: number }=} sizes
+ * @property {Record<string, number>=} sizes
  * @property {boolean=} cacheable
+ * @property {string[]=} notCacheableReasons
  * @property {boolean=} built
  * @property {boolean=} codeGenerated
  * @property {boolean=} buildTimeExecuted
  * @property {boolean=} cached
  * @property {boolean=} optional
  * @property {boolean=} orphan
- * @property {string | number=} id
- * @property {string | number | null=} issuerId
- * @property {(string | number)[]=} chunks
- * @property {(string | number)[]=} assets
+ * @property {ModuleId=} id
+ * @property {ModuleId | null=} issuerId
+ * @property {ChunkId[]=} chunks
+ * @property {string[]=} assets
  * @property {boolean=} dependent
  * @property {(string | null)=} issuer
  * @property {(string | null)=} issuerName
@@ -186,8 +197,8 @@ const { makePathsRelative, parseResource } = require("../util/identifier");
  * @property {number=} warnings
  * @property {StatsProfile=} profile
  * @property {StatsModuleReason[]=} reasons
- * @property {(boolean | null | string[])=} usedExports
- * @property {(string[] | null)=} providedExports
+ * @property {boolean | null | ExportInfoName[]=} usedExports
+ * @property {ExportInfoName[] | null=} providedExports
  * @property {string[]=} optimizationBailout
  * @property {(number | null)=} depth
  * @property {StatsModule[]=} modules
@@ -197,6 +208,7 @@ const { makePathsRelative, parseResource } = require("../util/identifier");
 
 /** @typedef {KnownStatsProfile & Record<string, EXPECTED_ANY>} StatsProfile */
 /**
+ * Defines the known stats profile type used by this module.
  * @typedef {object} KnownStatsProfile
  * @property {number} total
  * @property {number} resolving
@@ -212,15 +224,17 @@ const { makePathsRelative, parseResource } = require("../util/identifier");
 
 /** @typedef {KnownStatsModuleIssuer & Record<string, EXPECTED_ANY>} StatsModuleIssuer */
 /**
+ * Defines the known stats module issuer type used by this module.
  * @typedef {object} KnownStatsModuleIssuer
  * @property {string} identifier
  * @property {string} name
- * @property {(string|number)=} id
+ * @property {ModuleId=} id
  * @property {StatsProfile} profile
  */
 
 /** @typedef {KnownStatsModuleReason & Record<string, EXPECTED_ANY>} StatsModuleReason */
 /**
+ * Defines the known stats module reason type used by this module.
  * @typedef {object} KnownStatsModuleReason
  * @property {string | null} moduleIdentifier
  * @property {string | null} module
@@ -232,12 +246,13 @@ const { makePathsRelative, parseResource } = require("../util/identifier");
  * @property {string | null} explanation
  * @property {string | null} userRequest
  * @property {(string | null)=} loc
- * @property {(string | number | null)=} moduleId
- * @property {(string | number | null)=} resolvedModuleId
+ * @property {ModuleId | null=} moduleId
+ * @property {ModuleId | null=} resolvedModuleId
  */
 
 /** @typedef {KnownStatsChunk & Record<string, EXPECTED_ANY>} StatsChunk */
 /**
+ * Defines the known stats chunk type used by this module.
  * @typedef {object} KnownStatsChunk
  * @property {boolean} rendered
  * @property {boolean} initial
@@ -253,10 +268,10 @@ const { makePathsRelative, parseResource } = require("../util/identifier");
  * @property {string[]} auxiliaryFiles
  * @property {string} hash
  * @property {Record<string, ChunkId[]>} childrenByOrder
- * @property {(string|number)=} id
- * @property {(string|number)[]=} siblings
- * @property {(string|number)[]=} parents
- * @property {(string|number)[]=} children
+ * @property {ChunkId=} id
+ * @property {ChunkId[]=} siblings
+ * @property {ChunkId[]=} parents
+ * @property {ChunkId[]=} children
  * @property {StatsModule[]=} modules
  * @property {number=} filteredModules
  * @property {StatsChunkOrigin[]=} origins
@@ -264,35 +279,39 @@ const { makePathsRelative, parseResource } = require("../util/identifier");
 
 /** @typedef {KnownStatsChunkOrigin & Record<string, EXPECTED_ANY>} StatsChunkOrigin */
 /**
+ * Defines the known stats chunk origin type used by this module.
  * @typedef {object} KnownStatsChunkOrigin
  * @property {string} module
  * @property {string} moduleIdentifier
  * @property {string} moduleName
  * @property {string} loc
  * @property {string} request
- * @property {(string | number)=} moduleId
+ * @property {ModuleId=} moduleId
  */
 
 /** @typedef {KnownStatsModuleTraceItem & Record<string, EXPECTED_ANY>} StatsModuleTraceItem */
 /**
+ * Defines the known stats module trace item type used by this module.
  * @typedef {object} KnownStatsModuleTraceItem
  * @property {string=} originIdentifier
  * @property {string=} originName
  * @property {string=} moduleIdentifier
  * @property {string=} moduleName
  * @property {StatsModuleTraceDependency[]=} dependencies
- * @property {(string|number)=} originId
- * @property {(string|number)=} moduleId
+ * @property {ModuleId=} originId
+ * @property {ModuleId=} moduleId
  */
 
 /** @typedef {KnownStatsModuleTraceDependency & Record<string, EXPECTED_ANY>} StatsModuleTraceDependency */
 /**
+ * Defines the known stats module trace dependency type used by this module.
  * @typedef {object} KnownStatsModuleTraceDependency
  * @property {string=} loc
  */
 
 /** @typedef {KnownStatsError & Record<string, EXPECTED_ANY>} StatsError */
 /**
+ * Defines the known stats error type used by this module.
  * @typedef {object} KnownStatsError
  * @property {string} message
  * @property {string=} chunkName
@@ -303,7 +322,7 @@ const { makePathsRelative, parseResource } = require("../util/identifier");
  * @property {string=} moduleName
  * @property {string=} loc
  * @property {ChunkId=} chunkId
- * @property {string|number=} moduleId
+ * @property {ModuleId=} moduleId
  * @property {StatsModuleTraceItem[]=} moduleTrace
  * @property {string=} details
  * @property {string=} stack
@@ -315,6 +334,7 @@ const { makePathsRelative, parseResource } = require("../util/identifier");
 /** @typedef {Asset & { type: string, related: PreprocessedAsset[] | undefined }} PreprocessedAsset */
 
 /**
+ * Defines the extractors by option type used by this module.
  * @template T
  * @template O
  * @typedef {Record<string, (object: O, data: T, context: StatsFactoryContext, options: NormalizedStatsOptions, factory: StatsFactory) => void>} ExtractorsByOption
@@ -324,6 +344,7 @@ const { makePathsRelative, parseResource } = require("../util/identifier");
 /** @typedef {{ origin: Module, module: Module }} ModuleTrace */
 
 /**
+ * Defines the simple extractors type used by this module.
  * @typedef {object} SimpleExtractors
  * @property {ExtractorsByOption<Compilation, StatsCompilation>} compilation
  * @property {ExtractorsByOption<PreprocessedAsset, StatsAsset>} asset
@@ -344,6 +365,7 @@ const { makePathsRelative, parseResource } = require("../util/identifier");
  */
 
 /**
+ * Returns array of values.
  * @template T
  * @template I
  * @param {Iterable<T>} items items to select from
@@ -358,10 +380,11 @@ const uniqueArray = (items, selector) => {
 			set.add(i);
 		}
 	}
-	return Array.from(set);
+	return [...set];
 };
 
 /**
+ * Unique ordered array.
  * @template T
  * @template I
  * @param {Iterable<T>} items items to select from
@@ -372,30 +395,34 @@ const uniqueArray = (items, selector) => {
 const uniqueOrderedArray = (items, selector, comparator) =>
 	uniqueArray(items, selector).sort(comparator);
 
-/** @template T @template R @typedef {{ [P in keyof T]: R }} MappedValues<T, R> */
+/**
+ * Defines the shared type used by this module.
+ * @template T
+ * @template R
+ * @typedef {{ [P in keyof T]: R }} MappedValues<T, R>
+ */
 
 /**
+ * Returns mapped object.
  * @template {object} T
  * @template {object} R
  * @param {T} obj object to be mapped
- * @param {function(T[keyof T], keyof T): R} fn mapping function
+ * @param {(value: T[keyof T], key: keyof T) => R} fn mapping function
  * @returns {MappedValues<T, R>} mapped object
  */
 const mapObject = (obj, fn) => {
+	/** @type {MappedValues<T, R>} */
 	const newObj = Object.create(null);
-	for (const key of Object.keys(obj)) {
-		newObj[key] = fn(
-			obj[/** @type {keyof T} */ (key)],
-			/** @type {keyof T} */ (key)
-		);
+	for (const key of /** @type {(keyof T)[]} */ (Object.keys(obj))) {
+		newObj[key] = fn(obj[key], key);
 	}
 	return newObj;
 };
 
 /**
- * @template T
+ * Count with children.
  * @param {Compilation} compilation the compilation
- * @param {(compilation: Compilation, name: string) => T[]} getItems get items
+ * @param {(compilation: Compilation, name: string) => { length: number }} getItems get items
  * @returns {number} total number
  */
 const countWithChildren = (compilation, getItems) => {
@@ -407,9 +434,6 @@ const countWithChildren = (compilation, getItems) => {
 	}
 	return count;
 };
-
-/** @typedef {Error & { cause?: unknown }} ErrorWithCause */
-/** @typedef {Error & { errors: EXPECTED_ANY[] }} AggregateError */
 
 /** @type {ExtractorsByOption<string | ErrorWithCause | AggregateError | WebpackError, StatsError>} */
 const EXTRACT_ERROR = {
@@ -495,7 +519,7 @@ const EXTRACT_ERROR = {
 	errorDetails: (
 		object,
 		error,
-		{ type, compilation, cachedGetErrors, cachedGetWarnings },
+		{ type, compilation, cachedGetErrors },
 		{ errorDetails }
 	) => {
 		if (
@@ -506,8 +530,8 @@ const EXTRACT_ERROR = {
 			object.details = /** @type {WebpackError} */ (error).details;
 		}
 	},
-	errorStack: (object, error) => {
-		if (typeof error !== "string") {
+	errorStack: (object, error, _context, { errorStack }) => {
+		if (typeof error !== "string" && errorStack) {
 			object.stack = error.stack;
 		}
 	},
@@ -544,6 +568,8 @@ const EXTRACT_ERROR = {
 	}
 };
 
+/** @typedef {((value: string) => boolean)} FilterItemTypeFn */
+
 /** @type {SimpleExtractors} */
 const SIMPLE_EXTRACTORS = {
 	compilation: {
@@ -555,20 +581,22 @@ const SIMPLE_EXTRACTORS = {
 				);
 			}
 			if (!context.cachedGetErrors) {
+				/** @type {WeakMap<Compilation, Error[]>} */
 				const map = new WeakMap();
-				context.cachedGetErrors = compilation =>
+				context.cachedGetErrors = (compilation) =>
 					map.get(compilation) ||
 					// eslint-disable-next-line no-sequences
-					(errors => (map.set(compilation, errors), errors))(
+					((errors) => (map.set(compilation, errors), errors))(
 						compilation.getErrors()
 					);
 			}
 			if (!context.cachedGetWarnings) {
+				/** @type {WeakMap<Compilation, Error[]>} */
 				const map = new WeakMap();
-				context.cachedGetWarnings = compilation =>
+				context.cachedGetWarnings = (compilation) =>
 					map.get(compilation) ||
 					// eslint-disable-next-line no-sequences
-					(warnings => (map.set(compilation, warnings), warnings))(
+					((warnings) => (map.set(compilation, warnings), warnings))(
 						compilation.getWarnings()
 					);
 			}
@@ -582,7 +610,9 @@ const SIMPLE_EXTRACTORS = {
 			const { logging, loggingDebug, loggingTrace } = options;
 			if (logging || (loggingDebug && loggingDebug.length > 0)) {
 				const util = require("util");
+
 				object.logging = {};
+				/** @type {Set<keyof LogType>} */
 				let acceptedTypes;
 				let collapsedGroups = false;
 				switch (logging) {
@@ -638,7 +668,7 @@ const SIMPLE_EXTRACTORS = {
 				);
 				let depthInCollapsedGroup = 0;
 				for (const [origin, logEntries] of compilation.logging) {
-					const debugMode = loggingDebug.some(fn => fn(origin));
+					const debugMode = loggingDebug.some((fn) => fn(origin));
 					if (logging === false && !debugMode) continue;
 					/** @type {KnownStatsLoggingEntry[]} */
 					const groupStack = [];
@@ -654,8 +684,9 @@ const SIMPLE_EXTRACTORS = {
 						if (
 							type === LogType.groupCollapsed &&
 							(debugMode || collapsedGroups)
-						)
+						) {
 							type = LogType.group;
+						}
 
 						if (depthInCollapsedGroup === 0) {
 							processedLogEntries++;
@@ -672,6 +703,7 @@ const SIMPLE_EXTRACTORS = {
 							if (depthInCollapsedGroup > 0) depthInCollapsedGroup--;
 							continue;
 						}
+						/** @type {undefined | string} */
 						let message;
 						if (entry.type === LogType.time) {
 							const [label, first, second] =
@@ -720,10 +752,10 @@ const SIMPLE_EXTRACTORS = {
 			}
 		},
 		hash: (object, compilation) => {
-			object.hash = /** @type {string} */ (compilation.hash);
+			object.hash = compilation.hash;
 		},
-		version: object => {
-			object.version = require("../../package.json").version;
+		version: (object) => {
+			object.version = WEBPACK_VERSION;
 		},
 		env: (object, compilation, context, { _env }) => {
 			object.env = _env;
@@ -738,14 +770,11 @@ const SIMPLE_EXTRACTORS = {
 		},
 		publicPath: (object, compilation) => {
 			object.publicPath = compilation.getPath(
-				/** @type {TemplatePath} */
-				(compilation.outputOptions.publicPath)
+				compilation.outputOptions.publicPath
 			);
 		},
 		outputPath: (object, compilation) => {
-			object.outputPath = /** @type {string} */ (
-				compilation.outputOptions.path
-			);
+			object.outputPath = compilation.outputOptions.path;
 		},
 		assets: (object, compilation, context, options, factory) => {
 			const { type } = context;
@@ -794,6 +823,7 @@ const SIMPLE_EXTRACTORS = {
 						? relatedEntry
 						: [relatedEntry];
 					for (const dep of deps) {
+						if (!dep) continue;
 						const depItem = assetMap.get(dep);
 						if (!depItem) continue;
 						assets.delete(depItem);
@@ -805,31 +835,32 @@ const SIMPLE_EXTRACTORS = {
 			}
 
 			object.assetsByChunkName = {};
-			for (const [file, chunks] of compilationFileToChunks) {
-				for (const chunk of chunks) {
-					const name = chunk.name;
-					if (!name) continue;
-					if (
-						!Object.prototype.hasOwnProperty.call(
-							object.assetsByChunkName,
-							name
-						)
-					) {
-						object.assetsByChunkName[name] = [];
+			for (const fileToChunks of [
+				compilationFileToChunks,
+				compilationAuxiliaryFileToChunks
+			]) {
+				for (const [file, chunks] of fileToChunks) {
+					for (const chunk of chunks) {
+						const name = chunk.name;
+						if (!name) continue;
+						if (
+							!Object.prototype.hasOwnProperty.call(
+								object.assetsByChunkName,
+								name
+							)
+						) {
+							object.assetsByChunkName[name] = [];
+						}
+						object.assetsByChunkName[name].push(file);
 					}
-					object.assetsByChunkName[name].push(file);
 				}
 			}
 
-			const groupedAssets = factory.create(
-				`${type}.assets`,
-				Array.from(assets),
-				{
-					...context,
-					compilationFileToChunks,
-					compilationAuxiliaryFileToChunks
-				}
-			);
+			const groupedAssets = factory.create(`${type}.assets`, [...assets], {
+				...context,
+				compilationFileToChunks,
+				compilationAuxiliaryFileToChunks
+			});
 			const limited = spaceLimited(
 				groupedAssets,
 				/** @type {number} */ (options.assetsSpace)
@@ -841,13 +872,13 @@ const SIMPLE_EXTRACTORS = {
 			const { type } = context;
 			object.chunks = factory.create(
 				`${type}.chunks`,
-				Array.from(compilation.chunks),
+				[...compilation.chunks],
 				context
 			);
 		},
 		modules: (object, compilation, context, options, factory) => {
 			const { type } = context;
-			const array = Array.from(compilation.modules);
+			const array = [...compilation.modules];
 			const groupedModules = factory.create(`${type}.modules`, array, context);
 			const limited = spaceLimited(groupedModules, options.modulesSpace);
 			object.modules = limited.children;
@@ -914,7 +945,10 @@ const SIMPLE_EXTRACTORS = {
 			let filtered = 0;
 			if (options.errorDetails === "auto" && rawErrors.length >= 3) {
 				filtered = rawErrors
-					.map(e => typeof e !== "string" && e.details)
+					.map(
+						(e) =>
+							typeof e !== "string" && /** @type {WebpackError} */ (e).details
+					)
 					.filter(Boolean).length;
 			}
 			if (
@@ -934,7 +968,7 @@ const SIMPLE_EXTRACTORS = {
 			object.errors = errors;
 		},
 		errorsCount: (object, compilation, { cachedGetErrors }) => {
-			object.errorsCount = countWithChildren(compilation, c =>
+			object.errorsCount = countWithChildren(compilation, (c) =>
 				cachedGetErrors(c)
 			);
 		},
@@ -948,7 +982,10 @@ const SIMPLE_EXTRACTORS = {
 			let filtered = 0;
 			if (options.errorDetails === "auto") {
 				filtered = cachedGetWarnings(compilation)
-					.map(e => typeof e !== "string" && e.details)
+					.map(
+						(e) =>
+							typeof e !== "string" && /** @type {WebpackError} */ (e).details
+					)
 					.filter(Boolean).length;
 			}
 			if (
@@ -977,27 +1014,27 @@ const SIMPLE_EXTRACTORS = {
 			const { type, cachedGetWarnings } = context;
 			object.warningsCount = countWithChildren(compilation, (c, childType) => {
 				if (
-					!warningsFilter &&
 					/** @type {KnownNormalizedStatsOptions["warningsFilter"]} */
 					(warningsFilter).length === 0
-				)
-					// Type is wrong, because we don't need the real value for counting
-					return /** @type {EXPECTED_ANY[]} */ (cachedGetWarnings(c));
+				) {
+					return cachedGetWarnings(c);
+				}
 				return factory
 					.create(`${type}${childType}.warnings`, cachedGetWarnings(c), context)
 					.filter(
 						/**
+						 * Handles the warnings count callback for this hook.
 						 * @param {StatsError} warning warning
 						 * @returns {boolean} result
 						 */
-						warning => {
+						(warning) => {
 							const warningString = Object.keys(warning)
 								.map(
-									key =>
+									(key) =>
 										`${warning[/** @type {keyof KnownStatsError} */ (key)]}`
 								)
 								.join("\n");
-							return !warningsFilter.some(filter =>
+							return !warningsFilter.some((filter) =>
 								filter(warning, warningString)
 							);
 						}
@@ -1038,29 +1075,29 @@ const SIMPLE_EXTRACTORS = {
 		_: (
 			object,
 			asset,
-			{ compilation, compilationFileToChunks, compilationAuxiliaryFileToChunks }
+			{ compilationFileToChunks, compilationAuxiliaryFileToChunks }
 		) => {
 			const chunks = compilationFileToChunks.get(asset.name) || [];
 			const auxiliaryChunks =
 				compilationAuxiliaryFileToChunks.get(asset.name) || [];
 			object.chunkNames = uniqueOrderedArray(
 				chunks,
-				c => (c.name ? [c.name] : []),
+				(c) => (c.name ? [c.name] : []),
 				compareIds
 			);
 			object.chunkIdHints = uniqueOrderedArray(
 				chunks,
-				c => Array.from(c.idNameHints),
+				(c) => [...c.idNameHints],
 				compareIds
 			);
 			object.auxiliaryChunkNames = uniqueOrderedArray(
 				auxiliaryChunks,
-				c => (c.name ? [c.name] : []),
+				(c) => (c.name ? [c.name] : []),
 				compareIds
 			);
 			object.auxiliaryChunkIdHints = uniqueOrderedArray(
 				auxiliaryChunks,
-				c => Array.from(c.idNameHints),
+				(c) => [...c.idNameHints],
 				compareIds
 			);
 			object.filteredRelated = asset.related ? asset.related.length : undefined;
@@ -1087,12 +1124,12 @@ const SIMPLE_EXTRACTORS = {
 				compilationAuxiliaryFileToChunks.get(asset.name) || [];
 			object.chunks = uniqueOrderedArray(
 				chunks,
-				c => /** @type {ChunkId[]} */ (c.ids),
+				(c) => /** @type {ChunkId[]} */ (c.ids),
 				compareIds
 			);
 			object.auxiliaryChunks = uniqueOrderedArray(
 				auxiliaryChunks,
-				c => /** @type {ChunkId[]} */ (c.ids),
+				(c) => /** @type {ChunkId[]} */ (c.ids),
 				compareIds
 			);
 		},
@@ -1111,10 +1148,11 @@ const SIMPLE_EXTRACTORS = {
 				chunkGroupChildren &&
 				chunkGroup.getChildrenByOrders(moduleGraph, chunkGraph);
 			/**
+			 * Returns } Asset object.
 			 * @param {string} name Name
 			 * @returns {{ name: string, size: number }} Asset object
 			 */
-			const toAsset = name => {
+			const toAsset = (name) => {
 				const asset = compilation.getAsset(name);
 				return {
 					name,
@@ -1123,10 +1161,12 @@ const SIMPLE_EXTRACTORS = {
 			};
 			/** @type {(total: number, asset: { size: number }) => number} */
 			const sizeReducer = (total, { size }) => total + size;
-			const assets = uniqueArray(chunkGroup.chunks, c => c.files).map(toAsset);
+			const assets = uniqueArray(chunkGroup.chunks, (c) => c.files).map(
+				toAsset
+			);
 			const auxiliaryAssets = uniqueOrderedArray(
 				chunkGroup.chunks,
-				c => c.auxiliaryFiles,
+				(c) => c.auxiliaryFiles,
 				compareIds
 			).map(toAsset);
 			const assetsSize = assets.reduce(sizeReducer, 0);
@@ -1135,7 +1175,7 @@ const SIMPLE_EXTRACTORS = {
 			const statsChunkGroup = {
 				name,
 				chunks: ids
-					? /** @type {ChunkId[]} */ (chunkGroup.chunks.map(c => c.id))
+					? /** @type {ChunkId[]} */ (chunkGroup.chunks.map((c) => c.id))
 					: undefined,
 				assets: assets.length <= chunkGroupMaxAssets ? assets : undefined,
 				filteredAssets:
@@ -1151,14 +1191,14 @@ const SIMPLE_EXTRACTORS = {
 						: auxiliaryAssets.length,
 				auxiliaryAssetsSize,
 				children: children
-					? mapObject(children, groups =>
-							groups.map(group => {
-								const assets = uniqueArray(group.chunks, c => c.files).map(
+					? mapObject(children, (groups) =>
+							groups.map((group) => {
+								const assets = uniqueArray(group.chunks, (c) => c.files).map(
 									toAsset
 								);
 								const auxiliaryAssets = uniqueOrderedArray(
 									group.chunks,
-									c => c.auxiliaryFiles,
+									(c) => c.auxiliaryFiles,
 									compareIds
 								).map(toAsset);
 
@@ -1167,7 +1207,7 @@ const SIMPLE_EXTRACTORS = {
 									name: group.name,
 									chunks: ids
 										? /** @type {ChunkId[]} */
-											(group.chunks.map(c => c.id))
+											(group.chunks.map((c) => c.id))
 										: undefined,
 									assets:
 										assets.length <= chunkGroupMaxAssets ? assets : undefined,
@@ -1190,7 +1230,7 @@ const SIMPLE_EXTRACTORS = {
 						)
 					: undefined,
 				childAssets: children
-					? mapObject(children, groups => {
+					? mapObject(children, (groups) => {
 							/** @type {Set<string>} */
 							const set = new Set();
 							for (const group of groups) {
@@ -1200,7 +1240,7 @@ const SIMPLE_EXTRACTORS = {
 									}
 								}
 							}
-							return Array.from(set);
+							return [...set];
 						})
 					: undefined
 			};
@@ -1208,6 +1248,25 @@ const SIMPLE_EXTRACTORS = {
 		},
 		performance: (object, { chunkGroup }) => {
 			object.isOverSizeLimit = SizeLimitsPlugin.isOverSizeLimit(chunkGroup);
+		},
+		chunkGroupResourceHints: (
+			object,
+			{ name, chunkGroup },
+			{ compilation }
+		) => {
+			// SSR frameworks consume this to inject the initial-chunk +
+			// URL-asset `<link>` tags into their server-rendered HTML without
+			// having to walk the chunk graph themselves. Only entrypoints
+			// carry hints; split-chunk / async chunk groups are skipped.
+			if (!compilation.entrypoints.get(name)) return;
+
+			const ResourceHintPlugin = require("../prefetch/ResourceHintPlugin");
+
+			const hints =
+				ResourceHintPlugin.getCompilationResolver(
+					compilation
+				).getEntrypointHints(name);
+			if (hints.length > 0) object.resourceHints = hints;
 		}
 	},
 	module: {
@@ -1218,24 +1277,21 @@ const SIMPLE_EXTRACTORS = {
 			const codeGenerated = compilation.codeGeneratedModules.has(module);
 			const buildTimeExecuted =
 				compilation.buildTimeExecutedModules.has(module);
-			/** @type {{[x: string]: number}} */
+			/** @type {{ [x: string]: number }} */
 			const sizes = {};
 			for (const sourceType of module.getSourceTypes()) {
 				sizes[sourceType] = module.size(sourceType);
 			}
-			/** @type {KnownStatsModule} */
-			const statsModule = {
-				type: "module",
-				moduleType: module.type,
-				layer: module.layer,
-				size: module.size(),
-				sizes,
-				built,
-				codeGenerated,
-				buildTimeExecuted,
-				cached: !built && !codeGenerated
-			};
-			Object.assign(object, statsModule);
+			// assign fields directly to avoid an intermediate object + copy per module
+			object.type = "module";
+			object.moduleType = module.type;
+			object.layer = module.layer;
+			object.size = module.size();
+			object.sizes = sizes;
+			object.built = built;
+			object.codeGenerated = codeGenerated;
+			object.buildTimeExecuted = buildTimeExecuted;
+			object.cached = !built && !codeGenerated;
 			if (built || codeGenerated || options.cachedModules) {
 				Object.assign(
 					object,
@@ -1264,36 +1320,43 @@ const SIMPLE_EXTRACTORS = {
 			const warnings = module.getWarnings();
 			const warningsCount =
 				warnings !== undefined ? countIterable(warnings) : 0;
-			/** @type {KnownStatsModule} */
-			const statsModule = {
-				identifier: module.identifier(),
-				name: module.readableIdentifier(requestShortener),
-				nameForCondition: module.nameForCondition(),
-				index: /** @type {number} */ (moduleGraph.getPreOrderIndex(module)),
-				preOrderIndex: /** @type {number} */ (
-					moduleGraph.getPreOrderIndex(module)
-				),
-				index2: /** @type {number} */ (moduleGraph.getPostOrderIndex(module)),
-				postOrderIndex: /** @type {number} */ (
-					moduleGraph.getPostOrderIndex(module)
-				),
-				cacheable: /** @type {BuildInfo} */ (module.buildInfo).cacheable,
-				optional: module.isOptional(moduleGraph),
-				orphan:
-					!type.endsWith("module.modules[].module$visible") &&
-					compilation.chunkGraph.getNumberOfModuleChunks(module) === 0,
-				dependent: rootModules ? !rootModules.has(module) : undefined,
-				issuer: issuer && issuer.identifier(),
-				issuerName: issuer && issuer.readableIdentifier(requestShortener),
-				issuerPath:
-					issuer &&
-					/** @type {StatsModuleIssuer[] | undefined} */
-					(factory.create(`${type.slice(0, -8)}.issuerPath`, path, context)),
-				failed: errorsCount > 0,
-				errors: errorsCount,
-				warnings: warningsCount
-			};
-			Object.assign(object, statsModule);
+			const { cacheable, notCacheableReasons } = /** @type {BuildInfo} */ (
+				module.buildInfo
+			);
+			const preOrderIndex = /** @type {number} */ (
+				moduleGraph.getPreOrderIndex(module)
+			);
+			const postOrderIndex = /** @type {number} */ (
+				moduleGraph.getPostOrderIndex(module)
+			);
+			// assign fields directly to avoid an intermediate object + copy per module
+			object.identifier = module.identifier();
+			object.name = module.readableIdentifier(requestShortener);
+			object.nameForCondition = module.nameForCondition();
+			object.index = preOrderIndex;
+			object.preOrderIndex = preOrderIndex;
+			object.index2 = postOrderIndex;
+			object.postOrderIndex = postOrderIndex;
+			object.cacheable = cacheable;
+			object.notCacheableReasons =
+				notCacheableReasons &&
+				notCacheableReasons.map(
+					(request) => /** @type {string} */ (requestShortener.shorten(request))
+				);
+			object.optional = module.isOptional(moduleGraph);
+			object.orphan =
+				!type.endsWith("module.modules[].module$visible") &&
+				compilation.chunkGraph.getNumberOfModuleChunks(module) === 0;
+			object.dependent = rootModules ? !rootModules.has(module) : undefined;
+			object.issuer = issuer && issuer.identifier();
+			object.issuerName = issuer && issuer.readableIdentifier(requestShortener);
+			object.issuerPath =
+				issuer &&
+				/** @type {StatsModuleIssuer[] | undefined} */
+				(factory.create(`${type.slice(0, -8)}.issuerPath`, path, context));
+			object.failed = errorsCount > 0;
+			object.errors = errorsCount;
+			object.warnings = warningsCount;
 			if (profile) {
 				object.profile = factory.create(
 					`${type.slice(0, -8)}.profile`,
@@ -1314,7 +1377,7 @@ const SIMPLE_EXTRACTORS = {
 							module,
 							compareChunksById
 						),
-						chunk => chunk.id
+						(chunk) => chunk.id
 					)
 				);
 		},
@@ -1330,7 +1393,7 @@ const SIMPLE_EXTRACTORS = {
 			} = context;
 			const groupsReasons = factory.create(
 				`${type.slice(0, -8)}.reasons`,
-				Array.from(moduleGraph.getIncomingConnections(module)),
+				[...moduleGraph.getIncomingConnections(module)],
 				context
 			);
 			const limited = spaceLimited(
@@ -1352,7 +1415,7 @@ const SIMPLE_EXTRACTORS = {
 			} else if (typeof usedExports === "boolean") {
 				object.usedExports = usedExports;
 			} else {
-				object.usedExports = Array.from(usedExports);
+				object.usedExports = [...usedExports];
 			}
 		},
 		providedExports: (object, module, { compilation: { moduleGraph } }) => {
@@ -1369,7 +1432,7 @@ const SIMPLE_EXTRACTORS = {
 		) => {
 			object.optimizationBailout = moduleGraph
 				.getOptimizationBailout(module)
-				.map(item => {
+				.map((item) => {
 					if (typeof item === "function") return item(requestShortener);
 					return item;
 				});
@@ -1405,27 +1468,24 @@ const SIMPLE_EXTRACTORS = {
 	},
 	profile: {
 		_: (object, profile) => {
-			/** @type {KnownStatsProfile} */
-			const statsProfile = {
-				total:
-					profile.factory +
-					profile.restoring +
-					profile.integration +
-					profile.building +
-					profile.storing,
-				resolving: profile.factory,
-				restoring: profile.restoring,
-				building: profile.building,
-				integration: profile.integration,
-				storing: profile.storing,
-				additionalResolving: profile.additionalFactories,
-				additionalIntegration: profile.additionalIntegration,
-				// TODO remove this in webpack 6
-				factory: profile.factory,
-				// TODO remove this in webpack 6
-				dependencies: profile.additionalFactories
-			};
-			Object.assign(object, statsProfile);
+			// assign fields directly to avoid an intermediate object + copy
+			object.total =
+				profile.factory +
+				profile.restoring +
+				profile.integration +
+				profile.building +
+				profile.storing;
+			object.resolving = profile.factory;
+			object.restoring = profile.restoring;
+			object.building = profile.building;
+			object.integration = profile.integration;
+			object.storing = profile.storing;
+			object.additionalResolving = profile.additionalFactories;
+			object.additionalIntegration = profile.additionalIntegration;
+			// TODO remove this in webpack 6
+			object.factory = profile.factory;
+			// TODO remove this in webpack 6
+			object.dependencies = profile.additionalFactories;
 		}
 	},
 	moduleIssuer: {
@@ -1434,12 +1494,9 @@ const SIMPLE_EXTRACTORS = {
 			const compilation = /** @type {Compilation} */ (context.compilation);
 			const { moduleGraph } = compilation;
 			const profile = moduleGraph.getProfile(module);
-			/** @type {Partial<KnownStatsModuleIssuer>} */
-			const statsModuleIssuer = {
-				identifier: module.identifier(),
-				name: module.readableIdentifier(requestShortener)
-			};
-			Object.assign(object, statsModuleIssuer);
+			// assign fields directly to avoid an intermediate object + copy per issuer
+			object.identifier = module.identifier();
+			object.name = module.readableIdentifier(requestShortener);
 			if (profile) {
 				object.profile = factory.create(`${type}.profile`, profile, context);
 			}
@@ -1453,31 +1510,26 @@ const SIMPLE_EXTRACTORS = {
 			const dep = reason.dependency;
 			const moduleDep =
 				dep && dep instanceof ModuleDependency ? dep : undefined;
-			/** @type {KnownStatsModuleReason} */
-			const statsModuleReason = {
-				moduleIdentifier: reason.originModule
-					? reason.originModule.identifier()
-					: null,
-				module: reason.originModule
-					? reason.originModule.readableIdentifier(requestShortener)
-					: null,
-				moduleName: reason.originModule
-					? reason.originModule.readableIdentifier(requestShortener)
-					: null,
-				resolvedModuleIdentifier: reason.resolvedOriginModule
-					? reason.resolvedOriginModule.identifier()
-					: null,
-				resolvedModule: reason.resolvedOriginModule
-					? reason.resolvedOriginModule.readableIdentifier(requestShortener)
-					: null,
-				type: reason.dependency ? reason.dependency.type : null,
-				active: reason.isActive(runtime),
-				explanation: reason.explanation,
-				userRequest: (moduleDep && moduleDep.userRequest) || null
-			};
-			Object.assign(object, statsModuleReason);
-			if (reason.dependency) {
-				const locInfo = formatLocation(reason.dependency.loc);
+			const { originModule, resolvedOriginModule } = reason;
+			const originName = originModule
+				? originModule.readableIdentifier(requestShortener)
+				: null;
+			// assign fields directly to avoid an intermediate object + copy per reason
+			object.moduleIdentifier = originModule ? originModule.identifier() : null;
+			object.module = originName;
+			object.moduleName = originName;
+			object.resolvedModuleIdentifier = resolvedOriginModule
+				? resolvedOriginModule.identifier()
+				: null;
+			object.resolvedModule = resolvedOriginModule
+				? resolvedOriginModule.readableIdentifier(requestShortener)
+				: null;
+			object.type = dep ? dep.type : null;
+			object.active = reason.isActive(runtime);
+			object.explanation = reason.explanation;
+			object.userRequest = (moduleDep && moduleDep.userRequest) || null;
+			if (dep) {
+				const locInfo = formatLocation(dep.loc);
 				if (locInfo) {
 					object.loc = locInfo;
 				}
@@ -1496,39 +1548,37 @@ const SIMPLE_EXTRACTORS = {
 		_: (object, chunk, { makePathsRelative, compilation: { chunkGraph } }) => {
 			const childIdByOrder = chunk.getChildIdsByOrders(chunkGraph);
 
-			/** @type {KnownStatsChunk} */
-			const statsChunk = {
-				rendered: chunk.rendered,
-				initial: chunk.canBeInitial(),
-				entry: chunk.hasRuntime(),
-				recorded: AggressiveSplittingPlugin.wasChunkRecorded(chunk),
-				reason: chunk.chunkReason,
-				size: chunkGraph.getChunkModulesSize(chunk),
-				sizes: chunkGraph.getChunkModulesSizes(chunk),
-				names: chunk.name ? [chunk.name] : [],
-				idHints: Array.from(chunk.idNameHints),
-				runtime:
-					chunk.runtime === undefined
-						? undefined
-						: typeof chunk.runtime === "string"
-							? [makePathsRelative(chunk.runtime)]
-							: Array.from(chunk.runtime.sort(), makePathsRelative),
-				files: Array.from(chunk.files),
-				auxiliaryFiles: Array.from(chunk.auxiliaryFiles).sort(compareIds),
-				hash: /** @type {string} */ (chunk.renderedHash),
-				childrenByOrder: childIdByOrder
-			};
-			Object.assign(object, statsChunk);
+			// assign fields directly to avoid an intermediate object + copy per chunk
+			object.rendered = chunk.rendered;
+			object.initial = chunk.canBeInitial();
+			object.entry = chunk.hasRuntime();
+			object.recorded = AggressiveSplittingPlugin.wasChunkRecorded(chunk);
+			object.reason = chunk.chunkReason;
+			object.size = chunkGraph.getChunkModulesSize(chunk);
+			object.sizes = chunkGraph.getChunkModulesSizes(chunk);
+			object.names = chunk.name ? [chunk.name] : [];
+			object.idHints = [...chunk.idNameHints];
+			object.runtime =
+				chunk.runtime === undefined
+					? undefined
+					: typeof chunk.runtime === "string"
+						? [makePathsRelative(chunk.runtime)]
+						: Array.from(chunk.runtime.sort(), makePathsRelative);
+			object.files = [...chunk.files];
+			object.auxiliaryFiles = [...chunk.auxiliaryFiles].sort(compareIds);
+			object.hash = /** @type {string} */ (chunk.renderedHash);
+			object.childrenByOrder = childIdByOrder;
 		},
 		ids: (object, chunk) => {
 			object.id = /** @type {ChunkId} */ (chunk.id);
 		},
-		chunkRelations: (object, chunk, { compilation: { chunkGraph } }) => {
-			/** @type {Set<string|number>} */
+		chunkRelations: (object, chunk, _context) => {
+			/** @typedef {Set<ChunkId>} ChunkRelations */
+			/** @type {ChunkRelations} */
 			const parents = new Set();
-			/** @type {Set<string|number>} */
+			/** @type {ChunkRelations} */
 			const children = new Set();
-			/** @type {Set<string|number>} */
+			/** @type {ChunkRelations} */
 			const siblings = new Set();
 
 			for (const chunkGroup of chunk.groupsIterable) {
@@ -1543,13 +1593,14 @@ const SIMPLE_EXTRACTORS = {
 					}
 				}
 				for (const sibling of chunkGroup.chunks) {
-					if (sibling !== chunk)
+					if (sibling !== chunk) {
 						siblings.add(/** @type {ChunkId} */ (sibling.id));
+					}
 				}
 			}
-			object.siblings = Array.from(siblings).sort(compareIds);
-			object.parents = Array.from(parents).sort(compareIds);
-			object.children = Array.from(children).sort(compareIds);
+			object.siblings = [...siblings].sort(compareIds);
+			object.parents = [...parents].sort(compareIds);
+			object.children = [...children].sort(compareIds);
 		},
 		chunkModules: (object, chunk, context, options, factory) => {
 			const {
@@ -1578,7 +1629,7 @@ const SIMPLE_EXTRACTORS = {
 			for (const g of chunk.groupsIterable) {
 				origins.push(...g.origins);
 			}
-			const array = origins.filter(origin => {
+			const array = origins.filter((origin) => {
 				const key = [
 					origin.module ? chunkGraph.getModuleId(origin.module) : undefined,
 					formatLocation(origin.loc),
@@ -1593,17 +1644,16 @@ const SIMPLE_EXTRACTORS = {
 	},
 	chunkOrigin: {
 		_: (object, origin, context, { requestShortener }) => {
-			/** @type {KnownStatsChunkOrigin} */
-			const statsChunkOrigin = {
-				module: origin.module ? origin.module.identifier() : "",
-				moduleIdentifier: origin.module ? origin.module.identifier() : "",
-				moduleName: origin.module
-					? origin.module.readableIdentifier(requestShortener)
-					: "",
-				loc: formatLocation(origin.loc),
-				request: origin.request
-			};
-			Object.assign(object, statsChunkOrigin);
+			const originModule = origin.module;
+			const identifier = originModule ? originModule.identifier() : "";
+			// assign fields directly to avoid an intermediate object + copy per origin
+			object.module = identifier;
+			object.moduleIdentifier = identifier;
+			object.moduleName = originModule
+				? originModule.readableIdentifier(requestShortener)
+				: "";
+			object.loc = formatLocation(origin.loc);
+			object.request = origin.request;
 		},
 		ids: (object, origin, { compilation: { chunkGraph } }) => {
 			object.moduleId = origin.module
@@ -1624,15 +1674,16 @@ const SIMPLE_EXTRACTORS = {
 			object.originName = origin.readableIdentifier(requestShortener);
 			object.moduleIdentifier = module.identifier();
 			object.moduleName = module.readableIdentifier(requestShortener);
-			const dependencies = Array.from(
-				moduleGraph.getIncomingConnections(module)
-			)
-				.filter(c => c.resolvedOriginModule === origin && c.dependency)
-				.map(c => c.dependency);
+			/** @type {Set<Dependency>} */
+			const dependencies = new Set();
+			for (const c of moduleGraph.getIncomingConnections(module)) {
+				if (c.resolvedOriginModule === origin && c.dependency) {
+					dependencies.add(c.dependency);
+				}
+			}
 			object.dependencies = factory.create(
 				`${type}.dependencies`,
-				/** @type {Dependency[]} */
-				(Array.from(new Set(dependencies))),
+				[...dependencies],
 				context
 			);
 		},
@@ -1672,9 +1723,11 @@ const FILTER_RESULTS = {
 		warningsFilter: util.deprecate(
 			(warning, context, { warningsFilter }) => {
 				const warningString = Object.keys(warning)
-					.map(key => `${warning[/** @type {keyof KnownStatsError} */ (key)]}`)
+					.map(
+						(key) => `${warning[/** @type {keyof KnownStatsError} */ (key)]}`
+					)
 					.join("\n");
-				return !warningsFilter.some(filter => filter(warning, warningString));
+				return !warningsFilter.some((filter) => filter(warning, warningString));
 			},
 			"config.stats.warningsFilter is deprecated in favor of config.ignoreWarnings",
 			"DEP_WEBPACK_STATS_WARNINGS_FILTER"
@@ -1682,22 +1735,65 @@ const FILTER_RESULTS = {
 	}
 };
 
+// module sort selectors close over moduleGraph, so cache the built comparators per
+// moduleGraph (stable per compilation) instead of rebuilding them on every sort
+/** @type {WeakMap<ModuleGraph, Comparator<Module>[]>} */
+const modulesSorterCache = new WeakMap();
+
 /** @type {Record<string, (comparators: Comparator<Module>[], context: StatsFactoryContext) => void>} */
 const MODULES_SORTER = {
 	_: (comparators, { compilation: { moduleGraph } }) => {
-		comparators.push(
-			compareSelect(m => moduleGraph.getDepth(m), compareNumbers),
-			compareSelect(m => moduleGraph.getPreOrderIndex(m), compareNumbers),
-			compareSelect(m => m.identifier(), compareIds)
-		);
+		let cached = modulesSorterCache.get(moduleGraph);
+		if (cached === undefined) {
+			cached = [
+				compareSelect((m) => moduleGraph.getDepth(m), compareNumbers),
+				compareSelect((m) => moduleGraph.getPreOrderIndex(m), compareNumbers),
+				compareSelect((m) => m.identifier(), compareIds)
+			];
+			modulesSorterCache.set(moduleGraph, cached);
+		}
+		comparators.push(...cached);
 	}
 };
 
-/** @type {Record<string, Record<string, (comparators: Comparator<TODO>[], context: StatsFactoryContext, options: NormalizedStatsOptions) => void>>} */
+// reason comparators use only pure selectors, so build them once instead of per
+// module.reasons sort (which runs once per module and otherwise thrashes the caches)
+/** @type {Comparator<ModuleGraphConnection>[]} */
+const MODULE_REASONS_COMPARATORS = [
+	compareSelect((x) => x.originModule, compareModulesByIdentifier),
+	compareSelect((x) => x.resolvedOriginModule, compareModulesByIdentifier),
+	compareSelect(
+		(x) => x.dependency,
+		concatComparators(
+			compareSelect(
+				/**
+				 * Handles the callback for this hook.
+				 * @param {Dependency} x dependency
+				 * @returns {DependencyLocation} location
+				 */
+				(x) => x.loc,
+				compareLocations
+			),
+			compareSelect((x) => x.type, compareIds)
+		)
+	)
+];
+
+/**
+ * @type {{
+ * "compilation.chunks": Record<string, (comparators: Comparator<Chunk>[], context: StatsFactoryContext, options: NormalizedStatsOptions) => void>,
+ * "compilation.modules": Record<string, (comparators: Comparator<Module>[], context: StatsFactoryContext, options: NormalizedStatsOptions) => void>,
+ * "chunk.rootModules": Record<string, (comparators: Comparator<Module>[], context: StatsFactoryContext, options: NormalizedStatsOptions) => void>,
+ * "chunk.modules": Record<string, (comparators: Comparator<Module>[], context: StatsFactoryContext, options: NormalizedStatsOptions) => void>,
+ * "module.modules": Record<string, (comparators: Comparator<Module>[], context: StatsFactoryContext, options: NormalizedStatsOptions) => void>,
+ * "module.reasons": Record<string, (comparators: Comparator<ModuleGraphConnection>[], context: StatsFactoryContext, options: NormalizedStatsOptions) => void>,
+ * "chunk.origins": Record<string, (comparators: Comparator<OriginRecord>[], context: StatsFactoryContext, options: NormalizedStatsOptions) => void>,
+ * }}
+ */
 const SORTERS = {
 	"compilation.chunks": {
-		_: comparators => {
-			comparators.push(compareSelect(c => c.id, compareIds));
+		_: (comparators) => {
+			comparators.push(compareSelect((c) => c.id, compareIds));
 		}
 	},
 	"compilation.modules": MODULES_SORTER,
@@ -1705,57 +1801,38 @@ const SORTERS = {
 	"chunk.modules": MODULES_SORTER,
 	"module.modules": MODULES_SORTER,
 	"module.reasons": {
-		_: (comparators, { compilation: { chunkGraph } }) => {
-			comparators.push(
-				compareSelect(x => x.originModule, compareModulesByIdentifier)
-			);
-			comparators.push(
-				compareSelect(x => x.resolvedOriginModule, compareModulesByIdentifier)
-			);
-			comparators.push(
-				compareSelect(
-					x => x.dependency,
-					concatComparators(
-						compareSelect(
-							/**
-							 * @param {Dependency} x dependency
-							 * @returns {DependencyLocation} location
-							 */
-							x => x.loc,
-							compareLocations
-						),
-						compareSelect(x => x.type, compareIds)
-					)
-				)
-			);
+		_: (comparators) => {
+			comparators.push(...MODULE_REASONS_COMPARATORS);
 		}
 	},
 	"chunk.origins": {
 		_: (comparators, { compilation: { chunkGraph } }) => {
 			comparators.push(
 				compareSelect(
-					origin =>
+					(origin) =>
 						origin.module ? chunkGraph.getModuleId(origin.module) : undefined,
 					compareIds
 				),
-				compareSelect(origin => formatLocation(origin.loc), compareIds),
-				compareSelect(origin => origin.request, compareIds)
+				compareSelect((origin) => formatLocation(origin.loc), compareIds),
+				compareSelect((origin) => origin.request, compareIds)
 			);
 		}
 	}
 };
 
 /**
+ * Defines the children type used by this module.
  * @template T
  * @typedef {T & { children?: Children<T>[] | undefined, filteredChildren?: number }} Children
  */
 
 /**
+ * Returns item size.
  * @template T
  * @param {Children<T>} item item
  * @returns {number} item size
  */
-const getItemSize = item =>
+const getItemSize = (item) =>
 	// Each item takes 1 line
 	// + the size of the children
 	// + 1 extra line when it has children and filteredChildren
@@ -1766,11 +1843,12 @@ const getItemSize = item =>
 			: 1 + getTotalSize(item.children);
 
 /**
+ * Returns total size.
  * @template T
  * @param {Children<T>[]} children children
  * @returns {number} total size
  */
-const getTotalSize = children => {
+const getTotalSize = (children) => {
 	let size = 0;
 	for (const child of children) {
 		size += getItemSize(child);
@@ -1779,11 +1857,12 @@ const getTotalSize = children => {
 };
 
 /**
+ * Returns total items.
  * @template T
  * @param {Children<T>[]} children children
  * @returns {number} total items
  */
-const getTotalItems = children => {
+const getTotalItems = (children) => {
 	let count = 0;
 	for (const child of children) {
 		if (!child.children && !child.filteredChildren) {
@@ -1797,12 +1876,14 @@ const getTotalItems = children => {
 };
 
 /**
+ * Returns collapsed children.
  * @template T
  * @param {Children<T>[]} children children
  * @returns {Children<T>[]} collapsed children
  */
-const collapse = children => {
+const collapse = (children) => {
 	// After collapse each child must take exactly one line
+	/** @type {Children<T>[]} */
 	const newChildren = [];
 	for (const child of children) {
 		if (child.children) {
@@ -1821,6 +1902,7 @@ const collapse = children => {
 };
 
 /**
+ * Returns result.
  * @template T
  * @param {Children<T>[]} itemsAndGroups item and groups
  * @param {number} max max
@@ -1849,6 +1931,7 @@ const spaceLimited = (
 	/** @type {number[]} */
 	const groupSizes = [];
 	// This are the items, which take 1 line each
+	/** @type {Children<T>[]} */
 	const items = [];
 	// The total of group sizes
 	let groupsSize = 0;
@@ -1868,7 +1951,7 @@ const spaceLimited = (
 	if (groupsSize + items.length <= max) {
 		// The total size in the current state fits into the max
 		// keep all
-		children = groups.length > 0 ? groups.concat(items) : items;
+		children = groups.length > 0 ? [...groups, ...items] : items;
 	} else if (groups.length === 0) {
 		// slice items to max
 		// inner space marks that lines for filteredChildren already reserved
@@ -1884,6 +1967,7 @@ const spaceLimited = (
 		if (limit < max) {
 			// calculate how much we are over the size limit
 			// this allows to approach the limit faster
+			/** @type {number} */
 			let oversize;
 			// If each group would take 1 line the total would be below the maximum
 			// collapse some groups, keep items
@@ -1931,7 +2015,7 @@ const spaceLimited = (
 					}
 				}
 			}
-			children = groups.concat(items);
+			children = [...groups, ...items];
 		} else if (limit === max) {
 			// If we have only enough space to show one line per group and one line for the filtered items
 			// collapse all groups and items
@@ -1948,6 +2032,7 @@ const spaceLimited = (
 };
 
 /**
+ * Errors space limit.
  * @param {StatsError[]} errors errors
  * @param {number} max max
  * @returns {[StatsError[], number]} error space limit
@@ -1956,15 +2041,16 @@ const errorsSpaceLimit = (errors, max) => {
 	let filtered = 0;
 	// Can not fit into limit
 	// print only messages
-	if (errors.length + 1 >= max)
+	if (errors.length + 1 >= max) {
 		return [
-			errors.map(error => {
+			errors.map((error) => {
 				if (typeof error === "string" || !error.details) return error;
 				filtered++;
 				return { ...error, details: "" };
 			}),
 			filtered
 		];
+	}
 	let fullLength = errors.length;
 	let result = errors;
 
@@ -1990,7 +2076,7 @@ const errorsSpaceLimit = (errors, max) => {
 				for (; i < errors.length; i++) {
 					const error = errors[i];
 					if (typeof error === "string" || !error.details) result.push(error);
-					result.push({ ...error, details: "" });
+					else result.push({ ...error, details: "" });
 				}
 				break;
 			} else if (fullLength === max) {
@@ -1999,7 +2085,7 @@ const errorsSpaceLimit = (errors, max) => {
 				for (; i < errors.length; i++) {
 					const error = errors[i];
 					if (typeof error === "string" || !error.details) result.push(error);
-					result.push({ ...error, details: "" });
+					else result.push({ ...error, details: "" });
 				}
 				break;
 			}
@@ -2010,9 +2096,9 @@ const errorsSpaceLimit = (errors, max) => {
 };
 
 /**
+ * Returns } asset size.
  * @template {{ size: number }} T
- * @template {{ size: number }} R
- * @param {(R | T)[]} children children
+ * @param {T[]} children children
  * @param {T[]} assets assets
  * @returns {{ size: number }} asset size
  */
@@ -2024,11 +2110,14 @@ const assetGroup = (children, assets) => {
 	return { size };
 };
 
+/** @typedef {{ size: number, sizes: Record<string, number> }} ModuleGroupBySizeResult */
+
 /**
- * @template {{ size: number, sizes: Record<string, number> }} T
+ * Returns size and sizes.
+ * @template {ModuleGroupBySizeResult} T
  * @param {Children<T>[]} children children
  * @param {KnownStatsModule[]} modules modules
- * @returns {{ size: number, sizes: Record<string, number>}} size and sizes
+ * @returns {ModuleGroupBySizeResult} size and sizes
  */
 const moduleGroup = (children, modules) => {
 	let size = 0;
@@ -2047,6 +2136,7 @@ const moduleGroup = (children, modules) => {
 };
 
 /**
+ * Returns } reason group.
  * @template {{ active: boolean }} T
  * @param {Children<T>[]} children children
  * @param {KnownStatsModuleReason[]} reasons reasons
@@ -2065,18 +2155,37 @@ const reasonGroup = (children, reasons) => {
 const GROUP_EXTENSION_REGEXP = /(\.[^.]+?)(?:\?|(?: \+ \d+ modules?)?$)/;
 const GROUP_PATH_REGEXP = /(.+)[/\\][^/\\]+?(?:\?|(?: \+ \d+ modules?)?$)/;
 
-/** @typedef {Record<string, (groupConfigs: GroupConfig<KnownStatsAsset, TODO>[], context: StatsFactoryContext, options: NormalizedStatsOptions) => void>} AssetsGroupers */
+/** @typedef {{ type: string }} BaseGroup */
+
+/**
+ * Defines the base group with children type used by this module.
+ * @template T
+ * @typedef {BaseGroup & { children: T[], size: number }} BaseGroupWithChildren
+ */
+
+/** @typedef {(name: string, asset: StatsAsset) => boolean} AssetFilterItemFn */
+
+/**
+ * Describes the assets groupers shape.
+ * @typedef {{
+ * _: (groupConfigs: GroupConfig<KnownStatsAsset, BaseGroup & { filteredChildren: number, size: number } | BaseGroupWithChildren<KnownStatsAsset>>[], context: StatsFactoryContext, options: NormalizedStatsOptions) => void,
+ * groupAssetsByInfo: (groupConfigs: GroupConfig<KnownStatsAsset, BaseGroupWithChildren<KnownStatsAsset>>[], context: StatsFactoryContext, options: NormalizedStatsOptions) => void,
+ * groupAssetsByChunk: (groupConfigs: GroupConfig<KnownStatsAsset, BaseGroupWithChildren<KnownStatsAsset>>[], context: StatsFactoryContext, options: NormalizedStatsOptions) => void,
+ * excludeAssets: (groupConfigs: GroupConfig<KnownStatsAsset, BaseGroup & { filteredChildren: number, size: number }>[], context: StatsFactoryContext, options: NormalizedStatsOptions) => void,
+ * }} AssetsGroupers
+ */
 
 /** @type {AssetsGroupers} */
 const ASSETS_GROUPERS = {
 	_: (groupConfigs, context, options) => {
 		/**
+		 * Processes the provided name.
 		 * @param {keyof KnownStatsAsset} name name
 		 * @param {boolean=} exclude need exclude?
 		 */
 		const groupByFlag = (name, exclude) => {
 			groupConfigs.push({
-				getKeys: asset => (asset[name] ? ["1"] : undefined),
+				getKeys: (asset) => (asset[name] ? ["1"] : undefined),
 				getOptions: () => ({
 					groupChildren: !exclude,
 					force: exclude
@@ -2112,7 +2221,7 @@ const ASSETS_GROUPERS = {
 		}
 		if (groupAssetsByPath || groupAssetsByExtension) {
 			groupConfigs.push({
-				getKeys: asset => {
+				getKeys: (asset) => {
 					const extensionMatch =
 						groupAssetsByExtension && GROUP_EXTENSION_REGEXP.exec(asset.name);
 					const extension = extensionMatch ? extensionMatch[1] : "";
@@ -2123,12 +2232,13 @@ const ASSETS_GROUPERS = {
 					const keys = [];
 					if (groupAssetsByPath) {
 						keys.push(".");
-						if (extension)
+						if (extension) {
 							keys.push(
 								path.length
 									? `${path.join("/")}/*${extension}`
 									: `*${extension}`
 							);
+						}
 						while (path.length > 0) {
 							keys.push(`${path.join("/")}/`);
 							path.pop();
@@ -2147,13 +2257,15 @@ const ASSETS_GROUPERS = {
 			});
 		}
 	},
-	groupAssetsByInfo: (groupConfigs, context, options) => {
+	groupAssetsByInfo: (groupConfigs, _context, _options) => {
 		/**
+		 * Group by asset info flag.
 		 * @param {string} name name
 		 */
-		const groupByAssetInfoFlag = name => {
+		const groupByAssetInfoFlag = (name) => {
 			groupConfigs.push({
-				getKeys: asset => (asset.info && asset.info[name] ? ["1"] : undefined),
+				getKeys: (asset) =>
+					asset.info && asset.info[name] ? ["1"] : undefined,
 				createGroup: (key, children, assets) => ({
 					type: "assets by info",
 					info: {
@@ -2168,13 +2280,14 @@ const ASSETS_GROUPERS = {
 		groupByAssetInfoFlag("development");
 		groupByAssetInfoFlag("hotModuleReplacement");
 	},
-	groupAssetsByChunk: (groupConfigs, context, options) => {
+	groupAssetsByChunk: (groupConfigs, _context, _options) => {
 		/**
+		 * Processes the provided name.
 		 * @param {keyof KnownStatsAsset} name name
 		 */
-		const groupByNames = name => {
+		const groupByNames = (name) => {
 			groupConfigs.push({
-				getKeys: asset => /** @type {string[]} */ (asset[name]),
+				getKeys: (asset) => /** @type {string[]} */ (asset[name]),
 				createGroup: (key, children, assets) => ({
 					type: "assets by chunk",
 					[name]: [key],
@@ -2190,9 +2303,9 @@ const ASSETS_GROUPERS = {
 	},
 	excludeAssets: (groupConfigs, context, { excludeAssets }) => {
 		groupConfigs.push({
-			getKeys: asset => {
+			getKeys: (asset) => {
 				const ident = asset.name;
-				const excluded = excludeAssets.some(fn => fn(ident, asset));
+				const excluded = excludeAssets.some((fn) => fn(ident, asset));
 				if (excluded) return ["excluded"];
 			},
 			getOptions: () => ({
@@ -2208,19 +2321,30 @@ const ASSETS_GROUPERS = {
 	}
 };
 
-/** @typedef {Record<string, (groupConfigs: GroupConfig<KnownStatsModule, TODO>[], context: StatsFactoryContext, options: NormalizedStatsOptions) => void>} ModulesGroupers */
+/**
+ * Describes the modules groupers shape.
+ * @typedef {{
+ * _: (groupConfigs: GroupConfig<KnownStatsModule, BaseGroup & { filteredChildren?: number, children?: KnownStatsModule[], size: number, sizes: Record<string, number> }>[], context: StatsFactoryContext, options: NormalizedStatsOptions) => void,
+ * excludeModules: (groupConfigs: GroupConfig<KnownStatsModule, BaseGroup & { filteredChildren: number, size: number, sizes: Record<string, number> }>[], context: StatsFactoryContext, options: NormalizedStatsOptions) => void,
+ * }} ModulesGroupers
+ */
 
-/** @type {(type: ExcludeModulesType) => ModulesGroupers} */
-const MODULES_GROUPERS = type => ({
+/** @typedef {(name: string, module: StatsModule, type: "module" | "chunk" | "root-of-chunk" | "nested") => boolean} ModuleFilterItemTypeFn */
+
+/**
+ * @type {(type: ExcludeModulesType) => ModulesGroupers}
+ */
+const MODULES_GROUPERS = (type) => ({
 	_: (groupConfigs, context, options) => {
 		/**
+		 * Processes the provided name.
 		 * @param {keyof KnownStatsModule} name name
 		 * @param {string} type type
 		 * @param {boolean=} exclude need exclude?
 		 */
 		const groupByFlag = (name, type, exclude) => {
 			groupConfigs.push({
-				getKeys: module => (module[name] ? ["1"] : undefined),
+				getKeys: (module) => (module[name] ? ["1"] : undefined),
 				getOptions: () => ({
 					groupChildren: !exclude,
 					force: exclude
@@ -2229,7 +2353,11 @@ const MODULES_GROUPERS = type => ({
 					type,
 					[name]: Boolean(key),
 					...(exclude ? { filteredChildren: modules.length } : { children }),
-					...moduleGroup(children, modules)
+					...moduleGroup(
+						/** @type {(KnownStatsModule & ModuleGroupBySizeResult)[]} */
+						(children),
+						modules
+					)
 				})
 			});
 		};
@@ -2263,7 +2391,7 @@ const MODULES_GROUPERS = type => ({
 		}
 		if (groupModulesByType || !options.runtimeModules) {
 			groupConfigs.push({
-				getKeys: module => {
+				getKeys: (module) => {
 					if (!module.moduleType) return;
 					if (groupModulesByType) {
 						return [module.moduleType.split("/", 1)[0]];
@@ -2271,7 +2399,7 @@ const MODULES_GROUPERS = type => ({
 						return [WEBPACK_MODULE_TYPE_RUNTIME];
 					}
 				},
-				getOptions: key => {
+				getOptions: (key) => {
 					const exclude =
 						key === WEBPACK_MODULE_TYPE_RUNTIME && !options.runtimeModules;
 					return {
@@ -2286,25 +2414,33 @@ const MODULES_GROUPERS = type => ({
 						type: `${key} modules`,
 						moduleType: key,
 						...(exclude ? { filteredChildren: modules.length } : { children }),
-						...moduleGroup(children, modules)
+						...moduleGroup(
+							/** @type {(KnownStatsModule & ModuleGroupBySizeResult)[]} */
+							(children),
+							modules
+						)
 					};
 				}
 			});
 		}
 		if (groupModulesByLayer) {
 			groupConfigs.push({
-				getKeys: module => /** @type {string[]} */ ([module.layer]),
+				getKeys: (module) => /** @type {string[]} */ ([module.layer]),
 				createGroup: (key, children, modules) => ({
 					type: "modules by layer",
 					layer: key,
 					children,
-					...moduleGroup(children, modules)
+					...moduleGroup(
+						/** @type {(KnownStatsModule & ModuleGroupBySizeResult)[]} */
+						(children),
+						modules
+					)
 				})
 			});
 		}
 		if (groupModulesByPath || groupModulesByExtension) {
 			groupConfigs.push({
-				getKeys: module => {
+				getKeys: (module) => {
 					if (!module.name) return;
 					const resource = parseResource(
 						/** @type {string} */ (module.name.split("!").pop())
@@ -2317,14 +2453,16 @@ const MODULES_GROUPERS = type => ({
 					const pathMatch =
 						groupModulesByPath && GROUP_PATH_REGEXP.exec(resource);
 					const path = pathMatch ? pathMatch[1].split(/[/\\]/) : [];
+					/** @type {string[]} */
 					const keys = [];
 					if (groupModulesByPath) {
-						if (extension)
+						if (extension) {
 							keys.push(
 								path.length
 									? `${path.join("/")}/*${extension}`
 									: `*${extension}`
 							);
+						}
 						while (path.length > 0) {
 							keys.push(`${path.join("/")}/`);
 							path.pop();
@@ -2344,7 +2482,11 @@ const MODULES_GROUPERS = type => ({
 								: "modules by extension",
 						name: isDataUrl ? key.slice(/* 'data:'.length */ 5) : key,
 						children,
-						...moduleGroup(children, modules)
+						...moduleGroup(
+							/** @type {(KnownStatsModule & ModuleGroupBySizeResult)[]} */
+							(children),
+							modules
+						)
 					};
 				}
 			});
@@ -2352,10 +2494,10 @@ const MODULES_GROUPERS = type => ({
 	},
 	excludeModules: (groupConfigs, context, { excludeModules }) => {
 		groupConfigs.push({
-			getKeys: module => {
+			getKeys: (module) => {
 				const name = module.name;
 				if (name) {
-					const excluded = excludeModules.some(fn => fn(name, module, type));
+					const excluded = excludeModules.some((fn) => fn(name, module, type));
 					if (excluded) return ["1"];
 				}
 			},
@@ -2366,19 +2508,26 @@ const MODULES_GROUPERS = type => ({
 			createGroup: (key, children, modules) => ({
 				type: "hidden modules",
 				filteredChildren: children.length,
-				...moduleGroup(children, modules)
+				...moduleGroup(
+					/** @type {(KnownStatsModule & ModuleGroupBySizeResult)[]} */
+					(children),
+					modules
+				)
 			})
 		});
 	}
 });
 
-/** @typedef {Record<string, (groupConfigs: GroupConfig<KnownStatsModuleReason, TODO>[], context: StatsFactoryContext, options: NormalizedStatsOptions) => void>} ModuleReasonsGroupers */
+/**
+ * Defines the module reasons groupers type used by this module.
+ * @typedef {{ groupReasonsByOrigin: (groupConfigs: GroupConfig<KnownStatsModuleReason, BaseGroup & { module: string, children: KnownStatsModuleReason[], active: boolean }>[], context: StatsFactoryContext, options: NormalizedStatsOptions) => void }} ModuleReasonsGroupers
+ */
 
 /** @type {ModuleReasonsGroupers} */
 const MODULE_REASONS_GROUPERS = {
-	groupReasonsByOrigin: groupConfigs => {
+	groupReasonsByOrigin: (groupConfigs) => {
 		groupConfigs.push({
-			getKeys: reason => /** @type {string[]} */ ([reason.module]),
+			getKeys: (reason) => /** @type {string[]} */ ([reason.module]),
 			createGroup: (key, children, reasons) => ({
 				type: "from origin",
 				module: key,
@@ -2389,7 +2538,17 @@ const MODULE_REASONS_GROUPERS = {
 	}
 };
 
-/** @type {Record<string, AssetsGroupers | ModulesGroupers | ModuleReasonsGroupers>} */
+/**
+ * @type {{
+ * "compilation.assets": AssetsGroupers,
+ * "asset.related": AssetsGroupers,
+ * "compilation.modules": ModulesGroupers,
+ * "chunk.modules": ModulesGroupers,
+ * "chunk.rootModules": ModulesGroupers,
+ * "module.modules": ModulesGroupers,
+ * "module.reasons": ModuleReasonsGroupers,
+ * }}
+ */
 const RESULT_GROUPERS = {
 	"compilation.assets": ASSETS_GROUPERS,
 	"asset.related": ASSETS_GROUPERS,
@@ -2402,10 +2561,11 @@ const RESULT_GROUPERS = {
 
 // remove a prefixed "!" that can be specified to reverse sort order
 /**
+ * Normalizes field key.
  * @param {string} field a field name
  * @returns {field} normalized field
  */
-const normalizeFieldKey = field => {
+const normalizeFieldKey = (field) => {
 	if (field[0] === "!") {
 		return field.slice(1);
 	}
@@ -2414,10 +2574,11 @@ const normalizeFieldKey = field => {
 
 // if a field is prefixed by a "!" reverse sort order
 /**
+ * Sorts order regular.
  * @param {string} field a field name
  * @returns {boolean} result
  */
-const sortOrderRegular = field => {
+const sortOrderRegular = (field) => {
 	if (field[0] === "!") {
 		return false;
 	}
@@ -2425,47 +2586,75 @@ const sortOrderRegular = field => {
 };
 
 /**
+ * Returns zero.
+ * @param {EXPECTED_ANY} a first
+ * @param {EXPECTED_ANY} b second
+ * @returns {-1 | 0 | 1} zero
+ */
+const noSort = (a, b) => 0;
+
+/** @type {Map<string, (a: EXPECTED_ANY, b: EXPECTED_ANY) => 0 | 1 | -1>} */
+const sortByFieldCache = new Map();
+
+/**
+ * Returns comparators.
  * @template T
  * @param {string | false} field field name
  * @returns {(a: T, b: T) => 0 | 1 | -1} comparators
  */
-const sortByField = field => {
-	if (!field) {
-		/**
-		 * @param {T} a first
-		 * @param {T} b second
-		 * @returns {-1 | 0 | 1} zero
-		 */
-		const noSort = (a, b) => 0;
-		return noSort;
-	}
+const sortByField = (field) => {
+	if (!field) return noSort;
+
+	// memoize per field: the comparator (and its selector) is pure, so building it
+	// once keeps compareSelect's cache warm instead of allocating a new entry per sort
+	let sortFn = sortByFieldCache.get(field);
+	if (sortFn !== undefined) return sortFn;
 
 	const fieldKey = normalizeFieldKey(field);
 
-	let sortFn = compareSelect(m => m[fieldKey], compareIds);
+	sortFn = compareSelect((m) => m[fieldKey], compareIds);
 
 	// if a field is prefixed with a "!" the sort is reversed!
-	const sortIsRegular = sortOrderRegular(field);
-
-	if (!sortIsRegular) {
+	if (!sortOrderRegular(field)) {
 		const oldSortFn = sortFn;
 		sortFn = (a, b) => oldSortFn(b, a);
 	}
 
+	sortByFieldCache.set(field, sortFn);
 	return sortFn;
 };
 
-/** @type {Record<string, (comparators: Comparator<Asset>[], context: StatsFactoryContext, options: NormalizedStatsOptions) => void>} */
+/**
+ * Describes the asset sorters shape.
+ * @typedef {{
+ * assetsSort: (comparators: Comparator<Asset>[], context: StatsFactoryContext, options: NormalizedStatsOptions) => void,
+ * _: (comparators: Comparator<Asset>[], context: StatsFactoryContext, options: NormalizedStatsOptions) => void,
+ * }} AssetSorters
+ */
+
+/** @type {Comparator<Asset>} */
+const compareAssetsByName = compareSelect((asset) => asset.name, compareIds);
+
+/** @type {AssetSorters} */
 const ASSET_SORTERS = {
 	assetsSort: (comparators, context, { assetsSort }) => {
 		comparators.push(sortByField(assetsSort));
 	},
-	_: comparators => {
-		comparators.push(compareSelect(a => a.name, compareIds));
+	_: (comparators) => {
+		comparators.push(compareAssetsByName);
 	}
 };
 
-/** @type {Record<string, Record<string, (comparators: Comparator<TODO>[], context: StatsFactoryContext, options: NormalizedStatsOptions) => void>>} */
+/**
+ * @type {{
+ * "compilation.chunks": { chunksSort: (comparators: Comparator<Chunk>[], context: StatsFactoryContext, options: NormalizedStatsOptions) => void },
+ * "compilation.modules": { modulesSort: (comparators: Comparator<Module>[], context: StatsFactoryContext, options: NormalizedStatsOptions) => void },
+ * "chunk.modules": { chunkModulesSort: (comparators: Comparator<Module>[], context: StatsFactoryContext, options: NormalizedStatsOptions) => void },
+ * "module.modules": { nestedModulesSort: (comparators: Comparator<Module>[], context: StatsFactoryContext, options: NormalizedStatsOptions) => void },
+ * "compilation.assets": AssetSorters,
+ * "asset.related": AssetSorters,
+ * }}
+ */
 const RESULT_SORTERS = {
 	"compilation.chunks": {
 		chunksSort: (comparators, context, { chunksSort }) => {
@@ -2492,10 +2681,17 @@ const RESULT_SORTERS = {
 };
 
 /**
+ * Defines the extract function type used by this module.
  * @template T
- * @param {Record<string, Record<string, T>>} config the config see above
+ * @typedef {T extends Record<string, Record<string, infer F>> ? F : never} ExtractFunction
+ */
+
+/**
+ * Processes the provided config.
+ * @template {Record<string, Record<string, EXPECTED_ANY>>} T
+ * @param {T} config the config see above
  * @param {NormalizedStatsOptions} options stats options
- * @param {(hookFor: string, fn: T) => void} fn handler function called for every active line in config
+ * @param {(hookFor: keyof T, fn: ExtractFunction<T>) => void} fn handler function called for every active line in config
  * @returns {void}
  */
 const iterateConfig = (config, options, fn) => {
@@ -2511,8 +2707,9 @@ const iterateConfig = (config, options, fn) => {
 						value === false ||
 						value === undefined ||
 						(Array.isArray(value) && value.length === 0)
-					)
+					) {
 						continue;
+					}
 				}
 			}
 			fn(hookFor, subConfig[option]);
@@ -2545,16 +2742,18 @@ const ITEM_NAMES = {
 };
 
 /**
+ * Defines the named object type used by this module.
  * @template T
  * @typedef {{ name: T }} NamedObject
  */
 
 /**
+ * Merges the provided values into a single result.
  * @template {{ name: string }} T
  * @param {T[]} items items to be merged
  * @returns {NamedObject<T>} an object
  */
-const mergeToObject = items => {
+const mergeToObject = (items) => {
 	const obj = Object.create(null);
 	for (const item of items) {
 		obj[item.name] = item;
@@ -2575,31 +2774,27 @@ const PLUGIN_NAME = "DefaultStatsFactoryPlugin";
 
 class DefaultStatsFactoryPlugin {
 	/**
-	 * Apply the plugin
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Compiler} compiler the compiler instance
 	 * @returns {void}
 	 */
 	apply(compiler) {
-		compiler.hooks.compilation.tap(PLUGIN_NAME, compilation => {
+		compiler.hooks.compilation.tap(PLUGIN_NAME, (compilation) => {
 			compilation.hooks.statsFactory.tap(
 				PLUGIN_NAME,
 				/**
+				 * Handles the callback logic for this hook.
 				 * @param {StatsFactory} stats stats factory
 				 * @param {NormalizedStatsOptions} options stats options
 				 */
 				(stats, options) => {
-					iterateConfig(
-						/** @type {TODO} */
-						(SIMPLE_EXTRACTORS),
-						options,
-						(hookFor, fn) => {
-							stats.hooks.extract
-								.for(hookFor)
-								.tap(PLUGIN_NAME, (obj, data, ctx) =>
-									fn(obj, data, ctx, options, stats)
-								);
-						}
-					);
+					iterateConfig(SIMPLE_EXTRACTORS, options, (hookFor, fn) => {
+						stats.hooks.extract
+							.for(hookFor)
+							.tap(PLUGIN_NAME, (obj, data, ctx) =>
+								fn(obj, data, ctx, options, stats)
+							);
+					});
 					iterateConfig(FILTER, options, (hookFor, fn) => {
 						stats.hooks.filter
 							.for(hookFor)
@@ -2628,18 +2823,13 @@ class DefaultStatsFactoryPlugin {
 								fn(comparators, ctx, options)
 							);
 					});
-					iterateConfig(
-						/** @type {TODO} */
-						(RESULT_GROUPERS),
-						options,
-						(hookFor, fn) => {
-							stats.hooks.groupResults
-								.for(hookFor)
-								.tap(PLUGIN_NAME, (groupConfigs, ctx) =>
-									fn(groupConfigs, ctx, options)
-								);
-						}
-					);
+					iterateConfig(RESULT_GROUPERS, options, (hookFor, fn) => {
+						stats.hooks.groupResults
+							.for(hookFor)
+							.tap(PLUGIN_NAME, (groupConfigs, ctx) =>
+								fn(groupConfigs, ctx, options)
+							);
+					});
 					for (const key of Object.keys(ITEM_NAMES)) {
 						const itemName = ITEM_NAMES[key];
 						stats.hooks.getItemName.for(key).tap(PLUGIN_NAME, () => itemName);
@@ -2655,13 +2845,14 @@ class DefaultStatsFactoryPlugin {
 								.tap(
 									PLUGIN_NAME,
 									/**
+									 * Handles the callback logic for this hook.
 									 * @param {Compilation} comp compilation
 									 * @param {StatsFactoryContext} options options
 									 * @returns {StatsFactory | undefined} stats factory
 									 */
 									(comp, { _index: idx }) => {
 										const children =
-											/** @type {TODO} */
+											/** @type {StatsValue[]} */
 											(options.children);
 										if (idx < children.length) {
 											return compilation.createStatsFactory(
@@ -2684,4 +2875,5 @@ class DefaultStatsFactoryPlugin {
 		});
 	}
 }
+
 module.exports = DefaultStatsFactoryPlugin;

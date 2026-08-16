@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.concurrency = void 0;
-const tslib_1 = require("tslib");
 const go_1 = require("./go");
 /* tslint:disable */
 class Task {
@@ -17,7 +16,7 @@ class Task {
 const concurrency = (limit) => {
     let workers = 0;
     const queue = new Set();
-    const work = () => tslib_1.__awaiter(void 0, void 0, void 0, function* () {
+    const work = async () => {
         const task = queue.values().next().value;
         if (task)
             queue.delete(task);
@@ -25,7 +24,7 @@ const concurrency = (limit) => {
             return;
         workers++;
         try {
-            task.resolve(yield task.code());
+            task.resolve(await task.code());
         }
         catch (error) {
             task.reject(error);
@@ -33,11 +32,11 @@ const concurrency = (limit) => {
         finally {
             workers--, queue.size && (0, go_1.go)(work);
         }
-    });
-    return (code) => tslib_1.__awaiter(void 0, void 0, void 0, function* () {
+    };
+    return async (code) => {
         const task = new Task(code);
         queue.add(task);
         return workers < limit && (0, go_1.go)(work), task.promise;
-    });
+    };
 };
 exports.concurrency = concurrency;

@@ -8,7 +8,7 @@ exports.ViewEncapsulation = exports.Style = exports.ChangeDetection = void 0;
  */
 var ChangeDetection;
 (function (ChangeDetection) {
-    ChangeDetection["Default"] = "Default";
+    ChangeDetection["Eager"] = "Eager";
     ChangeDetection["OnPush"] = "OnPush";
 })(ChangeDetection || (exports.ChangeDetection = ChangeDetection = {}));
 /**
@@ -33,3 +33,4 @@ var ViewEncapsulation;
     ViewEncapsulation["None"] = "None";
     ViewEncapsulation["ShadowDom"] = "ShadowDom";
 })(ViewEncapsulation || (exports.ViewEncapsulation = ViewEncapsulation = {}));
+//# sourceMappingURL=schema.js.map

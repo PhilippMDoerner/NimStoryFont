@@ -39,12 +39,14 @@ npm install webpack-dev-middleware --save-dev
 ## Usage
 
 ```js
+const express = require("express");
 const webpack = require("webpack");
 const middleware = require("webpack-dev-middleware");
+
 const compiler = webpack({
   // webpack options
 });
-const express = require("express");
+
 const app = express();
 
 app.use(
@@ -70,13 +72,14 @@ See [below](#other-servers) for an example of use with fastify.
 |               **[`etag`](#tag)**                |   `boolean\| "weak"\| "strong"`   |                  `undefined`                  | Enable or disable etag generation.                                                                                   |
 |       **[`lastModified`](#lastmodified)**       |             `boolean`             |                  `undefined`                  | Enable or disable `Last-Modified` header. Uses the file system's last modified value.                                |
 |       **[`cacheControl`](#cachecontrol)**       | `boolean\|number\|string\|Object` |                  `undefined`                  | Enable or disable setting `Cache-Control` response header.                                                           |
-|     **[`cacheImmutable`](#cacheimmutable)**     |            `boolean\`             |                  `undefined`                  | Enable or disable setting `Cache-Control: public, max-age=31536000, immutable` response header for immutable assets. |
+|     **[`cacheImmutable`](#cacheimmutable)**     |             `boolean`             |                  `undefined`                  | Enable or disable setting `Cache-Control: public, max-age=31536000, immutable` response header for immutable assets. |
 |         **[`publicPath`](#publicpath)**         |             `string`              |                  `undefined`                  | The public path that the middleware is bound to.                                                                     |
 |              **[`stats`](#stats)**              |     `boolean\|string\|Object`     |        `stats` (from a configuration)         | Stats options object or preset name.                                                                                 |
 |   **[`serverSideRender`](#serversiderender)**   |             `boolean`             |                  `undefined`                  | Instructs the module to enable or disable the server-side rendering mode.                                            |
 |        **[`writeToDisk`](#writetodisk)**        |        `boolean\|Function`        |                    `false`                    | Instructs the module to write files to the configured location on disk as specified in your `webpack` configuration. |
 |   **[`outputFileSystem`](#outputfilesystem)**   |             `Object`              | [`memfs`](https://github.com/streamich/memfs) | Set the default file system which will be used by webpack as primary destination of generated files.                 |
 | **[`modifyResponseData`](#modifyresponsedata)** |            `Function`             |                  `undefined`                  | Allows to set up a callback to change the response data.                                                             |
+|       **[`forwardError`](#forwarderror)**       |             `boolean`             |                    `false`                    | Enable or disable forwarding errors to the next middleware.                                                          |
 
 The middleware accepts an `options` Object. The following is a property reference for the Object.
 
@@ -99,11 +102,9 @@ or
 
 ```js
 webpackDevMiddleware(compiler, {
-  headers: () => {
-    return {
-      "Last-Modified": new Date(),
-    };
-  },
+  headers: () => ({
+    "Last-Modified": new Date(),
+  }),
 });
 ```
 
@@ -250,15 +251,14 @@ The function follows the same premise as [`Array#filter`](https://developer.mozi
 
 ```js
 const webpack = require("webpack");
+
 const configuration = {
   /* Webpack configuration */
 };
 const compiler = webpack(configuration);
 
 middleware(compiler, {
-  writeToDisk: (filePath) => {
-    return /superman\.css$/.test(filePath);
-  },
+  writeToDisk: (filePath) => /superman\.css$/.test(filePath),
 });
 ```
 
@@ -275,10 +275,10 @@ You have to provide `.join()` and `mkdirp` method to the `outputFileSystem` inst
 This can be done simply by using `path.join`:
 
 ```js
-const webpack = require("webpack");
-const path = require("path");
-const myOutputFileSystem = require("my-fs");
+const path = require("node:path");
 const mkdirp = require("mkdirp");
+const myOutputFileSystem = require("my-fs");
+const webpack = require("webpack");
 
 myOutputFileSystem.join = path.join.bind(path); // no need to bind
 myOutputFileSystem.mkdirp = mkdirp.bind(mkdirp); // no need to bind
@@ -296,6 +296,7 @@ Allows to set up a callback to change the response data.
 
 ```js
 const webpack = require("webpack");
+
 const configuration = {
   /* Webpack configuration */
 };
@@ -304,11 +305,10 @@ const compiler = webpack(configuration);
 middleware(compiler, {
   // Note - if you send the `Range` header you will have `ReadStream`
   // Also `data` can be `string` or `Buffer`
-  modifyResponseData: (req, res, data, byteLength) => {
+  modifyResponseData: (req, res, data, byteLength) =>
     // Your logic
     // Don't use `res.end()` or `res.send()` here
-    return { data, byteLength };
-  },
+    ({ data, byteLength }),
 });
 ```
 
@@ -333,12 +333,16 @@ A function executed once the middleware has stopped watching.
 ```js
 const express = require("express");
 const webpack = require("webpack");
+
 const compiler = webpack({
   /* Webpack configuration */
 });
+
 const middleware = require("webpack-dev-middleware");
+
 const instance = middleware(compiler);
 
+// eslint-disable-next-line new-cap
 const app = new express();
 
 app.use(instance);
@@ -365,12 +369,16 @@ A function executed once the middleware has invalidated.
 ```js
 const express = require("express");
 const webpack = require("webpack");
+
 const compiler = webpack({
   /* Webpack configuration */
 });
+
 const middleware = require("webpack-dev-middleware");
+
 const instance = middleware(compiler);
 
+// eslint-disable-next-line new-cap
 const app = new express();
 
 app.use(instance);
@@ -402,12 +410,16 @@ If the bundle is valid at the time of calling, the callback is executed immediat
 ```js
 const express = require("express");
 const webpack = require("webpack");
+
 const compiler = webpack({
   /* Webpack configuration */
 });
+
 const middleware = require("webpack-dev-middleware");
+
 const instance = middleware(compiler);
 
+// eslint-disable-next-line new-cap
 const app = new express();
 
 app.use(instance);
@@ -433,20 +445,114 @@ URL for the requested file.
 ```js
 const express = require("express");
 const webpack = require("webpack");
+
 const compiler = webpack({
   /* Webpack configuration */
 });
+
 const middleware = require("webpack-dev-middleware");
+
 const instance = middleware(compiler);
 
+// eslint-disable-next-line new-cap
 const app = new express();
 
 app.use(instance);
 
 instance.waitUntilValid(() => {
-  const filename = instance.getFilenameFromUrl("/bundle.js");
+  instance
+    .getFilenameFromUrl("/bundle.js")
+    .then((filename) => {
+      if (!filename) {
+        return;
+      }
 
-  console.log(`Filename is ${filename}`);
+      console.log(`Filename is ${filename}`);
+    })
+    .catch((err) => {
+      console.log(`Error: ${err}`);
+    });
+});
+```
+
+### `plugin(compiler, options)`
+
+Creates middleware instance in plugin mode.
+
+In plugin mode, stats output is written through custom code (i.e. in callback for `watch` or where you are calling `stats.toString(options)`) instead of `console.log`.
+In this case, the `stats` option is not supported because `webpack-dev-middleware` does not have access to the code where the stats will be output.
+You will also need to manually run the `watch` method.
+
+Why do you need this mode? In some cases, you may want to have multiple dev servers or run only one dev server when you have multiple configurations, and this is suitable for you.
+
+```js
+const webpack = require("webpack");
+const middleware = require("webpack-dev-middleware");
+
+const compiler = webpack({
+  plugins: [
+    {
+      apply(compiler) {
+        const devMiddleware = middleware(
+          compiler,
+          {
+            /* webpack-dev-middleware options */
+          },
+          true,
+        );
+      },
+    },
+  ],
+  /* Webpack configuration */
+});
+
+compiler.watch((err, stats) => {
+  if (err) {
+    console.error(err);
+    return;
+  }
+
+  console.log(stats.toString());
+});
+```
+
+### Plugin wrappers
+
+The following wrappers enable plugin mode for framework integrations:
+
+- `middleware(compiler, options, true)` (connect/express like middleware)
+- `middleware.koaWrapper(compiler, options, true)`
+- `middleware.hapiWrapper(true)`
+- `middleware.honoWrapper(compiler, options, true)`
+
+They are equivalent to `koaWrapper`/`hapiWrapper`/`honoWrapper`, but use plugin mode logging behavior.
+
+### `forwardError`
+
+Type: `boolean`
+Default: `false`
+
+Enable or disable forwarding errors to the next middleware. If `true`, errors will be forwarded to the next middleware, otherwise, they will be handled by `webpack-dev-middleware` and a response will be handled case by case.
+
+This option don't work with hono, koa and hapi, because of the differences in error handling between these frameworks and express.
+
+```js
+const express = require("express");
+const webpack = require("webpack");
+const middleware = require("webpack-dev-middleware");
+
+const compiler = webpack({
+  /* Webpack configuration */
+});
+
+const instance = middleware(compiler, { forwardError: true });
+
+const app = express();
+app.use(instance);
+
+app.use((err, req, res, next) => {
+  console.log(`Error: ${err}`);
+  res.status(500).send("Something broke!");
 });
 ```
 
@@ -459,12 +565,14 @@ Since `output.publicPath` and `output.filename`/`output.chunkFilename` can be dy
 But there is a solution to avoid it - mount the middleware to a non-root route, for example:
 
 ```js
+const express = require("express");
 const webpack = require("webpack");
 const middleware = require("webpack-dev-middleware");
+
 const compiler = webpack({
   // webpack options
 });
-const express = require("express");
+
 const app = express();
 
 // Mounting the middleware to the non-root route allows avoids this.
@@ -499,13 +607,15 @@ Example Implementation:
 
 ```js
 const express = require("express");
+const isObject = require("is-object");
 const webpack = require("webpack");
+const middleware = require("webpack-dev-middleware");
+
 const compiler = webpack({
   /* Webpack configuration */
 });
-const isObject = require("is-object");
-const middleware = require("webpack-dev-middleware");
 
+// eslint-disable-next-line new-cap
 const app = new express();
 
 // This function makes server rendering of asset references consistent with different webpack chunk/entry configurations
@@ -522,7 +632,7 @@ app.use(middleware(compiler, { serverSideRender: true }));
 // The following middleware would not be invoked until the latest build is finished.
 app.use((req, res) => {
   const { devMiddleware } = res.locals.webpack;
-  const outputFileSystem = devMiddleware.outputFileSystem;
+  const { outputFileSystem } = devMiddleware;
   const jsonWebpackStats = devMiddleware.stats.toJson();
   const { assetsByChunkName, outputPath } = jsonWebpackStats;
 
@@ -584,11 +694,11 @@ Examples of use with other servers will follow here.
 ### Connect
 
 ```js
+const http = require("node:http");
 const connect = require("connect");
-const http = require("http");
 const webpack = require("webpack");
-const webpackConfig = require("./webpack.config.js");
 const devMiddleware = require("webpack-dev-middleware");
+const webpackConfig = require("./webpack.config.js");
 
 const compiler = webpack(webpackConfig);
 const devMiddlewareOptions = {
@@ -604,22 +714,24 @@ http.createServer(app).listen(3000);
 ### Router
 
 ```js
-const http = require("http");
-const Router = require("router");
+const http = require("node:http");
 const finalhandler = require("finalhandler");
+const Router = require("router");
 const webpack = require("webpack");
-const webpackConfig = require("./webpack.config.js");
 const devMiddleware = require("webpack-dev-middleware");
+const webpackConfig = require("./webpack.config.js");
 
 const compiler = webpack(webpackConfig);
 const devMiddlewareOptions = {
   /** Your webpack-dev-middleware-options */
 };
+
+// eslint-disable-next-line new-cap
 const router = Router();
 
 router.use(devMiddleware(compiler, devMiddlewareOptions));
 
-var server = http.createServer((req, res) => {
+const server = http.createServer((req, res) => {
   router(req, res, finalhandler(req, res));
 });
 
@@ -631,8 +743,8 @@ server.listen(3000);
 ```js
 const express = require("express");
 const webpack = require("webpack");
-const webpackConfig = require("./webpack.config.js");
 const devMiddleware = require("webpack-dev-middleware");
+const webpackConfig = require("./webpack.config.js");
 
 const compiler = webpack(webpackConfig);
 const devMiddlewareOptions = {
@@ -650,8 +762,8 @@ app.listen(3000, () => console.log("Example app listening on port 3000!"));
 ```js
 const Koa = require("koa");
 const webpack = require("webpack");
-const webpackConfig = require("./webpack.simple.config");
 const middleware = require("webpack-dev-middleware");
+const webpackConfig = require("./webpack.simple.config");
 
 const compiler = webpack(webpackConfig);
 const devMiddlewareOptions = {
@@ -660,6 +772,8 @@ const devMiddlewareOptions = {
 const app = new Koa();
 
 app.use(middleware.koaWrapper(compiler, devMiddlewareOptions));
+// Alternative usage (when you want to use as a plugin, i.e. all stats will be printed by other code):
+// app.use(middleware.koaWrapper(compiler, devMiddlewareOptions, true));
 
 app.listen(3000);
 ```
@@ -669,28 +783,36 @@ app.listen(3000);
 ```js
 const Hapi = require("@hapi/hapi");
 const webpack = require("webpack");
-const webpackConfig = require("./webpack.config.js");
 const devMiddleware = require("webpack-dev-middleware");
+const webpackConfig = require("./webpack.config.js");
 
 const compiler = webpack(webpackConfig);
 const devMiddlewareOptions = {};
 
-(async () => {
-  const server = Hapi.server({ port: 3000, host: "localhost" });
+const server = Hapi.server({ port: 3000, host: "localhost" });
 
-  await server.register({
-    plugin: devMiddleware.hapiPlugin(),
-    options: {
-      // The `compiler` option is required
-      compiler,
-      ...devMiddlewareOptions,
-    },
-  });
+await server.register({
+  plugin: devMiddleware.hapiWrapper(),
+  options: {
+    // The `compiler` option is required
+    compiler,
+    ...devMiddlewareOptions,
+  },
+});
 
-  await server.start();
+// Alternative usage (when you want to use as a plugin, i.e. all stats will be printed by other code):
+// await server.register({
+//   plugin: devMiddleware.hapiWrapper(true),
+//   options: {
+//     // The `compiler` option is required
+//     compiler,
+//     ...devMiddlewareOptions,
+//   },
+// });
 
-  console.log("Server running on %s", server.info.uri);
-})();
+await server.start();
+
+console.log("Server running on %s", server.info.uri);
 
 process.on("unhandledRejection", (err) => {
   console.log(err);
@@ -705,27 +827,25 @@ Fastify interop will require the use of `fastify-express` instead of `middie` fo
 ```js
 const fastify = require("fastify")();
 const webpack = require("webpack");
-const webpackConfig = require("./webpack.config.js");
 const devMiddleware = require("webpack-dev-middleware");
+const webpackConfig = require("./webpack.config.js");
 
 const compiler = webpack(webpackConfig);
 const devMiddlewareOptions = {
   /** Your webpack-dev-middleware-options */
 };
 
-(async () => {
-  await fastify.register(require("@fastify/express"));
-  await fastify.use(devMiddleware(compiler, devMiddlewareOptions));
-  await fastify.listen(3000);
-})();
+await fastify.register(require("@fastify/express"));
+await fastify.use(devMiddleware(compiler, devMiddlewareOptions));
+await fastify.listen(3000);
 ```
 
 ### Hono
 
 ```js
-import webpack from "webpack";
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
+import webpack from "webpack";
 import devMiddleware from "webpack-dev-middleware";
 import webpackConfig from "./webpack.config.js";
 
@@ -738,6 +858,9 @@ const app = new Hono();
 
 app.use(devMiddleware.honoWrapper(compiler, devMiddlewareOptions));
 
+// Alternative usage (when you want to use as a plugin, i.e. all stats will be printed by other code):
+// const honoDevMiddleware = devMiddleware.honoWrapper(compiler, devMiddlewareOptions, true)
+
 serve(app);
 ```
 
@@ -745,7 +868,7 @@ serve(app);
 
 Please take a moment to read our contributing guidelines if you haven't yet done so.
 
-[CONTRIBUTING](./CONTRIBUTING.md)
+[CONTRIBUTING](https://github.com/webpack/sass-loader?tab=contributing-ov-file#contributing)
 
 ## License
 
@@ -757,7 +880,7 @@ Please take a moment to read our contributing guidelines if you haven't yet done
 [node-url]: https://nodejs.org
 [tests]: https://github.com/webpack/webpack-dev-middleware/workflows/webpack-dev-middleware/badge.svg
 [tests-url]: https://github.com/webpack/webpack-dev-middleware/actions
-[cover]: https://codecov.io/gh/webpack/webpack-dev-middleware/branch/master/graph/badge.svg
+[cover]: https://codecov.io/gh/webpack/webpack-dev-middleware/branch/main/graph/badge.svg
 [cover-url]: https://codecov.io/gh/webpack/webpack-dev-middleware
 [discussion]: https://img.shields.io/github/discussions/webpack/webpack
 [discussion-url]: https://github.com/webpack/webpack/discussions

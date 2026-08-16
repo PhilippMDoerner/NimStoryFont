@@ -10,22 +10,23 @@ const makeSerializable = require("../util/makeSerializable");
 const ModuleDependency = require("./ModuleDependency");
 
 /** @typedef {import("../ContextModule")} ContextModule */
-/** @typedef {import("../Dependency").ReferencedExport} ReferencedExport */
+/** @typedef {import("../Dependency").RawReferencedExports} RawReferencedExports */
+/** @typedef {import("../Dependency").ReferencedExports} ReferencedExports */
 /** @typedef {import("../Module")} Module */
-/** @typedef {import("../Module").BuildMeta} BuildMeta */
 /** @typedef {import("../ModuleGraph")} ModuleGraph */
 /** @typedef {import("../javascript/JavascriptParser").ImportAttributes} ImportAttributes */
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext} ObjectDeserializerContext */
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext} ObjectSerializerContext */
 /** @typedef {import("../util/runtime").RuntimeSpec} RuntimeSpec */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext<[string | undefined, string, RawReferencedExports | null | undefined, ImportAttributes | undefined]>} ObjectDeserializerContext */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext<[string | undefined, string, RawReferencedExports | null | undefined, ImportAttributes | undefined]>} ObjectSerializerContext */
 
 class ContextElementDependency extends ModuleDependency {
 	/**
+	 * Creates an instance of ContextElementDependency.
 	 * @param {string} request request
 	 * @param {string | undefined} userRequest user request
 	 * @param {string | undefined} typePrefix type prefix
 	 * @param {string} category category
-	 * @param {(string[][] | null)=} referencedExports referenced exports
+	 * @param {RawReferencedExports | null=} referencedExports referenced exports
 	 * @param {string=} context context
 	 * @param {ImportAttributes=} attributes import assertions
 	 */
@@ -39,16 +40,22 @@ class ContextElementDependency extends ModuleDependency {
 		attributes
 	) {
 		super(request);
-		this.referencedExports = referencedExports;
-		this._typePrefix = typePrefix;
-		this._category = category;
-		this._context = context || undefined;
 
 		if (userRequest) {
+			/** @type {string} */
 			this.userRequest = userRequest;
 		}
 
-		this.assertions = attributes;
+		/** @type {string | undefined} */
+		this._typePrefix = typePrefix;
+		/** @type {string} */
+		this._category = category;
+		/** @type {RawReferencedExports | null | undefined} */
+		this.referencedExports = referencedExports;
+		/** @type {string | undefined} */
+		this._context = context || undefined;
+		/** @type {ImportAttributes | undefined} */
+		this.attributes = attributes;
 	}
 
 	get type() {
@@ -64,13 +71,26 @@ class ContextElementDependency extends ModuleDependency {
 	}
 
 	/**
+	 * Returns an identifier to merge equal requests.
+	 * @returns {string | null} an identifier to merge equal requests
+	 */
+	getResourceIdentifier() {
+		let str = super.getResourceIdentifier();
+		if (this.attributes) {
+			str += `|attributes${JSON.stringify(this.attributes)}`;
+		}
+		return str;
+	}
+
+	/**
 	 * Returns list of exports referenced by this dependency
 	 * @param {ModuleGraph} moduleGraph module graph
 	 * @param {RuntimeSpec} runtime the runtime for which the module is analysed
-	 * @returns {(string[] | ReferencedExport)[]} referenced exports
+	 * @returns {ReferencedExports} referenced exports
 	 */
 	getReferencedExports(moduleGraph, runtime) {
 		if (!this.referencedExports) return Dependency.EXPORTS_OBJECT_REFERENCED;
+		/** @type {ReferencedExports} */
 		const refs = [];
 		for (const referencedExport of this.referencedExports) {
 			if (
@@ -96,34 +116,39 @@ class ContextElementDependency extends ModuleDependency {
 			}
 			refs.push({
 				name: referencedExport,
-				canMangle: false
+				canMangle: false,
+				canInline: false
 			});
 		}
 		return refs;
 	}
 
 	/**
+	 * Serializes this instance into the provided serializer context.
 	 * @param {ObjectSerializerContext} context context
 	 */
 	serialize(context) {
-		const { write } = context;
-		write(this._typePrefix);
-		write(this._category);
-		write(this.referencedExports);
-		write(this.assertions);
+		context
+			.write(this._typePrefix)
+			.write(this._category)
+			.write(this.referencedExports)
+			.write(this.attributes);
 		super.serialize(context);
 	}
 
 	/**
+	 * Restores this instance from the provided deserializer context.
 	 * @param {ObjectDeserializerContext} context context
 	 */
 	deserialize(context) {
-		const { read } = context;
-		this._typePrefix = read();
-		this._category = read();
-		this.referencedExports = read();
-		this.assertions = read();
-		super.deserialize(context);
+		this._typePrefix = context.read();
+		const c1 = context.rest;
+		this._category = c1.read();
+		const c2 = c1.rest;
+		this.referencedExports = c2.read();
+		const c3 = c2.rest;
+		this.attributes = c3.read();
+		super.deserialize(c3.rest);
 	}
 }
 

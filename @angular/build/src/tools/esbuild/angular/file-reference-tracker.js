@@ -55,3 +55,4 @@ class FileReferenceTracker {
     }
 }
 exports.FileReferenceTracker = FileReferenceTracker;
+//# sourceMappingURL=file-reference-tracker.js.map

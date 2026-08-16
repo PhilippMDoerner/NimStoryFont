@@ -1,6 +1,6 @@
-import { action } from 'storybook/actions';
 import { Meta, StoryFn } from '@storybook/angular';
-import { Image } from 'src/app/_models/image';
+import { action } from 'storybook/actions';
+import { Image } from '../../../_models/image';
 import { ImageCarouselComponent } from './image-carousel.component';
 
 const dummyImages: Image[] = [

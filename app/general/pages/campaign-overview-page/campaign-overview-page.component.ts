@@ -5,11 +5,11 @@ import {
   HostListener,
   inject,
 } from '@angular/core';
-import { AuthStore } from 'src/app/auth.store';
-import { CampaignOverviewComponent } from 'src/app/design//templates/campaign-overview/campaign-overview.component';
-import { slideInOut } from 'src/app/design/animations/slideInOut';
-import { showSidebarSignal } from 'src/app/design/organisms/page/page.component';
-import { GlobalStore } from 'src/app/global.store';
+import { AuthStore } from '../../../auth.store';
+import { slideInOut } from '../../../design/animations/slideInOut';
+import { showSidebarSignal } from '../../../design/organisms/page/page.component';
+import { CampaignOverviewComponent } from '../../../design/templates/campaign-overview/campaign-overview.component';
+import { GlobalStore } from '../../../global.store';
 
 @Component({
   selector: 'app-campaign-overview-page',
@@ -26,7 +26,7 @@ import { GlobalStore } from 'src/app/global.store';
 export class CampaignOverviewPageComponent {
   public readonly authStore = inject(AuthStore);
   public readonly globalStore = inject(GlobalStore);
-  serverUrl = '';
+  readonly serverUrl = '';
 
   @HostListener('@slideInOut.start', ['$event'])
   @HostListener('@slideInOut.done', ['$event'])

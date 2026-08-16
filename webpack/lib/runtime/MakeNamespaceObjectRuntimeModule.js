@@ -16,6 +16,7 @@ class MakeNamespaceObjectRuntimeModule extends HelperRuntimeModule {
 	}
 
 	/**
+	 * Generates runtime code for this runtime module.
 	 * @returns {string | null} runtime code
 	 */
 	generate() {
@@ -25,7 +26,7 @@ class MakeNamespaceObjectRuntimeModule extends HelperRuntimeModule {
 		return Template.asString([
 			"// define __esModule on exports",
 			`${fn} = ${runtimeTemplate.basicFunction("exports", [
-				"if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {",
+				`if(${runtimeTemplate.supportsSymbol() ? "" : "typeof Symbol !== 'undefined' && "}Symbol.toStringTag) {`,
 				Template.indent([
 					"Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });"
 				]),

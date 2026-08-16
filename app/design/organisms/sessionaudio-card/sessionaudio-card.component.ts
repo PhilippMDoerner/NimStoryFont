@@ -5,8 +5,8 @@ import {
   input,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { OverviewItem } from 'src/app/_models/overview';
-import { RoutingService } from 'src/app/_services/routing.service';
+import { OverviewItem } from '../../../_models/overview';
+import { RoutingService } from '../../../_services/routing.service';
 import { ButtonLinkComponent } from '../../atoms/button-link/button-link.component';
 
 @Component({
@@ -17,10 +17,10 @@ import { ButtonLinkComponent } from '../../atoms/button-link/button-link.compone
   imports: [ButtonLinkComponent, RouterLink],
 })
 export class SessionaudioCardComponent {
-  serverUrl = input.required<string>();
-  sessionAudio = input.required<OverviewItem>();
+  readonly serverUrl = input.required<string>();
+  readonly sessionAudio = input.required<OverviewItem>();
 
-  sessionAudioUrl = computed(() => {
+  readonly sessionAudioUrl = computed(() => {
     const campaignName = this.sessionAudio().campaign_details?.name;
     const isMainSession =
       this.sessionAudio().session_details?.is_main_session_int;

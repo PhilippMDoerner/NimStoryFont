@@ -208,3 +208,4 @@ async function init(imports) {
 `;
     return contents;
 }
+//# sourceMappingURL=wasm-plugin.js.map

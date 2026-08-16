@@ -2,17 +2,12 @@
 import { CommonModule } from '@angular/common';
 import { BrowserModule } from '@angular/platform-browser';
 import { FormlyFieldConfig } from '@ngx-formly/core';
-import { action } from 'storybook/actions';
 import { Meta, StoryFn, moduleMetadata } from '@storybook/angular';
-import { EditorModule } from '@tinymce/tinymce-angular';
 import { Observable, of } from 'rxjs';
-import * as all from 'tinymce/tinymce';
+import { action } from 'storybook/actions';
 
-import { FORMLY_MODULE } from 'src/app/_modules/formly_constants';
+import { FORMLY_MODULE } from '../../../_modules/formly_constants';
 import { CompareFormComponent } from './compare-form.component';
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const x = all;
 
 const dummyData = [
   {
@@ -310,7 +305,7 @@ export default {
   decorators: [
     moduleMetadata({
       declarations: [],
-      imports: [BrowserModule, CommonModule, EditorModule, FORMLY_MODULE],
+      imports: [BrowserModule, CommonModule, FORMLY_MODULE],
     }),
   ],
   args: {

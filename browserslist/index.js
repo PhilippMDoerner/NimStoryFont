@@ -1,3 +1,4 @@
+var bbm = require('baseline-browser-mapping')
 var jsReleases = require('node-releases/data/processed/envs.json')
 var agents = require('caniuse-lite/dist/unpacker/agents').agents
 var e2c = require('electron-to-chromium/versions')
@@ -11,6 +12,7 @@ var parseWithoutCache = require('./parse') // Will load browser.js in webpack
 var YEAR = 365.259641 * 24 * 60 * 60 * 1000
 var ANDROID_EVERGREEN_FIRST = '37'
 var OP_MOB_BLINK_FIRST = 14
+var FIREFOX_ESR_VERSION = '140'
 
 // Helpers
 
@@ -79,22 +81,21 @@ function fillUsage(result, name, data) {
 }
 
 function generateFilter(sign, version) {
-  version = parseFloat(version)
   if (sign === '>') {
     return function (v) {
-      return parseLatestFloat(v) > version
+      return parseLatestFloat(v) > parseLatestFloat(version)
     }
   } else if (sign === '>=') {
     return function (v) {
-      return parseLatestFloat(v) >= version
+      return parseLatestFloat(v) >= parseLatestFloat(version)
     }
   } else if (sign === '<') {
     return function (v) {
-      return parseFloat(v) < version
+      return parseFloat(v) < parseFloat(version)
     }
   } else {
     return function (v) {
-      return parseFloat(v) <= version
+      return parseFloat(v) <= parseFloat(version)
     }
   }
 
@@ -253,10 +254,14 @@ function normalizeAndroidVersions(androidVersions, chromeVersions) {
     .concat(chromeVersions.slice(iFirstEvergreen))
 }
 
+var DANGEROUS_KEYS = ['__proto__', 'constructor', 'prototype']
+
 function copyObject(obj) {
   var copy = {}
   for (var key in obj) {
-    copy[key] = obj[key]
+    if (DANGEROUS_KEYS.indexOf(key) === -1) {
+      copy[key] = obj[key]
+    }
   }
   return copy
 }
@@ -394,8 +399,17 @@ function checkQueries(queries) {
   }
 }
 
-var cache = {}
-var parseCache = {}
+var CACHE_MAX_ENTRIES = 500
+
+function boundedCacheSet(map, key, value) {
+  if (map.size >= CACHE_MAX_ENTRIES) {
+    map.delete(map.keys().next().value)
+  }
+  map.set(key, value)
+}
+
+var cache = new Map()
+var parseCache = new Map()
 
 function browserslist(queries, opts) {
   opts = prepareOpts(opts)
@@ -408,6 +422,7 @@ function browserslist(queries, opts) {
   var context = {
     ignoreUnknownVersions: opts.ignoreUnknownVersions,
     dangerousExtend: opts.dangerousExtend,
+    throwOnMissing: opts.throwOnMissing,
     mobileToDesktop: opts.mobileToDesktop,
     env: opts.env
   }
@@ -426,7 +441,7 @@ function browserslist(queries, opts) {
   }
 
   var cacheKey = JSON.stringify([queries, context])
-  if (cache[cacheKey]) return cache[cacheKey]
+  if (cache.has(cacheKey)) return cache.get(cacheKey)
 
   var result = uniq(resolve(queries, context)).sort(function (name1, name2) {
     name1 = name1.split(' ')
@@ -443,17 +458,17 @@ function browserslist(queries, opts) {
     }
   })
   if (!env.env.BROWSERSLIST_DISABLE_CACHE) {
-    cache[cacheKey] = result
+    boundedCacheSet(cache, cacheKey, result)
   }
   return result
 }
 
 function parseQueries(queries) {
   var cacheKey = JSON.stringify(queries)
-  if (cacheKey in parseCache) return parseCache[cacheKey]
+  if (parseCache.has(cacheKey)) return parseCache.get(cacheKey)
   var result = parseWithoutCache(QUERIES, queries)
   if (!env.env.BROWSERSLIST_DISABLE_CACHE) {
-    parseCache[cacheKey] = result
+    boundedCacheSet(parseCache, cacheKey, result)
   }
   return result
 }
@@ -591,6 +606,33 @@ function sinceQuery(context, node) {
   var month = parseInt(node.month || '01') - 1
   var day = parseInt(node.day || '01')
   return filterByYear(Date.UTC(year, month, day, 0, 0, 0), context)
+}
+
+function bbmTransform(bbmVersions) {
+  var browsers = {
+    chrome: 'chrome',
+    chrome_android: 'and_chr',
+    edge: 'edge',
+    firefox: 'firefox',
+    firefox_android: 'and_ff',
+    safari: 'safari',
+    safari_ios: 'ios_saf',
+    webview_android: 'android',
+    samsunginternet_android: 'samsung',
+    opera_android: 'op_mob',
+    opera: 'opera',
+    qq_android: 'and_qq',
+    uc_android: 'and_uc',
+    kai_os: 'kaios'
+  }
+
+  return bbmVersions
+    .filter(function (version) {
+      return Object.keys(browsers).indexOf(version.browser) !== -1
+    })
+    .map(function (version) {
+      return browsers[version.browser] + ' >= ' + version.version
+    })
 }
 
 function coverQuery(context, node) {
@@ -760,7 +802,7 @@ var QUERIES = {
   },
   last_years: {
     matches: ['years'],
-    regexp: /^last\s+(\d*.?\d+)\s+years?$/i,
+    regexp: /^last\s+((\d+\.)?\d+)\s+years?$/i,
     select: function (context, node) {
       return filterByYear(Date.now() - YEAR * node.years, context)
     }
@@ -779,6 +821,60 @@ var QUERIES = {
     matches: ['year', 'month', 'day'],
     regexp: /^since (\d+)-(\d+)-(\d+)$/i,
     select: sinceQuery
+  },
+  baseline: {
+    matches: ['year', 'availability', 'date', 'downstream', 'kaios'],
+    // Matches:
+    //   baseline 2024
+    //   baseline newly available
+    //   baseline widely available
+    //   baseline widely available on 2024-06-01
+    //   ...with downstream
+    //   ...including kaios
+    regexp:
+      /^baseline\s+(?!\s)(?:(\d+)|(newly|widely)\s+(?!\s)available(?:\s+(?!\s)on\s+(?!\s)(\d{4}-\d{2}-\d{2}))?)?(\s+(?!\s)with\s+(?!\s)downstream)?(\s+(?!\s)including\s+(?!\s)kaios)?$/i,
+    select: function (context, node) {
+      var availability = node.availability && node.availability.toLowerCase()
+      if (availability === 'newly' && node.date) {
+        throw new BrowserslistError(
+          'Using newly available with a date is not supported, please use "widely available on YYYY-MM-DD" and add 30 months to the date you specified.'
+        )
+      }
+
+      var options = {
+        includeDownstreamBrowsers: !!node.downstream,
+        includeKaiOS: !!node.kaios,
+        suppressWarnings: true
+      }
+      if (node.year) {
+        options.targetYear = node.year
+      } else if (node.date) {
+        options.widelyAvailableOnDate = node.date
+      } else if (availability === 'newly') {
+        options.widelyAvailableOnDate = new Date().setMonth(
+          new Date().getMonth() + 30
+        )
+      }
+
+      var baselineVersions
+      if (options.includeKaiOS && !options.includeDownstreamBrowsers) {
+        // baseline-browser-mapping counts KaiOS as a downstream browser and
+        // refuses to return it alone, so take KaiOS from the downstream list
+        // and everything else from the core one
+        options.includeDownstreamBrowsers = true
+        var downstream = bbm.getCompatibleVersions(options)
+        options.includeDownstreamBrowsers = false
+        options.includeKaiOS = false
+        baselineVersions = bbm.getCompatibleVersions(options).concat(
+          downstream.filter(function (version) {
+            return version.browser === 'kai_os'
+          })
+        )
+      } else {
+        baselineVersions = bbm.getCompatibleVersions(options)
+      }
+      return resolve(bbmTransform(baselineVersions), context)
+    }
   },
   popularity: {
     matches: ['sign', 'popularity'],
@@ -972,10 +1068,8 @@ var QUERIES = {
         throw new BrowserslistError('Unknown version ' + to + ' of electron')
       }
       return Object.keys(e2c)
-        .filter(function (i) {
-          var parsed = parseFloat(i)
-          return parsed >= from && parsed <= to
-        })
+        .filter(semverFilterLoose('>=', node.from))
+        .filter(semverFilterLoose('<=', node.to))
         .map(function (i) {
           return 'chrome ' + e2c[i]
         })
@@ -1032,12 +1126,17 @@ var QUERIES = {
   },
   browser_ray: {
     matches: ['browser', 'sign', 'version'],
-    regexp: /^(\w+)\s*(>=?|<=?)\s*([\d.]+)$/,
+    regexp: /^(\w+)\s*(>=?|<=?)\s*([\d.]+|esr)$/i,
     select: function (context, node) {
       var version = node.version
       var data = checkName(node.browser, context)
-      var alias = browserslist.versionAliases[data.name][version]
+      var alias = browserslist.versionAliases[data.name][version.toLowerCase()]
       if (alias) version = alias
+      if (!/[\d.]+/.test(version)) {
+        throw new BrowserslistError(
+          'Unknown version ' + version + ' of ' + node.browser
+        )
+      }
       return data.released
         .filter(generateFilter(node.sign, version))
         .map(function (v) {
@@ -1049,7 +1148,7 @@ var QUERIES = {
     matches: [],
     regexp: /^(firefox|ff|fx)\s+esr$/i,
     select: function () {
-      return ['firefox 128', 'firefox 140']
+      return ['firefox ' + FIREFOX_ESR_VERSION]
     }
   },
   opera_mini_all: {
@@ -1242,5 +1341,7 @@ var QUERIES = {
     return release.version
   })
 })()
+
+browserslist.versionAliases.firefox.esr = FIREFOX_ESR_VERSION
 
 module.exports = browserslist

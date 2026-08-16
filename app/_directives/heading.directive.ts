@@ -9,5 +9,5 @@ import { HeadingLevel } from '../design/atoms/_models/heading';
   },
 })
 export class HeadingDirective {
-  heading = input.required<HeadingLevel>();
+  readonly heading = input.required<HeadingLevel>();
 }

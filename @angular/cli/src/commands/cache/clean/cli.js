@@ -29,3 +29,4 @@ class CacheCleanModule extends command_module_1.CommandModule {
     }
 }
 exports.CacheCleanModule = CacheCleanModule;
+//# sourceMappingURL=cli.js.map

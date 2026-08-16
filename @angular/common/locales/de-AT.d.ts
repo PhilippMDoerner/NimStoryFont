@@ -6,7 +6,7 @@
  * found in the LICENSE file at https://angular.dev/license
  */
 declare function plural(val: number): number;
-declare const _default: (string | number | number[] | (string | undefined)[] | typeof plural | (string[] | undefined)[] | {
+declare const _default: (string | number | number[] | (string | undefined)[] | typeof plural | string[][] | {
     ATS: string[];
     AUD: string[];
     BGM: string[];
@@ -22,7 +22,7 @@ declare const _default: (string | number | number[] | (string | undefined)[] | t
     RON: (string | undefined)[];
     RUR: (string | undefined)[];
     RWF: (string | undefined)[];
-    SYP: never[];
+    SYP: (string | undefined)[];
     THB: string[];
     TWD: string[];
     XXX: never[];

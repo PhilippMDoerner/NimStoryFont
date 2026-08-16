@@ -1,0 +1,58 @@
+import { __decorate } from "tslib";
+import { AsnProp, AsnPropTypes, AsnType, AsnTypeTypes, } from "@peculiar/asn1-schema";
+import { KeyAgreeRecipientInfo } from "./key_agree_recipient_info.js";
+import { KeyTransRecipientInfo } from "./key_trans_recipient_info.js";
+import { KEKRecipientInfo } from "./kek_recipient_info.js";
+import { PasswordRecipientInfo } from "./password_recipient_info.js";
+export class OtherRecipientInfo {
+    oriType = "";
+    oriValue = new ArrayBuffer(0);
+    constructor(params = {}) {
+        Object.assign(this, params);
+    }
+}
+__decorate([
+    AsnProp({ type: AsnPropTypes.ObjectIdentifier })
+], OtherRecipientInfo.prototype, "oriType", void 0);
+__decorate([
+    AsnProp({ type: AsnPropTypes.Any })
+], OtherRecipientInfo.prototype, "oriValue", void 0);
+let RecipientInfo = class RecipientInfo {
+    ktri;
+    kari;
+    kekri;
+    pwri;
+    ori;
+    constructor(params = {}) {
+        Object.assign(this, params);
+    }
+};
+__decorate([
+    AsnProp({
+        type: KeyTransRecipientInfo, optional: true,
+    })
+], RecipientInfo.prototype, "ktri", void 0);
+__decorate([
+    AsnProp({
+        type: KeyAgreeRecipientInfo, context: 1, implicit: true, optional: true,
+    })
+], RecipientInfo.prototype, "kari", void 0);
+__decorate([
+    AsnProp({
+        type: KEKRecipientInfo, context: 2, implicit: true, optional: true,
+    })
+], RecipientInfo.prototype, "kekri", void 0);
+__decorate([
+    AsnProp({
+        type: PasswordRecipientInfo, context: 3, implicit: true, optional: true,
+    })
+], RecipientInfo.prototype, "pwri", void 0);
+__decorate([
+    AsnProp({
+        type: OtherRecipientInfo, context: 4, implicit: true, optional: true,
+    })
+], RecipientInfo.prototype, "ori", void 0);
+RecipientInfo = __decorate([
+    AsnType({ type: AsnTypeTypes.Choice })
+], RecipientInfo);
+export { RecipientInfo };

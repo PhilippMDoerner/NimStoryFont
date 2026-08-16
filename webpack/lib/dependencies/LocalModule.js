@@ -7,17 +7,21 @@
 
 const makeSerializable = require("../util/makeSerializable");
 
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext} ObjectDeserializerContext */
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext} ObjectSerializerContext */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext<[string, number, boolean]>} ObjectDeserializerContext */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext<[string, number, boolean]>} ObjectSerializerContext */
 
 class LocalModule {
 	/**
+	 * Creates an instance of LocalModule.
 	 * @param {string} name name
 	 * @param {number} idx index
 	 */
 	constructor(name, idx) {
+		/** @type {string} */
 		this.name = name;
+		/** @type {number} */
 		this.idx = idx;
+		/** @type {boolean} */
 		this.used = false;
 	}
 
@@ -26,6 +30,7 @@ class LocalModule {
 	}
 
 	/**
+	 * Returns variable name.
 	 * @returns {string} variable name
 	 */
 	variableName() {
@@ -33,25 +38,23 @@ class LocalModule {
 	}
 
 	/**
+	 * Serializes this instance into the provided serializer context.
 	 * @param {ObjectSerializerContext} context context
 	 */
 	serialize(context) {
-		const { write } = context;
-
-		write(this.name);
-		write(this.idx);
-		write(this.used);
+		context.write(this.name).write(this.idx).write(this.used);
 	}
 
 	/**
+	 * Restores this instance from the provided deserializer context.
 	 * @param {ObjectDeserializerContext} context context
 	 */
 	deserialize(context) {
-		const { read } = context;
-
-		this.name = read();
-		this.idx = read();
-		this.used = read();
+		this.name = context.read();
+		const c1 = context.rest;
+		this.idx = c1.read();
+		const c2 = c1.rest;
+		this.used = c2.read();
 	}
 }
 

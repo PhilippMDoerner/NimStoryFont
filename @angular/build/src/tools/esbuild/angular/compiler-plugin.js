@@ -46,17 +46,20 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createCompilerPlugin = createCompilerPlugin;
 const node_assert_1 = __importDefault(require("node:assert"));
 const node_crypto_1 = require("node:crypto");
+const promises_1 = require("node:fs/promises");
 const path = __importStar(require("node:path"));
 const environment_options_1 = require("../../../utils/environment-options");
 const compilation_1 = require("../../angular/compilation");
+const cache_1 = require("../cache");
 const javascript_transformer_1 = require("../javascript-transformer");
 const load_result_cache_1 = require("../load-result-cache");
 const profiling_1 = require("../profiling");
 const compilation_state_1 = require("./compilation-state");
 const file_reference_tracker_1 = require("./file-reference-tracker");
 const jit_plugin_callbacks_1 = require("./jit-plugin-callbacks");
+const rewrite_bazel_paths_1 = require("./rewrite-bazel-paths");
 // eslint-disable-next-line max-lines-per-function
-function createCompilerPlugin(pluginOptions, compilationOrFactory, stylesheetBundler) {
+function createCompilerPlugin(pluginOptions, compilationContextOrCompilation, stylesheetBundler) {
     return {
         name: 'angular-compiler',
         // eslint-disable-next-line max-lines-per-function
@@ -68,16 +71,17 @@ function createCompilerPlugin(pluginOptions, compilationOrFactory, stylesheetBun
             let cacheStore;
             if (pluginOptions.sourceFileCache?.persistentCachePath && !process.versions.webcontainer) {
                 try {
-                    const { LmbdCacheStore } = await Promise.resolve().then(() => __importStar(require('../lmdb-cache-store')));
-                    cacheStore = new LmbdCacheStore(path.join(pluginOptions.sourceFileCache.persistentCachePath, 'angular-compiler.db'));
+                    cacheStore = await (0, cache_1.createPersistentCacheStore)(path.join(pluginOptions.sourceFileCache.persistentCachePath, 'angular-compiler'));
                 }
                 catch (e) {
                     setupWarnings.push({
                         text: 'Unable to initialize JavaScript cache storage.',
                         location: null,
                         notes: [
-                            // Only show first line of lmdb load error which has platform support listed
-                            { text: e?.message.split('\n')[0] ?? `${e}` },
+                            ...e.message
+                                .split('\n')
+                                .slice(1)
+                                .map((text) => ({ text })),
                             {
                                 text: 'This will not affect the build output content but may result in slower builds.',
                             },
@@ -96,9 +100,12 @@ function createCompilerPlugin(pluginOptions, compilationOrFactory, stylesheetBun
             build.initialOptions.define['ngI18nClosureMode'] ??= 'false';
             // The factory is only relevant for compatibility purposes with the private API.
             // TODO: Update private API in the next major to allow compilation function factory removal here.
-            const compilation = typeof compilationOrFactory === 'function'
-                ? await compilationOrFactory()
-                : compilationOrFactory;
+            const angularCompilationContext = compilationContextOrCompilation instanceof compilation_state_1.AngularCompilationContext
+                ? compilationContextOrCompilation
+                : new compilation_state_1.AngularCompilationContext(typeof compilationContextOrCompilation === 'function'
+                    ? await compilationContextOrCompilation()
+                    : compilationContextOrCompilation);
+            const compilation = angularCompilationContext.compilation;
             // The in-memory cache of TypeScript file outputs will be used during the build in `onLoad` callbacks for TS files.
             // A string value indicates direct TS/NG output and a Uint8Array indicates fully transformed code.
             const typeScriptFileCache = pluginOptions.sourceFileCache?.typeScriptFileCache ??
@@ -111,15 +118,11 @@ function createCompilerPlugin(pluginOptions, compilationOrFactory, stylesheetBun
             let shouldTsIgnoreJs = true;
             // Determines if transpilation should be handle by TypeScript or esbuild
             let useTypeScriptTranspilation = true;
-            let sharedTSCompilationState;
             // To fully invalidate files, track resource referenced files and their referencing source
             const referencedFileTracker = new file_reference_tracker_1.FileReferenceTracker();
             // eslint-disable-next-line max-lines-per-function
             build.onStart(async () => {
-                sharedTSCompilationState = (0, compilation_state_1.getSharedCompilationState)();
-                if (!(compilation instanceof compilation_1.NoopCompilation)) {
-                    sharedTSCompilationState.markAsInProgress();
-                }
+                angularCompilationContext.markAsInProgress();
                 const result = {
                     warnings: setupWarnings,
                 };
@@ -181,6 +184,13 @@ function createCompilerPlugin(pluginOptions, compilationOrFactory, stylesheetBun
                         (result.warnings ??= []).push(...stylesheetResult.warnings);
                         if (stylesheetResult.errors) {
                             (result.errors ??= []).push(...stylesheetResult.errors);
+                            const { referencedFiles } = stylesheetResult;
+                            if (referencedFiles) {
+                                referencedFileTracker.add(containingFile, referencedFiles);
+                                if (stylesheetFile) {
+                                    referencedFileTracker.add(stylesheetFile, referencedFiles);
+                                }
+                            }
                             return '';
                         }
                         const { contents, outputFiles, metafile, referencedFiles } = stylesheetResult;
@@ -235,12 +245,8 @@ function createCompilerPlugin(pluginOptions, compilationOrFactory, stylesheetBun
                 try {
                     const initializationResult = await compilation.initialize(pluginOptions.tsconfig, hostOptions, createCompilerOptionsTransformer(setupWarnings, pluginOptions, preserveSymlinks, build.initialOptions.conditions));
                     shouldTsIgnoreJs = !initializationResult.compilerOptions.allowJs;
-                    // Isolated modules option ensures safe non-TypeScript transpilation.
-                    // Typescript printing support for sourcemaps is not yet integrated.
                     useTypeScriptTranspilation =
-                        !initializationResult.compilerOptions.isolatedModules ||
-                            !!initializationResult.compilerOptions.sourceMap ||
-                            !!initializationResult.compilerOptions.inlineSourceMap;
+                        !!initializationResult.compilerOptions['_useTypeScriptTranspilation'];
                     referencedFiles = initializationResult.referencedFiles;
                     externalStylesheets = initializationResult.externalStylesheets;
                     if (initializationResult.templateUpdates) {
@@ -264,7 +270,7 @@ function createCompilerPlugin(pluginOptions, compilationOrFactory, stylesheetBun
                     return result;
                 }
                 if (compilation instanceof compilation_1.NoopCompilation) {
-                    hasCompilationErrors = await sharedTSCompilationState.waitUntilReady;
+                    hasCompilationErrors = await angularCompilationContext.waitUntilReady;
                     return result;
                 }
                 if (externalStylesheets) {
@@ -317,11 +323,11 @@ function createCompilerPlugin(pluginOptions, compilationOrFactory, stylesheetBun
                 hasCompilationErrors = !!result.errors?.length;
                 // Reset the setup warnings so that they are only shown during the first build.
                 setupWarnings = undefined;
-                sharedTSCompilationState.markAsReady(hasCompilationErrors);
+                angularCompilationContext.markAsReady(hasCompilationErrors);
                 return result;
             });
             build.onLoad({ filter: /\.[cm]?[jt]sx?$/ }, async (args) => {
-                const request = path.normalize(pluginOptions.fileReplacements?.[path.normalize(args.path)] ?? args.path);
+                const request = (0, rewrite_bazel_paths_1.rewriteForBazel)(path.normalize(pluginOptions.fileReplacements?.[path.normalize(args.path)] ?? args.path));
                 const isJS = /\.[cm]?js$/.test(request);
                 // Skip TS load attempt if JS TypeScript compilation not enabled and file is JS
                 if (shouldTsIgnoreJs && isJS) {
@@ -343,11 +349,21 @@ function createCompilerPlugin(pluginOptions, compilationOrFactory, stylesheetBun
                     if (!shouldTsIgnoreJs && isJS) {
                         return undefined;
                     }
+                    const diangosticRoot = build.initialOptions.absWorkingDir ?? '';
+                    // Evaluate whether the file requires the Angular compiler transpilation.
+                    // If not, issue a warning but allow bundler to process the file (no type-checking).
+                    const directContents = await (0, promises_1.readFile)(request, 'utf-8');
+                    if (!requiresAngularCompiler(directContents)) {
+                        return {
+                            warnings: [createMissingFileDiagnostic(request, args.path, diangosticRoot, false)],
+                            contents,
+                            loader: 'ts',
+                            resolveDir: path.dirname(request),
+                        };
+                    }
                     // Otherwise return an error
                     return {
-                        errors: [
-                            createMissingFileError(request, args.path, build.initialOptions.absWorkingDir ?? ''),
-                        ],
+                        errors: [createMissingFileDiagnostic(request, args.path, diangosticRoot, true)],
                     };
                 }
                 else if (typeof contents === 'string' && (useTypeScriptTranspilation || isJS)) {
@@ -375,10 +391,11 @@ function createCompilerPlugin(pluginOptions, compilationOrFactory, stylesheetBun
                 return {
                     contents,
                     loader,
+                    resolveDir: path.dirname(request),
                 };
             });
             build.onLoad({ filter: /\.[cm]?js$/ }, (0, load_result_cache_1.createCachedLoad)(pluginOptions.loadResultCache, async (args) => {
-                let request = args.path;
+                let request = (0, rewrite_bazel_paths_1.rewriteForBazel)(args.path);
                 if (pluginOptions.fileReplacements) {
                     const replacement = pluginOptions.fileReplacements[path.normalize(args.path)];
                     if (replacement) {
@@ -391,6 +408,7 @@ function createCompilerPlugin(pluginOptions, compilationOrFactory, stylesheetBun
                     return {
                         contents,
                         loader: 'js',
+                        resolveDir: path.dirname(request),
                         watchFiles: request !== args.path ? [request] : undefined,
                     };
                 }, true);
@@ -417,7 +435,7 @@ function createCompilerPlugin(pluginOptions, compilationOrFactory, stylesheetBun
             }
             build.onEnd((result) => {
                 // Ensure other compilations are unblocked if the main compilation throws during start
-                sharedTSCompilationState?.markAsReady(hasCompilationErrors);
+                angularCompilationContext.markAsReady(hasCompilationErrors);
                 for (const { outputFiles, metafile } of additionalResults.values()) {
                     // Add any additional output files to the main output files
                     if (outputFiles?.length) {
@@ -435,8 +453,8 @@ function createCompilerPlugin(pluginOptions, compilationOrFactory, stylesheetBun
                 (0, profiling_1.logCumulativeDurations)();
             });
             build.onDispose(() => {
-                sharedTSCompilationState?.dispose();
-                void compilation.close?.();
+                void angularCompilationContext.dispose();
+                void javascriptTransformer.close();
                 void cacheStore?.close();
             });
             /**
@@ -481,7 +499,7 @@ function createCompilerOptionsTransformer(setupWarnings, pluginOptions, preserve
             // If 'useDefineForClassFields' is already defined in the users project leave the value as is.
             // Otherwise fallback to false due to https://github.com/microsoft/TypeScript/issues/45995
             // which breaks the deprecated `@Effects` NGRX decorator and potentially other existing code as well.
-            compilerOptions.target = 9 /** ES2022 */;
+            compilerOptions.target = 9; /** ES2022 */
             compilerOptions.useDefineForClassFields ??= false;
             // Only add the warning on the initial build
             setupWarnings?.push({
@@ -552,6 +570,11 @@ function createCompilerOptionsTransformer(setupWarnings, pluginOptions, preserve
             preserveSymlinks,
             externalRuntimeStyles: pluginOptions.externalRuntimeStyles,
             _enableHmr: !!pluginOptions.templateUpdates,
+            // TypeScript transpilation is forced if:
+            // - isolatedModules is disabled (TS needs full module types to emit JS).
+            // - Karma code coverage is active (the coverage instrumentation transformer is Babel-based
+            //   and cannot parse raw TypeScript code; Vitest handles coverage instrumentation downstream).
+            _useTypeScriptTranspilation: !compilerOptions.isolatedModules || !!pluginOptions.instrumentForCoverage,
             supportTestBed: !!pluginOptions.includeTestMetadata,
             supportJitMode: !!pluginOptions.includeTestMetadata,
         };
@@ -582,21 +605,35 @@ function bundleWebWorker(build, pluginOptions, workerFile) {
         throw error;
     }
 }
-function createMissingFileError(request, original, root) {
+function createMissingFileDiagnostic(request, original, root, angular) {
     const relativeRequest = path.relative(root, request);
-    const error = {
-        text: `File '${relativeRequest}' is missing from the TypeScript compilation.`,
-        notes: [
-            {
-                text: `Ensure the file is part of the TypeScript program via the 'files' or 'include' property.`,
-            },
-        ],
-    };
+    const notes = [];
+    if (angular) {
+        notes.push({
+            text: `Files containing Angular metadata ('@Component'/'@Directive'/etc.) must be part of the TypeScript compilation.` +
+                ` You can ensure the file is part of the TypeScript program via the 'files' or 'include' property.`,
+        });
+    }
+    else {
+        notes.push({
+            text: `The file will be bundled and included in the output but will not be type-checked at build time.` +
+                ` To remove this message you can add the file to the TypeScript program via the 'files' or 'include' property.`,
+        });
+    }
     const relativeOriginal = path.relative(root, original);
     if (relativeRequest !== relativeOriginal) {
-        error.notes.push({
+        notes.push({
             text: `File is requested from a file replacement of '${relativeOriginal}'.`,
         });
     }
-    return error;
+    const diagnostic = {
+        text: `File '${relativeRequest}' not found in TypeScript compilation.`,
+        notes,
+    };
+    return diagnostic;
 }
+const POTENTIAL_METADATA_REGEX = /@angular\/core|@Component|@Directive|@Injectable|@Pipe|@NgModule/;
+function requiresAngularCompiler(contents) {
+    return POTENTIAL_METADATA_REGEX.test(contents);
+}
+//# sourceMappingURL=compiler-plugin.js.map

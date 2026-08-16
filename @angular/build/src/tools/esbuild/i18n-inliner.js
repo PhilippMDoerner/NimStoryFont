@@ -6,39 +6,6 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.dev/license
  */
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -48,8 +15,8 @@ const node_assert_1 = __importDefault(require("node:assert"));
 const node_crypto_1 = require("node:crypto");
 const node_path_1 = require("node:path");
 const worker_pool_1 = require("../../utils/worker-pool");
-const bundler_context_1 = require("./bundler-context");
-const utils_1 = require("./utils");
+const bundler_files_1 = require("./bundler-files");
+const cache_1 = require("./cache");
 /**
  * A keyword used to indicate if a JavaScript file may require inlining of translations.
  * This keyword is used to avoid processing files that would not otherwise need i18n processing.
@@ -75,7 +42,7 @@ class I18nInliner {
         const files = new Map();
         const pendingMaps = [];
         for (const file of outputFiles) {
-            if (file.type === bundler_context_1.BuildOutputFileType.Root || file.type === bundler_context_1.BuildOutputFileType.ServerRoot) {
+            if (file.type === bundler_files_1.BuildOutputFileType.Root || file.type === bundler_files_1.BuildOutputFileType.ServerRoot) {
                 // Skip also the server entry-point.
                 // Skip stats and similar files.
                 continue;
@@ -163,8 +130,11 @@ class I18nInliner {
                 }
                 const result = await this.#workerPool.run({ filename, locale, translation });
                 if (this.#cache && cacheKey) {
-                    // Failure to set the value should not fail the transform
-                    await this.#cache.set(cacheKey, result).catch(() => { });
+                    try {
+                        // Failure to set the value should not fail the transform
+                        await this.#cache.set(cacheKey, result);
+                    }
+                    catch { }
                 }
                 return result;
             });
@@ -179,9 +149,9 @@ class I18nInliner {
             ...rawResults.flatMap(({ file, code, map, messages }) => {
                 const type = this.#localizeFiles.get(file)?.type;
                 (0, node_assert_1.default)(type !== undefined, 'localized file should always have a type' + file);
-                const resultFiles = [(0, utils_1.createOutputFile)(file, code, type)];
+                const resultFiles = [(0, bundler_files_1.createOutputFile)(file, code, type)];
                 if (map) {
-                    resultFiles.push((0, utils_1.createOutputFile)(file + '.map', map, type));
+                    resultFiles.push((0, bundler_files_1.createOutputFile)(file + '.map', map, type));
                 }
                 for (const message of messages) {
                     if (message.type === 'error') {
@@ -231,8 +201,8 @@ class I18nInliner {
      * Stops all active transformation tasks and shuts down all workers.
      * @returns A void promise that resolves when closing is complete.
      */
-    close() {
-        return this.#workerPool.destroy();
+    async close() {
+        await Promise.allSettled([this.#cache?.close(), this.#workerPool.destroy()]);
     }
     /**
      * Initializes the cache for storing translated bundles.
@@ -251,8 +221,7 @@ class I18nInliner {
         }
         // Initialize a persistent cache for i18n transformations.
         try {
-            const { LmbdCacheStore } = await Promise.resolve().then(() => __importStar(require('./lmdb-cache-store')));
-            this.#cache = new LmbdCacheStore((0, node_path_1.join)(persistentCachePath, 'angular-i18n.db'));
+            this.#cache = await (0, cache_1.createPersistentCacheStore)((0, node_path_1.join)(persistentCachePath, 'angular-i18n'));
         }
         catch {
             this.#cacheInitFailed = true;
@@ -263,3 +232,4 @@ class I18nInliner {
     }
 }
 exports.I18nInliner = I18nInliner;
+//# sourceMappingURL=i18n-inliner.js.map

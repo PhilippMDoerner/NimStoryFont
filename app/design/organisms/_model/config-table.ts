@@ -1,5 +1,5 @@
 import { FormlyFieldConfig } from '@ngx-formly/core';
-import { Icon } from 'src/app/design/atoms/_models/icon';
+import { Icon } from '../../../design/atoms/_models/icon';
 
 export interface ConfigTable<FullObj extends object, RawObj extends object> {
   name: string;

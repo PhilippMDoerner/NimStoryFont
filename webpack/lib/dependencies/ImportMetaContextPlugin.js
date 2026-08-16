@@ -12,17 +12,41 @@ const {
 const ContextElementDependency = require("./ContextElementDependency");
 const ImportMetaContextDependency = require("./ImportMetaContextDependency");
 const ImportMetaContextDependencyParserPlugin = require("./ImportMetaContextDependencyParserPlugin");
+const ImportMetaGlobDependency = require("./ImportMetaGlobDependency");
+const ImportMetaGlobDependencyParserPlugin = require("./ImportMetaGlobDependencyParserPlugin");
+const { isImportMetaFieldEnabled } = require("./ImportMetaPlugin");
 
 /** @typedef {import("../../declarations/WebpackOptions").JavascriptParserOptions} JavascriptParserOptions */
-/** @typedef {import("../../declarations/WebpackOptions").ResolveOptions} ResolveOptions */
 /** @typedef {import("../Compiler")} Compiler */
 /** @typedef {import("../javascript/JavascriptParser")} Parser */
 
 const PLUGIN_NAME = "ImportMetaContextPlugin";
 
+/** @type {(parserOptions: JavascriptParserOptions) => boolean} */
+const isImportMetaContextEnabled = (parserOptions) => {
+	const importMeta = parserOptions.importMeta;
+	if (
+		Boolean(importMeta) &&
+		typeof importMeta === "object" &&
+		Object.prototype.hasOwnProperty.call(importMeta, "webpackContext")
+	) {
+		return isImportMetaFieldEnabled(importMeta, "webpackContext");
+	}
+	if (parserOptions.importMetaContext === false) {
+		return false;
+	}
+	return isImportMetaFieldEnabled(importMeta, "webpackContext");
+};
+
+// Gated only by the `importMeta.glob` field — independent of the legacy
+// `importMetaContext` toggle, which controls `import.meta.webpackContext`.
+/** @type {(parserOptions: JavascriptParserOptions) => boolean} */
+const isImportMetaGlobEnabled = (parserOptions) =>
+	isImportMetaFieldEnabled(parserOptions.importMeta, "glob");
+
 class ImportMetaContextPlugin {
 	/**
-	 * Apply the plugin
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Compiler} compiler the compiler instance
 	 * @returns {void}
 	 */
@@ -39,23 +63,31 @@ class ImportMetaContextPlugin {
 					new ImportMetaContextDependency.Template()
 				);
 				compilation.dependencyFactories.set(
+					ImportMetaGlobDependency,
+					contextModuleFactory
+				);
+				compilation.dependencyTemplates.set(
+					ImportMetaGlobDependency,
+					new ImportMetaGlobDependency.Template()
+				);
+				compilation.dependencyFactories.set(
 					ContextElementDependency,
 					normalModuleFactory
 				);
 
 				/**
+				 * Handles the hook callback for this code path.
 				 * @param {Parser} parser parser parser
 				 * @param {JavascriptParserOptions} parserOptions parserOptions
 				 * @returns {void}
 				 */
 				const handler = (parser, parserOptions) => {
-					if (
-						parserOptions.importMetaContext !== undefined &&
-						!parserOptions.importMetaContext
-					)
-						return;
-
-					new ImportMetaContextDependencyParserPlugin().apply(parser);
+					if (isImportMetaContextEnabled(parserOptions)) {
+						new ImportMetaContextDependencyParserPlugin().apply(parser);
+					}
+					if (isImportMetaGlobEnabled(parserOptions)) {
+						new ImportMetaGlobDependencyParserPlugin().apply(parser);
+					}
 				};
 
 				normalModuleFactory.hooks.parser

@@ -14,5 +14,12 @@ export default async function defaultBrowserId() {
 	// `(?!-)` is to prevent matching `LSHandlerRoleAll = "-";`.
 	const match = /LSHandlerRoleAll = "(?!-)(?<id>[^"]+?)";\s+?LSHandlerURLScheme = (?:http|https);/.exec(stdout);
 
-	return match?.groups.id ?? 'com.apple.Safari';
+	const browserId = match?.groups.id ?? 'com.apple.Safari';
+
+	// Correct the case for Safari's bundle identifier
+	if (browserId === 'com.apple.safari') {
+		return 'com.apple.Safari';
+	}
+
+	return browserId;
 }

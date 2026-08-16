@@ -31,6 +31,7 @@ const WebAssemblyUtils = require("./WebAssemblyUtils");
  */
 const getAllWasmModules = (moduleGraph, chunkGraph, chunk) => {
 	const wasmModules = chunk.getAllAsyncChunks();
+	/** @type {Module[]} */
 	const array = [];
 	for (const chunk of wasmModules) {
 		for (const m of chunkGraph.getOrderedChunkModulesIterable(
@@ -46,12 +47,14 @@ const getAllWasmModules = (moduleGraph, chunkGraph, chunk) => {
 	return array;
 };
 
+/** @typedef {string[]} Declarations */
+
 /**
  * generates the import object function for a module
  * @param {ChunkGraph} chunkGraph the chunk graph
  * @param {Module} module the module
  * @param {boolean | undefined} mangle mangle imports
- * @param {string[]} declarations array where declarations are pushed to
+ * @param {Declarations} declarations array where declarations are pushed to
  * @param {RuntimeSpec} runtime the runtime
  * @returns {string} source code
  */
@@ -63,8 +66,9 @@ const generateImportObject = (
 	runtime
 ) => {
 	const moduleGraph = chunkGraph.moduleGraph;
-	/** @type {Map<string, string | number>} */
+	/** @type {Map<string, ModuleId>} */
 	const waitForInstances = new Map();
+	/** @type {{ module: string, name: string, value: string }[]} */
 	const properties = [];
 	const usedWasmDependencies = WebAssemblyUtils.getUsedDependencies(
 		moduleGraph,
@@ -134,17 +138,20 @@ const generateImportObject = (
 		}
 	}
 
+	/** @type {string[]} */
 	let importObject;
 	if (mangle) {
 		importObject = [
 			"return {",
 			Template.indent([
-				properties.map(p => `${JSON.stringify(p.name)}: ${p.value}`).join(",\n")
+				properties
+					.map((p) => `${JSON.stringify(p.name)}: ${p.value}`)
+					.join(",\n")
 			]),
 			"};"
 		];
 	} else {
-		/** @type {Map<string, Array<{ name: string, value: string }>>} */
+		/** @type {Map<string, { name: string, value: string }[]>} */
 		const propertiesByModule = new Map();
 		for (const p of properties) {
 			let list = propertiesByModule.get(p.module);
@@ -160,7 +167,9 @@ const generateImportObject = (
 					Template.asString([
 						`${JSON.stringify(module)}: {`,
 						Template.indent([
-							list.map(p => `${JSON.stringify(p.name)}: ${p.value}`).join(",\n")
+							list
+								.map((p) => `${JSON.stringify(p.name)}: ${p.value}`)
+								.join(",\n")
 						]),
 						"}"
 					])
@@ -172,9 +181,9 @@ const generateImportObject = (
 
 	const moduleIdStringified = JSON.stringify(chunkGraph.getModuleId(module));
 	if (waitForInstances.size === 1) {
-		const moduleId = Array.from(waitForInstances.values())[0];
+		const moduleId = [...waitForInstances.values()][0];
 		const promise = `installedWasmModules[${JSON.stringify(moduleId)}]`;
-		const variable = Array.from(waitForInstances.keys())[0];
+		const variable = [...waitForInstances.keys()][0];
 		return Template.asString([
 			`${moduleIdStringified}: function() {`,
 			Template.indent([
@@ -187,7 +196,7 @@ const generateImportObject = (
 	} else if (waitForInstances.size > 0) {
 		const promises = Array.from(
 			waitForInstances.values(),
-			id => `installedWasmModules[${JSON.stringify(id)}]`
+			(id) => `installedWasmModules[${JSON.stringify(id)}]`
 		).join(", ");
 		const variables = Array.from(
 			waitForInstances.keys(),
@@ -230,12 +239,16 @@ class WasmChunkLoadingRuntimeModule extends RuntimeModule {
 	}) {
 		super("wasm chunk loading", RuntimeModule.STAGE_ATTACH);
 		this.generateLoadBinaryCode = generateLoadBinaryCode;
+		/** @type {boolean | undefined} */
 		this.supportsStreaming = supportsStreaming;
+		/** @type {boolean | undefined} */
 		this.mangleImports = mangleImports;
+		/** @type {ReadOnlyRuntimeRequirements} */
 		this._runtimeRequirements = runtimeRequirements;
 	}
 
 	/**
+	 * Generates runtime code for this runtime module.
 	 * @returns {string | null} runtime code
 	 */
 	generate() {
@@ -244,14 +257,14 @@ class WasmChunkLoadingRuntimeModule extends RuntimeModule {
 			RuntimeGlobals.hmrDownloadUpdateHandlers
 		);
 		const compilation = /** @type {Compilation} */ (this.compilation);
-		const { moduleGraph, outputOptions } = compilation;
+		const { moduleGraph, outputOptions, runtimeTemplate } = compilation;
 		const chunkGraph = /** @type {ChunkGraph} */ (this.chunkGraph);
 		const chunk = /** @type {Chunk} */ (this.chunk);
 		const wasmModules = getAllWasmModules(moduleGraph, chunkGraph, chunk);
 		const { mangleImports } = this;
-		/** @type {string[]} */
+		/** @type {Declarations} */
 		const declarations = [];
-		const importObjects = wasmModules.map(module =>
+		const importObjects = wasmModules.map((module) =>
 			generateImportObject(
 				chunkGraph,
 				module,
@@ -260,27 +273,31 @@ class WasmChunkLoadingRuntimeModule extends RuntimeModule {
 				chunk.runtime
 			)
 		);
-		const chunkModuleIdMap = chunkGraph.getChunkModuleIdMap(chunk, m =>
+		const chunkModuleIdMap = chunkGraph.getChunkModuleIdMap(chunk, (m) =>
 			m.type.startsWith("webassembly")
 		);
 		/**
 		 * @param {string} content content
 		 * @returns {string} created import object
 		 */
-		const createImportObject = content =>
+		const createImportObject = (content) =>
 			mangleImports
 				? `{ ${JSON.stringify(WebAssemblyUtils.MANGLED_MODULE)}: ${content} }`
 				: content;
+		// Opt-in fallback to non-streaming when the server serves wasm with a wrong MIME type.
+		const streamingFallback = outputOptions.wasmStreamingFallback;
+		const streamingMimeFallbackWarning =
+			'console.warn("`WebAssembly.instantiateStreaming` failed because your server does not serve wasm with `application/wasm` MIME type. Falling back to `WebAssembly.instantiate` which is slower. Original error:\\n", e);';
 		const wasmModuleSrcPath = compilation.getPath(
 			JSON.stringify(outputOptions.webassemblyModuleFilename),
 			{
 				hash: `" + ${RuntimeGlobals.getFullHash}() + "`,
-				hashWithLength: length =>
-					`" + ${RuntimeGlobals.getFullHash}}().slice(0, ${length}) + "`,
+				hashWithLength: (length) =>
+					`" + ${RuntimeGlobals.getFullHash}().slice(0, ${length}) + "`,
 				module: {
 					id: '" + wasmModuleId + "',
 					hash: `" + ${JSON.stringify(
-						chunkGraph.getChunkModuleRenderedHashMap(chunk, m =>
+						chunkGraph.getChunkModuleRenderedHashMap(chunk, (m) =>
 							m.type.startsWith("webassembly")
 						)
 					)}[chunkId][wasmModuleId] + "`,
@@ -288,7 +305,7 @@ class WasmChunkLoadingRuntimeModule extends RuntimeModule {
 						return `" + ${JSON.stringify(
 							chunkGraph.getChunkModuleRenderedHashMap(
 								chunk,
-								m => m.type.startsWith("webassembly"),
+								(m) => m.type.startsWith("webassembly"),
 								length
 							)
 						)}[chunkId][wasmModuleId] + "`;
@@ -305,8 +322,8 @@ class WasmChunkLoadingRuntimeModule extends RuntimeModule {
 		return Template.asString([
 			"// object to store loaded and loading wasm modules",
 			`var installedWasmModules = ${
-				stateExpression ? `${stateExpression} = ${stateExpression} || ` : ""
-			}{};`,
+				stateExpression ? runtimeTemplate.assignOr(stateExpression, "{}") : "{}"
+			};`,
 			"",
 			// This function is used to delay reading the installed wasm module promises
 			// by a microtask. Sorting them doesn't help because there are edge cases where
@@ -347,24 +364,83 @@ class WasmChunkLoadingRuntimeModule extends RuntimeModule {
 						`var req = ${this.generateLoadBinaryCode(wasmModuleSrcPath)};`,
 						"var promise;",
 						this.supportsStreaming
-							? Template.asString([
-									"if(importObject && typeof importObject.then === 'function' && typeof WebAssembly.compileStreaming === 'function') {",
-									Template.indent([
-										"promise = Promise.all([WebAssembly.compileStreaming(req), importObject]).then(function(items) {",
+							? streamingFallback
+								? Template.asString([
+										"if(importObject && typeof importObject.then === 'function' && typeof WebAssembly.compileStreaming === 'function') {",
 										Template.indent([
-											`return WebAssembly.instantiate(items[0], ${createImportObject(
-												"items[1]"
-											)});`
+											"promise = req.then(function(res) {",
+											Template.indent([
+												"return Promise.all([WebAssembly.compileStreaming(res), importObject]).then(function(items) {",
+												Template.indent([
+													`return WebAssembly.instantiate(items[0], ${createImportObject(
+														"items[1]"
+													)});`
+												]),
+												"}, function(e) {",
+												Template.indent([
+													'if(res.headers.get("Content-Type") !== "application/wasm") {',
+													Template.indent([
+														streamingMimeFallbackWarning,
+														"return Promise.all([res.arrayBuffer().then(function(bytes) { return WebAssembly.compile(bytes); }), importObject]).then(function(items) {",
+														Template.indent([
+															`return WebAssembly.instantiate(items[0], ${createImportObject(
+																"items[1]"
+															)});`
+														]),
+														"});"
+													]),
+													"}",
+													"throw e;"
+												]),
+												"});"
+											]),
+											"});"
 										]),
-										"});"
-									]),
-									"} else if(typeof WebAssembly.instantiateStreaming === 'function') {",
-									Template.indent([
-										`promise = WebAssembly.instantiateStreaming(req, ${createImportObject(
-											"importObject"
-										)});`
+										"} else if(typeof WebAssembly.instantiateStreaming === 'function') {",
+										Template.indent([
+											"promise = req.then(function(res) {",
+											Template.indent([
+												`return WebAssembly.instantiateStreaming(res, ${createImportObject(
+													"importObject"
+												)}).then(undefined, function(e) {`,
+												Template.indent([
+													'if(res.headers.get("Content-Type") !== "application/wasm") {',
+													Template.indent([
+														streamingMimeFallbackWarning,
+														"return res.arrayBuffer().then(function(bytes) {",
+														Template.indent([
+															`return WebAssembly.instantiate(bytes, ${createImportObject(
+																"importObject"
+															)});`
+														]),
+														"});"
+													]),
+													"}",
+													"throw e;"
+												]),
+												"});"
+											]),
+											"});"
+										])
 									])
-								])
+								: Template.asString([
+										"if(importObject && typeof importObject.then === 'function' && typeof WebAssembly.compileStreaming === 'function') {",
+										Template.indent([
+											"promise = Promise.all([WebAssembly.compileStreaming(req), importObject]).then(function(items) {",
+											Template.indent([
+												`return WebAssembly.instantiate(items[0], ${createImportObject(
+													"items[1]"
+												)});`
+											]),
+											"});"
+										]),
+										"} else if(typeof WebAssembly.instantiateStreaming === 'function') {",
+										Template.indent([
+											`promise = WebAssembly.instantiateStreaming(req, ${createImportObject(
+												"importObject"
+											)});`
+										])
+									])
 							: Template.asString([
 									"if(importObject && typeof importObject.then === 'function') {",
 									Template.indent([

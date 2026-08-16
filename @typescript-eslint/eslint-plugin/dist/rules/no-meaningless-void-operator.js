@@ -59,7 +59,6 @@ exports.default = (0, util_1.createRule)({
                 properties: {
                     checkNever: {
                         type: 'boolean',
-                        default: false,
                         description: 'Whether to suggest removing `void` when the argument has type `never`.',
                     },
                 },
@@ -79,8 +78,8 @@ exports.default = (0, util_1.createRule)({
                     ]);
                 };
                 const argType = services.getTypeAtLocation(node.argument);
-                const unionParts = tsutils.unionTypeParts(argType);
-                if (unionParts.every(part => part.flags & (ts.TypeFlags.Void | ts.TypeFlags.Undefined))) {
+                const unionParts = tsutils.unionConstituents(argType);
+                if (unionParts.every(part => tsutils.isTypeFlagSet(part, ts.TypeFlags.Void | ts.TypeFlags.Undefined))) {
                     context.report({
                         node,
                         messageId: 'meaninglessVoidOperator',
@@ -89,8 +88,7 @@ exports.default = (0, util_1.createRule)({
                     });
                 }
                 else if (checkNever &&
-                    unionParts.every(part => part.flags &
-                        (ts.TypeFlags.Void | ts.TypeFlags.Undefined | ts.TypeFlags.Never))) {
+                    unionParts.every(part => tsutils.isTypeFlagSet(part, ts.TypeFlags.Void | ts.TypeFlags.Undefined | ts.TypeFlags.Never))) {
                     context.report({
                         node,
                         messageId: 'meaninglessVoidOperator',

@@ -10,63 +10,79 @@ const { RawSource } = require("webpack-sources");
 const ChunkGraph = require("./ChunkGraph");
 const Compilation = require("./Compilation");
 const HotUpdateChunk = require("./HotUpdateChunk");
-const NormalModule = require("./NormalModule");
-const RuntimeGlobals = require("./RuntimeGlobals");
-const WebpackError = require("./WebpackError");
-const ConstDependency = require("./dependencies/ConstDependency");
-const ImportMetaHotAcceptDependency = require("./dependencies/ImportMetaHotAcceptDependency");
-const ImportMetaHotDeclineDependency = require("./dependencies/ImportMetaHotDeclineDependency");
-const ModuleHotAcceptDependency = require("./dependencies/ModuleHotAcceptDependency");
-const ModuleHotDeclineDependency = require("./dependencies/ModuleHotDeclineDependency");
-const HotModuleReplacementRuntimeModule = require("./hmr/HotModuleReplacementRuntimeModule");
-const JavascriptParser = require("./javascript/JavascriptParser");
-const {
-	evaluateToIdentifier
-} = require("./javascript/JavascriptParserHelpers");
-const { find, isSubset } = require("./util/SetHelpers");
-const TupleSet = require("./util/TupleSet");
-const { compareModulesById } = require("./util/comparators");
-const {
-	getRuntimeKey,
-	keyToRuntime,
-	forEachRuntime,
-	mergeRuntimeOwned,
-	subtractRuntime,
-	intersectRuntime
-} = require("./util/runtime");
-
 const {
 	JAVASCRIPT_MODULE_TYPE_AUTO,
 	JAVASCRIPT_MODULE_TYPE_DYNAMIC,
 	JAVASCRIPT_MODULE_TYPE_ESM,
 	WEBPACK_MODULE_TYPE_RUNTIME
 } = require("./ModuleTypeConstants");
+const NormalModule = require("./NormalModule");
+const RuntimeGlobals = require("./RuntimeGlobals");
+const { chunkHasCss } = require("./css/CssModulesPlugin");
+const ConstDependency = require("./dependencies/ConstDependency");
+const ImportMetaHotAcceptDependency = require("./dependencies/ImportMetaHotAcceptDependency");
+const ImportMetaHotDeclineDependency = require("./dependencies/ImportMetaHotDeclineDependency");
+const { isImportMetaFieldEnabled } = require("./dependencies/ImportMetaPlugin");
+const ModuleHotAcceptDependency = require("./dependencies/ModuleHotAcceptDependency");
+const ModuleHotDeclineDependency = require("./dependencies/ModuleHotDeclineDependency");
+const WebpackError = require("./errors/WebpackError");
+const HotModuleReplacementRuntimeModule = require("./hmr/HotModuleReplacementRuntimeModule");
+const JavascriptParser = require("./javascript/JavascriptParser");
+const {
+	evaluateToIdentifier
+} = require("./javascript/JavascriptParserHelpers");
+const ConcatenatedModule = require("./optimize/ConcatenatedModule");
+const { find, isSubset } = require("./util/SetHelpers");
+const TupleSet = require("./util/TupleSet");
+const { compareModulesById } = require("./util/comparators");
+const {
+	forEachRuntime,
+	getRuntimeKey,
+	intersectRuntime,
+	keyToRuntime,
+	mergeRuntimeOwned,
+	subtractRuntime
+} = require("./util/runtime");
 
 /** @typedef {import("estree").CallExpression} CallExpression */
 /** @typedef {import("estree").Expression} Expression */
 /** @typedef {import("estree").SpreadElement} SpreadElement */
-/** @typedef {import("../declarations/WebpackOptions").OutputNormalized} OutputNormalized */
 /** @typedef {import("./Chunk")} Chunk */
 /** @typedef {import("./Chunk").ChunkId} ChunkId */
 /** @typedef {import("./ChunkGraph").ModuleId} ModuleId */
 /** @typedef {import("./Compilation").AssetInfo} AssetInfo */
 /** @typedef {import("./Compilation").Records} Records */
 /** @typedef {import("./Compiler")} Compiler */
+/** @typedef {import("./CodeGenerationResults")} CodeGenerationResults */
 /** @typedef {import("./Dependency").DependencyLocation} DependencyLocation */
 /** @typedef {import("./Module")} Module */
 /** @typedef {import("./Module").BuildInfo} BuildInfo */
+/** @typedef {import("./css/CssModule").CssModuleBuildMeta} CssModuleBuildMeta */
 /** @typedef {import("./RuntimeModule")} RuntimeModule */
 /** @typedef {import("./javascript/BasicEvaluatedExpression")} BasicEvaluatedExpression */
 /** @typedef {import("./javascript/JavascriptParserHelpers").Range} Range */
 /** @typedef {import("./util/runtime").RuntimeSpec} RuntimeSpec */
 
+/** @typedef {string[]} Requests */
+
 /**
+ * Defines the hmr javascript parser hooks type used by this module.
  * @typedef {object} HMRJavascriptParserHooks
- * @property {SyncBailHook<[Expression | SpreadElement, string[]], void>} hotAcceptCallback
- * @property {SyncBailHook<[CallExpression, string[]], void>} hotAcceptWithoutCallback
+ * @property {SyncBailHook<[Expression | SpreadElement, Requests], void>} hotAcceptCallback
+ * @property {SyncBailHook<[CallExpression, Requests], void>} hotAcceptWithoutCallback
  */
 
-/** @typedef {{ updatedChunkIds: Set<ChunkId>, removedChunkIds: Set<ChunkId>, removedModules: Set<Module>, filename: string, assetInfo: AssetInfo }} HotUpdateMainContentByRuntimeItem */
+/** @typedef {number} HotIndex */
+/** @typedef {Record<string, string>} FullHashChunkModuleHashes */
+/** @typedef {Record<string, string>} ChunkModuleHashes */
+/** @typedef {Record<ChunkId, string>} ChunkHashes */
+/** @typedef {Record<ChunkId, string>} ChunkRuntime */
+/** @typedef {Record<ChunkId, ModuleId[]>} ChunkModuleIds */
+
+/** @typedef {Set<ChunkId>} ChunkIds */
+/** @typedef {Set<Module>} ModuleSet */
+
+/** @typedef {{ updatedChunkIds: ChunkIds, removedChunkIds: ChunkIds, removedModules: ModuleSet, forceLoadChunkIds: ChunkIds, filename: string, assetInfo: AssetInfo }} HotUpdateMainContentByRuntimeItem */
 /** @typedef {Map<string, HotUpdateMainContentByRuntimeItem>} HotUpdateMainContentByRuntime */
 
 /** @type {WeakMap<JavascriptParser, HMRJavascriptParserHooks>} */
@@ -76,6 +92,7 @@ const PLUGIN_NAME = "HotModuleReplacementPlugin";
 
 class HotModuleReplacementPlugin {
 	/**
+	 * Returns the attached hooks.
 	 * @param {JavascriptParser} parser the parser
 	 * @returns {HMRJavascriptParserHooks} the attached hooks
 	 */
@@ -97,17 +114,19 @@ class HotModuleReplacementPlugin {
 	}
 
 	/**
-	 * Apply the plugin
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Compiler} compiler the compiler instance
 	 * @returns {void}
 	 */
 	apply(compiler) {
 		const { _backCompat: backCompat } = compiler;
-		if (compiler.options.output.strictModuleErrorHandling === undefined)
+		if (compiler.options.output.strictModuleErrorHandling === undefined) {
 			compiler.options.output.strictModuleErrorHandling = true;
+		}
 		const runtimeRequirements = [RuntimeGlobals.module];
 
 		/**
+		 * Creates an accept handler.
 		 * @param {JavascriptParser} parser the parser
 		 * @param {typeof ModuleHotAcceptDependency} ParamDependency dependency
 		 * @returns {(expr: CallExpression) => boolean | undefined} callback
@@ -116,14 +135,14 @@ class HotModuleReplacementPlugin {
 			const { hotAcceptCallback, hotAcceptWithoutCallback } =
 				HotModuleReplacementPlugin.getParserHooks(parser);
 
-			return expr => {
+			return (expr) => {
 				const module = parser.state.module;
 				const dep = new ConstDependency(
 					`${module.moduleArgument}.hot.accept`,
 					/** @type {Range} */ (expr.callee.range),
 					runtimeRequirements
 				);
-				dep.loc = /** @type {DependencyLocation} */ (expr.loc);
+				dep.loc = parser.getLocation(expr);
 				module.addPresentationalDependency(dep);
 				/** @type {BuildInfo} */
 				(module.buildInfo).moduleConcatenationBailout =
@@ -138,9 +157,9 @@ class HotModuleReplacementPlugin {
 					} else if (arg.isArray()) {
 						params =
 							/** @type {BasicEvaluatedExpression[]} */
-							(arg.items).filter(param => param.isString());
+							(arg.items).filter((param) => param.isString());
 					}
-					/** @type {string[]} */
+					/** @type {Requests} */
 					const requests = [];
 					if (params.length > 0) {
 						for (const [idx, param] of params.entries()) {
@@ -150,10 +169,7 @@ class HotModuleReplacementPlugin {
 								/** @type {Range} */ (param.range)
 							);
 							dep.optional = true;
-							dep.loc = Object.create(
-								/** @type {DependencyLocation} */ (expr.loc)
-							);
-							dep.loc.index = idx;
+							dep.setLocWithIndex(parser.getLocation(expr), idx);
 							module.addDependency(dep);
 							requests.push(request);
 						}
@@ -174,18 +190,19 @@ class HotModuleReplacementPlugin {
 		};
 
 		/**
+		 * Creates a decline handler.
 		 * @param {JavascriptParser} parser the parser
 		 * @param {typeof ModuleHotDeclineDependency} ParamDependency dependency
 		 * @returns {(expr: CallExpression) => boolean | undefined} callback
 		 */
-		const createDeclineHandler = (parser, ParamDependency) => expr => {
+		const createDeclineHandler = (parser, ParamDependency) => (expr) => {
 			const module = parser.state.module;
 			const dep = new ConstDependency(
 				`${module.moduleArgument}.hot.decline`,
 				/** @type {Range} */ (expr.callee.range),
 				runtimeRequirements
 			);
-			dep.loc = /** @type {DependencyLocation} */ (expr.loc);
+			dep.loc = parser.getLocation(expr);
 			module.addPresentationalDependency(dep);
 			/** @type {BuildInfo} */
 			(module.buildInfo).moduleConcatenationBailout = "Hot Module Replacement";
@@ -198,7 +215,7 @@ class HotModuleReplacementPlugin {
 				} else if (arg.isArray()) {
 					params =
 						/** @type {BasicEvaluatedExpression[]} */
-						(arg.items).filter(param => param.isString());
+						(arg.items).filter((param) => param.isString());
 				}
 				for (const [idx, param] of params.entries()) {
 					const dep = new ParamDependency(
@@ -206,8 +223,7 @@ class HotModuleReplacementPlugin {
 						/** @type {Range} */ (param.range)
 					);
 					dep.optional = true;
-					dep.loc = Object.create(/** @type {DependencyLocation} */ (expr.loc));
-					dep.loc.index = idx;
+					dep.setLocWithIndex(parser.getLocation(expr), idx);
 					module.addDependency(dep);
 				}
 			}
@@ -215,17 +231,18 @@ class HotModuleReplacementPlugin {
 		};
 
 		/**
+		 * Creates a hmr expression handler.
 		 * @param {JavascriptParser} parser the parser
 		 * @returns {(expr: Expression) => boolean | undefined} callback
 		 */
-		const createHMRExpressionHandler = parser => expr => {
+		const createHMRExpressionHandler = (parser) => (expr) => {
 			const module = parser.state.module;
 			const dep = new ConstDependency(
 				`${module.moduleArgument}.hot`,
 				/** @type {Range} */ (expr.range),
 				runtimeRequirements
 			);
-			dep.loc = /** @type {DependencyLocation} */ (expr.loc);
+			dep.loc = parser.getLocation(expr);
 			module.addPresentationalDependency(dep);
 			/** @type {BuildInfo} */
 			(module.buildInfo).moduleConcatenationBailout = "Hot Module Replacement";
@@ -233,16 +250,17 @@ class HotModuleReplacementPlugin {
 		};
 
 		/**
+		 * Processes the provided parser.
 		 * @param {JavascriptParser} parser the parser
 		 * @returns {void}
 		 */
-		const applyModuleHot = parser => {
+		const applyModuleHot = (parser) => {
 			parser.hooks.evaluateIdentifier.for("module.hot").tap(
 				{
 					name: PLUGIN_NAME,
 					before: "NodeStuffPlugin"
 				},
-				expr =>
+				(expr) =>
 					evaluateToIdentifier(
 						"module.hot",
 						"module",
@@ -268,13 +286,14 @@ class HotModuleReplacementPlugin {
 		};
 
 		/**
+		 * Apply import meta hot.
 		 * @param {JavascriptParser} parser the parser
 		 * @returns {void}
 		 */
-		const applyImportMetaHot = parser => {
+		const applyImportMetaHot = (parser) => {
 			parser.hooks.evaluateIdentifier
 				.for("import.meta.webpackHot")
-				.tap(PLUGIN_NAME, expr =>
+				.tap(PLUGIN_NAME, (expr) =>
 					evaluateToIdentifier(
 						"import.meta.webpackHot",
 						"import.meta",
@@ -344,10 +363,11 @@ class HotModuleReplacementPlugin {
 				);
 				// #endregion
 
+				/** @type {HotIndex} */
 				let hotIndex = 0;
-				/** @type {Record<string, string>} */
+				/** @type {FullHashChunkModuleHashes} */
 				const fullHashChunkModuleHashes = {};
-				/** @type {Record<string, string>} */
+				/** @type {ChunkModuleHashes} */
 				const chunkModuleHashes = {};
 
 				compilation.hooks.record.tap(PLUGIN_NAME, (compilation, records) => {
@@ -361,19 +381,38 @@ class HotModuleReplacementPlugin {
 					records.chunkRuntime = {};
 					for (const chunk of compilation.chunks) {
 						const chunkId = /** @type {ChunkId} */ (chunk.id);
-						records.chunkHashes[chunkId] = chunk.hash;
+						records.chunkHashes[chunkId] = /** @type {string} */ (chunk.hash);
 						records.chunkRuntime[chunkId] = getRuntimeKey(chunk.runtime);
 					}
 					records.chunkModuleIds = {};
 					for (const chunk of compilation.chunks) {
-						records.chunkModuleIds[/** @type {ChunkId} */ (chunk.id)] =
-							Array.from(
-								chunkGraph.getOrderedChunkModulesIterable(
-									chunk,
-									compareModulesById(chunkGraph)
-								),
-								m => chunkGraph.getModuleId(m)
+						const chunkId = /** @type {ChunkId} */ (chunk.id);
+
+						/** @type {ModuleId[]} */
+						const moduleIds = [];
+						for (const m of chunkGraph.getOrderedChunkModulesIterable(
+							chunk,
+							compareModulesById(chunkGraph)
+						)) {
+							moduleIds.push(
+								/** @type {ModuleId} */ (chunkGraph.getModuleId(m))
 							);
+							if (m instanceof ConcatenatedModule && m.modules) {
+								for (const innerModule of m.modules) {
+									if (
+										innerModule.buildMeta &&
+										/** @type {CssModuleBuildMeta} */ (innerModule.buildMeta)
+											.needIdInConcatenation
+									) {
+										const innerId = chunkGraph.getModuleId(innerModule);
+										if (innerId !== null) {
+											moduleIds.push(innerId);
+										}
+									}
+								}
+							}
+						}
+						records.chunkModuleIds[chunkId] = moduleIds;
 					}
 				});
 				/** @type {TupleSet<Module, Chunk>} */
@@ -382,22 +421,21 @@ class HotModuleReplacementPlugin {
 				const fullHashModules = new TupleSet();
 				/** @type {TupleSet<Module, RuntimeSpec>} */
 				const nonCodeGeneratedModules = new TupleSet();
-				compilation.hooks.fullHash.tap(PLUGIN_NAME, hash => {
+				compilation.hooks.fullHash.tap(PLUGIN_NAME, (hash) => {
 					const chunkGraph = compilation.chunkGraph;
 					const records = /** @type {Records} */ (compilation.records);
 					for (const chunk of compilation.chunks) {
 						/**
+						 * Returns module hash.
 						 * @param {Module} module module
 						 * @returns {string} module hash
 						 */
-						const getModuleHash = module => {
-							if (
-								compilation.codeGenerationResults.has(module, chunk.runtime)
-							) {
-								return compilation.codeGenerationResults.getHash(
-									module,
-									chunk.runtime
-								);
+						const getModuleHash = (module) => {
+							const codeGenerationResults =
+								/** @type {CodeGenerationResults} */
+								(compilation.codeGenerationResults);
+							if (codeGenerationResults.has(module, chunk.runtime)) {
+								return codeGenerationResults.getHash(module, chunk.runtime);
 							}
 							nonCodeGeneratedModules.add(module, chunk.runtime);
 							return chunkGraph.getModuleHash(module, chunk.runtime);
@@ -418,10 +456,14 @@ class HotModuleReplacementPlugin {
 										const hash = getModuleHash(module);
 										if (
 											fullHashModulesInThisChunk.has(
-												/** @type {RuntimeModule} */ (module)
+												/** @type {RuntimeModule} */
+												(module)
 											)
 										) {
-											if (records.fullHashChunkModuleHashes[key] !== hash) {
+											if (
+												/** @type {FullHashChunkModuleHashes} */
+												(records.fullHashChunkModuleHashes)[key] !== hash
+											) {
 												updatedModules.add(module, chunk);
 											}
 											fullHashChunkModuleHashes[key] = hash;
@@ -487,14 +529,14 @@ class HotModuleReplacementPlugin {
 						) {
 							return;
 						}
+						const codeGenerationResults =
+							/** @type {CodeGenerationResults} */
+							(compilation.codeGenerationResults);
 						for (const [module, chunk] of fullHashModules) {
 							const key = `${chunk.id}|${module.identifier()}`;
 							const hash = nonCodeGeneratedModules.has(module, chunk.runtime)
 								? chunkGraph.getModuleHash(module, chunk.runtime)
-								: compilation.codeGenerationResults.getHash(
-										module,
-										chunk.runtime
-									);
+								: codeGenerationResults.getHash(module, chunk.runtime);
 							if (records.chunkModuleHashes[key] !== hash) {
 								updatedModules.add(module, chunk);
 							}
@@ -503,16 +545,19 @@ class HotModuleReplacementPlugin {
 
 						/** @type {HotUpdateMainContentByRuntime} */
 						const hotUpdateMainContentByRuntime = new Map();
+						/** @type {RuntimeSpec} */
 						let allOldRuntime;
-						for (const key of Object.keys(records.chunkRuntime)) {
-							const runtime = keyToRuntime(records.chunkRuntime[key]);
+						const chunkRuntime =
+							/** @type {ChunkRuntime} */
+							(records.chunkRuntime);
+						for (const key of Object.keys(chunkRuntime)) {
+							const runtime = keyToRuntime(chunkRuntime[key]);
 							allOldRuntime = mergeRuntimeOwned(allOldRuntime, runtime);
 						}
-						forEachRuntime(allOldRuntime, runtime => {
+						forEachRuntime(allOldRuntime, (runtime) => {
 							const { path: filename, info: assetInfo } =
 								compilation.getPathWithInfo(
-									/** @type {NonNullable<OutputNormalized["hotUpdateMainFilename"]>} */
-									(compilation.outputOptions.hotUpdateMainFilename),
+									compilation.outputOptions.hotUpdateMainFilename,
 									{
 										hash: records.hash,
 										runtime
@@ -521,9 +566,14 @@ class HotModuleReplacementPlugin {
 							hotUpdateMainContentByRuntime.set(
 								/** @type {string} */ (runtime),
 								{
+									/** @type {ChunkIds} */
 									updatedChunkIds: new Set(),
+									/** @type {ChunkIds} */
 									removedChunkIds: new Set(),
+									/** @type {ModuleSet} */
 									removedModules: new Set(),
+									/** @type {ChunkIds} */
+									forceLoadChunkIds: new Set(),
 									filename,
 									assetInfo
 								}
@@ -532,7 +582,7 @@ class HotModuleReplacementPlugin {
 						if (hotUpdateMainContentByRuntime.size === 0) return;
 
 						// Create a list of all active modules to verify which modules are removed completely
-						/** @type {Map<number|string, Module>} */
+						/** @type {Map<ModuleId, Module>} */
 						const allModules = new Map();
 						for (const module of compilation.modules) {
 							const id =
@@ -542,11 +592,14 @@ class HotModuleReplacementPlugin {
 						}
 
 						// List of completely removed modules
-						/** @type {Set<string | number>} */
+						/** @type {Set<ModuleId>} */
 						const completelyRemovedModules = new Set();
 
 						for (const key of Object.keys(records.chunkHashes)) {
-							const oldRuntime = keyToRuntime(records.chunkRuntime[key]);
+							const oldRuntime = keyToRuntime(
+								/** @type {ChunkRuntime} */
+								(records.chunkRuntime)[key]
+							);
 							/** @type {Module[]} */
 							const remainingModules = [];
 							// Check which modules are removed
@@ -561,15 +614,21 @@ class HotModuleReplacementPlugin {
 
 							/** @type {ChunkId | null} */
 							let chunkId;
+							/** @type {undefined | Module[]} */
 							let newModules;
+							/** @type {undefined | RuntimeModule[]} */
 							let newRuntimeModules;
+							/** @type {undefined | RuntimeModule[]} */
 							let newFullHashModules;
+							/** @type {undefined | RuntimeModule[]} */
 							let newDependentHashModules;
+							/** @type {RuntimeSpec} */
 							let newRuntime;
+							/** @type {RuntimeSpec} */
 							let removedFromRuntime;
 							const currentChunk = find(
 								compilation.chunks,
-								chunk => `${chunk.id}` === key
+								(chunk) => `${chunk.id}` === key
 							);
 							if (currentChunk) {
 								chunkId = currentChunk.id;
@@ -580,22 +639,22 @@ class HotModuleReplacementPlugin {
 								if (newRuntime === undefined) continue;
 								newModules = chunkGraph
 									.getChunkModules(currentChunk)
-									.filter(module => updatedModules.has(module, currentChunk));
-								newRuntimeModules = Array.from(
-									chunkGraph.getChunkRuntimeModulesIterable(currentChunk)
-								).filter(module => updatedModules.has(module, currentChunk));
+									.filter((module) => updatedModules.has(module, currentChunk));
+								newRuntimeModules = [
+									...chunkGraph.getChunkRuntimeModulesIterable(currentChunk)
+								].filter((module) => updatedModules.has(module, currentChunk));
 								const fullHashModules =
 									chunkGraph.getChunkFullHashModulesIterable(currentChunk);
 								newFullHashModules =
 									fullHashModules &&
-									Array.from(fullHashModules).filter(module =>
+									[...fullHashModules].filter((module) =>
 										updatedModules.has(module, currentChunk)
 									);
 								const dependentHashModules =
 									chunkGraph.getChunkDependentHashModulesIterable(currentChunk);
 								newDependentHashModules =
 									dependentHashModules &&
-									Array.from(dependentHashModules).filter(module =>
+									[...dependentHashModules].filter((module) =>
 										updatedModules.has(module, currentChunk)
 									);
 								removedFromRuntime = subtractRuntime(oldRuntime, newRuntime);
@@ -607,7 +666,7 @@ class HotModuleReplacementPlugin {
 							}
 							if (removedFromRuntime) {
 								// chunk was removed from some runtimes
-								forEachRuntime(removedFromRuntime, runtime => {
+								forEachRuntime(removedFromRuntime, (runtime) => {
 									const item =
 										/** @type {HotUpdateMainContentByRuntimeItem} */
 										(
@@ -627,10 +686,7 @@ class HotModuleReplacementPlugin {
 										// Module is still in the same runtime combination
 										const hash = nonCodeGeneratedModules.has(module, newRuntime)
 											? chunkGraph.getModuleHash(module, newRuntime)
-											: compilation.codeGenerationResults.getHash(
-													module,
-													newRuntime
-												);
+											: codeGenerationResults.getHash(module, newRuntime);
 										if (hash !== oldHash) {
 											if (module.type === WEBPACK_MODULE_TYPE_RUNTIME) {
 												newRuntimeModules = newRuntimeModules || [];
@@ -644,29 +700,43 @@ class HotModuleReplacementPlugin {
 										}
 									} else {
 										// module is no longer in this runtime combination
-										// We (incorrectly) assume that it's not in an overlapping runtime combination
-										// and dispose it from the main runtimes the chunk was removed from
-										forEachRuntime(removedFromRuntime, runtime => {
-											// If the module is still used in this runtime, do not dispose it
-											// This could create a bad runtime state where the module is still loaded,
-											// but no chunk which contains it. This means we don't receive further HMR updates
-											// to this module and that's bad.
-											// TODO force load one of the chunks which contains the module
-											for (const moduleRuntime of runtimes) {
-												if (typeof moduleRuntime === "string") {
-													if (moduleRuntime === runtime) return;
-												} else if (
-													moduleRuntime !== undefined &&
-													moduleRuntime.has(/** @type {string} */ (runtime))
-												)
-													return;
-											}
+										forEachRuntime(removedFromRuntime, (runtime) => {
 											const item =
 												/** @type {HotUpdateMainContentByRuntimeItem} */ (
 													hotUpdateMainContentByRuntime.get(
 														/** @type {string} */ (runtime)
 													)
 												);
+											// Module still in this runtime via another chunk: force-load one so
+											// it keeps an installed owner instead of being disposed (lost updates).
+											const stillInRuntime = [...runtimes].some(
+												(moduleRuntime) =>
+													typeof moduleRuntime === "string"
+														? moduleRuntime === runtime
+														: moduleRuntime !== undefined &&
+															moduleRuntime.has(/** @type {string} */ (runtime))
+											);
+											if (stillInRuntime) {
+												for (const moduleChunk of chunkGraph.getModuleChunksIterable(
+													module
+												)) {
+													const chunkRuntime = moduleChunk.runtime;
+													const inRuntime =
+														typeof chunkRuntime === "string"
+															? chunkRuntime === runtime
+															: chunkRuntime !== undefined &&
+																chunkRuntime.has(
+																	/** @type {string} */ (runtime)
+																);
+													if (inRuntime) {
+														item.forceLoadChunkIds.add(
+															/** @type {ChunkId} */ (moduleChunk.id)
+														);
+														break;
+													}
+												}
+												return;
+											}
 											item.removedModules.add(module);
 										});
 									}
@@ -677,15 +747,17 @@ class HotModuleReplacementPlugin {
 								(newRuntimeModules && newRuntimeModules.length > 0)
 							) {
 								const hotUpdateChunk = new HotUpdateChunk();
-								if (backCompat)
+								if (backCompat) {
 									ChunkGraph.setChunkGraphForChunk(hotUpdateChunk, chunkGraph);
+								}
 								hotUpdateChunk.id = chunkId;
 								hotUpdateChunk.runtime = currentChunk
 									? currentChunk.runtime
 									: newRuntime;
 								if (currentChunk) {
-									for (const group of currentChunk.groupsIterable)
+									for (const group of currentChunk.groupsIterable) {
 										hotUpdateChunk.addGroup(group);
+									}
 								}
 								chunkGraph.attachModules(hotUpdateChunk, newModules || []);
 								chunkGraph.attachRuntimeModules(
@@ -706,12 +778,14 @@ class HotModuleReplacementPlugin {
 								}
 								const renderManifest = compilation.getRenderManifest({
 									chunk: hotUpdateChunk,
-									hash: records.hash,
-									fullHash: records.hash,
+									hash: /** @type {string} */ (records.hash),
+									fullHash: /** @type {string} */ (records.hash),
 									outputOptions: compilation.outputOptions,
 									moduleTemplates: compilation.moduleTemplates,
 									dependencyTemplates: compilation.dependencyTemplates,
-									codeGenerationResults: compilation.codeGenerationResults,
+									codeGenerationResults: /** @type {CodeGenerationResults} */ (
+										compilation.codeGenerationResults
+									),
 									runtimeTemplate: compilation.runtimeTemplate,
 									moduleGraph: compilation.moduleGraph,
 									chunkGraph
@@ -742,7 +816,7 @@ class HotModuleReplacementPlugin {
 										compilation.hooks.chunkAsset.call(currentChunk, filename);
 									}
 								}
-								forEachRuntime(newRuntime, runtime => {
+								forEachRuntime(newRuntime, (runtime) => {
 									const item =
 										/** @type {HotUpdateMainContentByRuntimeItem} */ (
 											hotUpdateMainContentByRuntime.get(
@@ -753,14 +827,14 @@ class HotModuleReplacementPlugin {
 								});
 							}
 						}
-						const completelyRemovedModulesArray = Array.from(
-							completelyRemovedModules
-						);
+						const completelyRemovedModulesArray = [...completelyRemovedModules];
+						/** @type {Map<string, Omit<HotUpdateMainContentByRuntimeItem, "filename">>} */
 						const hotUpdateMainContentByFilename = new Map();
 						for (const {
 							removedChunkIds,
 							removedModules,
 							updatedChunkIds,
+							forceLoadChunkIds,
 							filename,
 							assetInfo
 						} of hotUpdateMainContentByRuntime.values()) {
@@ -769,7 +843,8 @@ class HotModuleReplacementPlugin {
 								old &&
 								(!isSubset(old.removedChunkIds, removedChunkIds) ||
 									!isSubset(old.removedModules, removedModules) ||
-									!isSubset(old.updatedChunkIds, updatedChunkIds))
+									!isSubset(old.updatedChunkIds, updatedChunkIds) ||
+									!isSubset(old.forceLoadChunkIds, forceLoadChunkIds))
 							) {
 								compilation.warnings.push(
 									new WebpackError(`HotModuleReplacementPlugin
@@ -777,41 +852,85 @@ The configured output.hotUpdateMainFilename doesn't lead to unique filenames per
 This might lead to incorrect runtime behavior of the applied update.
 To fix this, make sure to include [runtime] in the output.hotUpdateMainFilename option, or use the default config.`)
 								);
-								for (const chunkId of removedChunkIds)
+								for (const chunkId of removedChunkIds) {
 									old.removedChunkIds.add(chunkId);
-								for (const chunkId of removedModules)
+								}
+								for (const chunkId of removedModules) {
 									old.removedModules.add(chunkId);
-								for (const chunkId of updatedChunkIds)
+								}
+								for (const chunkId of updatedChunkIds) {
 									old.updatedChunkIds.add(chunkId);
+								}
+								for (const chunkId of forceLoadChunkIds) {
+									old.forceLoadChunkIds.add(chunkId);
+								}
 								continue;
 							}
 							hotUpdateMainContentByFilename.set(filename, {
 								removedChunkIds,
 								removedModules,
 								updatedChunkIds,
+								forceLoadChunkIds,
 								assetInfo
 							});
 						}
 						for (const [
 							filename,
-							{ removedChunkIds, removedModules, updatedChunkIds, assetInfo }
+							{
+								removedChunkIds,
+								removedModules,
+								updatedChunkIds,
+								forceLoadChunkIds,
+								assetInfo
+							}
 						] of hotUpdateMainContentByFilename) {
+							/** @type {{ c: ChunkId[], r: ChunkId[], m: ModuleId[], f?: ChunkId[], css?: { r: ChunkId[] } }} */
 							const hotUpdateMainJson = {
-								c: Array.from(updatedChunkIds),
-								r: Array.from(removedChunkIds),
+								c: [...updatedChunkIds],
+								r: [...removedChunkIds],
 								m:
 									removedModules.size === 0
 										? completelyRemovedModulesArray
-										: completelyRemovedModulesArray.concat(
-												Array.from(
+										: [
+												...completelyRemovedModulesArray,
+												...Array.from(
 													removedModules,
-													m =>
+													(m) =>
 														/** @type {ModuleId} */ (chunkGraph.getModuleId(m))
 												)
-											)
+											]
 							};
 
-							const source = new RawSource(JSON.stringify(hotUpdateMainJson));
+							// Chunks the client must load so a module whose only loaded chunk
+							// left a runtime keeps an installed owner (see force-load branch).
+							if (forceLoadChunkIds.size > 0) {
+								hotUpdateMainJson.f = [...forceLoadChunkIds];
+							}
+
+							// Build CSS removed chunks list (chunks in updatedChunkIds that no longer have CSS)
+							/** @type {ChunkId[]} */
+							const cssRemovedChunkIds = [];
+							if (compilation.options.experiments.css) {
+								for (const chunkId of updatedChunkIds) {
+									for (const /** @type {Chunk} */ chunk of compilation.chunks) {
+										if (chunk.id === chunkId) {
+											if (!chunkHasCss(chunk, chunkGraph)) {
+												cssRemovedChunkIds.push(chunkId);
+											}
+											break;
+										}
+									}
+								}
+							}
+
+							if (cssRemovedChunkIds.length > 0) {
+								hotUpdateMainJson.css = { r: cssRemovedChunkIds };
+							}
+
+							const source = new RawSource(
+								(filename.endsWith(".json") ? "" : "export default ") +
+									JSON.stringify(hotUpdateMainJson)
+							);
 							compilation.emitAsset(filename, source, {
 								hotModuleReplacement: true,
 								...assetInfo
@@ -836,28 +955,36 @@ To fix this, make sure to include [runtime] in the output.hotUpdateMainFilename 
 
 				normalModuleFactory.hooks.parser
 					.for(JAVASCRIPT_MODULE_TYPE_AUTO)
-					.tap(PLUGIN_NAME, parser => {
+					.tap(PLUGIN_NAME, (parser, parserOptions) => {
 						applyModuleHot(parser);
-						applyImportMetaHot(parser);
+						if (
+							isImportMetaFieldEnabled(parserOptions.importMeta, "webpackHot")
+						) {
+							applyImportMetaHot(parser);
+						}
 					});
 				normalModuleFactory.hooks.parser
 					.for(JAVASCRIPT_MODULE_TYPE_DYNAMIC)
-					.tap(PLUGIN_NAME, parser => {
+					.tap(PLUGIN_NAME, (parser) => {
 						applyModuleHot(parser);
 					});
 				normalModuleFactory.hooks.parser
 					.for(JAVASCRIPT_MODULE_TYPE_ESM)
-					.tap(PLUGIN_NAME, parser => {
-						applyImportMetaHot(parser);
+					.tap(PLUGIN_NAME, (parser, parserOptions) => {
+						if (
+							isImportMetaFieldEnabled(parserOptions.importMeta, "webpackHot")
+						) {
+							applyImportMetaHot(parser);
+						}
 					});
-				normalModuleFactory.hooks.module.tap(PLUGIN_NAME, module => {
-					module.hot = true;
+				normalModuleFactory.hooks.module.tap(PLUGIN_NAME, (module) => {
+					if (module instanceof NormalModule) module.hot = true;
 					return module;
 				});
 
 				NormalModule.getCompilationHooks(compilation).loader.tap(
 					PLUGIN_NAME,
-					context => {
+					(context) => {
 						context.hot = true;
 					}
 				);

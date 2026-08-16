@@ -41,10 +41,9 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.InlineFontsProcessor = void 0;
-const https_proxy_agent_1 = require("https-proxy-agent");
 const node_crypto_1 = require("node:crypto");
 const promises_1 = require("node:fs/promises");
-const https = __importStar(require("node:https"));
+const node_https_1 = require("node:https");
 const node_path_1 = require("node:path");
 const html_rewriting_stream_1 = require("./html-rewriting-stream");
 const SUPPORTED_PROVIDERS = {
@@ -193,15 +192,21 @@ class InlineFontsProcessor {
             }
             catch { }
         }
-        let agent;
         const httpsProxy = process.env.HTTPS_PROXY ?? process.env.https_proxy;
+        let agent;
         if (httpsProxy) {
-            agent = new https_proxy_agent_1.HttpsProxyAgent(httpsProxy);
+            // TODO: Remove `https-proxy-agent` usage once the min supported version of Node.js is 24.5.0
+            // https.globalAgent = new https.Agent({
+            //   proxyEnv: { HTTPS_PROXY: 'http://proxy.company.com:8080' },
+            // });
+            // See: https://nodejs.org/en/learn/http/enterprise-network-configuration
+            // See: https://nodejs.org/docs/latest/api/https.html
+            const { HttpsProxyAgent } = (await Promise.resolve(`${'https-proxy-agent'}`).then(s => __importStar(require(s))));
+            agent = new HttpsProxyAgent(httpsProxy);
         }
         const data = await new Promise((resolve, reject) => {
             let rawResponse = '';
-            https
-                .get(url, {
+            (0, node_https_1.get)(url, {
                 agent,
                 headers: {
                     /**
@@ -221,8 +226,7 @@ class InlineFontsProcessor {
                     return;
                 }
                 res.on('data', (chunk) => (rawResponse += chunk)).on('end', () => resolve(rawResponse));
-            })
-                .on('error', (e) => reject(new Error(`Inlining of fonts failed. An error has occurred while retrieving ${url} over the internet.\n` +
+            }).on('error', (e) => reject(new Error(`Inlining of fonts failed. An error has occurred while retrieving ${url} over the internet.\n` +
                 e.message)));
         });
         if (cacheFile) {
@@ -276,3 +280,4 @@ class InlineFontsProcessor {
     }
 }
 exports.InlineFontsProcessor = InlineFontsProcessor;
+//# sourceMappingURL=inline-fonts.js.map

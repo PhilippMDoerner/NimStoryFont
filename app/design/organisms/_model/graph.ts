@@ -1,4 +1,4 @@
-import { ArticleNode, NodeLink } from 'src/app/_models/graph';
+import { ArticleNode, NodeLink } from '../../../_models/graph';
 
 export const SELECTORS = {
   nodeClass: 'node',

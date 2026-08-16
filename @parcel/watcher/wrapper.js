@@ -1,29 +1,40 @@
 const path = require('path');
-const micromatch = require('micromatch');
+const picomatch = require('picomatch');
 const isGlob = require('is-glob');
 
 function normalizeOptions(dir, opts = {}) {
-  const { ignore, ...rest } = opts;
+  const {ignore, ...rest} = opts;
 
   if (Array.isArray(ignore)) {
-    opts = { ...rest };
+    opts = {...rest};
 
     for (const value of ignore) {
-      if (isGlob(value)) {
+      if (value instanceof RegExp) {
+        if (value.flags !== '') {
+          throw new Error(
+            `RegExp ignore patterns must not have flags (got /${value.source}/${value.flags}). Flags are not supported by the native matcher.`,
+          );
+        }
+        if (!opts.ignoreGlobs) {
+          opts.ignoreGlobs = [];
+        }
+        // The native backend uses std::regex_match (full-string match), but
+        // callers expect JS .test() semantics (substring search). Wrapping the
+        // source in ^[\\s\\S]*(?:…)[\\s\\S]*$ achieves that. The (?:…) group
+        // isolates the source so leading/trailing | in the source stays contained.
+        opts.ignoreGlobs.push(`^[\\s\\S]*(?:${value.source})[\\s\\S]*$`);
+      } else if (isGlob(value)) {
         if (!opts.ignoreGlobs) {
           opts.ignoreGlobs = [];
         }
 
-        const regex = micromatch.makeRe(value, {
+        const regex = picomatch.makeRe(value, {
           // We set `dot: true` to workaround an issue with the
           // regular expression on Linux where the resulting
           // negative lookahead `(?!(\\/|^)` was never matching
           // in some cases. See also https://bit.ly/3UZlQDm
           dot: true,
-          // C++ does not support lookbehind regex patterns, they
-          // were only added later to JavaScript engines
-          // (https://bit.ly/3V7S6UL)
-          lookbehinds: false
+          windows: process.platform === 'win32',
         });
         opts.ignoreGlobs.push(regex.source);
       } else {
@@ -72,6 +83,6 @@ exports.createWrapper = (binding) => {
         fn,
         normalizeOptions(dir, opts),
       );
-    }
+    },
   };
 };

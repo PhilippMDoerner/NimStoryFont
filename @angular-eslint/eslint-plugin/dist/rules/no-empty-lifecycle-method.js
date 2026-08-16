@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RULE_NAME = void 0;
+exports.RULE_DOCS_EXTENSION = exports.RULE_NAME = void 0;
 const utils_1 = require("@angular-eslint/utils");
 const create_eslint_rule_1 = require("../utils/create-eslint-rule");
 exports.RULE_NAME = 'no-empty-lifecycle-method';
@@ -28,6 +28,7 @@ exports.default = (0, create_eslint_rule_1.createESLintRule)({
             'Injectable',
             'NgModule',
             'Pipe',
+            'Service',
         ]);
         const angularLifecycleMethodsPattern = (0, utils_1.toPattern)([
             ...utils_1.ASTUtils.ANGULAR_LIFECYCLE_METHODS,
@@ -70,3 +71,6 @@ function getTotalInterfaceOccurrences(text, interfaceName) {
         .split(' ')
         .filter((item) => stripSpecialCharacters(item) === interfaceName).length;
 }
+exports.RULE_DOCS_EXTENSION = {
+    rationale: 'Empty lifecycle methods add noise to the codebase without providing any value. When a developer sees ngOnInit(), ngOnDestroy(), or other lifecycle hooks, they expect to find important initialization, cleanup, or other lifecycle-related logic. Finding an empty method wastes time during code review and maintenance. Empty lifecycle methods often remain after code has been refactored or removed, serving as dead code that clutters the component. They also require unnecessary imports of lifecycle interfaces (like OnInit, OnDestroy). Removing empty lifecycle methods makes components cleaner, easier to understand, and reduces the file size.',
+};

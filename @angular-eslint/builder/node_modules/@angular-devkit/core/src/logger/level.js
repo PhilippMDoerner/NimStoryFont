@@ -48,3 +48,4 @@ class LevelCapLogger extends LevelTransformLogger {
     }
 }
 exports.LevelCapLogger = LevelCapLogger;
+//# sourceMappingURL=level.js.map

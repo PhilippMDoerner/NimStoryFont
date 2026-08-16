@@ -57,12 +57,6 @@ const packageManagers = {
             installPackage: 'install',
         },
     },
-    'cnpm': {
-        commands: {
-            installAll: 'install',
-            installPackage: 'install',
-        },
-    },
     'yarn': {
         commands: {
             installAll: 'install',
@@ -153,7 +147,7 @@ function default_1(factoryOptions = {}) {
                 // Workaround for https://github.com/sindresorhus/ora/issues/136.
                 discardStdin: process.platform != 'win32',
             }).start();
-            const childProcess = (0, node_child_process_1.spawn)(taskPackageManagerName, args, spawnOptions).on('close', (code) => {
+            const childProcess = (0, node_child_process_1.spawn)(`${taskPackageManagerName} ${args.join(' ')}`, spawnOptions).on('close', (code) => {
                 if (code === 0) {
                     spinner.succeed('Packages installed successfully.');
                     spinner.stop();
@@ -174,3 +168,4 @@ function default_1(factoryOptions = {}) {
         });
     };
 }
+//# sourceMappingURL=executor.js.map

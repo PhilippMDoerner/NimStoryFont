@@ -47,3 +47,4 @@ exports.virtualFs = void 0;
 const virtualFs = __importStar(require("./host/index"));
 exports.virtualFs = virtualFs;
 __exportStar(require("./path"), exports);
+//# sourceMappingURL=index.js.map

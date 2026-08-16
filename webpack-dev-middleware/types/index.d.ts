@@ -1,157 +1,11 @@
 export = wdm;
-/** @typedef {import("schema-utils/declarations/validate").Schema} Schema */
-/** @typedef {import("webpack").Compiler} Compiler */
-/** @typedef {import("webpack").MultiCompiler} MultiCompiler */
-/** @typedef {import("webpack").Configuration} Configuration */
-/** @typedef {import("webpack").Stats} Stats */
-/** @typedef {import("webpack").MultiStats} MultiStats */
-/** @typedef {import("fs").ReadStream} ReadStream */
-/**
- * @typedef {Object} ExtendedServerResponse
- * @property {{ webpack?: { devMiddleware?: Context<IncomingMessage, ServerResponse> } }} [locals]
- */
-/** @typedef {import("http").IncomingMessage} IncomingMessage */
-/** @typedef {import("http").ServerResponse & ExtendedServerResponse} ServerResponse */
-/**
- * @callback NextFunction
- * @param {any} [err]
- * @return {void}
- */
-/**
- * @typedef {NonNullable<Configuration["watchOptions"]>} WatchOptions
- */
-/**
- * @typedef {Compiler["watching"]} Watching
- */
-/**
- * @typedef {ReturnType<MultiCompiler["watch"]>} MultiWatching
- */
-/**
- * @typedef {import("webpack").OutputFileSystem & { createReadStream?: import("fs").createReadStream, statSync: import("fs").statSync, readFileSync: import("fs").readFileSync }} OutputFileSystem
- */
-/** @typedef {ReturnType<Compiler["getInfrastructureLogger"]>} Logger */
-/**
- * @callback Callback
- * @param {Stats | MultiStats} [stats]
- */
-/**
- * @typedef {Object} ResponseData
- * @property {Buffer | ReadStream} data
- * @property {number} byteLength
- */
 /**
  * @template {IncomingMessage} [RequestInternal=IncomingMessage]
  * @template {ServerResponse} [ResponseInternal=ServerResponse]
- * @callback ModifyResponseData
- * @param {RequestInternal} req
- * @param {ResponseInternal} res
- * @param {Buffer | ReadStream} data
- * @param {number} byteLength
- * @return {ResponseData}
- */
-/**
- * @template {IncomingMessage} [RequestInternal=IncomingMessage]
- * @template {ServerResponse} [ResponseInternal=ServerResponse]
- * @typedef {Object} Context
- * @property {boolean} state
- * @property {Stats | MultiStats | undefined} stats
- * @property {Callback[]} callbacks
- * @property {Options<RequestInternal, ResponseInternal>} options
- * @property {Compiler | MultiCompiler} compiler
- * @property {Watching | MultiWatching | undefined} watching
- * @property {Logger} logger
- * @property {OutputFileSystem} outputFileSystem
- */
-/**
- * @template {IncomingMessage} [RequestInternal=IncomingMessage]
- * @template {ServerResponse} [ResponseInternal=ServerResponse]
- * @typedef {WithoutUndefined<Context<RequestInternal, ResponseInternal>, "watching">} FilledContext
- */
-/** @typedef {Record<string, string | number> | Array<{ key: string, value: number | string }>} NormalizedHeaders */
-/**
- * @template {IncomingMessage} [RequestInternal=IncomingMessage]
- * @template {ServerResponse} [ResponseInternal=ServerResponse]
- * @typedef {NormalizedHeaders | ((req: RequestInternal, res: ResponseInternal, context: Context<RequestInternal, ResponseInternal>) =>  void | undefined | NormalizedHeaders) | undefined} Headers
- */
-/**
- * @template {IncomingMessage} [RequestInternal = IncomingMessage]
- * @template {ServerResponse} [ResponseInternal = ServerResponse]
- * @typedef {Object} Options
- * @property {{[key: string]: string}} [mimeTypes]
- * @property {string | undefined} [mimeTypeDefault]
- * @property {boolean | ((targetPath: string) => boolean)} [writeToDisk]
- * @property {string[]} [methods]
- * @property {Headers<RequestInternal, ResponseInternal>} [headers]
- * @property {NonNullable<Configuration["output"]>["publicPath"]} [publicPath]
- * @property {Configuration["stats"]} [stats]
- * @property {boolean} [serverSideRender]
- * @property {OutputFileSystem} [outputFileSystem]
- * @property {boolean | string} [index]
- * @property {ModifyResponseData<RequestInternal, ResponseInternal>} [modifyResponseData]
- * @property {"weak" | "strong"} [etag]
- * @property {boolean} [lastModified]
- * @property {boolean | number | string | { maxAge?: number, immutable?: boolean }} [cacheControl]
- * @property {boolean} [cacheImmutable]
- */
-/**
- * @template {IncomingMessage} [RequestInternal=IncomingMessage]
- * @template {ServerResponse} [ResponseInternal=ServerResponse]
- * @callback Middleware
- * @param {RequestInternal} req
- * @param {ResponseInternal} res
- * @param {NextFunction} next
- * @return {Promise<void>}
- */
-/** @typedef {import("./utils/getFilenameFromUrl").Extra} Extra */
-/**
- * @callback GetFilenameFromUrl
- * @param {string} url
- * @param {Extra=} extra
- * @returns {string | undefined}
- */
-/**
- * @callback WaitUntilValid
- * @param {Callback} callback
- */
-/**
- * @callback Invalidate
- * @param {Callback} callback
- */
-/**
- * @callback Close
- * @param {(err: Error | null | undefined) => void} callback
- */
-/**
- * @template {IncomingMessage} RequestInternal
- * @template {ServerResponse} ResponseInternal
- * @typedef {Object} AdditionalMethods
- * @property {GetFilenameFromUrl} getFilenameFromUrl
- * @property {WaitUntilValid} waitUntilValid
- * @property {Invalidate} invalidate
- * @property {Close} close
- * @property {Context<RequestInternal, ResponseInternal>} context
- */
-/**
- * @template {IncomingMessage} [RequestInternal=IncomingMessage]
- * @template {ServerResponse} [ResponseInternal=ServerResponse]
- * @typedef {Middleware<RequestInternal, ResponseInternal> & AdditionalMethods<RequestInternal, ResponseInternal>} API
- */
-/**
- * @template T
- * @template {keyof T} K
- * @typedef {Omit<T, K> & Partial<T>} WithOptional
- */
-/**
- * @template T
- * @template {keyof T} K
- * @typedef {T & { [P in K]: NonNullable<T[P]> }} WithoutUndefined
- */
-/**
- * @template {IncomingMessage} [RequestInternal=IncomingMessage]
- * @template {ServerResponse} [ResponseInternal=ServerResponse]
- * @param {Compiler | MultiCompiler} compiler
- * @param {Options<RequestInternal, ResponseInternal>} [options]
- * @returns {API<RequestInternal, ResponseInternal>}
+ * @param {Compiler | MultiCompiler} compiler compiler
+ * @param {Options<RequestInternal, ResponseInternal>=} options options
+ * @param {boolean} isPlugin true when will use as a plugin, otherwise false
+ * @returns {API<RequestInternal, ResponseInternal>} webpack dev middleware
  */
 declare function wdm<
   RequestInternal extends IncomingMessage = import("http").IncomingMessage,
@@ -159,6 +13,7 @@ declare function wdm<
 >(
   compiler: Compiler | MultiCompiler,
   options?: Options<RequestInternal, ResponseInternal> | undefined,
+  isPlugin?: boolean,
 ): API<RequestInternal, ResponseInternal>;
 declare namespace wdm {
   export {
@@ -172,6 +27,9 @@ declare namespace wdm {
     Stats,
     MultiStats,
     ReadStream,
+    FilenameWithExtra,
+    EXPECTED_ANY,
+    EXPECTED_FUNCTION,
     ExtendedServerResponse,
     IncomingMessage,
     ServerResponse,
@@ -190,7 +48,6 @@ declare namespace wdm {
     Headers,
     Options,
     Middleware,
-    Extra,
     GetFilenameFromUrl,
     WaitUntilValid,
     Invalidate,
@@ -199,6 +56,9 @@ declare namespace wdm {
     API,
     WithOptional,
     WithoutUndefined,
+    StatsOptions,
+    MultiStatsOptions,
+    StatsObjectOptions,
     HapiPluginBase,
     HapiPlugin,
     HapiOptions,
@@ -207,8 +67,8 @@ declare namespace wdm {
 /**
  * @template S
  * @template O
- * @typedef {Object} HapiPluginBase
- * @property {(server: S, options: O) => void | Promise<void>} register
+ * @typedef {object} HapiPluginBase
+ * @property {(server: S, options: O) => void | Promise<void>} register register
  */
 /**
  * @template S
@@ -221,18 +81,20 @@ declare namespace wdm {
 /**
  * @template HapiServer
  * @template {HapiOptions} HapiOptionsInternal
- * @returns {HapiPlugin<HapiServer, HapiOptionsInternal>}
+ * @param {boolean=} usePlugin true when need to use as a plugin, otherwise false
+ * @returns {HapiPlugin<HapiServer, HapiOptionsInternal>} hapi wrapper
  */
 declare function hapiWrapper<
   HapiServer,
   HapiOptionsInternal extends HapiOptions,
->(): HapiPlugin<HapiServer, HapiOptionsInternal>;
+>(usePlugin?: boolean | undefined): HapiPlugin<HapiServer, HapiOptionsInternal>;
 /**
  * @template {IncomingMessage} [RequestInternal=IncomingMessage]
  * @template {ServerResponse} [ResponseInternal=ServerResponse]
- * @param {Compiler | MultiCompiler} compiler
- * @param {Options<RequestInternal, ResponseInternal>} [options]
- * @returns {(ctx: any, next: Function) => Promise<void> | void}
+ * @param {Compiler | MultiCompiler} compiler compiler
+ * @param {Options<RequestInternal, ResponseInternal>=} options options
+ * @param {boolean=} usePlugin whether to use as webpack plugin
+ * @returns {(ctx: EXPECTED_ANY, next: EXPECTED_FUNCTION) => Promise<void> | void} kow wrapper
  */
 declare function koaWrapper<
   RequestInternal extends IncomingMessage = import("http").IncomingMessage,
@@ -240,13 +102,15 @@ declare function koaWrapper<
 >(
   compiler: Compiler | MultiCompiler,
   options?: Options<RequestInternal, ResponseInternal> | undefined,
-): (ctx: any, next: Function) => Promise<void> | void;
+  usePlugin?: boolean | undefined,
+): (ctx: EXPECTED_ANY, next: EXPECTED_FUNCTION) => Promise<void> | void;
 /**
  * @template {IncomingMessage} [RequestInternal=IncomingMessage]
  * @template {ServerResponse} [ResponseInternal=ServerResponse]
- * @param {Compiler | MultiCompiler} compiler
- * @param {Options<RequestInternal, ResponseInternal>} [options]
- * @returns {(ctx: any, next: Function) => Promise<void> | void}
+ * @param {Compiler | MultiCompiler} compiler compiler
+ * @param {Options<RequestInternal, ResponseInternal>=} options options
+ * @param {boolean=} usePlugin true when need to use as a plugin, otherwise false
+ * @returns {(ctx: EXPECTED_ANY, next: EXPECTED_FUNCTION) => Promise<void> | void} hono wrapper
  */
 declare function honoWrapper<
   RequestInternal extends IncomingMessage = import("http").IncomingMessage,
@@ -254,7 +118,8 @@ declare function honoWrapper<
 >(
   compiler: Compiler | MultiCompiler,
   options?: Options<RequestInternal, ResponseInternal> | undefined,
-): (ctx: any, next: Function) => Promise<void> | void;
+  usePlugin?: boolean | undefined,
+): (ctx: EXPECTED_ANY, next: EXPECTED_FUNCTION) => Promise<void> | void;
 type Schema = import("schema-utils/declarations/validate").Schema;
 type Compiler = import("webpack").Compiler;
 type MultiCompiler = import("webpack").MultiCompiler;
@@ -262,7 +127,13 @@ type Configuration = import("webpack").Configuration;
 type Stats = import("webpack").Stats;
 type MultiStats = import("webpack").MultiStats;
 type ReadStream = import("fs").ReadStream;
+type FilenameWithExtra = import("./middleware").FilenameWithExtra;
+type EXPECTED_ANY = any;
+type EXPECTED_FUNCTION = Function;
 type ExtendedServerResponse = {
+  /**
+   * locals
+   */
   locals?:
     | {
         webpack?: {
@@ -273,21 +144,25 @@ type ExtendedServerResponse = {
 };
 type IncomingMessage = import("http").IncomingMessage;
 type ServerResponse = import("http").ServerResponse & ExtendedServerResponse;
-type NextFunction = (err?: any) => void;
+type NextFunction = (err?: EXPECTED_ANY | undefined) => void;
 type WatchOptions = NonNullable<Configuration["watchOptions"]>;
 type Watching = Compiler["watching"];
 type MultiWatching = ReturnType<MultiCompiler["watch"]>;
 type OutputFileSystem = import("webpack").OutputFileSystem & {
-  createReadStream?: typeof import("fs").createReadStream;
-  statSync: import("fs").StatSyncFn;
-  readFileSync: typeof import("fs").readFileSync;
+  createReadStream?: typeof fs.createReadStream;
+  statSync: fs.StatSyncFn;
+  readFileSync: typeof fs.readFileSync;
 };
 type Logger = ReturnType<Compiler["getInfrastructureLogger"]>;
-type Callback = (
-  stats?: import("webpack").Stats | import("webpack").MultiStats | undefined,
-) => any;
+type Callback = (stats?: (Stats | MultiStats) | undefined) => any;
 type ResponseData = {
+  /**
+   * data
+   */
   data: Buffer | ReadStream;
+  /**
+   * byte length
+   */
   byteLength: number;
 };
 type ModifyResponseData<
@@ -303,13 +178,37 @@ type Context<
   RequestInternal extends IncomingMessage = import("http").IncomingMessage,
   ResponseInternal extends ServerResponse = ServerResponse,
 > = {
+  /**
+   * state
+   */
   state: boolean;
+  /**
+   * stats
+   */
   stats: Stats | MultiStats | undefined;
+  /**
+   * callbacks
+   */
   callbacks: Callback[];
+  /**
+   * options
+   */
   options: Options<RequestInternal, ResponseInternal>;
+  /**
+   * compiler
+   */
   compiler: Compiler | MultiCompiler;
-  watching: Watching | MultiWatching | undefined;
+  /**
+   * watching
+   */
+  watching: Watching | MultiWatching;
+  /**
+   * logger
+   */
   logger: Logger;
+  /**
+   * output file system
+   */
   outputFileSystem: OutputFileSystem;
 };
 type FilledContext<
@@ -318,10 +217,10 @@ type FilledContext<
 > = WithoutUndefined<Context<RequestInternal, ResponseInternal>, "watching">;
 type NormalizedHeaders =
   | Record<string, string | number>
-  | Array<{
+  | {
       key: string;
       value: number | string;
-    }>;
+    }[];
 type Headers<
   RequestInternal extends IncomingMessage = import("http").IncomingMessage,
   ResponseInternal extends ServerResponse = ServerResponse,
@@ -337,35 +236,86 @@ type Options<
   RequestInternal extends IncomingMessage = import("http").IncomingMessage,
   ResponseInternal extends ServerResponse = ServerResponse,
 > = {
+  /**
+   * mime types
+   */
   mimeTypes?:
     | {
         [key: string]: string;
       }
     | undefined;
-  mimeTypeDefault?: string | undefined;
-  writeToDisk?: boolean | ((targetPath: string) => boolean) | undefined;
+  /**
+   * mime type default
+   */
+  mimeTypeDefault?: (string | undefined) | undefined;
+  /**
+   * write to disk
+   */
+  writeToDisk?: (boolean | ((targetPath: string) => boolean)) | undefined;
+  /**
+   * methods
+   */
   methods?: string[] | undefined;
-  headers?: Headers<RequestInternal, ResponseInternal>;
-  publicPath?: NonNullable<Configuration["output"]>["publicPath"];
-  stats?: Configuration["stats"];
+  /**
+   * headers
+   */
+  headers?: Headers<RequestInternal, ResponseInternal> | undefined;
+  /**
+   * public path
+   */
+  publicPath?: NonNullable<Configuration["output"]>["publicPath"] | undefined;
+  /**
+   * stats
+   */
+  stats?: Configuration["stats"] | undefined;
+  /**
+   * is server side render
+   */
   serverSideRender?: boolean | undefined;
+  /**
+   * output file system
+   */
   outputFileSystem?: OutputFileSystem | undefined;
-  index?: string | boolean | undefined;
+  /**
+   * index
+   */
+  index?: (boolean | string) | undefined;
+  /**
+   * modify response data
+   */
   modifyResponseData?:
     | ModifyResponseData<RequestInternal, ResponseInternal>
     | undefined;
-  etag?: "strong" | "weak" | undefined;
+  /**
+   * options to generate etag header
+   */
+  etag?: ("weak" | "strong") | undefined;
+  /**
+   * options to generate last modified header
+   */
   lastModified?: boolean | undefined;
+  /**
+   * options to generate cache headers
+   */
   cacheControl?:
-    | string
-    | number
-    | boolean
-    | {
-        maxAge?: number;
-        immutable?: boolean;
-      }
+    | (
+        | boolean
+        | number
+        | string
+        | {
+            maxAge?: number;
+            immutable?: boolean;
+          }
+      )
     | undefined;
+  /**
+   * is cache immutable
+   */
   cacheImmutable?: boolean | undefined;
+  /**
+   * forward error to next middleware
+   */
+  forwardError?: boolean | undefined;
 };
 type Middleware<
   RequestInternal extends IncomingMessage = import("http").IncomingMessage,
@@ -375,11 +325,9 @@ type Middleware<
   res: ResponseInternal,
   next: NextFunction,
 ) => Promise<void>;
-type Extra = import("./utils/getFilenameFromUrl").Extra;
 type GetFilenameFromUrl = (
   url: string,
-  extra?: Extra | undefined,
-) => string | undefined;
+) => Promise<FilenameWithExtra | undefined>;
 type WaitUntilValid = (callback: Callback) => any;
 type Invalidate = (callback: Callback) => any;
 type Close = (callback: (err: Error | null | undefined) => void) => any;
@@ -387,10 +335,25 @@ type AdditionalMethods<
   RequestInternal extends IncomingMessage,
   ResponseInternal extends ServerResponse,
 > = {
+  /**
+   * get filename from url
+   */
   getFilenameFromUrl: GetFilenameFromUrl;
+  /**
+   * wait until valid
+   */
   waitUntilValid: WaitUntilValid;
+  /**
+   * invalidate
+   */
   invalidate: Invalidate;
+  /**
+   * close
+   */
   close: Close;
+  /**
+   * context
+   */
   context: Context<RequestInternal, ResponseInternal>;
 };
 type API<
@@ -402,7 +365,18 @@ type WithOptional<T, K extends keyof T> = Omit<T, K> & Partial<T>;
 type WithoutUndefined<T, K extends keyof T> = T & {
   [P in K]: NonNullable<T[P]>;
 };
+type StatsOptions = Configuration["stats"];
+type MultiStatsOptions = {
+  children: Configuration["stats"][];
+};
+type StatsObjectOptions = Exclude<
+  Configuration["stats"],
+  boolean | string | undefined
+>;
 type HapiPluginBase<S, O> = {
+  /**
+   * register
+   */
   register: (server: S, options: O) => void | Promise<void>;
 };
 type HapiPlugin<S, O> = HapiPluginBase<S, O> & {
@@ -414,3 +388,4 @@ type HapiPlugin<S, O> = HapiPluginBase<S, O> & {
 type HapiOptions = Options & {
   compiler: Compiler | MultiCompiler;
 };
+import fs = require("node:fs");

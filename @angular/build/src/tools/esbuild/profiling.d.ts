@@ -6,6 +6,8 @@
  * found in the LICENSE file at https://angular.dev/license
  */
 export declare function resetCumulativeDurations(): void;
+export declare function getAndClearCumulativeDurations(): Record<string, number[]> | undefined;
+export declare function mergeCumulativeDurations(data: Record<string, number[]>): void;
 export declare function logCumulativeDurations(): void;
 export declare function profileAsync<T>(name: string, action: () => Promise<T>, cumulative?: boolean): Promise<T>;
 export declare function profileSync<T>(name: string, action: () => T, cumulative?: boolean): T;

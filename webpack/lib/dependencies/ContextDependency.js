@@ -10,10 +10,11 @@ const DependencyTemplate = require("../DependencyTemplate");
 const makeSerializable = require("../util/makeSerializable");
 const memoize = require("../util/memoize");
 
+/** @typedef {import("../javascript/JavascriptParser").Range} Range */
 /** @typedef {import("../ContextModule").ContextOptions} ContextOptions */
 /** @typedef {import("../Dependency").TRANSITIVE} TRANSITIVE */
 /** @typedef {import("../ModuleGraph")} ModuleGraph */
-/** @typedef {import("../WebpackError")} WebpackError */
+/** @typedef {import("../errors/WebpackError")} WebpackError */
 /** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext} ObjectDeserializerContext */
 /** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext} ObjectSerializerContext */
 
@@ -23,45 +24,58 @@ const getCriticalDependencyWarning = memoize(() =>
 
 /** @typedef {ContextOptions & { request: string }} ContextDependencyOptions */
 
+/** @typedef {{ value: string, range: Range }[]} Replaces */
+
 /**
- * @param {RegExp | null | undefined} r regexp
+ * Returns stringified regexp.
+ * @param {RegExp | false | null | undefined} r regexp
  * @returns {string} stringified regexp
  */
-const regExpToString = r => (r ? String(r) : "");
+const regExpToString = (r) => (r ? String(r) : "");
 
 class ContextDependency extends Dependency {
 	/**
+	 * Creates an instance of ContextDependency.
 	 * @param {ContextDependencyOptions} options options for the context module
 	 * @param {string=} context request context
 	 */
 	constructor(options, context) {
 		super();
 
+		/** @type {ContextDependencyOptions} */
 		this.options = options;
+		/** @type {string} */
 		this.userRequest = this.options && this.options.request;
 		/** @type {false | undefined | string} */
 		this.critical = false;
+		/** @type {boolean} */
 		this.hadGlobalOrStickyRegExp = false;
 
 		if (
 			this.options &&
+			this.options.regExp &&
 			(this.options.regExp.global || this.options.regExp.sticky)
 		) {
 			this.options = { ...this.options, regExp: null };
 			this.hadGlobalOrStickyRegExp = true;
 		}
 
+		/** @type {string | undefined} */
 		this.request = undefined;
+		/** @type {Range | undefined} */
 		this.range = undefined;
+		/** @type {Range | undefined} */
 		this.valueRange = undefined;
 		/** @type {boolean | string | undefined} */
 		this.inShorthand = undefined;
-		// TODO refactor this
+		/** @type {Replaces | undefined} */
 		this.replaces = undefined;
+		/** @type {string | undefined} */
 		this._requestContext = context;
 	}
 
 	/**
+	 * Returns a request context.
 	 * @returns {string | undefined} a request context
 	 */
 	getContext() {
@@ -73,6 +87,7 @@ class ContextDependency extends Dependency {
 	}
 
 	/**
+	 * Could affect referencing module.
 	 * @returns {boolean | TRANSITIVE} true, when changes to the referenced module could affect the referencing module; TRANSITIVE, when changes to the referenced module could affect referencing modules of the referencing module
 	 */
 	couldAffectReferencingModule() {
@@ -80,6 +95,7 @@ class ContextDependency extends Dependency {
 	}
 
 	/**
+	 * Returns an identifier to merge equal requests.
 	 * @returns {string | null} an identifier to merge equal requests
 	 */
 	getResourceIdentifier() {
@@ -101,7 +117,7 @@ class ContextDependency extends Dependency {
 	}
 
 	/**
-	 * Returns warnings
+	 * Returns warnings.
 	 * @param {ModuleGraph} moduleGraph module graph
 	 * @returns {WebpackError[] | null | undefined} warnings
 	 */
@@ -128,6 +144,7 @@ class ContextDependency extends Dependency {
 	}
 
 	/**
+	 * Serializes this instance into the provided serializer context.
 	 * @param {ObjectSerializerContext} context context
 	 */
 	serialize(context) {
@@ -141,13 +158,13 @@ class ContextDependency extends Dependency {
 		write(this._requestContext);
 		write(this.range);
 		write(this.valueRange);
-		write(this.prepend);
 		write(this.replaces);
 
 		super.serialize(context);
 	}
 
 	/**
+	 * Restores this instance from the provided deserializer context.
 	 * @param {ObjectDeserializerContext} context context
 	 */
 	deserialize(context) {
@@ -161,7 +178,6 @@ class ContextDependency extends Dependency {
 		this._requestContext = read();
 		this.range = read();
 		this.valueRange = read();
-		this.prepend = read();
 		this.replaces = read();
 
 		super.deserialize(context);

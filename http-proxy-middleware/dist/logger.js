@@ -1,6 +1,3 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.getLogger = getLogger;
 /**
  * Compatibility matrix
  *
@@ -19,6 +16,6 @@ const noopLogger = {
     warn: () => { },
     error: () => { },
 };
-function getLogger(options) {
+export function getLogger(options) {
     return options.logger || noopLogger;
 }

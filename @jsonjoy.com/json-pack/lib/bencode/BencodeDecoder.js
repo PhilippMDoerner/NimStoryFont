@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.BencodeDecoder = void 0;
-const Reader_1 = require("@jsonjoy.com/util/lib/buffers/Reader");
+const Reader_1 = require("@jsonjoy.com/buffers/lib/Reader");
 class BencodeDecoder {
     constructor() {
         this.reader = new Reader_1.Reader();

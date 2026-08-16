@@ -8,8 +8,8 @@ import {
   NgbDateStruct,
 } from '@ng-bootstrap/ng-bootstrap';
 import { FieldType, FieldTypeConfig, FormlyModule } from '@ngx-formly/core';
-import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
-import { IconComponent } from 'src/app/design/atoms/icon/icon.component';
+import { ButtonComponent } from '../../../design/atoms/button/button.component';
+import { IconComponent } from '../../../design/atoms/icon/icon.component';
 
 /**
  * This Service handles how the date is represented in scripts i.e. ngModel.

@@ -89,7 +89,7 @@ class LeafletDirective {
         /*
          * The following code is to address an issue with our (basic) implementation of
          * zooming and panning. From our testing, it seems that a pan operation followed
-         * by a zoom operation in the same thread will interfere with eachother. The zoom
+         * by a zoom operation in the same thread will interfere with each other. The zoom
          * operation interrupts/cancels the pan, resulting in a final center point that is
          * inaccurate. The solution seems to be to either separate them with a timeout or
           * to collapse them into a setView call.
@@ -123,6 +123,7 @@ class LeafletDirective {
     ngOnDestroy() {
         // If this directive is destroyed, the map is too
         if (null != this.map) {
+            this.map.off();
             this.map.remove();
         }
     }
@@ -254,10 +255,10 @@ class LeafletDirective {
             this.map.setMaxZoom(zoom);
         }
     }
-    static { this.ɵfac = i0.ɵɵngDeclareFactory({ minVersion: "12.0.0", version: "20.0.3", ngImport: i0, type: LeafletDirective, deps: [{ token: i0.ElementRef }, { token: i0.NgZone }], target: i0.ɵɵFactoryTarget.Directive }); }
-    static { this.ɵdir = i0.ɵɵngDeclareDirective({ minVersion: "14.0.0", version: "20.0.3", type: LeafletDirective, isStandalone: true, selector: "[leaflet]", inputs: { fitBoundsOptions: ["leafletFitBoundsOptions", "fitBoundsOptions"], panOptions: ["leafletPanOptions", "panOptions"], zoomOptions: ["leafletZoomOptions", "zoomOptions"], zoomPanOptions: ["leafletZoomPanOptions", "zoomPanOptions"], options: ["leafletOptions", "options"], zoom: ["leafletZoom", "zoom"], center: ["leafletCenter", "center"], fitBounds: ["leafletFitBounds", "fitBounds"], maxBounds: ["leafletMaxBounds", "maxBounds"], minZoom: ["leafletMinZoom", "minZoom"], maxZoom: ["leafletMaxZoom", "maxZoom"] }, outputs: { mapReady: "leafletMapReady", zoomChange: "leafletZoomChange", centerChange: "leafletCenterChange", onClick: "leafletClick", onDoubleClick: "leafletDoubleClick", onMouseDown: "leafletMouseDown", onMouseUp: "leafletMouseUp", onMouseMove: "leafletMouseMove", onMouseOver: "leafletMouseOver", onMouseOut: "leafletMouseOut", onMapMove: "leafletMapMove", onMapMoveStart: "leafletMapMoveStart", onMapMoveEnd: "leafletMapMoveEnd", onMapZoom: "leafletMapZoom", onMapZoomStart: "leafletMapZoomStart", onMapZoomEnd: "leafletMapZoomEnd" }, host: { listeners: { "window:resize": "onResize()" } }, usesOnChanges: true, ngImport: i0 }); }
+    static { this.ɵfac = i0.ɵɵngDeclareFactory({ minVersion: "12.0.0", version: "22.0.0", ngImport: i0, type: LeafletDirective, deps: [{ token: i0.ElementRef }, { token: i0.NgZone }], target: i0.ɵɵFactoryTarget.Directive }); }
+    static { this.ɵdir = i0.ɵɵngDeclareDirective({ minVersion: "14.0.0", version: "22.0.0", type: LeafletDirective, isStandalone: true, selector: "[leaflet]", inputs: { fitBoundsOptions: ["leafletFitBoundsOptions", "fitBoundsOptions"], panOptions: ["leafletPanOptions", "panOptions"], zoomOptions: ["leafletZoomOptions", "zoomOptions"], zoomPanOptions: ["leafletZoomPanOptions", "zoomPanOptions"], options: ["leafletOptions", "options"], zoom: ["leafletZoom", "zoom"], center: ["leafletCenter", "center"], fitBounds: ["leafletFitBounds", "fitBounds"], maxBounds: ["leafletMaxBounds", "maxBounds"], minZoom: ["leafletMinZoom", "minZoom"], maxZoom: ["leafletMaxZoom", "maxZoom"] }, outputs: { mapReady: "leafletMapReady", zoomChange: "leafletZoomChange", centerChange: "leafletCenterChange", onClick: "leafletClick", onDoubleClick: "leafletDoubleClick", onMouseDown: "leafletMouseDown", onMouseUp: "leafletMouseUp", onMouseMove: "leafletMouseMove", onMouseOver: "leafletMouseOver", onMouseOut: "leafletMouseOut", onMapMove: "leafletMapMove", onMapMoveStart: "leafletMapMoveStart", onMapMoveEnd: "leafletMapMoveEnd", onMapZoom: "leafletMapZoom", onMapZoomStart: "leafletMapZoomStart", onMapZoomEnd: "leafletMapZoomEnd" }, host: { listeners: { "window:resize": "onResize()" } }, usesOnChanges: true, ngImport: i0 }); }
 }
-i0.ɵɵngDeclareClassMetadata({ minVersion: "12.0.0", version: "20.0.3", ngImport: i0, type: LeafletDirective, decorators: [{
+i0.ɵɵngDeclareClassMetadata({ minVersion: "12.0.0", version: "22.0.0", ngImport: i0, type: LeafletDirective, decorators: [{
             type: Directive,
             args: [{
                     selector: '[leaflet]',
@@ -414,10 +415,10 @@ class LeafletLayerDirective {
         l.off('add', this.onAddLayerHandler);
         l.off('remove', this.onRemoveLayerHandler);
     }
-    static { this.ɵfac = i0.ɵɵngDeclareFactory({ minVersion: "12.0.0", version: "20.0.3", ngImport: i0, type: LeafletLayerDirective, deps: [{ token: LeafletDirective }, { token: i0.NgZone }], target: i0.ɵɵFactoryTarget.Directive }); }
-    static { this.ɵdir = i0.ɵɵngDeclareDirective({ minVersion: "14.0.0", version: "20.0.3", type: LeafletLayerDirective, isStandalone: true, selector: "[leafletLayer]", inputs: { layer: ["leafletLayer", "layer"] }, outputs: { onAdd: "leafletLayerAdd", onRemove: "leafletLayerRemove" }, usesOnChanges: true, ngImport: i0 }); }
+    static { this.ɵfac = i0.ɵɵngDeclareFactory({ minVersion: "12.0.0", version: "22.0.0", ngImport: i0, type: LeafletLayerDirective, deps: [{ token: LeafletDirective }, { token: i0.NgZone }], target: i0.ɵɵFactoryTarget.Directive }); }
+    static { this.ɵdir = i0.ɵɵngDeclareDirective({ minVersion: "14.0.0", version: "22.0.0", type: LeafletLayerDirective, isStandalone: true, selector: "[leafletLayer]", inputs: { layer: ["leafletLayer", "layer"] }, outputs: { onAdd: "leafletLayerAdd", onRemove: "leafletLayerRemove" }, usesOnChanges: true, ngImport: i0 }); }
 }
-i0.ɵɵngDeclareClassMetadata({ minVersion: "12.0.0", version: "20.0.3", ngImport: i0, type: LeafletLayerDirective, decorators: [{
+i0.ɵɵngDeclareClassMetadata({ minVersion: "12.0.0", version: "22.0.0", ngImport: i0, type: LeafletLayerDirective, decorators: [{
             type: Directive,
             args: [{
                     selector: '[leafletLayer]',
@@ -499,10 +500,10 @@ class LeafletLayersDirective {
             }
         }
     }
-    static { this.ɵfac = i0.ɵɵngDeclareFactory({ minVersion: "12.0.0", version: "20.0.3", ngImport: i0, type: LeafletLayersDirective, deps: [{ token: LeafletDirective }, { token: i0.IterableDiffers }, { token: i0.NgZone }], target: i0.ɵɵFactoryTarget.Directive }); }
-    static { this.ɵdir = i0.ɵɵngDeclareDirective({ minVersion: "14.0.0", version: "20.0.3", type: LeafletLayersDirective, isStandalone: true, selector: "[leafletLayers]", inputs: { layers: ["leafletLayers", "layers"] }, ngImport: i0 }); }
+    static { this.ɵfac = i0.ɵɵngDeclareFactory({ minVersion: "12.0.0", version: "22.0.0", ngImport: i0, type: LeafletLayersDirective, deps: [{ token: LeafletDirective }, { token: i0.IterableDiffers }, { token: i0.NgZone }], target: i0.ɵɵFactoryTarget.Directive }); }
+    static { this.ɵdir = i0.ɵɵngDeclareDirective({ minVersion: "14.0.0", version: "22.0.0", type: LeafletLayersDirective, isStandalone: true, selector: "[leafletLayers]", inputs: { layers: ["leafletLayers", "layers"] }, ngImport: i0 }); }
 }
-i0.ɵɵngDeclareClassMetadata({ minVersion: "12.0.0", version: "20.0.3", ngImport: i0, type: LeafletLayersDirective, decorators: [{
+i0.ɵɵngDeclareClassMetadata({ minVersion: "12.0.0", version: "22.0.0", ngImport: i0, type: LeafletLayersDirective, decorators: [{
             type: Directive,
             args: [{
                     selector: '[leafletLayers]',
@@ -620,6 +621,9 @@ class LeafletLayersControlDirective {
         this.differs = differs;
         this.zone = zone;
         this.layersControlReady = new EventEmitter();
+        // Overlay events — fired by the map when a user checks/unchecks an overlay in the layers control
+        this.onOverlayAdd = new EventEmitter();
+        this.onOverlayRemove = new EventEmitter();
         this.leafletDirective = new LeafletDirectiveWrapper(leafletDirective);
         this.controlLayers = new LeafletControlLayersWrapper(this.zone, this.layersControlReady);
         // Generate differs
@@ -635,10 +639,21 @@ class LeafletLayersControlDirective {
             this.controlLayers
                 .init({}, this.layersControlOptions)
                 .addTo(this.leafletDirective.getMap());
+            // Register overlay event pass-throughs
+            const map = this.leafletDirective.getMap();
+            this.overlayAddHandler = (e) => LeafletUtil.handleEvent(this.zone, this.onOverlayAdd, e);
+            this.overlayRemoveHandler = (e) => LeafletUtil.handleEvent(this.zone, this.onOverlayRemove, e);
+            map.on('overlayadd', this.overlayAddHandler);
+            map.on('overlayremove', this.overlayRemoveHandler);
         });
         this.updateLayers();
     }
     ngOnDestroy() {
+        const map = this.leafletDirective.getMap();
+        if (null != map) {
+            map.off('overlayadd', this.overlayAddHandler);
+            map.off('overlayremove', this.overlayRemoveHandler);
+        }
         this.layersControlConfig = { baseLayers: {}, overlays: {} };
         this.controlLayers.getLayersControl().remove();
     }
@@ -661,10 +676,10 @@ class LeafletLayersControlDirective {
             }
         }
     }
-    static { this.ɵfac = i0.ɵɵngDeclareFactory({ minVersion: "12.0.0", version: "20.0.3", ngImport: i0, type: LeafletLayersControlDirective, deps: [{ token: LeafletDirective }, { token: i0.KeyValueDiffers }, { token: i0.NgZone }], target: i0.ɵɵFactoryTarget.Directive }); }
-    static { this.ɵdir = i0.ɵɵngDeclareDirective({ minVersion: "14.0.0", version: "20.0.3", type: LeafletLayersControlDirective, isStandalone: true, selector: "[leafletLayersControl]", inputs: { layersControlConfig: ["leafletLayersControl", "layersControlConfig"], layersControlOptions: ["leafletLayersControlOptions", "layersControlOptions"] }, outputs: { layersControlReady: "leafletLayersControlReady" }, ngImport: i0 }); }
+    static { this.ɵfac = i0.ɵɵngDeclareFactory({ minVersion: "12.0.0", version: "22.0.0", ngImport: i0, type: LeafletLayersControlDirective, deps: [{ token: LeafletDirective }, { token: i0.KeyValueDiffers }, { token: i0.NgZone }], target: i0.ɵɵFactoryTarget.Directive }); }
+    static { this.ɵdir = i0.ɵɵngDeclareDirective({ minVersion: "14.0.0", version: "22.0.0", type: LeafletLayersControlDirective, isStandalone: true, selector: "[leafletLayersControl]", inputs: { layersControlConfig: ["leafletLayersControl", "layersControlConfig"], layersControlOptions: ["leafletLayersControlOptions", "layersControlOptions"] }, outputs: { layersControlReady: "leafletLayersControlReady", onOverlayAdd: "leafletOverlayAdd", onOverlayRemove: "leafletOverlayRemove" }, ngImport: i0 }); }
 }
-i0.ɵɵngDeclareClassMetadata({ minVersion: "12.0.0", version: "20.0.3", ngImport: i0, type: LeafletLayersControlDirective, decorators: [{
+i0.ɵɵngDeclareClassMetadata({ minVersion: "12.0.0", version: "22.0.0", ngImport: i0, type: LeafletLayersControlDirective, decorators: [{
             type: Directive,
             args: [{
                     selector: '[leafletLayersControl]',
@@ -678,6 +693,12 @@ i0.ɵɵngDeclareClassMetadata({ minVersion: "12.0.0", version: "20.0.3", ngImpor
             }], layersControlReady: [{
                 type: Output,
                 args: ['leafletLayersControlReady']
+            }], onOverlayAdd: [{
+                type: Output,
+                args: ['leafletOverlayAdd']
+            }], onOverlayRemove: [{
+                type: Output,
+                args: ['leafletOverlayRemove']
             }] } });
 
 /**
@@ -705,12 +726,19 @@ class LeafletBaseLayersDirective {
         this.zone = zone;
         // Output for once the layers control is ready
         this.layersControlReady = new EventEmitter();
+        // Track whether the map has been removed, to avoid redundant cleanup on destroy
+        this.mapUnloaded = false;
         this.leafletDirective = new LeafletDirectiveWrapper(leafletDirective);
         this.controlLayers = new LeafletControlLayersWrapper(this.zone, this.layersControlReady);
         this.baseLayersDiffer = this.differs.find({}).create();
     }
     ngOnDestroy() {
-        this.baseLayers = {};
+        // Only clean up layer listeners from the control if the map is still alive.
+        // If the map was already removed (mapUnloaded=true), its teardown already cleared
+        // those listeners — calling removeLayer() again would produce "listener not found" warnings.
+        if (!this.mapUnloaded) {
+            this.baseLayers = {};
+        }
         if (null != this.controlLayers.getLayersControl()) {
             this.controlLayers.getLayersControl().remove();
         }
@@ -718,12 +746,14 @@ class LeafletBaseLayersDirective {
     ngOnInit() {
         // Init the map
         this.leafletDirective.init();
-        // Create the control outside angular to prevent events from triggering chnage detection
+        // Create the control outside angular to prevent events from triggering change detection
         this.zone.runOutsideAngular(() => {
             // Initially configure the controlLayers
             this.controlLayers
                 .init({}, this.layersControlOptions)
                 .addTo(this.leafletDirective.getMap());
+            // Track map removal so ngOnDestroy can skip redundant layer cleanup
+            this.leafletDirective.getMap().on('unload', () => { this.mapUnloaded = true; });
         });
         this.updateBaseLayers();
     }
@@ -768,10 +798,10 @@ class LeafletBaseLayersDirective {
             }
         }
     }
-    static { this.ɵfac = i0.ɵɵngDeclareFactory({ minVersion: "12.0.0", version: "20.0.3", ngImport: i0, type: LeafletBaseLayersDirective, deps: [{ token: LeafletDirective }, { token: i0.KeyValueDiffers }, { token: i0.NgZone }], target: i0.ɵɵFactoryTarget.Directive }); }
-    static { this.ɵdir = i0.ɵɵngDeclareDirective({ minVersion: "14.0.0", version: "20.0.3", type: LeafletBaseLayersDirective, isStandalone: true, selector: "[leafletBaseLayers]", inputs: { baseLayers: ["leafletBaseLayers", "baseLayers"], layersControlOptions: ["leafletLayersControlOptions", "layersControlOptions"] }, outputs: { layersControlReady: "leafletLayersControlReady" }, ngImport: i0 }); }
+    static { this.ɵfac = i0.ɵɵngDeclareFactory({ minVersion: "12.0.0", version: "22.0.0", ngImport: i0, type: LeafletBaseLayersDirective, deps: [{ token: LeafletDirective }, { token: i0.KeyValueDiffers }, { token: i0.NgZone }], target: i0.ɵɵFactoryTarget.Directive }); }
+    static { this.ɵdir = i0.ɵɵngDeclareDirective({ minVersion: "14.0.0", version: "22.0.0", type: LeafletBaseLayersDirective, isStandalone: true, selector: "[leafletBaseLayers]", inputs: { baseLayers: ["leafletBaseLayers", "baseLayers"], layersControlOptions: ["leafletLayersControlOptions", "layersControlOptions"] }, outputs: { layersControlReady: "leafletLayersControlReady" }, ngImport: i0 }); }
 }
-i0.ɵɵngDeclareClassMetadata({ minVersion: "12.0.0", version: "20.0.3", ngImport: i0, type: LeafletBaseLayersDirective, decorators: [{
+i0.ɵɵngDeclareClassMetadata({ minVersion: "12.0.0", version: "22.0.0", ngImport: i0, type: LeafletBaseLayersDirective, decorators: [{
             type: Directive,
             args: [{
                     selector: '[leafletBaseLayers]',
@@ -788,8 +818,8 @@ i0.ɵɵngDeclareClassMetadata({ minVersion: "12.0.0", version: "20.0.3", ngImpor
             }] } });
 
 class LeafletModule {
-    static { this.ɵfac = i0.ɵɵngDeclareFactory({ minVersion: "12.0.0", version: "20.0.3", ngImport: i0, type: LeafletModule, deps: [], target: i0.ɵɵFactoryTarget.NgModule }); }
-    static { this.ɵmod = i0.ɵɵngDeclareNgModule({ minVersion: "14.0.0", version: "20.0.3", ngImport: i0, type: LeafletModule, imports: [LeafletDirective,
+    static { this.ɵfac = i0.ɵɵngDeclareFactory({ minVersion: "12.0.0", version: "22.0.0", ngImport: i0, type: LeafletModule, deps: [], target: i0.ɵɵFactoryTarget.NgModule }); }
+    static { this.ɵmod = i0.ɵɵngDeclareNgModule({ minVersion: "14.0.0", version: "22.0.0", ngImport: i0, type: LeafletModule, imports: [LeafletDirective,
             LeafletLayerDirective,
             LeafletLayersDirective,
             LeafletLayersControlDirective,
@@ -798,9 +828,9 @@ class LeafletModule {
             LeafletLayersDirective,
             LeafletLayersControlDirective,
             LeafletBaseLayersDirective] }); }
-    static { this.ɵinj = i0.ɵɵngDeclareInjector({ minVersion: "12.0.0", version: "20.0.3", ngImport: i0, type: LeafletModule }); }
+    static { this.ɵinj = i0.ɵɵngDeclareInjector({ minVersion: "12.0.0", version: "22.0.0", ngImport: i0, type: LeafletModule }); }
 }
-i0.ɵɵngDeclareClassMetadata({ minVersion: "12.0.0", version: "20.0.3", ngImport: i0, type: LeafletModule, decorators: [{
+i0.ɵɵngDeclareClassMetadata({ minVersion: "12.0.0", version: "22.0.0", ngImport: i0, type: LeafletModule, decorators: [{
             type: NgModule,
             args: [{
                     imports: [

@@ -64,7 +64,7 @@ async function checkPort(port, host) {
                 reject(err);
                 return;
             }
-            if (!tty_1.isTTY) {
+            if (!(0, tty_1.isTTY)()) {
                 reject(createInUseError(port));
                 return;
             }
@@ -85,3 +85,4 @@ async function checkPort(port, host) {
             .listen(port, host);
     });
 }
+//# sourceMappingURL=check-port.js.map

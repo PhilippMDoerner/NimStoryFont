@@ -33,6 +33,10 @@ function createIsIgnored(ignored, excluded) {
     };
 }
 class InclusiveNodeWatchFileSystem {
+    get watcher() {
+        var _a;
+        return this.watchFileSystem.watcher || ((_a = this.watchFileSystem.wfs) === null || _a === void 0 ? void 0 : _a.watcher);
+    }
     constructor(watchFileSystem, compiler, pluginState) {
         this.watchFileSystem = watchFileSystem;
         this.compiler = compiler;
@@ -157,10 +161,6 @@ class InclusiveNodeWatchFileSystem {
         };
         this.dirsWatchers = new Map();
         this.deletedFiles = new Set();
-    }
-    get watcher() {
-        var _a;
-        return this.watchFileSystem.watcher || ((_a = this.watchFileSystem.wfs) === null || _a === void 0 ? void 0 : _a.watcher);
     }
 }
 exports.InclusiveNodeWatchFileSystem = InclusiveNodeWatchFileSystem;

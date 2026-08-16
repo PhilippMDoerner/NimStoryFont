@@ -7,32 +7,31 @@
 
 const ConditionalInitFragment = require("../ConditionalInitFragment");
 const Dependency = require("../Dependency");
-const HarmonyLinkingError = require("../HarmonyLinkingError");
 const InitFragment = require("../InitFragment");
 const Template = require("../Template");
 const AwaitDependenciesInitFragment = require("../async-modules/AwaitDependenciesInitFragment");
+const isGeneratorLowered = require("../async-modules/isGeneratorLowered");
 const { filterRuntime, mergeRuntime } = require("../util/runtime");
+const HarmonyLinkingError = require("./HarmonyLinkingError");
+const { ImportPhase, ImportPhaseUtils } = require("./ImportPhase");
 const ModuleDependency = require("./ModuleDependency");
 
 /** @typedef {import("webpack-sources").ReplaceSource} ReplaceSource */
-/** @typedef {import("webpack-sources").Source} Source */
-/** @typedef {import("../ChunkGraph")} ChunkGraph */
-/** @typedef {import("../Dependency").ReferencedExport} ReferencedExport */
-/** @typedef {import("../Dependency").UpdateHashContext} UpdateHashContext */
+/** @typedef {import("../../declarations/WebpackOptions").JavascriptParserOptions} JavascriptParserOptions */
+/** @typedef {import("../Dependency").ReferencedExports} ReferencedExports */
 /** @typedef {import("../DependencyTemplate").DependencyTemplateContext} DependencyTemplateContext */
 /** @typedef {import("../ExportsInfo")} ExportsInfo */
 /** @typedef {import("../Module")} Module */
 /** @typedef {import("../Module").BuildMeta} BuildMeta */
 /** @typedef {import("../ModuleGraph")} ModuleGraph */
-/** @typedef {import("../RuntimeTemplate")} RuntimeTemplate */
-/** @typedef {import("../WebpackError")} WebpackError */
+/** @typedef {import("../errors/WebpackError")} WebpackError */
 /** @typedef {import("../javascript/JavascriptParser").ImportAttributes} ImportAttributes */
+/** @typedef {import("./ImportPhase").ImportPhaseType} ImportPhaseType */
 /** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext} ObjectDeserializerContext */
 /** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext} ObjectSerializerContext */
-/** @typedef {import("../util/Hash")} Hash */
 /** @typedef {import("../util/runtime").RuntimeSpec} RuntimeSpec */
 
-/** @typedef {0 | 1 | 2 | 3 | false} ExportPresenceMode */
+/** @typedef {0 | 1 | 2 | 3} ExportPresenceMode */
 
 const ExportPresenceModes = {
 	NONE: /** @type {ExportPresenceMode} */ (0),
@@ -40,6 +39,7 @@ const ExportPresenceModes = {
 	AUTO: /** @type {ExportPresenceMode} */ (2),
 	ERROR: /** @type {ExportPresenceMode} */ (3),
 	/**
+	 * Returns result.
 	 * @param {string | false} str param
 	 * @returns {ExportPresenceMode} result
 	 */
@@ -56,19 +56,61 @@ const ExportPresenceModes = {
 			default:
 				throw new Error(`Invalid export presence value ${str}`);
 		}
+	},
+	/**
+	 * Resolve export presence mode from parser options with a specific key and shared fallbacks.
+	 * @param {string | false | undefined} specificValue the type-specific option value (e.g. importExportsPresence or reexportExportsPresence)
+	 * @param {JavascriptParserOptions} options parser options
+	 * @returns {ExportPresenceMode} resolved mode
+	 */
+	resolveFromOptions(specificValue, options) {
+		if (specificValue !== undefined) {
+			return ExportPresenceModes.fromUserOption(specificValue);
+		}
+		if (options.exportsPresence !== undefined) {
+			return ExportPresenceModes.fromUserOption(options.exportsPresence);
+		}
+		return options.strictExportPresence
+			? ExportPresenceModes.ERROR
+			: ExportPresenceModes.AUTO;
 	}
 };
 
+/**
+ * Get the non-optional leading part of a member chain.
+ * @param {string[]} members members
+ * @param {boolean[]} membersOptionals optionality for each member
+ * @returns {string[]} the non-optional prefix
+ */
+const getNonOptionalPart = (members, membersOptionals) => {
+	let i = 0;
+	while (i < members.length && membersOptionals[i] === false) i++;
+	return i !== members.length ? members.slice(0, i) : members;
+};
+
+/** @typedef {string[]} Ids */
+
 class HarmonyImportDependency extends ModuleDependency {
 	/**
+	 * Creates an instance of HarmonyImportDependency.
 	 * @param {string} request request string
 	 * @param {number} sourceOrder source order
+	 * @param {ImportPhaseType=} phase import phase
 	 * @param {ImportAttributes=} attributes import attributes
 	 */
-	constructor(request, sourceOrder, attributes) {
-		super(request);
-		this.sourceOrder = sourceOrder;
-		this.assertions = attributes;
+	constructor(
+		request,
+		sourceOrder,
+		phase = ImportPhase.Evaluation,
+		attributes = undefined
+	) {
+		super(request, sourceOrder);
+		/** @type {ImportPhaseType} */
+		this.phase = phase;
+		/** @type {ImportAttributes | undefined} */
+		this.attributes = attributes;
+		/** @type {boolean} */
+		this._lazyMake = false;
 	}
 
 	get category() {
@@ -76,39 +118,107 @@ class HarmonyImportDependency extends ModuleDependency {
 	}
 
 	/**
+	 * Whether the lazy barrel currently defers creating this dependency's target module (lazy barrel optimization).
+	 * @returns {boolean} true while deferred, so it must not be processed or rendered
+	 */
+	isLazy() {
+		return this._lazyMake;
+	}
+
+	/**
+	 * Sets whether the lazy barrel defers creating this dependency's target module (lazy barrel optimization).
+	 * @param {boolean} value true to defer, false to create it now
+	 */
+	setLazy(value) {
+		this._lazyMake = value;
+	}
+
+	/**
+	 * Returns true if this dependency can be concatenated
+	 * @returns {boolean} true if this dependency can be concatenated
+	 */
+	canConcatenate() {
+		return true;
+	}
+
+	/**
+	 * Returns an identifier to merge equal requests.
+	 * @returns {string | null} an identifier to merge equal requests
+	 */
+	getResourceIdentifier() {
+		let str = super.getResourceIdentifier();
+		// We specifically use this check to avoid writing the default (`evaluation` or `0`) value and save memory
+		if (this.phase) {
+			str += `|phase${ImportPhaseUtils.stringify(this.phase)}`;
+		}
+		if (this.attributes) {
+			str += `|attributes${JSON.stringify(this.attributes)}`;
+		}
+		return str;
+	}
+
+	/**
 	 * Returns list of exports referenced by this dependency
 	 * @param {ModuleGraph} moduleGraph module graph
 	 * @param {RuntimeSpec} runtime the runtime for which the module is analysed
-	 * @returns {(string[] | ReferencedExport)[]} referenced exports
+	 * @returns {ReferencedExports} referenced exports
 	 */
 	getReferencedExports(moduleGraph, runtime) {
 		return Dependency.NO_EXPORTS_REFERENCED;
 	}
 
 	/**
+	 * Returns name of the variable for the import.
 	 * @param {ModuleGraph} moduleGraph the module graph
 	 * @returns {string} name of the variable for the import
 	 */
 	getImportVar(moduleGraph) {
 		const module = /** @type {Module} */ (moduleGraph.getParentModule(this));
+		const importedModule = /** @type {Module} */ (moduleGraph.getModule(this));
 		const meta = moduleGraph.getMeta(module);
-		let importVarMap = meta.importVarMap;
-		if (!importVarMap) meta.importVarMap = importVarMap = new Map();
-		let importVar = importVarMap.get(
-			/** @type {Module} */ (moduleGraph.getModule(this))
-		);
+
+		const isDeferred =
+			ImportPhaseUtils.isDefer(this.phase) &&
+			!(/** @type {BuildMeta} */ (importedModule.buildMeta).async);
+
+		const metaKey = isDeferred ? "deferredImportVarMap" : "importVarMap";
+		let importVarMap = meta[metaKey];
+		if (!importVarMap) {
+			meta[metaKey] = importVarMap =
+				/** @type {Map<Module, string>} */
+				(new Map());
+		}
+
+		let importVar = importVarMap.get(importedModule);
 		if (importVar) return importVar;
-		importVar = `${Template.toIdentifier(
-			`${this.userRequest}`
-		)}__WEBPACK_IMPORTED_MODULE_${importVarMap.size}__`;
-		importVarMap.set(
-			/** @type {Module} */ (moduleGraph.getModule(this)),
-			importVar
-		);
+		importVar = `${Template.toIdentifier(this.userRequest)}__WEBPACK_${
+			isDeferred ? "DEFERRED_" : ""
+		}IMPORTED_MODULE_${importVarMap.size}__`;
+		importVarMap.set(importedModule, importVar);
 		return importVar;
 	}
 
 	/**
+	 * Gets module exports.
+	 * @param {DependencyTemplateContext} context the template context
+	 * @returns {string} the expression
+	 */
+	getModuleExports({
+		runtimeTemplate,
+		moduleGraph,
+		chunkGraph,
+		runtimeRequirements
+	}) {
+		return runtimeTemplate.moduleExports({
+			module: moduleGraph.getModule(this),
+			chunkGraph,
+			request: this.request,
+			runtimeRequirements
+		});
+	}
+
+	/**
+	 * Gets import statement.
 	 * @param {boolean} update create new variables or update existing one
 	 * @param {DependencyTemplateContext} templateContext the template context
 	 * @returns {[string, string]} the import statement and the compat statement
@@ -120,21 +230,29 @@ class HarmonyImportDependency extends ModuleDependency {
 		return runtimeTemplate.importStatement({
 			update,
 			module: /** @type {Module} */ (moduleGraph.getModule(this)),
+			moduleGraph,
 			chunkGraph,
 			importVar: this.getImportVar(moduleGraph),
 			request: this.request,
 			originModule: module,
-			runtimeRequirements
+			runtimeRequirements,
+			dependency: this
 		});
 	}
 
 	/**
+	 * Gets linking errors.
 	 * @param {ModuleGraph} moduleGraph module graph
-	 * @param {string[]} ids imported ids
+	 * @param {Ids} ids imported ids
 	 * @param {string} additionalMessage extra info included in the error message
 	 * @returns {WebpackError[] | undefined} errors
 	 */
 	getLinkingErrors(moduleGraph, ids, additionalMessage) {
+		// Source phase imports don't have exports to check
+		if (ImportPhaseUtils.isSource(this.phase)) {
+			return;
+		}
+
 		const importedModule = moduleGraph.getModule(this);
 		// ignore errors for missing or failed modules
 		if (!importedModule || importedModule.getNumberOfErrors() > 0) {
@@ -177,7 +295,7 @@ class HarmonyImportDependency extends ModuleDependency {
 							new HarmonyLinkingError(
 								`export ${ids
 									.slice(0, pos)
-									.map(id => `'${id}'`)
+									.map((id) => `'${id}'`)
 									.join(".")} ${additionalMessage} was not found in '${
 									this.userRequest
 								}'${moreInfo}`
@@ -193,7 +311,7 @@ class HarmonyImportDependency extends ModuleDependency {
 				return [
 					new HarmonyLinkingError(
 						`export ${ids
-							.map(id => `'${id}'`)
+							.map((id) => `'${id}'`)
 							.join(".")} ${additionalMessage} was not found in '${
 							this.userRequest
 						}'`
@@ -209,7 +327,7 @@ class HarmonyImportDependency extends ModuleDependency {
 					return [
 						new HarmonyLinkingError(
 							`Can't import the named export ${ids
-								.map(id => `'${id}'`)
+								.map((id) => `'${id}'`)
 								.join(
 									"."
 								)} ${additionalMessage} from default-exporting module (only default export is available)`
@@ -230,7 +348,7 @@ class HarmonyImportDependency extends ModuleDependency {
 					return [
 						new HarmonyLinkingError(
 							`Should not import the named export ${ids
-								.map(id => `'${id}'`)
+								.map((id) => `'${id}'`)
 								.join(
 									"."
 								)} ${additionalMessage} from default-exporting module (only default export is available soon)`
@@ -242,22 +360,26 @@ class HarmonyImportDependency extends ModuleDependency {
 	}
 
 	/**
+	 * Serializes this instance into the provided serializer context.
 	 * @param {ObjectSerializerContext} context context
 	 */
 	serialize(context) {
 		const { write } = context;
-		write(this.sourceOrder);
-		write(this.assertions);
+		write(this.attributes);
+		write(this.phase);
+		write(this._lazyMake);
 		super.serialize(context);
 	}
 
 	/**
+	 * Restores this instance from the provided deserializer context.
 	 * @param {ObjectDeserializerContext} context context
 	 */
 	deserialize(context) {
 		const { read } = context;
-		this.sourceOrder = read();
-		this.assertions = read();
+		this.attributes = read();
+		this.phase = read();
+		this._lazyMake = read();
 		super.deserialize(context);
 	}
 }
@@ -271,6 +393,7 @@ HarmonyImportDependency.Template = class HarmonyImportDependencyTemplate extends
 	ModuleDependency.Template
 ) {
 	/**
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Dependency} dependency the dependency for which the template should be applied
 	 * @param {ReplaceSource} source the current replace source which can be modified
 	 * @param {DependencyTemplateContext} templateContext the context object
@@ -281,6 +404,10 @@ HarmonyImportDependency.Template = class HarmonyImportDependencyTemplate extends
 		const { module, chunkGraph, moduleGraph, runtime } = templateContext;
 
 		const connection = moduleGraph.getConnection(dep);
+		// deferred by lazy barrel: never resolved, must not render a missing module
+		if (connection === undefined && dep.isLazy()) {
+			return;
+		}
 		if (connection && !connection.isTargetActive(runtime)) return;
 
 		const referencedModule = connection && connection.module;
@@ -299,12 +426,18 @@ HarmonyImportDependency.Template = class HarmonyImportDependencyTemplate extends
 		const moduleKey = referencedModule
 			? referencedModule.identifier()
 			: dep.request;
-		const key = `harmony import ${moduleKey}`;
+		const key = `${
+			ImportPhaseUtils.isDefer(dep.phase)
+				? "deferred "
+				: ImportPhaseUtils.isSource(dep.phase)
+					? "source "
+					: ""
+		}harmony import ${moduleKey}`;
 
 		const runtimeCondition = dep.weak
 			? false
 			: connection
-				? filterRuntime(runtime, r => connection.isTargetActive(r))
+				? filterRuntime(runtime, (r) => connection.isTargetActive(r))
 				: true;
 
 		if (module && referencedModule) {
@@ -337,21 +470,30 @@ HarmonyImportDependency.Template = class HarmonyImportDependencyTemplate extends
 				new ConditionalInitFragment(
 					importStatement[0],
 					InitFragment.STAGE_HARMONY_IMPORTS,
-					dep.sourceOrder,
+					/** @type {number} */ (dep.sourceOrder),
 					key,
 					runtimeCondition
 				)
 			);
+			const importVar = dep.getImportVar(templateContext.moduleGraph);
+			// When the consuming module is emitted as a generator (target without
+			// `async`/`await`), the dependency `await` must become `yield`.
+			const generatorLowered = isGeneratorLowered(
+				/** @type {Module} */ (module),
+				moduleGraph,
+				templateContext.runtimeTemplate
+			);
 			templateContext.initFragments.push(
 				new AwaitDependenciesInitFragment(
-					new Set([dep.getImportVar(templateContext.moduleGraph)])
+					new Map([[importVar, importVar]]),
+					generatorLowered
 				)
 			);
 			templateContext.initFragments.push(
 				new ConditionalInitFragment(
 					importStatement[1],
 					InitFragment.STAGE_ASYNC_HARMONY_IMPORTS,
-					dep.sourceOrder,
+					/** @type {number} */ (dep.sourceOrder),
 					`${key} compat`,
 					runtimeCondition
 				)
@@ -361,7 +503,7 @@ HarmonyImportDependency.Template = class HarmonyImportDependencyTemplate extends
 				new ConditionalInitFragment(
 					importStatement[0] + importStatement[1],
 					InitFragment.STAGE_HARMONY_IMPORTS,
-					dep.sourceOrder,
+					/** @type {number} */ (dep.sourceOrder),
 					key,
 					runtimeCondition
 				)
@@ -370,6 +512,7 @@ HarmonyImportDependency.Template = class HarmonyImportDependencyTemplate extends
 	}
 
 	/**
+	 * Gets import emitted runtime.
 	 * @param {Module} module the module
 	 * @param {Module} referencedModule the referenced module
 	 * @returns {RuntimeSpec | boolean} runtimeCondition in which this import has been emitted
@@ -382,3 +525,4 @@ HarmonyImportDependency.Template = class HarmonyImportDependencyTemplate extends
 };
 
 module.exports.ExportPresenceModes = ExportPresenceModes;
+module.exports.getNonOptionalPart = getNonOptionalPart;

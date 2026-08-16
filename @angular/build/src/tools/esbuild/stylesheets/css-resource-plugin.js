@@ -111,3 +111,4 @@ function createCssResourcePlugin(cache) {
         },
     };
 }
+//# sourceMappingURL=css-resource-plugin.js.map

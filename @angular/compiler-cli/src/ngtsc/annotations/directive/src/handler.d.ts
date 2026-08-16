@@ -5,21 +5,21 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.dev/license
  */
-import { ConstantPool, R3ClassMetadata, R3DirectiveMetadata } from '@angular/compiler';
+import { ClassPropertyMapping, ConstantPool, R3ClassMetadata, R3DirectiveMetadata } from '@angular/compiler';
 import ts from 'typescript';
 import { ImportedSymbolsTracker, Reference, ReferenceEmitter } from '../../../imports';
 import { SemanticDepGraphUpdater } from '../../../incremental/semantic_graph';
-import { ClassPropertyMapping, DirectiveResources, DirectiveTypeCheckMeta, HostDirectiveMeta, InputMapping, MetadataReader, MetadataRegistry, ResourceRegistry } from '../../../metadata';
+import { DirectiveResources, DirectiveTypeCheckMeta, HostDirectiveMeta, InputMapping, MetadataReader, MetadataRegistry, ResourceRegistry } from '../../../metadata';
 import { PartialEvaluator } from '../../../partial_evaluator';
 import { PerfRecorder } from '../../../perf';
 import { ClassDeclaration, Decorator, ReflectionHost } from '../../../reflection';
 import { LocalModuleScopeRegistry, TypeCheckScopeRegistry } from '../../../scope';
 import { AnalysisOutput, CompilationMode, CompileResult, DecoratorHandler, DetectResult, HandlerPrecedence, ResolveResult } from '../../../transform';
 import { InjectableClassRegistry, ReferencesRegistry } from '../../common';
+import { TypeCheckContext } from '../../../typecheck/api';
+import { JitDeclarationRegistry } from '../../common/src/jit_declaration_registry';
 import { HostBindingNodes } from './shared';
 import { DirectiveSymbol } from './symbol';
-import { JitDeclarationRegistry } from '../../common/src/jit_declaration_registry';
-import { TypeCheckContext } from '../../../typecheck/api';
 export interface DirectiveHandlerData {
     baseClass: Reference<ClassDeclaration> | 'dynamic' | null;
     typeCheckMeta: DirectiveTypeCheckMeta;
@@ -61,9 +61,12 @@ export declare class DirectiveDecoratorHandler implements DecoratorHandler<Decor
     private readonly implicitStandaloneValue;
     private readonly usePoisonedData;
     private readonly typeCheckHostBindings;
-    constructor(reflector: ReflectionHost, evaluator: PartialEvaluator, metaRegistry: MetadataRegistry, scopeRegistry: LocalModuleScopeRegistry, metaReader: MetadataReader, injectableRegistry: InjectableClassRegistry, refEmitter: ReferenceEmitter, referencesRegistry: ReferencesRegistry, isCore: boolean, strictCtorDeps: boolean, semanticDepGraphUpdater: SemanticDepGraphUpdater | null, annotateForClosureCompiler: boolean, perf: PerfRecorder, importTracker: ImportedSymbolsTracker, includeClassMetadata: boolean, typeCheckScopeRegistry: TypeCheckScopeRegistry, compilationMode: CompilationMode, jitDeclarationRegistry: JitDeclarationRegistry, resourceRegistry: ResourceRegistry, strictStandalone: boolean, implicitStandaloneValue: boolean, usePoisonedData: boolean, typeCheckHostBindings: boolean);
+    private readonly emitDeclarationOnly;
+    private readonly legacyOptionalChaining;
+    constructor(reflector: ReflectionHost, evaluator: PartialEvaluator, metaRegistry: MetadataRegistry, scopeRegistry: LocalModuleScopeRegistry, metaReader: MetadataReader, injectableRegistry: InjectableClassRegistry, refEmitter: ReferenceEmitter, referencesRegistry: ReferencesRegistry, isCore: boolean, strictCtorDeps: boolean, semanticDepGraphUpdater: SemanticDepGraphUpdater | null, annotateForClosureCompiler: boolean, perf: PerfRecorder, importTracker: ImportedSymbolsTracker, includeClassMetadata: boolean, typeCheckScopeRegistry: TypeCheckScopeRegistry, compilationMode: CompilationMode, jitDeclarationRegistry: JitDeclarationRegistry, resourceRegistry: ResourceRegistry, strictStandalone: boolean, implicitStandaloneValue: boolean, usePoisonedData: boolean, typeCheckHostBindings: boolean, emitDeclarationOnly: boolean, legacyOptionalChaining: boolean);
     readonly precedence = HandlerPrecedence.PRIMARY;
     readonly name = "DirectiveDecoratorHandler";
+    private readonly undecoratedMetadataExtractor;
     detect(node: ClassDeclaration, decorators: Decorator[] | null): DetectResult<Decorator | null> | undefined;
     analyze(node: ClassDeclaration, decorator: Readonly<Decorator | null>): AnalysisOutput<DirectiveHandlerData>;
     symbol(node: ClassDeclaration, analysis: Readonly<DirectiveHandlerData>): DirectiveSymbol;

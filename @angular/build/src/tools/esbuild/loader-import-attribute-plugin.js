@@ -9,7 +9,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createLoaderImportAttributePlugin = createLoaderImportAttributePlugin;
 const promises_1 = require("node:fs/promises");
-const SUPPORTED_LOADERS = ['binary', 'file', 'text'];
+const SUPPORTED_LOADERS = ['base64', 'binary', 'dataurl', 'file', 'text'];
 function createLoaderImportAttributePlugin() {
     return {
         name: 'angular-loader-import-attributes',
@@ -39,3 +39,4 @@ function createLoaderImportAttributePlugin() {
         },
     };
 }
+//# sourceMappingURL=loader-import-attribute-plugin.js.map

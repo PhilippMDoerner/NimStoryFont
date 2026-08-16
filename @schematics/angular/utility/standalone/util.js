@@ -18,7 +18,7 @@ exports.isMergeAppConfigCall = isMergeAppConfigCall;
 exports.findProvidersLiteral = findProvidersLiteral;
 const schematics_1 = require("@angular-devkit/schematics");
 const posix_1 = require("node:path/posix");
-const typescript_1 = __importDefault(require("../../third_party/github.com/Microsoft/TypeScript/lib/typescript"));
+const typescript_1 = __importDefault(require("typescript"));
 const change_1 = require("../change");
 const project_targets_1 = require("../project-targets");
 const workspace_1 = require("../workspace");
@@ -139,3 +139,4 @@ function findProvidersLiteral(config) {
     }
     return null;
 }
+//# sourceMappingURL=util.js.map

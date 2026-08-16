@@ -12,11 +12,12 @@ const NullDependency = require("./NullDependency");
 /** @typedef {import("../Dependency")} Dependency */
 /** @typedef {import("../DependencyTemplate").DependencyTemplateContext} DependencyTemplateContext */
 /** @typedef {import("../javascript/JavascriptParser").Range} Range */
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext} ObjectDeserializerContext */
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext} ObjectSerializerContext */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext<[Range | false, Range]>} ObjectDeserializerContext */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext<[Range | false, Range]>} ObjectSerializerContext */
 
 class HarmonyExportHeaderDependency extends NullDependency {
 	/**
+	 * Creates an instance of HarmonyExportHeaderDependency.
 	 * @param {Range | false} range range
 	 * @param {Range} rangeStatement range statement
 	 */
@@ -31,23 +32,23 @@ class HarmonyExportHeaderDependency extends NullDependency {
 	}
 
 	/**
+	 * Serializes this instance into the provided serializer context.
 	 * @param {ObjectSerializerContext} context context
 	 */
 	serialize(context) {
-		const { write } = context;
-		write(this.range);
-		write(this.rangeStatement);
+		context.write(this.range).write(this.rangeStatement);
 		super.serialize(context);
 	}
 
 	/**
+	 * Restores this instance from the provided deserializer context.
 	 * @param {ObjectDeserializerContext} context context
 	 */
 	deserialize(context) {
-		const { read } = context;
-		this.range = read();
-		this.rangeStatement = read();
-		super.deserialize(context);
+		this.range = context.read();
+		const c1 = context.rest;
+		this.rangeStatement = c1.read();
+		super.deserialize(c1.rest);
 	}
 }
 
@@ -60,6 +61,7 @@ HarmonyExportHeaderDependency.Template = class HarmonyExportDependencyTemplate e
 	NullDependency.Template
 ) {
 	/**
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Dependency} dependency the dependency for which the template should be applied
 	 * @param {ReplaceSource} source the current replace source which can be modified
 	 * @param {DependencyTemplateContext} templateContext the context object

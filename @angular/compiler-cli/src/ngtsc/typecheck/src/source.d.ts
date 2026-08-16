@@ -5,9 +5,9 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.dev/license
  */
-import { AbsoluteSourceSpan, ParseSourceFile, ParseSourceSpan } from '@angular/compiler';
+import { AbsoluteSourceSpan, ParseSourceFile, ParseSourceSpan, TypeCheckId } from '@angular/compiler';
 import ts from 'typescript';
-import { TypeCheckId, SourceMapping } from '../api';
+import { SourceMapping } from '../api';
 import { TypeCheckSourceResolver } from './tcb_util';
 /**
  * Assigns IDs for type checking and keeps track of their origins.

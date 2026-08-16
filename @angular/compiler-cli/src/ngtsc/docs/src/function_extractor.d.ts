@@ -27,6 +27,7 @@ export declare function extractCallSignatures(name: string, typeChecker: ts.Type
     params: ParameterEntry[];
     rawComment: string;
     returnType: string;
+    returnDescription: string | undefined;
 }[];
 /** Finds the implementation of the given function declaration overload signature. */
 export declare function findImplementationOfFunction(node: FunctionLike, typeChecker: ts.TypeChecker): FunctionLike | undefined;

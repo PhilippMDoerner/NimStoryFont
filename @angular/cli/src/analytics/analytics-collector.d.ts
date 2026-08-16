@@ -5,14 +5,17 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.dev/license
  */
-import type { CommandContext } from '../command-builder/command-module';
+import { logging } from '@angular-devkit/core';
 import { EventCustomDimension, EventCustomMetric, PrimitiveTypes } from './analytics-parameters';
 export declare class AnalyticsCollector {
-    private context;
+    private logger;
     private trackingEventsQueue;
     private readonly requestParameterStringified;
     private readonly userParameters;
-    constructor(context: CommandContext, userId: string);
+    constructor(logger: logging.Logger, userId: string, packageManagerInfo: {
+        name: string;
+        version: string | undefined;
+    });
     reportWorkspaceInfoEvent(parameters: Partial<Record<EventCustomMetric, string | boolean | number | undefined>>): void;
     reportRebuildRunEvent(parameters: Partial<Record<EventCustomMetric & EventCustomDimension, string | boolean | number | undefined>>): void;
     reportBuildRunEvent(parameters: Partial<Record<EventCustomMetric & EventCustomDimension, string | boolean | number | undefined>>): void;

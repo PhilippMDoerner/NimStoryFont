@@ -5,9 +5,11 @@
 
 "use strict";
 
-const WebpackError = require("./WebpackError");
+const WebpackError = require("./errors/WebpackError");
 
 /** @typedef {import("./Compiler")} Compiler */
+
+const PLUGIN_NAME = "WarnDeprecatedOptionPlugin";
 
 class WarnDeprecatedOptionPlugin {
 	/**
@@ -17,25 +19,25 @@ class WarnDeprecatedOptionPlugin {
 	 * @param {string} suggestion the suggestion replacement
 	 */
 	constructor(option, value, suggestion) {
+		/** @type {string} */
 		this.option = option;
+		/** @type {string | number} */
 		this.value = value;
+		/** @type {string} */
 		this.suggestion = suggestion;
 	}
 
 	/**
-	 * Apply the plugin
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Compiler} compiler the compiler instance
 	 * @returns {void}
 	 */
 	apply(compiler) {
-		compiler.hooks.thisCompilation.tap(
-			"WarnDeprecatedOptionPlugin",
-			compilation => {
-				compilation.warnings.push(
-					new DeprecatedOptionWarning(this.option, this.value, this.suggestion)
-				);
-			}
-		);
+		compiler.hooks.thisCompilation.tap(PLUGIN_NAME, (compilation) => {
+			compilation.warnings.push(
+				new DeprecatedOptionWarning(this.option, this.value, this.suggestion)
+			);
+		});
 	}
 }
 
@@ -49,7 +51,9 @@ class DeprecatedOptionWarning extends WebpackError {
 	constructor(option, value, suggestion) {
 		super();
 
+		/** @type {string} */
 		this.name = "DeprecatedOptionWarning";
+		/** @type {string} */
 		this.message =
 			"configuration\n" +
 			`The value '${value}' for option '${option}' is deprecated. ` +

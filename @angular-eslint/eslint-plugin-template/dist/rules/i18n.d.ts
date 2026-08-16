@@ -15,6 +15,11 @@ export type Options = [
 ];
 export type MessageIds = 'i18nAttribute' | 'i18nAttributeOnIcuOrText' | 'i18nCustomIdOnAttribute' | 'i18nCustomIdOnElement' | 'i18nDuplicateCustomId' | 'suggestAddI18nAttribute' | 'i18nMissingDescription' | 'i18nMissingMeaning' | 'i18nMarkupInContent';
 export declare const RULE_NAME = "i18n";
-declare const _default: TSESLint.RuleModule<MessageIds, Options, import("../utils/create-eslint-rule").RuleDocs, TSESLint.RuleListener>;
+declare const _default: TSESLint.RuleModule<MessageIds, Options, import("../utils/create-eslint-rule").RuleDocs, TSESLint.RuleListener> & {
+    name: string;
+};
 export default _default;
+export declare const RULE_DOCS_EXTENSION: {
+    rationale: string;
+};
 //# sourceMappingURL=i18n.d.ts.map

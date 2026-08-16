@@ -10,56 +10,83 @@ const { UsageState } = require("../ExportsInfo");
 const Template = require("../Template");
 const { equals } = require("../util/ArrayHelpers");
 const makeSerializable = require("../util/makeSerializable");
-const propertyAccess = require("../util/propertyAccess");
-const { handleDependencyBase } = require("./CommonJsDependencyHelpers");
+const { propertyAccess } = require("../util/property");
+const {
+	ESM_MODULE_EXPORTS_NAME,
+	getRequireEsmModuleExportsAccess,
+	handleDependencyBase,
+	isRequireEsmModuleExportsModule
+} = require("./CommonJsDependencyHelpers");
 const ModuleDependency = require("./ModuleDependency");
 const processExportInfo = require("./processExportInfo");
 
 /** @typedef {import("webpack-sources").ReplaceSource} ReplaceSource */
 /** @typedef {import("../Dependency").ExportsSpec} ExportsSpec */
-/** @typedef {import("../Dependency").ReferencedExport} ReferencedExport */
+/** @typedef {import("../Dependency").RawReferencedExports} RawReferencedExports */
+/** @typedef {import("../Dependency").ReferencedExports} ReferencedExports */
 /** @typedef {import("../Dependency").TRANSITIVE} TRANSITIVE */
 /** @typedef {import("../DependencyTemplate").DependencyTemplateContext} DependencyTemplateContext */
 /** @typedef {import("../ExportsInfo")} ExportsInfo */
 /** @typedef {import("../ExportsInfo").ExportInfo} ExportInfo */
+/** @typedef {import("../ExportsInfo").ExportInfoName} ExportInfoName */
 /** @typedef {import("../Module")} Module */
 /** @typedef {import("../ModuleGraph")} ModuleGraph */
 /** @typedef {import("../javascript/JavascriptParser").Range} Range */
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext} ObjectDeserializerContext */
-/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext} ObjectSerializerContext */
 /** @typedef {import("../util/runtime").RuntimeSpec} RuntimeSpec */
 /** @typedef {import("./CommonJsDependencyHelpers").CommonJSDependencyBaseKeywords} CommonJSDependencyBaseKeywords */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectDeserializerContext<[undefined | boolean, Range, Range | null, CommonJSDependencyBaseKeywords, ExportInfoName[], ExportInfoName[], boolean, boolean]>} ObjectDeserializerContext */
+/** @typedef {import("../serialization/ObjectMiddleware").ObjectSerializerContext<[undefined | boolean, Range, Range | null, CommonJSDependencyBaseKeywords, ExportInfoName[], ExportInfoName[], boolean, boolean]>} ObjectSerializerContext */
 
-const idsSymbol = Symbol("CommonJsExportRequireDependency.ids");
+const idsSymbol = /** @type {symbol} */ (
+	Symbol("CommonJsExportRequireDependency.ids")
+);
 
 const EMPTY_OBJECT = {};
 
+/** @typedef {Set<string>} Exports */
+/** @typedef {Set<string>} Checked */
+
 class CommonJsExportRequireDependency extends ModuleDependency {
 	/**
+	 * Creates an instance of CommonJsExportRequireDependency.
 	 * @param {Range} range range
 	 * @param {Range | null} valueRange value range
 	 * @param {CommonJSDependencyBaseKeywords} base base
-	 * @param {string[]} names names
+	 * @param {ExportInfoName[]} names names
 	 * @param {string} request request
-	 * @param {string[]} ids ids
+	 * @param {ExportInfoName[]} ids ids
 	 * @param {boolean} resultUsed true, when the result is used
 	 */
 	constructor(range, valueRange, base, names, request, ids, resultUsed) {
 		super(request);
 		this.range = range;
 		this.valueRange = valueRange;
+		/** @type {CommonJSDependencyBaseKeywords} */
 		this.base = base;
+		/** @type {string[]} */
 		this.names = names;
+		/** @type {string[]} */
 		this.ids = ids;
+		/** @type {boolean} */
 		this.resultUsed = resultUsed;
+		/** @type {undefined | boolean} */
 		this.asiSafe = undefined;
+		// true when the reexport is a lazy `{ get: () => require(...) }` accessor
+		// (as produced by `Object.defineProperty`) rather than an eager value.
+		/** @type {boolean} */
+		this.getter = false;
 	}
 
 	get type() {
 		return "cjs export require";
 	}
 
+	get category() {
+		return "commonjs";
+	}
+
 	/**
+	 * Could affect referencing module.
 	 * @returns {boolean | TRANSITIVE} true, when changes to the referenced module could affect the referencing module; TRANSITIVE, when changes to the referenced module could affect referencing modules of the referencing module
 	 */
 	couldAffectReferencingModule() {
@@ -67,16 +94,18 @@ class CommonJsExportRequireDependency extends ModuleDependency {
 	}
 
 	/**
+	 * Returns the imported id.
 	 * @param {ModuleGraph} moduleGraph the module graph
-	 * @returns {string[]} the imported id
+	 * @returns {ExportInfoName[]} the imported id
 	 */
 	getIds(moduleGraph) {
 		return moduleGraph.getMeta(this)[idsSymbol] || this.ids;
 	}
 
 	/**
+	 * Updates ids using the provided module graph.
 	 * @param {ModuleGraph} moduleGraph the module graph
-	 * @param {string[]} ids the imported ids
+	 * @param {ExportInfoName[]} ids the imported ids
 	 * @returns {void}
 	 */
 	setIds(moduleGraph, ids) {
@@ -87,10 +116,20 @@ class CommonJsExportRequireDependency extends ModuleDependency {
 	 * Returns list of exports referenced by this dependency
 	 * @param {ModuleGraph} moduleGraph module graph
 	 * @param {RuntimeSpec} runtime the runtime for which the module is analysed
-	 * @returns {(string[] | ReferencedExport)[]} referenced exports
+	 * @returns {ReferencedExports} referenced exports
 	 */
 	getReferencedExports(moduleGraph, runtime) {
 		const ids = this.getIds(moduleGraph);
+		const importedModule = moduleGraph.getModule(this);
+		if (
+			importedModule &&
+			isRequireEsmModuleExportsModule(importedModule, moduleGraph)
+		) {
+			// `require(esm)` unwraps the "module.exports" named export; any
+			// further property access lands on that value (which webpack does
+			// not model), so only the "module.exports" export is observable.
+			return [{ name: [ESM_MODULE_EXPORTS_NAME], canInline: false }];
+		}
 		const getFullResult = () => {
 			if (ids.length === 0) {
 				return Dependency.EXPORTS_OBJECT_REFERENCED;
@@ -98,7 +137,8 @@ class CommonJsExportRequireDependency extends ModuleDependency {
 			return [
 				{
 					name: ids,
-					canMangle: false
+					canMangle: false,
+					canInline: false
 				}
 			];
 		};
@@ -108,9 +148,9 @@ class CommonJsExportRequireDependency extends ModuleDependency {
 			/** @type {Module} */ (moduleGraph.getParentModule(this))
 		);
 		for (const name of this.names) {
-			const exportInfo = /** @type {ExportInfo} */ (
-				exportsInfo.getReadOnlyExportInfo(name)
-			);
+			const exportInfo =
+				/** @type {ExportInfo} */
+				(exportsInfo.getReadOnlyExportInfo(name));
 			const used = exportInfo.getUsed(runtime);
 			if (used === UsageState.Unused) return Dependency.NO_EXPORTS_REFERENCED;
 			if (used !== UsageState.OnlyPropertiesUsed) return getFullResult();
@@ -120,20 +160,21 @@ class CommonJsExportRequireDependency extends ModuleDependency {
 		if (exportsInfo.otherExportsInfo.getUsed(runtime) !== UsageState.Unused) {
 			return getFullResult();
 		}
-		/** @type {string[][]} */
+		/** @type {RawReferencedExports} */
 		const referencedExports = [];
 		for (const exportInfo of exportsInfo.orderedExports) {
 			processExportInfo(
 				runtime,
 				referencedExports,
-				ids.concat(exportInfo.name),
+				[...ids, exportInfo.name],
 				exportInfo,
 				false
 			);
 		}
-		return referencedExports.map(name => ({
+		return referencedExports.map((name) => ({
 			name,
-			canMangle: false
+			canMangle: false,
+			canInline: false
 		}));
 	}
 
@@ -143,17 +184,26 @@ class CommonJsExportRequireDependency extends ModuleDependency {
 	 * @returns {ExportsSpec | undefined} export names
 	 */
 	getExports(moduleGraph) {
+		const importedModule = moduleGraph.getModule(this);
+		const esmUnwrap =
+			importedModule &&
+			isRequireEsmModuleExportsModule(importedModule, moduleGraph);
 		if (this.names.length === 1) {
 			const ids = this.getIds(moduleGraph);
 			const name = this.names[0];
 			const from = moduleGraph.getConnection(this);
 			if (!from) return;
+			const exportChain = esmUnwrap
+				? [ESM_MODULE_EXPORTS_NAME, ...ids]
+				: ids.length === 0
+					? null
+					: ids;
 			return {
 				exports: [
 					{
 						name,
 						from,
-						export: ids.length === 0 ? null : ids,
+						export: exportChain,
 						// we can't mangle names that are in an empty object
 						// because one could access the prototype property
 						// when export isn't set yet
@@ -179,6 +229,36 @@ class CommonJsExportRequireDependency extends ModuleDependency {
 		}
 		const from = moduleGraph.getConnection(this);
 		if (!from) return;
+		if (esmUnwrap) {
+			// Full re-export `module.exports = require("./esm")` of a module
+			// with a `"module.exports"` named export: the wrapping module's
+			// `module.exports` becomes the unwrapped value, whose own
+			// properties webpack cannot enumerate statically.
+			return {
+				exports: true,
+				canMangle: false,
+				dependencies: [from.module]
+			};
+		}
+		// The imported namespace ESM hasn't been flagged by
+		// FlagDependencyExportsPlugin yet (no exports determined), so its
+		// `"module.exports"` unwrap eligibility is still unknown. Star-reexporting
+		// now would add `__esModule` (and names) the monotonic merge can't retract
+		// once the module turns out to unwrap, making the result order-dependent
+		// across runtimes; defer — the `from.module` dependency re-queues us once
+		// its exports (owned names, or dynamic `other`) become known.
+		if (
+			importedModule &&
+			importedModule.getExportsType(moduleGraph, false) === "namespace"
+		) {
+			const importedExportsInfo = moduleGraph.getExportsInfo(importedModule);
+			if (
+				importedExportsInfo.otherExportsInfo.provided === false &&
+				importedExportsInfo.ownedExports[Symbol.iterator]().next().done
+			) {
+				return { exports: [], dependencies: [from.module] };
+			}
+		}
 		const reexportInfo = this.getStarReexports(
 			moduleGraph,
 			undefined,
@@ -188,16 +268,15 @@ class CommonJsExportRequireDependency extends ModuleDependency {
 		if (reexportInfo) {
 			return {
 				exports: Array.from(
-					/** @type {Set<string>} */
+					/** @type {Exports} */
 					(reexportInfo.exports),
-					name => ({
+					(name) => ({
 						name,
 						from,
-						export: ids.concat(name),
+						export: [...ids, name],
 						canMangle: !(name in EMPTY_OBJECT) && false
 					})
 				),
-				// TODO handle deep reexports
 				dependencies: [from.module]
 			};
 		}
@@ -210,10 +289,11 @@ class CommonJsExportRequireDependency extends ModuleDependency {
 	}
 
 	/**
+	 * Gets star reexports.
 	 * @param {ModuleGraph} moduleGraph the module graph
 	 * @param {RuntimeSpec} runtime the runtime
 	 * @param {Module} importedModule the imported module (optional)
-	 * @returns {{exports?: Set<string>, checked?: Set<string>} | undefined} information
+	 * @returns {{ exports?: Exports, checked?: Checked } | undefined} information
 	 */
 	getStarReexports(
 		moduleGraph,
@@ -223,14 +303,16 @@ class CommonJsExportRequireDependency extends ModuleDependency {
 		/** @type {ExportsInfo | undefined} */
 		let importedExportsInfo = moduleGraph.getExportsInfo(importedModule);
 		const ids = this.getIds(moduleGraph);
-		if (ids.length > 0)
+		if (ids.length > 0) {
 			importedExportsInfo = importedExportsInfo.getNestedExportsInfo(ids);
+		}
 		/** @type {ExportsInfo | undefined} */
 		let exportsInfo = moduleGraph.getExportsInfo(
 			/** @type {Module} */ (moduleGraph.getParentModule(this))
 		);
-		if (this.names.length > 0)
+		if (this.names.length > 0) {
 			exportsInfo = exportsInfo.getNestedExportsInfo(this.names);
+		}
 
 		const noExtraExports =
 			importedExportsInfo &&
@@ -246,9 +328,9 @@ class CommonJsExportRequireDependency extends ModuleDependency {
 		const isNamespaceImport =
 			importedModule.getExportsType(moduleGraph, false) === "namespace";
 
-		/** @type {Set<string>} */
+		/** @type {Exports} */
 		const exports = new Set();
-		/** @type {Set<string>} */
+		/** @type {Checked} */
 		const checked = new Set();
 
 		if (noExtraImports) {
@@ -294,33 +376,43 @@ class CommonJsExportRequireDependency extends ModuleDependency {
 	}
 
 	/**
+	 * Serializes this instance into the provided serializer context.
 	 * @param {ObjectSerializerContext} context context
 	 */
 	serialize(context) {
-		const { write } = context;
-		write(this.asiSafe);
-		write(this.range);
-		write(this.valueRange);
-		write(this.base);
-		write(this.names);
-		write(this.ids);
-		write(this.resultUsed);
+		context
+			.write(this.asiSafe)
+			.write(this.range)
+			.write(this.valueRange)
+			.write(this.base)
+			.write(this.names)
+			.write(this.ids)
+			.write(this.resultUsed)
+			.write(this.getter);
 		super.serialize(context);
 	}
 
 	/**
+	 * Restores this instance from the provided deserializer context.
 	 * @param {ObjectDeserializerContext} context context
 	 */
 	deserialize(context) {
-		const { read } = context;
-		this.asiSafe = read();
-		this.range = read();
-		this.valueRange = read();
-		this.base = read();
-		this.names = read();
-		this.ids = read();
-		this.resultUsed = read();
-		super.deserialize(context);
+		this.asiSafe = context.read();
+		const c1 = context.rest;
+		this.range = c1.read();
+		const c2 = c1.rest;
+		this.valueRange = c2.read();
+		const c3 = c2.rest;
+		this.base = c3.read();
+		const c4 = c3.rest;
+		this.names = c4.read();
+		const c5 = c4.rest;
+		this.ids = c5.read();
+		const c6 = c5.rest;
+		this.resultUsed = c6.read();
+		const c7 = c6.rest;
+		this.getter = c7.read();
+		super.deserialize(c7.rest);
 	}
 }
 
@@ -333,6 +425,7 @@ CommonJsExportRequireDependency.Template = class CommonJsExportRequireDependency
 	ModuleDependency.Template
 ) {
 	/**
+	 * Applies the plugin by registering its hooks on the compiler.
 	 * @param {Dependency} dependency the dependency for which the template should be applied
 	 * @param {ReplaceSource} source the current replace source which can be modified
 	 * @param {DependencyTemplateContext} templateContext the context object
@@ -351,9 +444,10 @@ CommonJsExportRequireDependency.Template = class CommonJsExportRequireDependency
 		}
 	) {
 		const dep = /** @type {CommonJsExportRequireDependency} */ (dependency);
-		const used = moduleGraph
-			.getExportsInfo(module)
-			.getUsedName(dep.names, runtime);
+		// CJS exports are never inlined
+		const used = /** @type {string | string[] | false} */ (
+			moduleGraph.getExportsInfo(module).getUsedName(dep.names, runtime)
+		);
 
 		const [type, base] = handleDependencyBase(
 			dep.base,
@@ -371,14 +465,24 @@ CommonJsExportRequireDependency.Template = class CommonJsExportRequireDependency
 		});
 		if (importedModule) {
 			const ids = dep.getIds(moduleGraph);
-			const usedImported = moduleGraph
-				.getExportsInfo(importedModule)
-				.getUsedName(ids, runtime);
-			if (usedImported) {
-				const comment = equals(usedImported, ids)
-					? ""
-					: `${Template.toNormalComment(propertyAccess(ids))} `;
-				requireExpr += `${comment}${propertyAccess(usedImported)}`;
+			const esmRequireAccess = getRequireEsmModuleExportsAccess(
+				importedModule,
+				moduleGraph,
+				runtime
+			);
+			if (esmRequireAccess !== null) {
+				requireExpr += `${esmRequireAccess}${propertyAccess(ids)}`;
+			} else {
+				// CJS exports are never inlined
+				const usedImported = /** @type {string | string[] | false} */ (
+					moduleGraph.getExportsInfo(importedModule).getUsedName(ids, runtime)
+				);
+				if (usedImported) {
+					const comment = equals(usedImported, ids)
+						? ""
+						: `${Template.toNormalComment(propertyAccess(ids))} `;
+					requireExpr += `${comment}${propertyAccess(/** @type {string[]} */ (usedImported))}`;
+				}
 			}
 		}
 
@@ -388,12 +492,41 @@ CommonJsExportRequireDependency.Template = class CommonJsExportRequireDependency
 					dep.range[0],
 					dep.range[1] - 1,
 					used
-						? `${base}${propertyAccess(used)} = ${requireExpr}`
+						? `${base}${propertyAccess(/** @type {string[]} */ (used))} = ${requireExpr}`
 						: `/* unused reexport */ ${requireExpr}`
 				);
 				return;
-			case "Object.defineProperty":
-				throw new Error("TODO");
+			case "Object.defineProperty": {
+				// `Object.defineProperty(exports, "name", { value: require("...") })`
+				// or the lazy getter form `{ get: () => require("...") }` used by
+				// barrel files (e.g. webpack's own `lib/index.js`).
+				const valueRange = /** @type {Range} */ (dep.valueRange);
+				if (!used) {
+					// A lazy getter never runs `require` until accessed, so an unused
+					// one can be dropped entirely; an eager value must keep side effects.
+					source.replace(
+						dep.range[0],
+						dep.range[1] - 1,
+						dep.getter
+							? "/* unused reexport */ 0"
+							: `/* unused reexport */ ${requireExpr}`
+					);
+					return;
+				}
+				const descriptor = dep.getter
+					? "enumerable: true, get: () => ("
+					: "value: (";
+				source.replace(
+					dep.range[0],
+					valueRange[0] - 1,
+					`Object.defineProperty(${base}${propertyAccess(
+						/** @type {string[]} */ (used).slice(0, -1)
+					)}, ${JSON.stringify(used[used.length - 1])}, { ${descriptor}`
+				);
+				source.replace(valueRange[0], valueRange[1] - 1, requireExpr);
+				source.replace(valueRange[1], dep.range[1] - 1, ") })");
+				return;
+			}
 			default:
 				throw new Error("Unexpected type");
 		}
@@ -401,3 +534,4 @@ CommonJsExportRequireDependency.Template = class CommonJsExportRequireDependency
 };
 
 module.exports = CommonJsExportRequireDependency;
+module.exports.idsSymbol = idsSymbol;

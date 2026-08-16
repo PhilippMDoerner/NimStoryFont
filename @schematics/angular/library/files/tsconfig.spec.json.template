@@ -5,10 +5,11 @@
   "compilerOptions": {
     "outDir": "<%= relativePathToWorkspaceRoot %>/out-tsc/spec",
     "types": [
-      "jasmine"
+      "<%= testTypesPackage %>"
     ]
   },
   "include": [
-    "src/**/*.ts"
+    "src/**/*.d.ts",
+    "src/**/*<% if (standalone) { %>.spec<% } %>.ts"
   ]
 }

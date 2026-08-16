@@ -8,6 +8,7 @@ type OptUnion = {
     assertionStyle: 'never';
 };
 export type Options = readonly [OptUnion];
-declare const _default: TSESLint.RuleModule<MessageIds, Options, import("../../rules").ESLintPluginDocs, TSESLint.RuleListener>;
+declare const _default: TSESLint.RuleModule<MessageIds, Options, import("../../rules").ESLintPluginDocs, TSESLint.RuleListener> & {
+    name: string;
+};
 export default _default;
-//# sourceMappingURL=consistent-type-assertions.d.ts.map

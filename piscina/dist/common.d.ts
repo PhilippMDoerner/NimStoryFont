@@ -24,3 +24,8 @@ export declare const commonState: {
 };
 export declare function maybeFileURLToPath(filename: string): string;
 export declare function getAvailableParallelism(): number;
+export declare function promiseResolvers<T = any>(): {
+    promise: Promise<T>;
+    resolve: (res: T) => void;
+    reject: (err: Error) => void;
+};

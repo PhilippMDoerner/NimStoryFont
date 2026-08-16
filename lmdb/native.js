@@ -1,5 +1,5 @@
-import { dirname, join, default as pathModule } from 'path';
-import { fileURLToPath } from 'url';
+import { dirname, join, default as pathModule } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import loadNAPI from 'node-gyp-build-optional-packages';
 export let Env,
 	Txn,
@@ -16,6 +16,7 @@ export let Env,
 	fs,
 	os,
 	onExit,
+	isLittleEndian,
 	tmpdir,
 	lmdbError,
 	path,
@@ -131,4 +132,5 @@ export function setExternals(externals) {
 	tmpdir = externals.tmpdir;
 	os = externals.os;
 	onExit = externals.onExit;
+	isLittleEndian = externals.isLittleEndian;
 }

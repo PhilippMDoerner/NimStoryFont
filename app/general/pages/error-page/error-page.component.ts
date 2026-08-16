@@ -7,12 +7,12 @@ import {
 } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { AuthStore } from 'src/app/auth.store';
-import { ButtonLinkComponent } from 'src/app/design/atoms/button-link/button-link.component';
-import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
-import { ErrorType } from 'src/app/general/_models/error';
-import { GlobalStore } from 'src/app/global.store';
+import { RoutingService } from '../../../_services/routing.service';
+import { AuthStore } from '../../../auth.store';
+import { ButtonLinkComponent } from '../../../design/atoms/button-link/button-link.component';
+import { ButtonComponent } from '../../../design/atoms/button/button.component';
+import { GlobalStore } from '../../../global.store';
+import { ErrorType } from '../../_models/error';
 
 const FALLBACK_ERROR: ErrorType = {
   htmlBody: 'Something went wrong',
@@ -77,19 +77,19 @@ const ERROR_CONTENT: { [key: number]: ErrorType } = {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ErrorPageComponent {
-  routingService = inject(RoutingService);
-  route = inject(ActivatedRoute);
-  authStore = inject(AuthStore);
-  globalStore = inject(GlobalStore);
+  readonly routingService = inject(RoutingService);
+  readonly route = inject(ActivatedRoute);
+  readonly authStore = inject(AuthStore);
+  readonly globalStore = inject(GlobalStore);
 
-  errorStatus$ = this.route.params.pipe(
+  readonly errorStatus$ = this.route.params.pipe(
     map((params) => parseInt(params['errorStatus'])),
   );
-  errorContents$ = this.errorStatus$.pipe(
+  readonly errorContents$ = this.errorStatus$.pipe(
     map((status) => ERROR_CONTENT[status] ?? FALLBACK_ERROR),
   );
 
-  campaignHomeUrl = computed(() => {
+  readonly campaignHomeUrl = computed(() => {
     const campaignName = this.globalStore.campaignName();
     if (!campaignName)
       return this.routingService.getRoutePath('campaign-overview');

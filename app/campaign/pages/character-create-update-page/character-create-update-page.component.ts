@@ -8,11 +8,11 @@ import {
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { filter, Observable, skip, take } from 'rxjs';
-import { CharacterDetails, CharacterRaw } from 'src/app/_models/character';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { CreateUpdateState } from 'src/app/design/templates/_models/create-update-states';
-import { CharacterCreateUpdateComponent } from 'src/app/design/templates/character-create-update/character-create-update.component';
-import { GlobalStore } from 'src/app/global.store';
+import { CharacterDetails, CharacterRaw } from '../../../_models/character';
+import { RoutingService } from '../../../_services/routing.service';
+import { CreateUpdateState } from '../../../design/templates/_models/create-update-states';
+import { CharacterCreateUpdateComponent } from '../../../design/templates/character-create-update/character-create-update.component';
+import { GlobalStore } from '../../../global.store';
 import { CharacterCreateUpdateStore } from './character-create-update-page.store';
 
 @Component({
@@ -29,8 +29,8 @@ export class CharacterUpdatePageComponent {
   readonly route = inject(ActivatedRoute);
   readonly routingService = inject(RoutingService);
 
-  routeUrlSegments = toSignal(this.route.url);
-  state = computed<CreateUpdateState>(() => {
+  readonly routeUrlSegments = toSignal(this.route.url);
+  readonly state = computed<CreateUpdateState>(() => {
     const pathSegments = this.routeUrlSegments()?.map(
       (segment) => segment.path,
     );
@@ -47,7 +47,7 @@ export class CharacterUpdatePageComponent {
     }
   });
 
-  userModel = computed(() => {
+  readonly userModel = computed(() => {
     switch (this.state()) {
       case 'CREATE':
         return {
@@ -64,7 +64,9 @@ export class CharacterUpdatePageComponent {
       () => this.userModel() == null || this.globalStore.campaignName() == null,
     );
 
-  private characterQueryState$ = toObservable(this.store.characterQueryState);
+  private readonly characterQueryState$ = toObservable(
+    this.store.characterQueryState,
+  );
 
   constructor() {
     this.globalStore.trackIsPageLoading(this.isPageLoading);

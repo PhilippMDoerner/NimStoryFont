@@ -14,7 +14,7 @@ class WorkerPool extends piscina_1.Piscina {
     constructor(options) {
         const piscinaOptions = {
             minThreads: 1,
-            idleTimeout: 1000,
+            idleTimeout: 4_000,
             // Web containers do not support transferable objects with receiveOnMessagePort which
             // is used when the Atomics based wait loop is enable.
             atomics: process.versions.webcontainer ? 'disabled' : 'sync',
@@ -24,7 +24,9 @@ class WorkerPool extends piscina_1.Piscina {
         // Enable compile code caching if enabled for the main process (only exists on Node.js v22.8+).
         // Skip if running inside Bazel via a RUNFILES environment variable check. The cache does not work
         // well with Bazel's hermeticity requirements.
-        const compileCacheDirectory = process.env['RUNFILES'] ? undefined : (0, node_module_1.getCompileCacheDir)?.();
+        const compileCacheDirectory = process.env['JS_BINARY__RUNFILES']
+            ? undefined
+            : (0, node_module_1.getCompileCacheDir)?.();
         if (compileCacheDirectory) {
             if (typeof piscinaOptions.env === 'object') {
                 piscinaOptions.env['NODE_COMPILE_CACHE'] = compileCacheDirectory;
@@ -41,3 +43,4 @@ class WorkerPool extends piscina_1.Piscina {
     }
 }
 exports.WorkerPool = WorkerPool;
+//# sourceMappingURL=worker-pool.js.map

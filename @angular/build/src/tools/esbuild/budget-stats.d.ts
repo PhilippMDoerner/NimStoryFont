@@ -7,7 +7,7 @@
  */
 import type { Metafile } from 'esbuild';
 import type { BudgetStats } from '../../utils/bundle-calculator';
-import { type BuildOutputFile, type InitialFileRecord } from './bundler-context';
+import { type BuildOutputFile, type InitialFileRecord } from './bundler-files';
 /**
  * Generates a bundle budget calculator compatible stats object that provides
  * the necessary information for the Webpack-based bundle budget code to

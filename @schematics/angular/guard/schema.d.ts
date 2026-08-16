@@ -20,7 +20,7 @@ export type Schema = {
      * routes), `CanDeactivate` (asks for confirmation before leaving a route), `CanMatch`
      * (determines if a route can be matched).
      */
-    implements?: Implement[];
+    implements?: [Implement, ...Implement[]];
     /**
      * The name for the new route guard. This will be used to create the guard's class and spec
      * files (e.g., `my-guard.guard.ts` and `my-guard.guard.spec.ts`).

@@ -142,14 +142,14 @@ function createDOMElementFilter(filterNode) {
 }
 
 // We try to load node dependencies
-let chalk = null;
+let picocolors = null;
 let readFileSync = null;
 let codeFrameColumns = null;
 try {
   const nodeRequire = module && module.require;
   readFileSync = nodeRequire.call(module, 'fs').readFileSync;
   codeFrameColumns = nodeRequire.call(module, '@babel/code-frame').codeFrameColumns;
-  chalk = nodeRequire.call(module, 'chalk');
+  picocolors = nodeRequire.call(module, 'picocolors');
 } catch {
   // We're in a browser environment
 }
@@ -176,7 +176,7 @@ function getCodeFrame(frame) {
     highlightCode: true,
     linesBelow: 0
   });
-  return chalk.dim(frameLocation) + "\n" + codeFrame + "\n";
+  return picocolors.dim(frameLocation) + "\n" + codeFrame + "\n";
 }
 function getUserCodeFrame() {
   // If we couldn't load dependencies, we can't generate the user trace
@@ -454,7 +454,7 @@ function getLabels(container, element, _temp) {
 
 function assertNotNullOrUndefined(matcher) {
   if (matcher === null || matcher === undefined) {
-    throw new Error( // eslint-disable-next-line @typescript-eslint/restrict-template-expressions -- implicitly converting `T` to `string`
+    throw new Error(// eslint-disable-next-line @typescript-eslint/restrict-template-expressions -- implicitly converting `T` to `string`
     "It looks like " + matcher + " was passed instead of a matcher. Did you do something like getByText(" + matcher + ")?");
   }
 }
@@ -1677,9 +1677,9 @@ const queryAllByRole = function (container, role, _temp) {
     }
   }
   if (expanded !== undefined) {
-    var _allRoles$get10;
+    var _allRoles$get0;
     // guard against unknown roles
-    if (((_allRoles$get10 = ariaQuery.roles.get(role)) == null ? void 0 : _allRoles$get10.props['aria-expanded']) === undefined) {
+    if (((_allRoles$get0 = ariaQuery.roles.get(role)) == null ? void 0 : _allRoles$get0.props['aria-expanded']) === undefined) {
       throw new Error("\"aria-expanded\" is not supported on role \"" + role + "\".");
     }
   }

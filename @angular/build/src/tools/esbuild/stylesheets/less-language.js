@@ -55,11 +55,10 @@ exports.LessStylesheetLanguage = Object.freeze({
     componentFilter: /^less;/,
     fileFilter: /\.less$/,
     process(data, file, _, options, build) {
-        return compileString(data, file, options, build.resolve.bind(build), 
-        /* unsafeInlineJavaScript */ false);
+        return compileString(data, file, options, build.resolve.bind(build));
     },
 });
-async function compileString(data, filename, options, resolver, unsafeInlineJavaScript) {
+async function compileString(data, filename, options, resolver) {
     try {
         lessPreprocessor ??= (await Promise.resolve().then(() => __importStar(require('less')))).default;
     }
@@ -120,7 +119,6 @@ async function compileString(data, filename, options, resolver, unsafeInlineJava
             paths: options.includePaths,
             plugins: [resolverPlugin],
             rewriteUrls: 'all',
-            javascriptEnabled: unsafeInlineJavaScript,
             sourceMap: options.sourcemap
                 ? {
                     sourceMapFileInline: true,
@@ -137,28 +135,6 @@ async function compileString(data, filename, options, resolver, unsafeInlineJava
     catch (error) {
         if (isLessException(error)) {
             const location = convertExceptionLocation(error);
-            // Retry with a warning for less files requiring the deprecated inline JavaScript option
-            if (error.message.includes('Inline JavaScript is not enabled.')) {
-                const withJsResult = await compileString(data, filename, options, resolver, 
-                /* unsafeInlineJavaScript */ true);
-                withJsResult.warnings = [
-                    {
-                        text: 'Deprecated inline execution of JavaScript has been enabled ("javascriptEnabled")',
-                        location,
-                        notes: [
-                            {
-                                location: null,
-                                text: 'JavaScript found within less stylesheets may be executed at build time. [https://lesscss.org/usage/#less-options]',
-                            },
-                            {
-                                location: null,
-                                text: 'Support for "javascriptEnabled" may be removed from the Angular CLI starting with Angular v19.',
-                            },
-                        ],
-                    },
-                ];
-                return withJsResult;
-            }
             return {
                 errors: [
                     {
@@ -182,3 +158,4 @@ function convertExceptionLocation(exception) {
         lineText: exception.extract && exception.extract[Math.trunc(exception.extract.length / 2)],
     };
 }
+//# sourceMappingURL=less-language.js.map

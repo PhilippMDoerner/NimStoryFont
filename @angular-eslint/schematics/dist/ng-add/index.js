@@ -1,14 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.FIXED_TYPESCRIPT_ESLINT_V7_VERSION = exports.FIXED_ESLINT_V8_VERSION = void 0;
 exports.default = default_1;
 const schematics_1 = require("@angular-devkit/schematics");
 const tasks_1 = require("@angular-devkit/schematics/tasks");
 const utils_1 = require("../utils");
-exports.FIXED_ESLINT_V8_VERSION = '8.57.1';
-exports.FIXED_TYPESCRIPT_ESLINT_V7_VERSION = '7.11.0';
 const packageJSON = require('../../package.json');
-function addAngularESLintPackages(json, useFlatConfig, options) {
+function addAngularESLintPackages(json, options) {
     return (host, context) => {
         if (!host.exists('package.json')) {
             throw new Error('Could not find a `package.json` file at the root of your workspace');
@@ -18,34 +15,25 @@ function addAngularESLintPackages(json, useFlatConfig, options) {
         }
         json.scripts = json.scripts || {};
         json.scripts['lint'] = json.scripts['lint'] || 'ng lint';
-        if (useFlatConfig) {
-            applyDevDependenciesForFlatConfig(json);
-            // Check if yarn PnP is used https://yarnpkg.com/advanced/pnpapi#processversionspnp and install extra explicit packages to make it happy
-            if (process.versions.pnp) {
-                // An explicit reference to the builder is needed for running `ng lint` in PnP
-                json.devDependencies['@angular-eslint/builder'] = packageJSON.version;
-                // The linting cannot complete without these explicitly in the root package.json in PnP
-                json.devDependencies['@eslint/js'] =
-                    `^${packageJSON.devDependencies['eslint']}`;
-                const typescriptESLintVersion = packageJSON.devDependencies['@typescript-eslint/utils'];
-                json.devDependencies['@typescript-eslint/types'] =
-                    typescriptESLintVersion;
-                json.devDependencies['@typescript-eslint/utils'] =
-                    typescriptESLintVersion;
-            }
-            else {
-                const isNpm = host.exists('package-lock.json');
-                if (!isNpm) {
-                    // Prevent TS IDE errors in the eslint config file for non-npm installations by explicitly including @eslint/js (even though linting seems to still work without it)
-                    json.devDependencies['@eslint/js'] =
-                        `^${packageJSON.devDependencies['eslint']}`;
-                    // Ensure @angular-eslint/builder is always resolvable in non-npm installations (https://github.com/angular-eslint/angular-eslint/issues/2241)
-                    json.devDependencies['@angular-eslint/builder'] = packageJSON.version;
-                }
-            }
+        json.devDependencies = json.devDependencies || {};
+        applyDevDependenciesForFlatConfig(json);
+        // Check if yarn PnP is used https://yarnpkg.com/advanced/pnpapi#processversionspnp and install extra explicit packages to make it happy
+        if (process.versions.pnp) {
+            // An explicit reference to the builder is needed for running `ng lint` in PnP
+            json.devDependencies['@angular-eslint/builder'] = packageJSON.version;
+            // The linting cannot complete without these explicitly in the root package.json in PnP
+            const typescriptESLintVersion = packageJSON.devDependencies['@typescript-eslint/utils'];
+            json.devDependencies['@typescript-eslint/types'] =
+                typescriptESLintVersion;
+            json.devDependencies['@typescript-eslint/utils'] =
+                typescriptESLintVersion;
         }
         else {
-            applyDevDependenciesForESLintRC(json);
+            const isNpm = host.exists('package-lock.json');
+            if (!isNpm) {
+                // Ensure @angular-eslint/builder is always resolvable in non-npm installations (https://github.com/angular-eslint/angular-eslint/issues/2241)
+                json.devDependencies['@angular-eslint/builder'] = packageJSON.version;
+            }
         }
         json.devDependencies = (0, utils_1.sortObjectByKeys)(json.devDependencies);
         host.overwrite('package.json', JSON.stringify(json, null, 2));
@@ -67,27 +55,10 @@ Please see https://github.com/angular-eslint/angular-eslint for how to add ESLin
         return host;
     };
 }
-function applyDevDependenciesForESLintRC(json) {
-    json.devDependencies['eslint'] = exports.FIXED_ESLINT_V8_VERSION;
-    /**
-     * @angular-eslint packages
-     */
-    json.devDependencies['@angular-eslint/builder'] = packageJSON.version;
-    json.devDependencies['@angular-eslint/eslint-plugin'] = packageJSON.version;
-    json.devDependencies['@angular-eslint/eslint-plugin-template'] =
-        packageJSON.version;
-    json.devDependencies['@angular-eslint/schematics'] = packageJSON.version;
-    json.devDependencies['@angular-eslint/template-parser'] = packageJSON.version;
-    /**
-     * @typescript-eslint packages
-     */
-    json.devDependencies['@typescript-eslint/eslint-plugin'] =
-        exports.FIXED_TYPESCRIPT_ESLINT_V7_VERSION;
-    json.devDependencies['@typescript-eslint/parser'] =
-        exports.FIXED_TYPESCRIPT_ESLINT_V7_VERSION;
-}
 function applyDevDependenciesForFlatConfig(json) {
     json.devDependencies['eslint'] = `^${packageJSON.devDependencies['eslint']}`;
+    json.devDependencies['@eslint/js'] =
+        `^${packageJSON.devDependencies['@eslint/js']}`;
     /**
      * angular-eslint packages
      */
@@ -108,7 +79,7 @@ function applyDevDependenciesForFlatConfig(json) {
     delete json.devDependencies['@typescript-eslint/eslint-plugin'];
     delete json.devDependencies['@typescript-eslint/utils'];
 }
-function applyESLintConfigIfSingleProjectWithNoExistingTSLint(useFlatConfig) {
+function applyESLintConfigIfSingleProjectWithNoExistingTSLint() {
     return (host, context) => {
         const angularJson = (0, utils_1.readJsonInTree)(host, 'angular.json');
         if (!angularJson || !angularJson.projects) {
@@ -125,16 +96,14 @@ function applyESLintConfigIfSingleProjectWithNoExistingTSLint(useFlatConfig) {
         const projectNames = Object.keys(angularJson.projects);
         if (projectNames.length === 0) {
             return (0, schematics_1.chain)([
-                useFlatConfig
-                    ? (host) => {
-                        // If the root package.json uses type: module, generate ESM content
-                        const packageJson = (0, utils_1.readJsonInTree)(host, 'package.json');
-                        const isESM = packageJson.type === 'module';
-                        host.create('eslint.config.js', (0, utils_1.createStringifiedRootESLintConfig)(null, isESM));
-                        return host;
-                    }
-                    : (0, utils_1.updateJsonInTree)('.eslintrc.json', () => (0, utils_1.createRootESLintConfig)(null)),
-                (0, utils_1.updateJsonInTree)('angular.json', (json) => (0, utils_1.updateSchematicCollections)(json, useFlatConfig ? 'angular-eslint' : '@angular-eslint/schematics')),
+                (host) => {
+                    // If the root package.json uses type: module, generate ESM content
+                    const packageJson = (0, utils_1.readJsonInTree)(host, 'package.json');
+                    const isESM = packageJson.type === 'module';
+                    host.create('eslint.config.js', (0, utils_1.createStringifiedRootESLintConfig)(null, isESM));
+                    return host;
+                },
+                (0, utils_1.updateJsonInTree)('angular.json', (json) => (0, utils_1.updateSchematicCollections)(json, 'angular-eslint')),
             ]);
         }
         /**
@@ -162,7 +131,7 @@ Please see https://github.com/angular-eslint/angular-eslint for more information
 `.trimStart());
         return (0, schematics_1.chain)([
             (0, schematics_1.schematic)('add-eslint-to-project', {}),
-            (0, utils_1.updateJsonInTree)('angular.json', (json) => (0, utils_1.updateSchematicCollections)(json, useFlatConfig ? 'angular-eslint' : '@angular-eslint/schematics')),
+            (0, utils_1.updateJsonInTree)('angular.json', (json) => (0, utils_1.updateSchematicCollections)(json, 'angular-eslint')),
         ]);
     };
 }
@@ -175,10 +144,9 @@ function default_1(options) {
     return (host, context) => {
         const workspacePackageJSON = host.read('package.json').toString('utf-8');
         const json = JSON.parse(workspacePackageJSON);
-        const useFlatConfig = (0, utils_1.shouldUseFlatConfig)(host, json);
         return (0, schematics_1.chain)([
-            addAngularESLintPackages(json, useFlatConfig, options),
-            applyESLintConfigIfSingleProjectWithNoExistingTSLint(useFlatConfig),
+            addAngularESLintPackages(json, options),
+            applyESLintConfigIfSingleProjectWithNoExistingTSLint(),
         ])(host, context);
     };
 }

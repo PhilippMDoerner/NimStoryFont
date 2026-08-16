@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Locks = void 0;
-const tslib_1 = require("tslib");
 const defaultStore = typeof window === 'object' && window && typeof window.localStorage === 'object' ? window.localStorage : null;
 let _locks;
 /**
@@ -52,24 +51,24 @@ class Locks {
         return lockUntilNum > now;
     }
     lock(id, ms, timeoutMs = 2 * 1000, checkMs = 10) {
-        return (fn) => tslib_1.__awaiter(this, void 0, void 0, function* () {
+        return async (fn) => {
             const timeout = this.now() + timeoutMs;
             let unlock;
             while (!unlock) {
                 unlock = this.acquire(id, ms);
                 if (unlock)
                     break;
-                yield new Promise((r) => setTimeout(r, checkMs));
+                await new Promise((r) => setTimeout(r, checkMs));
                 if (this.now() > timeout)
                     throw new Error('LOCK_TIMEOUT');
             }
             try {
-                return yield fn();
+                return await fn();
             }
             finally {
                 unlock();
             }
-        });
+        };
     }
 }
 exports.Locks = Locks;

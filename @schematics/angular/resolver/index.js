@@ -13,3 +13,4 @@ function default_1(options) {
     const templateFilesDirectory = options.functional ? './functional-files' : './class-files';
     return (0, generate_from_files_1.generateFromFiles)({ ...options, templateFilesDirectory });
 }
+//# sourceMappingURL=index.js.map

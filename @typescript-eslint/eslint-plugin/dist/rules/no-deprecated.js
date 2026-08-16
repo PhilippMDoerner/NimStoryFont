@@ -69,7 +69,7 @@ exports.default = (0, util_1.createRule)({
         },
     ],
     create(context, [options]) {
-        const { jsDocParsingMode } = context.parserOptions;
+        const { jsDocParsingMode } = context.languageOptions.parserOptions;
         const allow = options.allow;
         if (jsDocParsingMode === 'none' || jsDocParsingMode === 'type-info') {
             throw new Error(`Cannot be used with jsDocParsingMode: '${jsDocParsingMode}'.`);
@@ -124,12 +124,13 @@ exports.default = (0, util_1.createRule)({
                 case utils_1.AST_NODE_TYPES.Property:
                     // foo in "const { foo } = bar" will be processed twice, as parent.key
                     // and parent.value. The second is treated as a declaration.
-                    if (parent.shorthand && parent.value === node) {
+                    if (parent.value === node) {
+                        // const { foo: bar } = baz; -- bar IS a declaration.
+                        // const baz = { foo: bar }; -- bar IS NOT a declaration.
                         return parent.parent.type === utils_1.AST_NODE_TYPES.ObjectPattern;
                     }
-                    if (parent.value === node) {
-                        return false;
-                    }
+                    // const { foo: bar } = baz; -- foo IS NOT a declaration.
+                    // const baz = { foo: bar }; -- foo IS a declaration.
                     return parent.parent.type === utils_1.AST_NODE_TYPES.ObjectExpression;
                 case utils_1.AST_NODE_TYPES.AssignmentPattern:
                     // foo in "const { foo = "" } = bar" will be processed twice, as parent.parent.key
@@ -149,19 +150,22 @@ exports.default = (0, util_1.createRule)({
                 case utils_1.AST_NODE_TYPES.TSTypeAliasDeclaration:
                 case utils_1.AST_NODE_TYPES.TSTypeParameter:
                     return true;
+                // treat `export import Bar = Foo;` (and `import Foo = require('...')`) as declarations
+                case utils_1.AST_NODE_TYPES.TSImportEqualsDeclaration:
+                    return parent.id === node;
                 default:
                     return false;
             }
         }
-        function isInsideExportOrImport(node) {
+        function isInsideImport(node) {
             let current = node;
             while (true) {
                 switch (current.type) {
-                    case utils_1.AST_NODE_TYPES.ExportAllDeclaration:
-                    case utils_1.AST_NODE_TYPES.ExportNamedDeclaration:
                     case utils_1.AST_NODE_TYPES.ImportDeclaration:
                         return true;
                     case utils_1.AST_NODE_TYPES.ArrowFunctionExpression:
+                    case utils_1.AST_NODE_TYPES.ExportAllDeclaration:
+                    case utils_1.AST_NODE_TYPES.ExportNamedDeclaration:
                     case utils_1.AST_NODE_TYPES.BlockStatement:
                     case utils_1.AST_NODE_TYPES.ClassDeclaration:
                     case utils_1.AST_NODE_TYPES.TSInterfaceDeclaration:
@@ -264,8 +268,7 @@ exports.default = (0, util_1.createRule)({
             false) ?? getJsDocDeprecation(signature));
         }
         function getJSXAttributeDeprecation(openingElement, propertyName) {
-            const tsNode = services.esTreeNodeToTSNodeMap.get(openingElement.name);
-            const contextualType = (0, util_1.nullThrows)(checker.getContextualType(tsNode), 'Expected JSX opening element name to have contextualType');
+            const contextualType = (0, util_1.nullThrows)(services.getContextualType(openingElement.name), 'Expected JSX opening element name to have contextualType');
             const symbol = contextualType.getProperty(propertyName);
             return getJsDocDeprecation(symbol);
         }
@@ -285,14 +288,15 @@ exports.default = (0, util_1.createRule)({
                     .getProperty(node.name);
                 const propertySymbol = services.getSymbolAtLocation(node);
                 const valueSymbol = checker.getShorthandAssignmentValueSymbol(propertySymbol?.valueDeclaration);
-                return (getJsDocDeprecation(property) ??
+                return (searchForDeprecationInAliasesChain(propertySymbol, true) ??
+                    getJsDocDeprecation(property) ??
                     getJsDocDeprecation(propertySymbol) ??
                     getJsDocDeprecation(valueSymbol));
             }
             return searchForDeprecationInAliasesChain(services.getSymbolAtLocation(node), true);
         }
         function checkIdentifier(node) {
-            if (isDeclaration(node) || isInsideExportOrImport(node)) {
+            if (isDeclaration(node) || isInsideImport(node)) {
                 return;
             }
             const reason = getDeprecationReason(node);
@@ -300,7 +304,8 @@ exports.default = (0, util_1.createRule)({
                 return;
             }
             const type = services.getTypeAtLocation(node);
-            if ((0, util_1.typeMatchesSomeSpecifier)(type, allow, services.program)) {
+            if ((0, util_1.typeMatchesSomeSpecifier)(type, allow, services.program) ||
+                (0, util_1.valueMatchesSomeSpecifier)(node, allow, services.program, type)) {
                 return;
             }
             const name = getReportedNodeName(node);
@@ -317,13 +322,72 @@ exports.default = (0, util_1.createRule)({
                 node,
             });
         }
+        function checkMemberExpression(node) {
+            if (!node.computed) {
+                return;
+            }
+            const propertyType = services.getTypeAtLocation(node.property);
+            if (propertyType.isLiteral()) {
+                const objectType = services.getTypeAtLocation(node.object);
+                const propertyName = propertyType.isStringLiteral()
+                    ? propertyType.value
+                    : // eslint-disable-next-line @typescript-eslint/no-base-to-string
+                        String(propertyType.value);
+                const property = objectType.getProperty(propertyName);
+                const reason = getJsDocDeprecation(property);
+                if (reason == null) {
+                    return;
+                }
+                if ((0, util_1.typeMatchesSomeSpecifier)(objectType, allow, services.program)) {
+                    return;
+                }
+                context.report({
+                    ...(reason
+                        ? {
+                            messageId: 'deprecatedWithReason',
+                            data: { name: propertyName, reason },
+                        }
+                        : {
+                            messageId: 'deprecated',
+                            data: { name: propertyName },
+                        }),
+                    node: node.property,
+                });
+            }
+        }
         return {
-            Identifier: checkIdentifier,
+            Identifier(node) {
+                const { parent } = node;
+                if (parent.type === utils_1.AST_NODE_TYPES.ExportNamedDeclaration ||
+                    parent.type === utils_1.AST_NODE_TYPES.ExportAllDeclaration) {
+                    return;
+                }
+                // Computed identifier expressions are handled by checkMemberExpression
+                if (parent.type === utils_1.AST_NODE_TYPES.MemberExpression &&
+                    parent.computed &&
+                    parent.property === node) {
+                    return;
+                }
+                if (parent.type === utils_1.AST_NODE_TYPES.ExportSpecifier) {
+                    // only deal with the alias (exported) side, not the local binding
+                    if (parent.exported !== node) {
+                        return;
+                    }
+                    const symbol = services.getSymbolAtLocation(node);
+                    const aliasDeprecation = getJsDocDeprecation(symbol);
+                    if (aliasDeprecation != null) {
+                        return;
+                    }
+                }
+                // whether it's a plain identifier or the exported alias
+                checkIdentifier(node);
+            },
             JSXIdentifier(node) {
                 if (node.parent.type !== utils_1.AST_NODE_TYPES.JSXClosingElement) {
                     checkIdentifier(node);
                 }
             },
+            MemberExpression: checkMemberExpression,
             PrivateIdentifier: checkIdentifier,
             Super: checkIdentifier,
         };

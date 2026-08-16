@@ -13,12 +13,14 @@ const ModuleDependencyTemplateAsId = require("./ModuleDependencyTemplateAsId");
 
 class ModuleHotAcceptDependency extends ModuleDependency {
 	/**
+	 * Creates an instance of ModuleHotAcceptDependency.
 	 * @param {string} request the request string
 	 * @param {Range} range location in source code
 	 */
 	constructor(request, range) {
-		super(request);
+		super(request, Infinity);
 		this.range = range;
+		/** @type {boolean} */
 		this.weak = true;
 	}
 

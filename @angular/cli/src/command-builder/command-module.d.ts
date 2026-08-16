@@ -5,42 +5,14 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.dev/license
  */
-import { logging } from '@angular-devkit/core';
-import type { ArgumentsCamelCase, Argv, CamelCaseKey, CommandModule as YargsCommandModule } from 'yargs' with { 'resolution-mode': 'require' };
+import type { ArgumentsCamelCase, Argv, CommandModule as YargsCommandModule } from 'yargs';
 import { AnalyticsCollector } from '../analytics/analytics-collector';
 import { EventCustomDimension, EventCustomMetric } from '../analytics/analytics-parameters';
 import { AngularWorkspace } from '../utilities/config';
-import { PackageManagerUtils } from '../utilities/package-manager';
+import { CommandContext, CommandScope, Options, OtherOptions } from './definitions';
 import { Option } from './utilities/json-schema';
-export type Options<T> = {
-    [key in keyof T as CamelCaseKey<key>]: T[key];
-};
-export declare enum CommandScope {
-    /** Command can only run inside an Angular workspace. */
-    In = 0,
-    /** Command can only run outside an Angular workspace. */
-    Out = 1,
-    /** Command can run inside and outside an Angular workspace. */
-    Both = 2
-}
-export interface CommandContext {
-    currentDirectory: string;
-    root: string;
-    workspace?: AngularWorkspace;
-    globalConfiguration: AngularWorkspace;
-    logger: logging.Logger;
-    packageManager: PackageManagerUtils;
-    /** Arguments parsed in free-from without parser configuration. */
-    args: {
-        positional: string[];
-        options: {
-            help: boolean;
-            jsonHelp: boolean;
-            getYargsCompletions: boolean;
-        } & Record<string, unknown>;
-    };
-}
-export type OtherOptions = Record<string, unknown>;
+export { CommandScope };
+export type { CommandContext, Options, OtherOptions };
 export interface CommandModuleImplementation<T extends {} = {}> extends Omit<YargsCommandModule<{}, T>, 'builder' | 'handler'> {
     /** Scope in which the command can be executed in. */
     scope: CommandScope;

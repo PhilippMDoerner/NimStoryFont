@@ -4,16 +4,6 @@ Simple interactive command line prompt to display a list of choices (single sele
 
 ![select prompt](https://cdn.rawgit.com/SBoudrias/Inquirer.js/28ae8337ba51d93e359ef4f7ee24e79b69898962/assets/screenshots/list.svg)
 
-# Special Thanks
-
-<div align="center" markdown="1">
-
-[![Graphite](https://github.com/user-attachments/assets/53db40ca-2254-481a-a094-6597f8716e29)](https://graphite.dev/?utm_source=npmjs&utm_medium=repo&utm_campaign=inquirerjs)<br>
-
-### [Graphite is the AI developer productivity platform helping teams on GitHub ship higher quality software, faster](https://graphite.dev/?utm_source=npmjs&utm_medium=repo&utm_campaign=inquirerjs)
-
-</div>
-
 # Installation
 
 <table>
@@ -95,15 +85,14 @@ const answer = await select({
 
 ## Options
 
-| Property     | Type                                     | Required | Description                                                                                                                                 |
-| ------------ | ---------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| message      | `string`                                 | yes      | The question to ask                                                                                                                         |
-| choices      | `Choice[]`                               | yes      | List of the available choices.                                                                                                              |
-| default      | `string`                                 | no       | Defines in front of which item the cursor will initially appear. When omitted, the cursor will appear on the first selectable item.         |
-| pageSize     | `number`                                 | no       | By default, lists of choice longer than 7 will be paginated. Use this option to control how many choices will appear on the screen at once. |
-| loop         | `boolean`                                | no       | Defaults to `true`. When set to `false`, the cursor will be constrained to the top and bottom of the choice list without looping.           |
-| instructions | `{ navigation: string; pager: string; }` | no       | Defines the help tip content.                                                                                                               |
-| theme        | [See Theming](#Theming)                  | no       | Customize look of the prompt.                                                                                                               |
+| Property | Type                    | Required | Description                                                                                                                                 |
+| -------- | ----------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| message  | `string`                | yes      | The question to ask                                                                                                                         |
+| choices  | `Choice[]`              | yes      | List of the available choices.                                                                                                              |
+| default  | `string`                | no       | Defines in front of which item the cursor will initially appear. When omitted, the cursor will appear on the first selectable item.         |
+| pageSize | `number`                | no       | By default, lists of choice longer than 7 will be paginated. Use this option to control how many choices will appear on the screen at once. |
+| loop     | `boolean`               | no       | Defaults to `true`. When set to `false`, the cursor will be constrained to the top and bottom of the choice list without looping.           |
+| theme    | [See Theming](#Theming) | no       | Customize look of the prompt.                                                                                                               |
 
 `Separator` objects can be used in the `choices` array to render non-selectable lines in the choice list. By default it'll render a line, but you can provide the text as argument (`new Separator('-- Dependencies --')`). This option is often used to add labels to groups within long list of options.
 
@@ -131,6 +120,12 @@ Here's each property:
 
 `choices` can also be an array of string, in which case the string will be used both as the `value` and the `name`.
 
+## Keybindings
+
+Set `INQUIRER_KEYBINDINGS=vim`, `INQUIRER_KEYBINDINGS=emacs`, or `INQUIRER_KEYBINDINGS=vim,emacs` to enable alternative navigation keybindings globally.
+
+When Vim keybindings are enabled, the prompt disables type-to-search so navigation keys are not interpreted as search input. You can override the environment setting per prompt with `theme.keybindings`.
+
 ## Theming
 
 You can theme a prompt by passing a `theme` object option. The theme object only need to includes the keys you wish to modify, we'll fallback on the defaults for the rest.
@@ -150,20 +145,35 @@ type Theme = {
     highlight: (text: string) => string;
     description: (text: string) => string;
     disabled: (text: string) => string;
+    keysHelpTip: (keys: [key: string, action: string][]) => string | undefined;
   };
   icon: {
     cursor: string;
   };
-  helpMode: 'always' | 'never' | 'auto';
   indexMode: 'hidden' | 'number';
+  keybindings: readonly ('emacs' | 'vim')[];
 };
 ```
 
-### `theme.helpMode`
+### `theme.style.keysHelpTip`
 
-- `auto` (default): Hide the help tips after an interaction occurs.
-- `always`: The help tips will always show and never hide.
-- `never`: The help tips will never show.
+This function allows you to customize the keyboard shortcuts help tip displayed below the prompt. It receives an array of key-action pairs and should return a formatted string. You can also hook here to localize the labels to different languages.
+
+It can also returns `undefined` to hide the help tip entirely.
+
+```js
+theme: {
+  style: {
+    keysHelpTip: (keys) => {
+      // Return undefined to hide the help tip completely.
+      return undefined;
+
+      // Or customize the formatting. Or localize the labels.
+      return keys.map(([key, action]) => `${key}: ${action}`).join(' | ');
+    };
+  }
+}
+```
 
 ### `theme.indexMode`
 

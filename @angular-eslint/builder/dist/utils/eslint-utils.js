@@ -1,8 +1,18 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.supportedFlatConfigNames = void 0;
+exports.defaultFlatConfigNames = void 0;
 exports.resolveAndInstantiateESLint = resolveAndInstantiateESLint;
-exports.supportedFlatConfigNames = [
+/**
+ * The conventional flat config file names that ESLint resolves automatically.
+ *
+ * NOTE: this is NOT a restriction on what an explicitly provided config file may
+ * be named. ESLint's own `--config`/`overrideConfigFile` accepts a flat config
+ * file with any name, and so does this builder (see the legacy eslintrc denylist
+ * below). This list only mirrors the names ESLint discovers on its own when no
+ * explicit config is given, so we can reconstruct a likely config path for
+ * diagnostic messages.
+ */
+exports.defaultFlatConfigNames = [
     'eslint.config.js',
     'eslint.config.mjs',
     'eslint.config.cjs',
@@ -10,34 +20,44 @@ exports.supportedFlatConfigNames = [
     'eslint.config.mts',
     'eslint.config.cts',
 ];
-async function resolveESLintClass(useFlatConfig = false) {
+/**
+ * Legacy "eslintrc" config file names (e.g. `.eslintrc`, `.eslintrc.json`,
+ * `.eslintrc.js`, `.eslintrc.yml`). ESLint removed support for this format in
+ * v10 and angular-eslint no longer supports it.
+ *
+ * We detect these names explicitly so we can surface a helpful error message.
+ * Any other file name is passed straight through to ESLint - exactly like
+ * ESLint's own `--config`/`overrideConfigFile`, a flat config file can have
+ * any name, so we deliberately do NOT require the `eslint.config.*` naming
+ * convention for an explicitly provided config file.
+ */
+const legacyEslintrcConfigFilePattern = /(^|[\\/])\.eslintrc(\.(c?js|ya?ml|json))?$/;
+async function resolveESLintClass() {
     try {
-        // In eslint 8.57.0 (the final v8 version), a dedicated API was added for resolving the correct ESLint class.
         const eslint = await import('eslint');
-        if (typeof eslint.loadESLint === 'function') {
-            return await eslint.loadESLint({ useFlatConfig });
-        }
-        // If that API is not available (an older version of v8), we need to use the old way of resolving the ESLint class.
-        if (!useFlatConfig) {
-            return eslint.ESLint;
-        }
-        const { FlatESLint } = require('eslint/use-at-your-own-risk');
-        return FlatESLint;
+        return eslint.ESLint;
     }
     catch {
         throw new Error('Unable to find ESLint. Ensure ESLint is installed.');
     }
 }
-async function resolveAndInstantiateESLint(eslintConfigPath, options, useFlatConfig = false) {
-    if (options.stats && !useFlatConfig) {
-        throw new Error('The --stats option requires ESLint Flat Config');
+function validateConcurrency(concurrency) {
+    if (concurrency === 'auto' || concurrency === 'off') {
+        return;
     }
-    if (useFlatConfig &&
-        eslintConfigPath &&
-        !exports.supportedFlatConfigNames.some((name) => eslintConfigPath.endsWith(name))) {
-        throw new Error(`When using the new Flat Config with ESLint, all configs must be named ${exports.supportedFlatConfigNames.join(' or ')}, and .eslintrc files may not be used. See https://eslint.org/docs/latest/use/configure/configuration-files`);
+    if (typeof concurrency === 'number' &&
+        Number.isInteger(concurrency) &&
+        concurrency > 0) {
+        return;
     }
-    const ESLint = await resolveESLintClass(useFlatConfig);
+    throw new Error('The --concurrency option must be auto, off or a positive integer');
+}
+async function resolveAndInstantiateESLint(eslintConfigPath, options) {
+    if (eslintConfigPath &&
+        legacyEslintrcConfigFilePattern.test(eslintConfigPath)) {
+        throw new Error(`The ESLint config file "${eslintConfigPath}" uses the legacy "eslintrc" format, which is no longer supported. Please use an ESLint flat config file (it can have any name, e.g. eslint.config.js). See https://eslint.org/docs/latest/use/configure/configuration-files`);
+    }
+    const ESLint = await resolveESLintClass();
     const eslintOptions = {
         fix: !!options.fix,
         cache: !!options.cache,
@@ -55,49 +75,31 @@ async function resolveAndInstantiateESLint(eslintConfigPath, options, useFlatCon
          */
         errorOnUnmatchedPattern: false,
     };
-    if (useFlatConfig) {
-        eslintOptions.stats = !!options.stats;
-        if (typeof options.useEslintrc !== 'undefined') {
-            throw new Error('For Flat Config, the `useEslintrc` option is not applicable. See https://eslint.org/docs/latest/use/configure/configuration-files-new');
+    const concurrency = options.concurrency;
+    if (concurrency != null) {
+        validateConcurrency(concurrency);
+        eslintOptions.concurrency = concurrency;
+    }
+    eslintOptions.stats = !!options.stats;
+    if (options.applySuppressions) {
+        eslintOptions.applySuppressions = true;
+    }
+    if (options.suppressionsLocation) {
+        eslintOptions.suppressionsLocation = options.suppressionsLocation;
+    }
+    /**
+     * Adapted from https://github.com/eslint/eslint/blob/50f03a119e6827c03b1d6c86d3aa1f4820b609e8/lib/cli.js#L144
+     */
+    if (typeof options.noConfigLookup !== 'undefined') {
+        const configLookup = !options.noConfigLookup;
+        let overrideConfigFile = typeof eslintConfigPath === 'string' ? eslintConfigPath : !configLookup;
+        if (overrideConfigFile === false) {
+            overrideConfigFile = undefined;
         }
-        if (options.resolvePluginsRelativeTo !== undefined) {
-            throw new Error('For Flat Config, ESLint removed `resolvePluginsRelativeTo` and so it is not supported as an option. See https://eslint.org/docs/latest/use/configure/configuration-files-new');
-        }
-        if (options.ignorePath !== undefined) {
-            throw new Error('For Flat Config, ESLint removed `ignorePath` and so it is not supported as an option. See https://eslint.org/docs/latest/use/configure/configuration-files-new');
-        }
-        if (options.reportUnusedDisableDirectives) {
-            throw new Error('For Flat Config, ESLint removed `reportUnusedDisableDirectives` and so it is not supported as an option. See https://eslint.org/docs/latest/use/configure/configuration-files-new');
-        }
-        /**
-         * Adapted from https://github.com/eslint/eslint/blob/50f03a119e6827c03b1d6c86d3aa1f4820b609e8/lib/cli.js#L144
-         */
-        if (typeof options.noConfigLookup !== 'undefined') {
-            const configLookup = !options.noConfigLookup;
-            let overrideConfigFile = typeof eslintConfigPath === 'string' ? eslintConfigPath : !configLookup;
-            if (overrideConfigFile === false) {
-                overrideConfigFile = undefined;
-            }
-            eslintOptions.overrideConfigFile = overrideConfigFile;
-        }
-        else {
-            eslintOptions.overrideConfigFile = eslintConfigPath;
-        }
+        eslintOptions.overrideConfigFile = overrideConfigFile;
     }
     else {
         eslintOptions.overrideConfigFile = eslintConfigPath;
-        eslintOptions.rulePaths = options.rulesdir || [];
-        eslintOptions.resolvePluginsRelativeTo =
-            options.resolvePluginsRelativeTo || undefined;
-        eslintOptions.ignorePath =
-            options.ignorePath || undefined;
-        /**
-         * If "noEslintrc" is set to `true` (and therefore here "useEslintrc" will be `false`), then ESLint will not
-         * merge the provided config with others it finds automatically.
-         */
-        eslintOptions.useEslintrc = !options.noEslintrc;
-        eslintOptions.reportUnusedDisableDirectives =
-            options.reportUnusedDisableDirectives || undefined;
     }
     const eslint = new ESLint(eslintOptions);
     return {

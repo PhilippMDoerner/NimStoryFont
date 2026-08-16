@@ -10,4 +10,6 @@ var Type;
 (function (Type) {
     Type["Browserslist"] = "browserslist";
     Type["Karma"] = "karma";
+    Type["Vitest"] = "vitest";
 })(Type || (exports.Type = Type = {}));
+//# sourceMappingURL=schema.js.map

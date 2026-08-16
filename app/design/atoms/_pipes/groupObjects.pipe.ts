@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Pipe, PipeTransform } from '@angular/core';
-import { getNestedProperty } from 'src/utils/object';
+import { getNestedProperty } from '../../../../utils/object';
 
 @Pipe({ name: 'groupByFirstLetter', standalone: true })
 export class GroupByFirstLetterPipe<T> implements PipeTransform {

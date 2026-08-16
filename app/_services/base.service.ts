@@ -2,7 +2,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { map, Observable } from 'rxjs';
-import { environment } from 'src/environments/environment';
+import { environment } from '../../environments/environment';
 import { OverviewItem } from '../_models/overview';
 import { CampaignService } from './service.interfaces';
 
@@ -22,8 +22,8 @@ export interface ReadByNameParams {
 export abstract class BaseService<Raw, Detail>
   implements CampaignService<Detail>
 {
-  public apiUrl: string = environment.apiUrl;
-  public baseUrl: string;
+  public readonly apiUrl: string = environment.apiUrl;
+  public readonly baseUrl: string;
 
   constructor(
     public http: HttpClient,
@@ -107,9 +107,9 @@ export abstract class BaseService<Raw, Detail>
     if (typeof params.name !== 'string') {
       console.error('The params you used in the service');
       console.error(params);
-      throw `Invalid params exception. You tried to use the base readByParams of GenericService with a parameter 
-      object without the "name" attribute. This indicates your call is more complex than 
-      this base implementation is useful for. Overwrite readByParam in the service that inherits from  
+      throw `Invalid params exception. You tried to use the base readByParams of GenericService with a parameter
+      object without the "name" attribute. This indicates your call is more complex than
+      this base implementation is useful for. Overwrite readByParam in the service that inherits from
       GenericObjectService and implement the function yourself`;
     }
 

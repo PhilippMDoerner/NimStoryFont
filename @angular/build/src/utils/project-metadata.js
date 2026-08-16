@@ -17,7 +17,7 @@ const node_path_1 = require("node:path");
  * @returns A normalized path string.
  */
 function normalizeDirectoryPath(path) {
-    const last = path[path.length - 1];
+    const last = path.at(-1);
     if (last === '/' || last === '\\') {
         return path.slice(0, -1);
     }
@@ -29,3 +29,4 @@ function getProjectRootPaths(workspaceRoot, projectMetadata) {
     const projectSourceRoot = normalizeDirectoryPath(rawSourceRoot === undefined ? (0, node_path_1.join)(projectRoot, 'src') : (0, node_path_1.join)(workspaceRoot, rawSourceRoot));
     return { projectRoot, projectSourceRoot };
 }
+//# sourceMappingURL=project-metadata.js.map

@@ -120,6 +120,7 @@
         "commonjs-static",
         "amd",
         "amd-require",
+        "amd-async",
         "umd",
         "umd2",
         "jsonp",
@@ -128,7 +129,11 @@
         "import",
         "module-import",
         "script",
-        "node-commonjs"
+        "node-commonjs",
+        "asset",
+        "asset-url",
+        "css-import",
+        "css-url"
       ]
     },
     "LibraryCustomUmdCommentObject": {

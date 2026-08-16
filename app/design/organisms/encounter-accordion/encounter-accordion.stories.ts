@@ -1,18 +1,13 @@
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterTestingModule } from '@angular/router/testing';
-import { action } from 'storybook/actions';
 import { Meta, StoryFn, moduleMetadata } from '@storybook/angular';
-import { EditorModule } from '@tinymce/tinymce-angular';
-import { Encounter } from 'src/app/_models/encounter';
-import { OverviewItem } from 'src/app/_models/overview';
-import { FORMLY_MODULE } from 'src/app/_modules/formly_constants';
-import { RoutingServiceMock } from 'src/app/_services/routing.mock.service';
-import { RoutingService } from 'src/app/_services/routing.service';
-import * as all from 'tinymce/tinymce';
+import { action } from 'storybook/actions';
+import { Encounter } from '../../../_models/encounter';
+import { OverviewItem } from '../../../_models/overview';
+import { FORMLY_MODULE } from '../../../_modules/formly_constants';
+import { RoutingServiceMock } from '../../../_services/routing.mock.service';
+import { RoutingService } from '../../../_services/routing.service';
 import { EncounterAccordionComponent } from './encounter-accordion.component';
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const x = all;
 
 const dummyEncounters: Encounter[] = [
   {
@@ -404,12 +399,7 @@ export default {
   component: EncounterAccordionComponent,
   decorators: [
     moduleMetadata({
-      imports: [
-        EditorModule,
-        RouterTestingModule,
-        FORMLY_MODULE,
-        BrowserAnimationsModule,
-      ],
+      imports: [RouterTestingModule, FORMLY_MODULE, BrowserAnimationsModule],
       providers: [
         {
           provide: RoutingService,

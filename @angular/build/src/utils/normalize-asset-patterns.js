@@ -43,17 +43,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.MissingAssetSourceRootException = void 0;
 exports.normalizeAssetPatterns = normalizeAssetPatterns;
 const node_assert_1 = __importDefault(require("node:assert"));
 const node_fs_1 = require("node:fs");
 const path = __importStar(require("node:path"));
-class MissingAssetSourceRootException extends Error {
-    constructor(path) {
-        super(`The ${path} asset path must start with the project source root.`);
-    }
-}
-exports.MissingAssetSourceRootException = MissingAssetSourceRootException;
+const path_1 = require("./path");
 function normalizeAssetPatterns(assetPatterns, workspaceRoot, projectRoot, projectSourceRoot) {
     if (assetPatterns.length === 0) {
         return [];
@@ -61,17 +55,28 @@ function normalizeAssetPatterns(assetPatterns, workspaceRoot, projectRoot, proje
     // When sourceRoot is not available, we default to ${projectRoot}/src.
     const sourceRoot = projectSourceRoot || path.join(projectRoot, 'src');
     const resolvedSourceRoot = path.resolve(workspaceRoot, sourceRoot);
+    const resolvedProjectRoot = path.resolve(workspaceRoot, projectRoot);
     return assetPatterns.map((assetPattern) => {
         // Normalize string asset patterns to objects.
         if (typeof assetPattern === 'string') {
             const assetPath = path.normalize(assetPattern);
             const resolvedAssetPath = path.resolve(workspaceRoot, assetPath);
+            let root;
             // Check if the string asset is within sourceRoot.
-            if (!resolvedAssetPath.startsWith(resolvedSourceRoot)) {
-                throw new MissingAssetSourceRootException(assetPattern);
+            if (resolvedAssetPath.startsWith(resolvedSourceRoot)) {
+                root = resolvedSourceRoot;
+            }
+            else if (resolvedAssetPath.startsWith(resolvedProjectRoot)) {
+                root = resolvedProjectRoot;
+            }
+            else if (resolvedAssetPath.startsWith(workspaceRoot)) {
+                root = workspaceRoot;
+            }
+            else {
+                throw new Error(`The ${assetPattern} asset path must be within the workspace root.`);
             }
             let glob, input;
-            let isDirectory = false;
+            let isDirectory;
             try {
                 isDirectory = (0, node_fs_1.statSync)(resolvedAssetPath).isDirectory();
             }
@@ -90,11 +95,14 @@ function normalizeAssetPatterns(assetPatterns, workspaceRoot, projectRoot, proje
                 // Input directory is their original dirname.
                 input = path.dirname(assetPath);
             }
-            // Output directory for both is the relative path from source root to input.
-            const output = path.relative(resolvedSourceRoot, path.resolve(workspaceRoot, input));
+            // Output directory for both is the relative path from the root to input.
+            const output = path.relative(root, path.resolve(workspaceRoot, input));
             assetPattern = { glob, input, output };
         }
         else {
+            if (!(0, path_1.isSubDirectory)(workspaceRoot, assetPattern.input)) {
+                throw new Error(`The ${assetPattern.input} asset path must be within the workspace root.`);
+            }
             assetPattern.output = path.join('.', assetPattern.output ?? '');
         }
         (0, node_assert_1.default)(assetPattern.output !== undefined);
@@ -104,3 +112,4 @@ function normalizeAssetPatterns(assetPatterns, workspaceRoot, projectRoot, proje
         return assetPattern;
     });
 }
+//# sourceMappingURL=normalize-asset-patterns.js.map

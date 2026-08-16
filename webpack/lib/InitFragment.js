@@ -13,48 +13,50 @@ const makeSerializable = require("./util/makeSerializable");
 /** @typedef {import("./serialization/ObjectMiddleware").ObjectDeserializerContext} ObjectDeserializerContext */
 /** @typedef {import("./serialization/ObjectMiddleware").ObjectSerializerContext} ObjectSerializerContext */
 
-/**
- * @template T
- * @param {InitFragment<T>} fragment the init fragment
- * @param {number} index index
- * @returns {[InitFragment<T>, number]} tuple with both
- */
-const extractFragmentIndex = (fragment, index) => [fragment, index];
+/** @typedef {string} InitFragmentKey */
 
 /**
- * @template T
- * @param {[InitFragment<T>, number]} a first pair
- * @param {[InitFragment<T>, number]} b second pair
- * @returns {number} sort value
- */
-const sortFragmentWithIndex = ([a, i], [b, j]) => {
-	const stageCmp = a.stage - b.stage;
-	if (stageCmp !== 0) return stageCmp;
-	const positionCmp = a.position - b.position;
-	if (positionCmp !== 0) return positionCmp;
-	return i - j;
-};
-
-/**
+ * Defines the maybe mergeable init fragment type used by this module.
  * @template GenerateContext
+ * @typedef {object} MaybeMergeableInitFragment
+ * @property {InitFragmentKey=} key
+ * @property {number} stage
+ * @property {number} position
+ * @property {(context: GenerateContext) => string | Source | undefined} getContent
+ * @property {(context: GenerateContext) => string | Source | undefined} getEndContent
+ * @property {(fragments: MaybeMergeableInitFragment<GenerateContext>) => MaybeMergeableInitFragment<GenerateContext>=} merge
+ * @property {(fragments: MaybeMergeableInitFragment<GenerateContext>[]) => MaybeMergeableInitFragment<GenerateContext>[]=} mergeAll
+ */
+
+/**
+ * Represents InitFragment.
+ * @template GenerateContext
+ * @implements {MaybeMergeableInitFragment<GenerateContext>}
  */
 class InitFragment {
 	/**
+	 * Creates an instance of InitFragment.
 	 * @param {string | Source | undefined} content the source code that will be included as initialization code
 	 * @param {number} stage category of initialization code (contribute to order)
 	 * @param {number} position position in the category (contribute to order)
-	 * @param {string=} key unique key to avoid emitting the same initialization code twice
+	 * @param {InitFragmentKey=} key unique key to avoid emitting the same initialization code twice
 	 * @param {string | Source=} endContent the source code that will be included at the end of the module
 	 */
 	constructor(content, stage, position, key, endContent) {
+		/** @type {string | Source | undefined} */
 		this.content = content;
+		/** @type {number} */
 		this.stage = stage;
+		/** @type {number} */
 		this.position = position;
+		/** @type {string | undefined} */
 		this.key = key;
+		/** @type {string | Source | undefined} */
 		this.endContent = endContent;
 	}
 
 	/**
+	 * Returns the source code that will be included as initialization code.
 	 * @param {GenerateContext} context context
 	 * @returns {string | Source | undefined} the source code that will be included as initialization code
 	 */
@@ -63,38 +65,47 @@ class InitFragment {
 	}
 
 	/**
+	 * Returns the source code that will be included at the end of the module.
 	 * @param {GenerateContext} context context
-	 * @returns {string | Source=} the source code that will be included at the end of the module
+	 * @returns {string | Source | undefined} the source code that will be included at the end of the module
 	 */
 	getEndContent(context) {
 		return this.endContent;
 	}
 
 	/**
+	 * Adds the provided source to the init fragment.
 	 * @template Context
-	 * @template T
 	 * @param {Source} source sources
-	 * @param {InitFragment<T>[]} initFragments init fragments
+	 * @param {MaybeMergeableInitFragment<Context>[]} initFragments init fragments
 	 * @param {Context} context context
 	 * @returns {Source} source
 	 */
 	static addToSource(source, initFragments, context) {
 		if (initFragments.length > 0) {
-			// Sort fragments by position. If 2 fragments have the same position,
-			// use their index.
-			const sortedFragments = initFragments
-				.map(extractFragmentIndex)
-				.sort(sortFragmentWithIndex);
+			// Sort fragment indices by (stage, position), falling back to the
+			// original index — one flat number array instead of N [fragment, index]
+			// tuples for a stable-by-index order.
+			const sortedIndices = initFragments.map((_, index) => index);
+			sortedIndices.sort((a, b) => {
+				const fragmentA = initFragments[a];
+				const fragmentB = initFragments[b];
+				const stageCmp = fragmentA.stage - fragmentB.stage;
+				if (stageCmp !== 0) return stageCmp;
+				const positionCmp = fragmentA.position - fragmentB.position;
+				if (positionCmp !== 0) return positionCmp;
+				return a - b;
+			});
 
 			// Deduplicate fragments. If a fragment has no key, it is always included.
+			// Keyless fragments get a unique numeric key; number keys never collide
+			// with the string `InitFragmentKey`s used for keyed fragments.
+			/** @type {Map<InitFragmentKey | number, MaybeMergeableInitFragment<Context> | MaybeMergeableInitFragment<Context>[]>} */
 			const keyedFragments = new Map();
-			for (const [fragment] of sortedFragments) {
-				if (
-					typeof (
-						/** @type {InitFragment<T> & { mergeAll?: (fragments: InitFragment<Context>[]) => InitFragment<Context>[] }} */
-						(fragment).mergeAll
-					) === "function"
-				) {
+			let keylessKey = 0;
+			for (const index of sortedIndices) {
+				const fragment = initFragments[index];
+				if (typeof fragment.mergeAll === "function") {
 					if (!fragment.key) {
 						throw new Error(
 							`InitFragment with mergeAll function must have a valid key: ${fragment.constructor.name}`
@@ -110,23 +121,36 @@ class InitFragment {
 					}
 					continue;
 				} else if (typeof fragment.merge === "function") {
-					const oldValue = keyedFragments.get(fragment.key);
+					const key = /** @type {InitFragmentKey} */ (fragment.key);
+					const oldValue =
+						/** @type {MaybeMergeableInitFragment<Context>} */
+						(keyedFragments.get(key));
 					if (oldValue !== undefined) {
-						keyedFragments.set(fragment.key, fragment.merge(oldValue));
+						keyedFragments.set(key, fragment.merge(oldValue));
 						continue;
 					}
 				}
-				keyedFragments.set(fragment.key || Symbol("fragment key"), fragment);
+				keyedFragments.set(fragment.key || keylessKey++, fragment);
 			}
 
 			const concatSource = new ConcatSource();
+			/** @type {(string | Source)[]} */
 			const endContents = [];
 			for (let fragment of keyedFragments.values()) {
 				if (Array.isArray(fragment)) {
-					fragment = fragment[0].mergeAll(fragment);
+					fragment =
+						/** @type {[MaybeMergeableInitFragment<Context> & { mergeAll: (fragments: MaybeMergeableInitFragment<Context>[]) => MaybeMergeableInitFragment<Context>[] }, ...MaybeMergeableInitFragment<Context>[]]} */
+						(fragment)[0].mergeAll(fragment);
 				}
-				concatSource.add(fragment.getContent(context));
-				const endContent = fragment.getEndContent(context);
+				const content =
+					/** @type {MaybeMergeableInitFragment<Context>} */
+					(fragment).getContent(context);
+				if (content) {
+					concatSource.add(content);
+				}
+				const endContent =
+					/** @type {MaybeMergeableInitFragment<Context>} */
+					(fragment).getEndContent(context);
 				if (endContent) {
 					endContents.push(endContent);
 				}
@@ -142,6 +166,7 @@ class InitFragment {
 	}
 
 	/**
+	 * Serializes this instance into the provided serializer context.
 	 * @param {ObjectSerializerContext} context context
 	 */
 	serialize(context) {
@@ -155,6 +180,7 @@ class InitFragment {
 	}
 
 	/**
+	 * Restores this instance from the provided deserializer context.
 	 * @param {ObjectDeserializerContext} context context
 	 */
 	deserialize(context) {
@@ -169,10 +195,6 @@ class InitFragment {
 }
 
 makeSerializable(InitFragment, "webpack/lib/InitFragment");
-
-InitFragment.prototype.merge =
-	/** @type {TODO} */
-	(undefined);
 
 InitFragment.STAGE_CONSTANTS = 10;
 InitFragment.STAGE_ASYNC_BOUNDARY = 20;

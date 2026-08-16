@@ -7,7 +7,6 @@
  * found in the LICENSE file at https://angular.dev/license
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.default = default_1;
 const core_1 = require("@angular-devkit/core");
 const schematics_1 = require("@angular-devkit/schematics");
 const node_path_1 = require("node:path");
@@ -17,6 +16,7 @@ const json_file_1 = require("../utility/json-file");
 const latest_versions_1 = require("../utility/latest-versions");
 const ng_ast_utils_1 = require("../utility/ng-ast-utils");
 const paths_1 = require("../utility/paths");
+const project_1 = require("../utility/project");
 const project_targets_1 = require("../utility/project-targets");
 const app_component_1 = require("../utility/standalone/app_component");
 const util_1 = require("../utility/standalone/util");
@@ -95,6 +95,14 @@ function updateConfigFileApplicationBuilder(options) {
 function updateTsConfigFile(tsConfigPath) {
     return (host) => {
         const json = new json_file_1.JSONFile(host, tsConfigPath);
+        // Skip adding the files entry if the server entry would already be included.
+        const include = json.get(['include']);
+        if (!Array.isArray(include) || !include.includes('src/**/*.ts')) {
+            const filesPath = ['files'];
+            const files = new Set(json.get(filesPath) ?? []);
+            files.add('src/' + serverMainEntryName);
+            json.modify(filesPath, [...files]);
+        }
         const typePath = ['compilerOptions', 'types'];
         const types = new Set(json.get(typePath) ?? []);
         types.add('node');
@@ -124,74 +132,72 @@ function addDependencies(skipInstall) {
         ]);
     };
 }
-function default_1(options) {
-    return async (host) => {
-        const workspace = await (0, workspace_1.getWorkspace)(host);
-        const clientProject = workspace.projects.get(options.project);
-        if (clientProject?.extensions.projectType !== 'application') {
-            throw new schematics_1.SchematicsException(`Server schematic requires a project type of "application".`);
-        }
-        const clientBuildTarget = clientProject.targets.get('build');
-        if (!clientBuildTarget) {
-            throw (0, project_targets_1.targetBuildNotFoundError)();
-        }
-        const usingApplicationBuilder = (0, project_targets_1.isUsingApplicationBuilder)(clientProject);
-        if (clientProject.targets.has('server') ||
-            (usingApplicationBuilder && clientBuildTarget.options?.server !== undefined)) {
-            // Server has already been added.
-            return;
-        }
-        const clientBuildOptions = clientBuildTarget.options;
-        const browserEntryPoint = await (0, util_1.getMainFilePath)(host, options.project);
-        const isStandalone = (0, ng_ast_utils_1.isStandaloneApp)(host, browserEntryPoint);
-        const sourceRoot = clientProject.sourceRoot ?? (0, core_1.join)((0, core_1.normalize)(clientProject.root), 'src');
-        let filesUrl = `./files/${usingApplicationBuilder ? 'application-builder/' : 'server-builder/'}`;
-        filesUrl += isStandalone ? 'standalone-src' : 'ngmodule-src';
-        const { componentName, componentImportPathInSameFile, moduleName, moduleImportPathInSameFile } = (0, app_component_1.resolveBootstrappedComponentData)(host, browserEntryPoint) || {
-            componentName: 'App',
-            componentImportPathInSameFile: './app/app',
-            moduleName: 'AppModule',
-            moduleImportPathInSameFile: './app/app.module',
-        };
-        const templateSource = (0, schematics_1.apply)((0, schematics_1.url)(filesUrl), [
-            (0, schematics_1.applyTemplates)({
-                ...schematics_1.strings,
-                ...options,
-                appComponentName: componentName,
-                appComponentPath: componentImportPathInSameFile,
-                appModuleName: moduleName,
-                appModulePath: moduleImportPathInSameFile === null
-                    ? null
-                    : `./${node_path_1.posix.basename(moduleImportPathInSameFile)}`,
-            }),
-            (0, schematics_1.move)(sourceRoot),
-        ]);
-        const clientTsConfig = (0, core_1.normalize)(clientBuildOptions.tsConfig);
-        const tsConfigExtends = (0, core_1.basename)(clientTsConfig);
-        const tsConfigDirectory = (0, core_1.dirname)(clientTsConfig);
-        return (0, schematics_1.chain)([
-            (0, schematics_1.mergeWith)(templateSource),
-            ...(usingApplicationBuilder
-                ? [
-                    updateConfigFileApplicationBuilder(options),
-                    updateTsConfigFile(clientBuildOptions.tsConfig),
-                ]
-                : [
-                    (0, schematics_1.mergeWith)((0, schematics_1.apply)((0, schematics_1.url)('./files/server-builder/root'), [
-                        (0, schematics_1.applyTemplates)({
-                            ...schematics_1.strings,
-                            ...options,
-                            stripTsExtension: (s) => s.replace(/\.ts$/, ''),
-                            tsConfigExtends,
-                            hasLocalizePackage: !!(0, dependencies_1.getPackageJsonDependency)(host, '@angular/localize'),
-                            relativePathToWorkspaceRoot: (0, paths_1.relativePathToWorkspaceRoot)(tsConfigDirectory),
-                        }),
-                        (0, schematics_1.move)(tsConfigDirectory),
-                    ])),
-                    updateConfigFileBrowserBuilder(options, tsConfigDirectory),
-                ]),
-            addDependencies(options.skipInstall),
-            (0, utility_1.addRootProvider)(options.project, ({ code, external }) => code `${external('provideClientHydration', '@angular/platform-browser')}(${external('withEventReplay', '@angular/platform-browser')}())`),
-        ]);
+const serverSchematic = (0, project_1.createProjectSchematic)(async (options, { project, tree }) => {
+    if (project?.extensions.projectType !== 'application') {
+        throw new schematics_1.SchematicsException(`Server schematic requires a project type of "application".`);
+    }
+    const clientBuildTarget = project.targets.get('build');
+    if (!clientBuildTarget) {
+        throw (0, project_targets_1.targetBuildNotFoundError)();
+    }
+    const usingApplicationBuilder = (0, project_targets_1.isUsingApplicationBuilder)(project);
+    if (project.targets.has('server') ||
+        (usingApplicationBuilder && clientBuildTarget.options?.server !== undefined)) {
+        // Server has already been added.
+        return (0, schematics_1.noop)();
+    }
+    const clientBuildOptions = clientBuildTarget.options;
+    const browserEntryPoint = await (0, util_1.getMainFilePath)(tree, options.project);
+    const isStandalone = (0, ng_ast_utils_1.isStandaloneApp)(tree, browserEntryPoint);
+    const sourceRoot = project.sourceRoot ?? (0, core_1.join)((0, core_1.normalize)(project.root), 'src');
+    let filesUrl = `./files/${usingApplicationBuilder ? 'application-builder/' : 'server-builder/'}`;
+    filesUrl += isStandalone ? 'standalone-src' : 'ngmodule-src';
+    const { componentName, componentImportPathInSameFile, moduleName, moduleImportPathInSameFile } = (0, app_component_1.resolveBootstrappedComponentData)(tree, browserEntryPoint) || {
+        componentName: 'App',
+        componentImportPathInSameFile: './app/app',
+        moduleName: 'AppModule',
+        moduleImportPathInSameFile: './app/app.module',
     };
-}
+    const templateSource = (0, schematics_1.apply)((0, schematics_1.url)(filesUrl), [
+        (0, schematics_1.applyTemplates)({
+            ...schematics_1.strings,
+            ...options,
+            appComponentName: componentName,
+            appComponentPath: componentImportPathInSameFile,
+            appModuleName: moduleName,
+            appModulePath: moduleImportPathInSameFile === null
+                ? null
+                : `./${node_path_1.posix.basename(moduleImportPathInSameFile)}`,
+        }),
+        (0, schematics_1.move)(sourceRoot),
+    ]);
+    const clientTsConfig = (0, core_1.normalize)(clientBuildOptions.tsConfig);
+    const tsConfigExtends = (0, core_1.basename)(clientTsConfig);
+    const tsConfigDirectory = (0, core_1.dirname)(clientTsConfig);
+    return (0, schematics_1.chain)([
+        (0, schematics_1.mergeWith)(templateSource),
+        ...(usingApplicationBuilder
+            ? [
+                updateConfigFileApplicationBuilder(options),
+                updateTsConfigFile(clientBuildOptions.tsConfig),
+            ]
+            : [
+                (0, schematics_1.mergeWith)((0, schematics_1.apply)((0, schematics_1.url)('./files/server-builder/root'), [
+                    (0, schematics_1.applyTemplates)({
+                        ...schematics_1.strings,
+                        ...options,
+                        stripTsExtension: (s) => s.replace(/\.ts$/, ''),
+                        tsConfigExtends,
+                        hasLocalizePackage: !!(0, dependencies_1.getPackageJsonDependency)(tree, '@angular/localize'),
+                        relativePathToWorkspaceRoot: (0, paths_1.relativePathToWorkspaceRoot)(tsConfigDirectory),
+                    }),
+                    (0, schematics_1.move)(tsConfigDirectory),
+                ])),
+                updateConfigFileBrowserBuilder(options, tsConfigDirectory),
+            ]),
+        addDependencies(options.skipInstall),
+        (0, utility_1.addRootProvider)(options.project, ({ code, external }) => code `${external('provideClientHydration', '@angular/platform-browser')}()`),
+    ]);
+});
+exports.default = serverSchematic;
+//# sourceMappingURL=index.js.map

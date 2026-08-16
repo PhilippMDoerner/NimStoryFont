@@ -13,7 +13,7 @@ function LeastBusyBalancer(opts) {
             }
             if (worker.isRunningAbortableTask)
                 continue;
-            if (!task.isAbortable &&
+            if (task.isAbortable === false &&
                 (worker.currentUsage < checkpoint)) {
                 candidate = worker;
                 checkpoint = worker.currentUsage;

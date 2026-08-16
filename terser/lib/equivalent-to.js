@@ -14,7 +14,7 @@ import {
     AST_ConciseMethod,
     AST_Conditional,
     AST_Debugger,
-    AST_Definitions,
+    AST_DefinitionsLike,
     AST_Destructuring,
     AST_Directive,
     AST_Do,
@@ -29,6 +29,7 @@ import {
     AST_ForOf,
     AST_If,
     AST_Import,
+    AST_DynamicImport,
     AST_ImportMeta,
     AST_Jump,
     AST_LabeledStatement,
@@ -61,7 +62,7 @@ import {
     AST_Toplevel,
     AST_Try,
     AST_Unary,
-    AST_VarDef,
+    AST_VarDefLike,
     AST_While,
     AST_With,
     AST_Yield
@@ -184,19 +185,26 @@ AST_Catch.prototype.shallow_cmp = function(other) {
 
 AST_Finally.prototype.shallow_cmp = pass_through;
 
-AST_Definitions.prototype.shallow_cmp = pass_through;
+AST_DefinitionsLike.prototype.shallow_cmp = pass_through;
 
-AST_VarDef.prototype.shallow_cmp = function(other) {
+AST_VarDefLike.prototype.shallow_cmp = function(other) {
     return this.value == null ? other.value == null : this.value === other.value;
 };
 
 AST_NameMapping.prototype.shallow_cmp = pass_through;
 
 AST_Import.prototype.shallow_cmp = function(other) {
-    return (this.imported_name == null ? other.imported_name == null : this.imported_name === other.imported_name) && (this.imported_names == null ? other.imported_names == null : this.imported_names === other.imported_names) && (this.attributes == null ? other.attributes == null : this.attributes === other.attributes);
+    return (this.imported_name || null) === (other.imported_name || null)
+        && (this.imported_names || null) === (other.imported_names || null)
+        && (this.attributes || null) === (other.attributes || null)
+        && (this.phase || null) === (other.phase || null);
 };
 
 AST_ImportMeta.prototype.shallow_cmp = pass_through;
+
+AST_DynamicImport.prototype.shallow_cmp = function(other) {
+    return (this.phase || null) === (other.phase || null) && this.args.length === other.args.length;
+};
 
 AST_Export.prototype.shallow_cmp = function(other) {
     return (this.exported_definition == null ? other.exported_definition == null : this.exported_definition === other.exported_definition) && (this.exported_value == null ? other.exported_value == null : this.exported_value === other.exported_value) && (this.exported_names == null ? other.exported_names == null : this.exported_names === other.exported_names) && (this.attributes == null ? other.attributes == null : this.attributes === other.attributes) && this.module_name === other.module_name && this.is_default === other.is_default;
@@ -211,7 +219,10 @@ AST_PropAccess.prototype.shallow_cmp = pass_through;
 AST_Chain.prototype.shallow_cmp = pass_through;
 
 AST_Dot.prototype.shallow_cmp = function(other) {
-    return this.property === other.property;
+    return (
+        this.property === other.property
+        && !!this.quote === !!other.quote
+    );
 };
 
 AST_DotHash.prototype.shallow_cmp = function(other) {

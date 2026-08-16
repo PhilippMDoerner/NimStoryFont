@@ -1,6 +1,6 @@
-import { Worker, MessagePort } from 'node:worker_threads';
+import { Worker, MessagePort, WorkerOptions, Transferable } from 'node:worker_threads';
 import { RecordableHistogram } from 'node:perf_hooks';
-import { ResponseMessage } from '../types';
+import { ResponseMessage, StartupMessage } from '../types';
 import { TaskInfo } from '../task_queue';
 import { kWorkerData } from '../symbols';
 import { PiscinaHistogramSummary } from '../histogram';
@@ -16,6 +16,13 @@ export type PiscinaWorker = {
     destroyed: boolean;
     [kWorkerData]: WorkerInfo;
 };
+type WorkerInfoParams = {
+    worker: {
+        filename: string;
+    } & WorkerOptions;
+    port: MessagePort;
+    enableHistogram: boolean;
+};
 export declare class WorkerInfo extends AsynchronouslyCreatedResource {
     worker: Worker;
     taskInfos: Map<number, TaskInfo>;
@@ -27,9 +34,17 @@ export declare class WorkerInfo extends AsynchronouslyCreatedResource {
     histogram: RecordableHistogram | null;
     terminating: boolean;
     destroyed: boolean;
-    constructor(worker: Worker, port: MessagePort, onMessage: ResponseCallback, enableHistogram: boolean);
+    constructor({ worker, port, enableHistogram }: WorkerInfoParams, onMessage: ResponseCallback);
     get id(): number;
+    onWorkerMessage(handler: (msg: any) => void): void;
+    onWorkerError(handler: (err: Error) => void): void;
+    onWorkerExit(handler: (code: number) => void): void;
+    onPortClose(handler: () => void): void;
+    init(msg: StartupMessage, toTransfer: Transferable[]): WorkerInfo;
+    workerRef(): WorkerInfo;
+    workerUnref(): WorkerInfo;
     destroy(): void;
+    setIdleTimeout(handler: (_: void) => void, ms: number, ...args: any[]): void;
     clearIdleTimeout(): void;
     ref(): WorkerInfo;
     unref(): WorkerInfo;
@@ -38,6 +53,7 @@ export declare class WorkerInfo extends AsynchronouslyCreatedResource {
     processPendingMessages(): void;
     isRunningAbortableTask(): boolean;
     currentUsage(): number;
+    popTask(taskId: number): TaskInfo | null;
     get interface(): PiscinaWorker;
 }
 export { AsynchronouslyCreatedResourcePool };

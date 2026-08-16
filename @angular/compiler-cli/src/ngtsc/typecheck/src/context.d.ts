@@ -5,16 +5,14 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.dev/license
  */
-import { BoundTarget, ParseError, R3TargetBinder, SchemaMetadata, TmplAstHostElement, TmplAstNode } from '@angular/compiler';
+import { BoundTarget, DirectiveMeta, DomSchemaChecker, OutOfBandDiagnosticRecorder, ParseError, R3TargetBinder, SchemaMetadata, TmplAstHostElement, TmplAstNode, TypeCheckId, TypeCheckingConfig, TypeCtorMetadata } from '@angular/compiler';
 import ts from 'typescript';
 import { AbsoluteFsPath } from '../../file_system';
 import { Reference, ReferenceEmitter } from '../../imports';
 import { PerfRecorder } from '../../perf';
-import { FileUpdate } from '../../program_driver';
+import { FileUpdate, InliningMode } from '../../program_driver';
 import { ClassDeclaration, ReflectionHost } from '../../reflection';
-import { HostBindingsContext, TemplateDiagnostic, TypeCheckId, SourceMapping, TypeCheckableDirectiveMeta, TypeCheckContext, TypeCheckingConfig, TypeCtorMetadata, TemplateContext } from '../api';
-import { DomSchemaChecker } from './dom';
-import { OutOfBandDiagnosticRecorder } from './oob';
+import { HostBindingsContext, TemplateDiagnostic, SourceMapping, TypeCheckableDirectiveMeta, TypeCheckContext, TemplateContext } from '../api';
 import { DirectiveSourceManager } from './source';
 import { TypeCheckFile } from './type_check_file';
 export interface ShimTypeCheckingData {
@@ -41,7 +39,7 @@ export interface ShimTypeCheckingData {
 /**
  * Data tracked for each class processed by the type-checking system.
  */
-export interface TypeCheckData {
+export interface TypeCheckData<D extends DirectiveMeta = TypeCheckableDirectiveMeta> {
     /**
      * Template nodes for which the TCB was generated.
      */
@@ -50,7 +48,7 @@ export interface TypeCheckData {
      * `BoundTarget` which was used to generate the TCB, and contains bindings for the associated
      * template nodes.
      */
-    boundTarget: BoundTarget<TypeCheckableDirectiveMeta>;
+    boundTarget: BoundTarget<D>;
     /**
      * Errors found while parsing the template, which have been converted to diagnostics.
      */
@@ -77,16 +75,20 @@ export interface PendingFileTypeCheckingData {
      * Map of in-progress shim data for shims generated from this input file.
      */
     shimData: Map<AbsoluteFsPath, PendingShimData>;
+    /**
+     * The original source file.
+     */
+    sourceFile?: ts.SourceFile;
 }
 export interface PendingShimData {
     /**
      * Recorder for out-of-band diagnostics which are raised during generation.
      */
-    oobRecorder: OutOfBandDiagnosticRecorder;
+    oobRecorder: OutOfBandDiagnosticRecorder<TemplateDiagnostic>;
     /**
      * The `DomSchemaChecker` in use for this template, which records any schema-related diagnostics.
      */
-    domSchemaChecker: DomSchemaChecker;
+    domSchemaChecker: DomSchemaChecker<TemplateDiagnostic>;
     /**
      * Shim file in the process of being generated.
      */
@@ -95,6 +97,10 @@ export interface PendingShimData {
      * Map of `TypeCheckId` to information collected about the template as it's ingested.
      */
     data: Map<TypeCheckId, TypeCheckData>;
+    /**
+     * Diagnostics produced during shim creation.
+     */
+    shimDiagnostics: TemplateDiagnostic[] | null;
 }
 /**
  * Adapts the `TypeCheckContextImpl` to the larger template type-checking system.
@@ -127,19 +133,6 @@ export interface TypeCheckingHost {
     recordComplete(sfPath: AbsoluteFsPath): void;
 }
 /**
- * How a type-checking context should handle operations which would require inlining.
- */
-export declare enum InliningMode {
-    /**
-     * Use inlining operations when required.
-     */
-    InlineOps = 0,
-    /**
-     * Produce diagnostics if an operation would require inlining.
-     */
-    Error = 1
-}
-/**
  * A template type checking context for a program.
  *
  * The `TypeCheckContext` allows registration of directives to be type checked.
@@ -153,7 +146,7 @@ export declare class TypeCheckContextImpl implements TypeCheckContext {
     private inlining;
     private perf;
     private fileMap;
-    constructor(config: TypeCheckingConfig, compilerHost: Pick<ts.CompilerHost, 'getCanonicalFileName'>, refEmitter: ReferenceEmitter, reflector: ReflectionHost, host: TypeCheckingHost, inlining: InliningMode, perf: PerfRecorder);
+    constructor(config: TypeCheckingConfig, compilerHost: Pick<ts.CompilerHost, 'getCanonicalFileName' | 'getSourceFile'>, refEmitter: ReferenceEmitter, reflector: ReflectionHost, host: TypeCheckingHost, inlining: InliningMode, perf: PerfRecorder);
     /**
      * A `Map` of `ts.SourceFile`s that the context has seen to the operations (additions of methods
      * or type-check blocks) that need to be eventually performed on that file.
@@ -175,12 +168,17 @@ export declare class TypeCheckContextImpl implements TypeCheckContext {
      */
     addInlineTypeCtor(fileData: PendingFileTypeCheckingData, sf: ts.SourceFile, ref: Reference<ClassDeclaration<ts.ClassDeclaration>>, ctorMeta: TypeCtorMetadata): void;
     /**
-     * Transform a `ts.SourceFile` into a version that includes type checking code.
-     *
-     * If this particular `ts.SourceFile` requires changes, the text representing its new contents
-     * will be returned. Otherwise, a `null` return indicates no changes were necessary.
+     * Applies operations to a file.
      */
-    transform(sf: ts.SourceFile): string | null;
+    private executeOperations;
+    /**
+     * Generates the transformed text for an original source file.
+     */
+    private generateTransformedOriginalFile;
+    /**
+     * Generates the content for a shim file that copies the source of the original file.
+     */
+    private generateCopiedShimContent;
     finalize(): Map<AbsoluteFsPath, FileUpdate>;
     private addInlineTypeCheckBlock;
     private pendingShimForClass;

@@ -33,7 +33,6 @@ export declare class PiscinaHistogramHandler {
     get runTimeSummary(): PiscinaHistogramSummary;
     get waitTimeSummary(): PiscinaHistogramSummary;
     get runTimeCount(): number;
-    get waitTimeCount(): number;
     recordRunTime(value: number): void;
     recordWaitTime(value: number): void;
     resetWaitTime(): void;

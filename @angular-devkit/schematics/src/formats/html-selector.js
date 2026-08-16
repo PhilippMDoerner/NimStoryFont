@@ -42,3 +42,4 @@ exports.htmlSelectorFormat = {
         validate: (name) => typeof name === 'string' && isValidElementName(name),
     },
 };
+//# sourceMappingURL=html-selector.js.map

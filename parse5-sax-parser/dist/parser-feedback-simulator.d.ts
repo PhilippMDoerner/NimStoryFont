@@ -29,4 +29,3 @@ export declare class ParserFeedbackSimulator implements TokenHandler {
     /** @internal */
     onEndTag(token: Token.TagToken): void;
 }
-//# sourceMappingURL=parser-feedback-simulator.d.ts.map

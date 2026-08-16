@@ -34,3 +34,4 @@ function createServerBundleMetadata(options) {
         },
     };
 }
+//# sourceMappingURL=server-bundle-metadata-plugin.js.map

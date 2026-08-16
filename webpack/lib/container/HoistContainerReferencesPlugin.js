@@ -31,19 +31,22 @@ class HoistContainerReferences {
 	 * @param {Compiler} compiler The webpack compiler instance.
 	 */
 	apply(compiler) {
-		compiler.hooks.thisCompilation.tap(PLUGIN_NAME, compilation => {
+		compiler.hooks.thisCompilation.tap(PLUGIN_NAME, (compilation) => {
 			const hooks =
 				getModuleFederationPlugin().getCompilationHooks(compilation);
+			/** @type {Set<Dependency>} */
 			const depsToTrace = new Set();
+			/** @type {Set<Dependency>} */
 			const entryExternalsToHoist = new Set();
-			hooks.addContainerEntryDependency.tap(PLUGIN_NAME, dep => {
+			// Both hooks feed the same trace set, so they share one callback.
+			/** @type {(dep: Dependency) => void} */
+			const traceDep = (dep) => {
 				depsToTrace.add(dep);
-			});
-			hooks.addFederationRuntimeDependency.tap(PLUGIN_NAME, dep => {
-				depsToTrace.add(dep);
-			});
+			};
+			hooks.addContainerEntryDependency.tap(PLUGIN_NAME, traceDep);
+			hooks.addFederationRuntimeDependency.tap(PLUGIN_NAME, traceDep);
 
-			compilation.hooks.addEntry.tap(PLUGIN_NAME, entryDep => {
+			compilation.hooks.addEntry.tap(PLUGIN_NAME, (entryDep) => {
 				if (entryDep.type === "entry") {
 					entryExternalsToHoist.add(entryDep);
 				}
@@ -56,7 +59,7 @@ class HoistContainerReferences {
 					// advanced stage is where SplitChunksPlugin runs.
 					stage: STAGE_ADVANCED + 1
 				},
-				chunks => {
+				(_chunks) => {
 					this.hoistModulesInChunks(
 						compilation,
 						depsToTrace,
@@ -74,45 +77,26 @@ class HoistContainerReferences {
 	 * @param {Set<Dependency>} entryExternalsToHoist Set of container entry dependencies to hoist.
 	 */
 	hoistModulesInChunks(compilation, depsToTrace, entryExternalsToHoist) {
-		const { chunkGraph, moduleGraph } = compilation;
+		const { moduleGraph } = compilation;
 
-		// loop over entry points
+		// Entry externals: hoist the external modules (e.g. RemoteModule) they reference.
 		for (const dep of entryExternalsToHoist) {
 			const entryModule = moduleGraph.getModule(dep);
 			if (!entryModule) continue;
-			// get all the external module types and hoist them to the runtime chunk, this will get RemoteModule externals
 			const allReferencedModules = getAllReferencedModules(
 				compilation,
 				entryModule,
 				"external",
 				false
 			);
-
-			const containerRuntimes = chunkGraph.getModuleRuntimes(entryModule);
-			const runtimes = new Set();
-
-			for (const runtimeSpec of containerRuntimes) {
-				forEachRuntime(runtimeSpec, runtimeKey => {
-					if (runtimeKey) {
-						runtimes.add(runtimeKey);
-					}
-				});
-			}
-
-			for (const runtime of runtimes) {
-				const runtimeChunk = compilation.namedChunks.get(runtime);
-				if (!runtimeChunk) continue;
-
-				for (const module of allReferencedModules) {
-					if (!chunkGraph.isModuleInChunk(module, runtimeChunk)) {
-						chunkGraph.connectChunkAndModule(runtimeChunk, module);
-					}
-				}
-			}
-			this.cleanUpChunks(compilation, allReferencedModules);
+			this.hoistReferencedModules(
+				compilation,
+				entryModule,
+				allReferencedModules
+			);
 		}
 
-		// handle container entry specifically
+		// Container entries: hoist the initial graph plus its external references.
 		for (const dep of depsToTrace) {
 			const containerEntryModule = moduleGraph.getModule(dep);
 			if (!containerEntryModule) continue;
@@ -122,42 +106,54 @@ class HoistContainerReferences {
 				"initial",
 				false
 			);
-
 			const allRemoteReferences = getAllReferencedModules(
 				compilation,
 				containerEntryModule,
 				"external",
 				false
 			);
-
 			for (const remote of allRemoteReferences) {
 				allReferencedModules.add(remote);
 			}
+			this.hoistReferencedModules(
+				compilation,
+				containerEntryModule,
+				allReferencedModules
+			);
+		}
+	}
 
-			const containerRuntimes =
-				chunkGraph.getModuleRuntimes(containerEntryModule);
-			const runtimes = new Set();
+	/**
+	 * Connect `referencedModules` into each runtime chunk of `entryModule`, then
+	 * prune the chunks they were hoisted out of. The two passes above build
+	 * `referencedModules` differently but hoist them identically.
+	 * @param {Compilation} compilation The webpack compilation instance.
+	 * @param {Module} entryModule The module whose runtimes receive the modules.
+	 * @param {Set<Module>} referencedModules The modules to hoist.
+	 */
+	hoistReferencedModules(compilation, entryModule, referencedModules) {
+		const { chunkGraph } = compilation;
+		/** @type {Set<string>} */
+		const runtimes = new Set();
+		for (const runtimeSpec of chunkGraph.getModuleRuntimes(entryModule)) {
+			forEachRuntime(runtimeSpec, (runtimeKey) => {
+				if (runtimeKey) {
+					runtimes.add(runtimeKey);
+				}
+			});
+		}
 
-			for (const runtimeSpec of containerRuntimes) {
-				forEachRuntime(runtimeSpec, runtimeKey => {
-					if (runtimeKey) {
-						runtimes.add(runtimeKey);
-					}
-				});
-			}
+		for (const runtime of runtimes) {
+			const runtimeChunk = compilation.namedChunks.get(runtime);
+			if (!runtimeChunk) continue;
 
-			for (const runtime of runtimes) {
-				const runtimeChunk = compilation.namedChunks.get(runtime);
-				if (!runtimeChunk) continue;
-
-				for (const module of allReferencedModules) {
-					if (!chunkGraph.isModuleInChunk(module, runtimeChunk)) {
-						chunkGraph.connectChunkAndModule(runtimeChunk, module);
-					}
+			for (const module of referencedModules) {
+				if (!chunkGraph.isModuleInChunk(module, runtimeChunk)) {
+					chunkGraph.connectChunkAndModule(runtimeChunk, module);
 				}
 			}
-			this.cleanUpChunks(compilation, allReferencedModules);
 		}
+		this.cleanUpChunks(compilation, referencedModules);
 	}
 
 	/**
@@ -198,7 +194,9 @@ class HoistContainerReferences {
  */
 function getAllReferencedModules(compilation, module, type, includeInitial) {
 	const collectedModules = new Set(includeInitial ? [module] : []);
+	/** @type {WeakSet<Module>} */
 	const visitedModules = new WeakSet([module]);
+	/** @type {Module[]} */
 	const stack = [module];
 
 	while (stack.length > 0) {

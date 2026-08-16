@@ -1,6 +1,6 @@
 {
   "name": "@babel/helpers",
-  "version": "7.27.6",
+  "version": "8.0.0",
   "description": "Collection of helper functions used by Babel transforms.",
   "author": "The Babel Team (https://babel.dev/team)",
   "homepage": "https://babel.dev/docs/en/next/babel-helpers",
@@ -15,17 +15,27 @@
   },
   "main": "./lib/index.js",
   "dependencies": {
-    "@babel/template": "^7.27.2",
-    "@babel/types": "^7.27.6"
+    "@babel/template": "^8.0.0",
+    "@babel/types": "^8.0.0"
   },
   "devDependencies": {
-    "@babel/generator": "^7.27.5",
-    "@babel/helper-plugin-test-runner": "^7.27.1",
-    "@babel/parser": "^7.27.5",
-    "regenerator-runtime": "^0.14.0"
+    "@babel/generator": "^8.0.0",
+    "@babel/helper-plugin-test-runner": "^8.0.0",
+    "@babel/helper-transform-fixture-test-runner": "^8.0.0",
+    "@babel/parser": "^8.0.0",
+    "@babel/traverse": "^8.0.0",
+    "regenerator-runtime": "^0.14.0",
+    "terser": "^5.46.2"
   },
   "engines": {
-    "node": ">=6.9.0"
+    "node": "^22.18.0 || >=24.11.0"
   },
-  "type": "commonjs"
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "type": "module"
 }
