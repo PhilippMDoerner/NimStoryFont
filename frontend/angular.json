@@ -81,7 +81,11 @@
               "src/assets/icons/css/fontawesome.min.css"
             ],
             "allowedCommonJsDependencies": [
-              "leaflet"
+              "leaflet",
+              "axe-core",
+              "quill-delta",
+              "strip-ansi",
+              "plyr"
             ],
             "browser": "src/main.ts",
             "stylePreprocessorOptions": {

@@ -11,6 +11,7 @@ frontend/bazel-out
 frontend/node_modules
 frontend/npm-debug.log
 frontend/yarn-error.log
+frontend/storybook-static
 
 # IDEs and editors
 .idea/
@@ -68,3 +69,4 @@ local_only
 *.caddyfile
 *backup_configs
 *sh
+node_modules
