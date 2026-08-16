@@ -1,6 +1,6 @@
 ::ng-deep {
   .html-content {
-    word-break: break-all;
+    overflow-wrap: break-word;
 
     img {
       max-width: 100%;
