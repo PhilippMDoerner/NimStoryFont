@@ -54,7 +54,7 @@ module.exports = {
     disableTelemetry: true,
   },
   webpackFinal: async (config) => {
-    console.log("Check2");
+    console.log("Check3");
     patchSassLoaders(config.module.rules);
     config.devtool = false;
 

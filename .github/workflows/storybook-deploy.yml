@@ -32,7 +32,6 @@ jobs:
           npm --version
           pwd
           ls -la
-          ls -la frontend/src/app/design
 
       - name: Install and Build
         run: |
