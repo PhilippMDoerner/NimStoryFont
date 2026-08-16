@@ -1,9 +1,9 @@
 import { RouterTestingModule } from '@angular/router/testing';
-import { action } from 'storybook/actions';
 import { Meta, StoryFn, moduleMetadata } from '@storybook/angular';
-import { CharacterDetails } from 'src/app/_models/character';
-import { OverviewItem } from 'src/app/_models/overview';
-import { Quote } from 'src/app/_models/quote';
+import { action } from 'storybook/actions';
+import { CharacterDetails } from '../../../_models/character';
+import { OverviewItem } from '../../../_models/overview';
+import { Quote } from '../../../_models/quote';
 import { QuoteComponent } from './quote.component';
 
 const dummyQuote: Quote = {

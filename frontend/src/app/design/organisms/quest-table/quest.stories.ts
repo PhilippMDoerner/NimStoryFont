@@ -1,6 +1,6 @@
 import { RouterTestingModule } from '@angular/router/testing';
 import { Meta, StoryFn, moduleMetadata } from '@storybook/angular';
-import { OverviewItem } from 'src/app/_models/overview';
+import { OverviewItem } from '../../../_models/overview';
 import { QuestTableComponent } from './quest-table.component';
 
 const dummyQuest: OverviewItem = {

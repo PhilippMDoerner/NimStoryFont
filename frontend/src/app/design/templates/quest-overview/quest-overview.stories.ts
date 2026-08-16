@@ -1,7 +1,7 @@
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterTestingModule } from '@angular/router/testing';
 import { Meta, StoryFn, moduleMetadata } from '@storybook/angular';
-import { OverviewItem } from 'src/app/_models/overview';
+import { OverviewItem } from '../../../_models/overview';
 import { QuestOverviewComponent } from './quest-overview.component';
 
 const dummyQuests: OverviewItem[] = [

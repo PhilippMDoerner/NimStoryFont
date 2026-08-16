@@ -1,6 +1,6 @@
 import { DOCUMENT } from '@angular/common';
 import { effect, inject, Injectable } from '@angular/core';
-import { GlobalStore } from 'src/app/global.store';
+import { GlobalStore } from '../../global.store';
 
 @Injectable({
   providedIn: 'root',

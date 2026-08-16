@@ -1,15 +1,15 @@
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterTestingModule } from '@angular/router/testing';
 import { FormlyModule } from '@ngx-formly/core';
-import { action } from 'storybook/actions';
 import { Meta, StoryFn, moduleMetadata } from '@storybook/angular';
-import { Item } from 'src/app/_models/item';
+import { action } from 'storybook/actions';
+import { Item } from '../../../_models/item';
 import {
   integerValidator,
   notIntegerMessage,
   requiredMessage,
   requiredValidator,
-} from 'src/app/_services/formly/validators';
+} from '../../../_services/formly/validators';
 import { FormlyFileFieldComponent } from '../../molecules';
 import { ItemComponent } from './item.component';
 

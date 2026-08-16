@@ -1,11 +1,11 @@
 import { RouterTestingModule } from '@angular/router/testing';
-import { action } from 'storybook/actions';
 import { Meta, StoryFn, moduleMetadata } from '@storybook/angular';
-import { dummyCharacter } from 'src/app/_services/article/character-service.mock';
-import { FormlyProvider } from 'src/app/_services/formly/formly-service.mock';
+import { action } from 'storybook/actions';
+import { dummyCharacter } from '../../../_services/article/character-service.mock';
+import { FormlyProvider } from '../../../_services/formly/formly-service.mock';
 
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { FORMLY_MODULE } from 'src/app/_modules/formly_constants';
+import { FORMLY_MODULE } from '../../../_modules/formly_constants';
 import { CharacterCreateUpdateComponent } from './character-create-update.component';
 
 export default {

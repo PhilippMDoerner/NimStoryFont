@@ -1,13 +1,13 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { OverviewItem } from 'src/app/_models/overview';
+import { OverviewItem } from '../../../_models/overview';
 
 @Component({
-    selector: 'app-search-hit',
-    templateUrl: './search-hit.component.html',
-    styleUrls: ['./search-hit.component.scss'],
-    imports: [RouterLink],
-    changeDetection: ChangeDetectionStrategy.OnPush
+  selector: 'app-search-hit',
+  templateUrl: './search-hit.component.html',
+  styleUrls: ['./search-hit.component.scss'],
+  imports: [RouterLink],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SearchHitComponent {
   readonly article = input.required<OverviewItem>();

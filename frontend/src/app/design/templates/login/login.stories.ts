@@ -1,8 +1,8 @@
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterTestingModule } from '@angular/router/testing';
-import { action } from 'storybook/actions';
 import { Meta, StoryFn, moduleMetadata } from '@storybook/angular';
-import { FORMLY_MODULE } from 'src/app/_modules/formly_constants';
+import { action } from 'storybook/actions';
+import { FORMLY_MODULE } from '../../../_modules/formly_constants';
 import { LoginComponent } from './login.component';
 
 export default {

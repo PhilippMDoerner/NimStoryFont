@@ -1,5 +1,5 @@
 import { Meta, StoryFn, moduleMetadata } from '@storybook/angular';
-import { ButtonComponent } from 'src/app/design/atoms/button/button.component';
+import { ButtonComponent } from '../../../design/atoms/button/button.component';
 import { CollapsiblePanelComponent } from './collapsible-panel.component';
 
 export default {
@@ -24,7 +24,7 @@ const Template: StoryFn<CollapsiblePanelComponent> = (args) => ({
   <app-collapsible-panel>
     <div heading> {{heading}} </div>
     <button btn body [icon]="'plus'" [text]="'Add things'" [kind]="'PRIMARY'"></button>
-    
+
   </app-collapsible-panel>
 `,
 });

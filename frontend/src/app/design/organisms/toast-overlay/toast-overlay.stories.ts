@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { applicationConfig, Meta, StoryObj } from '@storybook/angular';
-import { ToastConfig } from 'src/app/_models/toast';
-import { ELEMENT_TYPES } from 'src/app/design/atoms/_models/button';
-import { ALL_ICONS } from 'src/app/design/atoms/_models/icon';
+import { ToastConfig } from '../../../_models/toast';
+import { ELEMENT_TYPES } from '../../../design/atoms/_models/button';
+import { ALL_ICONS } from '../../../design/atoms/_models/icon';
 import { ToastOverlayComponent } from './toast-overlay.component';
 import { ToastService } from './toast.service';
 

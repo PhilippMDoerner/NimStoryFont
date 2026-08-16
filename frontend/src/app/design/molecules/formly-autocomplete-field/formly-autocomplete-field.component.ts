@@ -30,8 +30,8 @@ import {
   tap,
   withLatestFrom,
 } from 'rxjs';
-import { CustomAutocompleteProps } from 'src/app/_models/formly';
-import { filterNil } from 'src/utils/rxjs-operators';
+import { filterNil } from '../../../../utils/rxjs-operators';
+import { CustomAutocompleteProps } from '../../../_models/formly';
 import { BadgeComponent } from '../../atoms/badge/badge.component';
 import { SpinnerComponent } from '../../atoms/spinner/spinner.component';
 
@@ -65,14 +65,13 @@ export class FormlyAutocompleteFieldComponent<T>
   readonly destroy$ = new Subject<void>();
   readonly randomId = crypto.randomUUID();
   readonly inputElement = viewChild<ElementRef<HTMLInputElement>>(`input`);
-  readonly inputElement$: Observable<ElementRef<HTMLInputElement>> = toObservable(
-    this.inputElement,
-  ).pipe(filterNil());
+  readonly inputElement$: Observable<ElementRef<HTMLInputElement>> =
+    toObservable(this.inputElement).pipe(filterNil());
 
-  readonly customProps: CustomAutocompleteProps<T> = this.props['additionalProperties'];
+  customProps: CustomAutocompleteProps<T> = this.props['additionalProperties'];
 
   readonly htmlBadgeClickEvents$ = new Subject<void>();
-  readonly inputValue = '';
+  inputValue = '';
   readonly htmlInputEvents$: Observable<{ event: Event; inputValue: string }> =
     this.inputElement$.pipe(
       switchMap((input) => fromEvent(input.nativeElement, 'input')),
@@ -113,7 +112,7 @@ export class FormlyAutocompleteFieldComponent<T>
       selectedOption: undefined,
     })),
   );
-  readonly selectEvents$!: Observable<AutocompleteSelectEvent<T>>;
+  selectEvents$!: Observable<AutocompleteSelectEvent<T>>;
   readonly isLoading$ = new ReplaySubject(1);
   readonly options$: Observable<T[]> = this.htmlInputEvents$.pipe(
     debounceTime(500),
@@ -138,8 +137,8 @@ export class FormlyAutocompleteFieldComponent<T>
     shareReplay(1),
   );
 
-  readonly selectedOption$!: Observable<T | undefined>;
-  readonly selectedLabel$!: Observable<string | undefined>;
+  selectedOption$!: Observable<T | undefined>;
+  selectedLabel$!: Observable<string | undefined>;
 
   onFocus() {
     this.inputElement()?.nativeElement.focus();

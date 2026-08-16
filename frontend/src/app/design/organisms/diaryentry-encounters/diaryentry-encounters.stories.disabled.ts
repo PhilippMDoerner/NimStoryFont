@@ -4,11 +4,11 @@
 // import { NgbModule } from '@ng-bootstrap/ng-bootstrap';
 // import { action } from 'storybook/actions';
 // import { Meta, StoryFn, moduleMetadata } from '@storybook/angular';
-// import { OverviewItem } from 'src/app/_models/overview';
-// import { FORMLY_MODULE } from 'src/app/_modules/formly_constants';
-// import { DiaryentryPageStore } from 'src/app/campaign/pages/diaryentry-page/diaryentry-page.store';
-// import { GlobalStore } from 'src/app/global.store';
-// import { Encounter } from 'src/app/_models/encounter';
+// import { OverviewItem } from '../../_models/overview';
+// import { FORMLY_MODULE } from '../../_modules/formly_constants';
+// import { DiaryentryPageStore } from '../../campaign/pages/diaryentry-page/diaryentry-page.store';
+// import { GlobalStore } from '../../global.store';
+// import { Encounter } from '../../_models/encounter';
 // import { DiaryentryEncountersComponent } from './diaryentry-encounters.component';
 
 // const x = all;

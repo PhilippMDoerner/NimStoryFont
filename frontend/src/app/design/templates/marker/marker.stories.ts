@@ -1,10 +1,10 @@
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterTestingModule } from '@angular/router/testing';
-import { action } from 'storybook/actions';
 import { Meta, StoryFn, moduleMetadata } from '@storybook/angular';
 import * as x from 'leaflet';
-import { MapMarker } from 'src/app/_models/mapMarker';
-import { dummyMarkers } from 'src/app/_services/article/marker.service.mock';
+import { action } from 'storybook/actions';
+import { MapMarker } from '../../../_models/mapMarker';
+import { dummyMarkers } from '../../../_services/article/marker.service.mock';
 import { MarkerComponent } from './marker.component';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

@@ -1,8 +1,8 @@
 import { RouterTestingModule } from '@angular/router/testing';
 import { Meta, StoryFn, moduleMetadata } from '@storybook/angular';
-import { OverviewItem } from 'src/app/_models/overview';
-import { dummyCampaign } from 'src/app/_services/utils/campaign.mock.service';
 import { action } from 'storybook/actions';
+import { OverviewItem } from '../../../_models/overview';
+import { dummyCampaign } from '../../../_services/utils/campaign.mock.service';
 import { HomeComponent } from './home.component';
 
 const dummyOverview: OverviewItem[] = [

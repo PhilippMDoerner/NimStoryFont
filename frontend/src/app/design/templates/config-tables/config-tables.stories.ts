@@ -1,12 +1,12 @@
 import { RouterTestingModule } from '@angular/router/testing';
-import { action } from 'storybook/actions';
 import { Meta, StoryFn, moduleMetadata } from '@storybook/angular';
-import { dummyMarkerTypes } from 'src/app/_services/article/marker-type.service.mock';
-import { dummyClasses } from 'src/app/_services/article/player-class.service.mock';
-import { FormlyProvider } from 'src/app/_services/formly/formly-service.mock';
+import { action } from 'storybook/actions';
+import { dummyMarkerTypes } from '../../../_services/article/marker-type.service.mock';
+import { dummyClasses } from '../../../_services/article/player-class.service.mock';
+import { FormlyProvider } from '../../../_services/formly/formly-service.mock';
 
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { FORMLY_MODULE } from 'src/app/_modules/formly_constants';
+import { FORMLY_MODULE } from '../../../_modules/formly_constants';
 import { ConfigTablesComponent } from './config-tables.component';
 
 export default {

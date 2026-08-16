@@ -4,8 +4,8 @@ import { FormlyBootstrapModule } from '@ngx-formly/bootstrap';
 import { FormlyFieldConfig, FormlyModule } from '@ngx-formly/core';
 import { Meta, StoryFn, moduleMetadata } from '@storybook/angular';
 import { of } from 'rxjs';
-import { CustomTypeaheadProps } from 'src/app/_models/formly';
-import { requiredMessage } from 'src/app/_services/formly/validators';
+import { CustomTypeaheadProps } from '../../../_models/formly';
+import { requiredMessage } from '../../../_services/formly/validators';
 import { FormlyTypeaheadFieldComponent } from './formly-typeahead-field.component';
 
 const dummyData: { label: string; value: number }[] = [
@@ -72,10 +72,10 @@ const Template: StoryFn<
     },
     template: `
         <form [formGroup]="form" (submit)="onSubmit($event)">
-          <formly-form 
-            [model]="model" 
-            [fields]="fields" 
-            [options]="options" 
+          <formly-form
+            [model]="model"
+            [fields]="fields"
+            [options]="options"
             [form]="form"
             (onSubmit)="args.onSubmit($event)"
           ></formly-form>

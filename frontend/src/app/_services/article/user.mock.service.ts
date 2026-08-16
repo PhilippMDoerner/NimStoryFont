@@ -1,4 +1,4 @@
-import { User } from 'src/app/_models/user';
+import { User } from '../../_models/user';
 
 export const dummyUsers: User[] = [
   {

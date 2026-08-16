@@ -1,5 +1,5 @@
 import { Observable, of } from 'rxjs';
-import { OverviewItem } from 'src/app/_models/overview';
+import { OverviewItem } from '../../_models/overview';
 import { LocationService } from './location.service';
 
 export const dummyLocations: OverviewItem[] = [

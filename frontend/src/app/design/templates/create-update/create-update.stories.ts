@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { RouterTestingModule } from '@angular/router/testing';
 import { FormlyFieldConfig } from '@ngx-formly/core';
-import { action } from 'storybook/actions';
 import { Meta, StoryFn, moduleMetadata } from '@storybook/angular';
 import { Observable, of } from 'rxjs';
+import { action } from 'storybook/actions';
 
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { FORMLY_MODULE } from 'src/app/_modules/formly_constants';
+import { FORMLY_MODULE } from '../../../_modules/formly_constants';
 import { CreateUpdateComponent } from './create-update.component';
 
 const dummyData: any[] = [

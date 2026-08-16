@@ -1,4 +1,4 @@
-import { MapMarker } from 'src/app/_models/mapMarker';
+import { MapMarker } from '../../_models/mapMarker';
 
 export const dummyMarkers: MapMarker[] = [
   {

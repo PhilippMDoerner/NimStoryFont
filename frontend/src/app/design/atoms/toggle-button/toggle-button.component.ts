@@ -4,7 +4,7 @@ import {
   input,
   output,
 } from '@angular/core';
-import { AriaText } from 'src/app/_models/aria';
+import { AriaText } from '../../../_models/aria';
 import { ButtonKind, ElementKind, ElementSize } from '../_models/button';
 import { Icon } from '../_models/icon';
 import { ButtonComponent } from '../button/button.component';

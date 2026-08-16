@@ -1,10 +1,10 @@
 import { RouterTestingModule } from '@angular/router/testing';
 import { Meta, StoryFn, moduleMetadata } from '@storybook/angular';
-import { RoutingServiceMock } from 'src/app/_services/routing.mock.service';
-import { RoutingService } from 'src/app/_services/routing.service';
-import { dummyCampaign } from 'src/app/_services/utils/campaign.mock.service';
-import { FaviconService } from 'src/app/_services/utils/favicon.service';
-import { GlobalStore } from 'src/app/global.store';
+import { RoutingServiceMock } from '../../../_services/routing.mock.service';
+import { RoutingService } from '../../../_services/routing.service';
+import { dummyCampaign } from '../../../_services/utils/campaign.mock.service';
+import { FaviconService } from '../../../_services/utils/favicon.service';
+import { GlobalStore } from '../../../global.store';
 import { PageComponent } from './page.component';
 
 const dummyUserData = {

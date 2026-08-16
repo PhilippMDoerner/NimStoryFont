@@ -1,9 +1,9 @@
 import { LeafletModule } from '@bluehalo/ngx-leaflet';
 import { Meta, StoryFn, moduleMetadata } from '@storybook/angular';
 import * as x from 'leaflet';
-import { dummyMap } from 'src/app/_services/article/map.service.mock';
-import { RoutingServiceMock } from 'src/app/_services/routing.mock.service';
-import { RoutingService } from 'src/app/_services/routing.service';
+import { dummyMap } from '../../../_services/article/map.service.mock';
+import { RoutingServiceMock } from '../../../_services/routing.mock.service';
+import { RoutingService } from '../../../_services/routing.service';
 import { NgxLeafletMapComponent } from './ngx-leaflet-map.component';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

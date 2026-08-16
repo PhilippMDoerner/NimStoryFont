@@ -6,7 +6,7 @@ import {
   CampaignRoles,
   TokenData,
   UserData,
-} from 'src/app/_models/token';
+} from '../../_models/token';
 
 export const dummyUserData: UserData = {
   accessToken: {

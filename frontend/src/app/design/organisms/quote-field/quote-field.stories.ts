@@ -1,13 +1,13 @@
 import { RouterTestingModule } from '@angular/router/testing';
-import { action } from 'storybook/actions';
 import { Meta, StoryFn, moduleMetadata } from '@storybook/angular';
-import { OverviewItem } from 'src/app/_models/overview';
+import { action } from 'storybook/actions';
+import { OverviewItem } from '../../../_models/overview';
 
-import { CharacterDetails } from 'src/app/_models/character';
-import { Quote } from 'src/app/_models/quote';
-import { FORMLY_MODULE } from 'src/app/_modules/formly_constants';
-import { RoutingServiceMock } from 'src/app/_services/routing.mock.service';
-import { RoutingService } from 'src/app/_services/routing.service';
+import { CharacterDetails } from '../../../_models/character';
+import { Quote } from '../../../_models/quote';
+import { FORMLY_MODULE } from '../../../_modules/formly_constants';
+import { RoutingServiceMock } from '../../../_services/routing.mock.service';
+import { RoutingService } from '../../../_services/routing.service';
 import { QuoteFieldComponent } from './quote-field.component';
 
 const dummyQuote: Quote = {

@@ -1,6 +1,6 @@
 import { Observable, of } from 'rxjs';
-import { CharacterDetails } from 'src/app/_models/character';
-import { OverviewItem } from 'src/app/_models/overview';
+import { CharacterDetails } from '../../_models/character';
+import { OverviewItem } from '../../_models/overview';
 import { CharacterService } from './character.service';
 
 export const dummyOverviewCharacters: OverviewItem[] = [

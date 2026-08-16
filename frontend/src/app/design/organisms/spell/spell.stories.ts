@@ -1,10 +1,10 @@
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterTestingModule } from '@angular/router/testing';
-import { action } from 'storybook/actions';
 import { Meta, StoryFn, moduleMetadata } from '@storybook/angular';
-import { PlayerClass } from 'src/app/_models/playerclass';
-import { Spell } from 'src/app/_models/spell';
-import { FORMLY_MODULE } from 'src/app/_modules/formly_constants';
+import { action } from 'storybook/actions';
+import { PlayerClass } from '../../../_models/playerclass';
+import { Spell } from '../../../_models/spell';
+import { FORMLY_MODULE } from '../../../_modules/formly_constants';
 import { SpellComponent } from './spell.component';
 
 const dummySpell: Spell = {

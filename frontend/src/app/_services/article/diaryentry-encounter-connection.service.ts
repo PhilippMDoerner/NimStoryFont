@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { DiaryEntryEncounterConnection } from 'src/app/_models/diaryentryEncounterConnection';
-import { OverviewItem } from 'src/app/_models/overview';
+import { DiaryEntryEncounterConnection } from '../../_models/diaryentryEncounterConnection';
+import { OverviewItem } from '../../_models/overview';
 import { BaseService } from '../base.service';
 import { CreateDeleteService } from '../service.interfaces';
 
