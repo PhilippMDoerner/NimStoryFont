@@ -118,7 +118,7 @@
     <app-form
       [model]="userModel()"
       [fields]="formlyFields()"
-      [cancelButtonType]="'DARK'"
+      [cancelButtonType]="'SECONDARY'"
       (formlySubmit)="onEncounterUpdate(userModel())"
       (formlyCancel)="changeState('DISPLAY', undefined)"
     ></app-form>

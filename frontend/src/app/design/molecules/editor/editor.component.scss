@@ -1,6 +1,5 @@
 :host {
   display: inline-block;
-  --bg-hover-color: var(--bs-secondary);
 }
 
 .field {
@@ -16,7 +15,7 @@
     &:hover {
       outline-offset: 4px;
       color: unset;
-      background-color: var(--bg-hover-color);
+      background-color: var(--editor-bg-hover-color, var(--bs-secondary));
     }
   }
 

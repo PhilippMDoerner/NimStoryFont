@@ -57,7 +57,6 @@ export class CharacterComponent {
   readonly character = input.required<CharacterDetails>();
   readonly characterServerModel = input<CharacterDetails>();
   readonly characterQuote = input<Quote>();
-  readonly campaignNPCCharacters = input.required<OverviewItem[]>();
   readonly campaignCharacters = input.required<OverviewItem[]>();
   readonly campaignOrganizations = input.required<OverviewItem[]>();
   readonly campaignLocations = input.required<OverviewItem[]>();
@@ -155,6 +154,11 @@ export class CharacterComponent {
       ) ?? []
     );
   });
+  readonly campaignNPCCharacters = computed(() =>
+    this.campaignCharacters()?.filter(
+      (character) => !character.player_character,
+    ),
+  );
 
   constructor(private routingService: RoutingService) {}
 

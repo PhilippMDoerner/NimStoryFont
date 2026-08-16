@@ -79,12 +79,6 @@ export const CharacterStore = signalStore(
             characterService.readByParam(campaign, { name }),
           ),
         ),
-      campaignNPCCharacters: () =>
-        campaignName$.pipe(
-          switchMap((campaignName) =>
-            characterService.getNonPlayerCharacters(campaignName),
-          ),
-        ),
       campaignCharacters: () =>
         campaignName$.pipe(
           switchMap((campaignName) =>
