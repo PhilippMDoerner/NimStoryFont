@@ -3,13 +3,11 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
-  effect,
   inject,
   Injector,
   input,
   linkedSignal,
   output,
-  untracked,
   viewChild,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -28,6 +26,7 @@ import {
   Observable,
   of,
   switchMap,
+  tap,
   timer,
 } from 'rxjs';
 import { HotkeyDirective } from '../../../_directives/hotkey.directive';
@@ -89,7 +88,6 @@ export class EditorComponent {
   private readonly editorField = viewChild<QuillEditorComponent>('editor');
 
   constructor() {
-    this.startAutosaveBehavior();
     this.setupStateChangeBehavior();
   }
 
@@ -103,24 +101,6 @@ export class EditorComponent {
 
   protected cancelEdit() {
     this.cancelled.emit();
-  }
-
-  private startAutosaveBehavior() {
-    effect(() => {
-      const isStartingAutosave = this.saveState() === 'SAVING';
-      if (!isStartingAutosave) return;
-
-      const isAutosaveEnabled = untracked(() => this.enableAutosave());
-      if (!isAutosaveEnabled) return;
-
-      const canUpdate = untracked(() => this.state() === 'UPDATE');
-      if (!canUpdate) return;
-
-      const hasTextChanged = this.text() !== this.editorValue();
-      if (!hasTextChanged) return;
-
-      this.autosave.emit(this.editorValue());
-    });
   }
 
   private getAutoSaveState(): Observable<SaveState> {
@@ -138,7 +118,16 @@ export class EditorComponent {
                 ? of('ALL_SAVED')
                 : concat(
                     of('UNSAVED_CHANGES' as const),
-                    timer(3000).pipe(map(() => 'SAVING' as const)),
+                    timer(3000).pipe(
+                      map(() => 'SAVING' as const),
+                      tap(() => {
+                        const isAutosaveEnabled = this.enableAutosave();
+                        const canUpdate = this.state() === 'UPDATE';
+                        if (!isAutosaveEnabled || !canUpdate) return;
+
+                        this.autosave.emit(editorValue);
+                      }),
+                    ),
                   ),
           ),
         ),
