@@ -19,8 +19,7 @@ import { capitalize } from '../../../../utils/string';
 import { HotkeyDirective } from '../../../_directives/hotkey.directive';
 import { OverviewItem } from '../../../_models/overview';
 import {
-  SEARCHABLE_ARTICLE_KINDS,
-  SearchableArticleKind,
+  SearchableArticleKind
 } from '../../../_models/search';
 import { HotkeyService } from '../../../_services/hotkey.service';
 import { OnlineService } from '../../../_services/online.service';
@@ -88,7 +87,7 @@ export class SearchModalComponent {
   readonly DEFAULT_URL = 'assets/default_images/icon_default.webp';
 
   readonly campaignName = this.globalStore.campaignName;
-  readonly activeFilters = signal(SEARCHABLE_ARTICLE_KINDS);
+  readonly activeFilters = signal<SearchableArticleKind[]>([]);
   readonly filterToggles = computed(() => {
     const activeFilterSet = new Set(this.activeFilters());
     return SEARCH_TOGGLES.map((toggle) => ({

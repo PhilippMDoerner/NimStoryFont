@@ -7,18 +7,23 @@
 
 .btn {
   display: flex;
-  gap: var(--spacer-2);
 
   &:focus-visible {
     outline: var(--focus-outline);
   }
 
+  &__prefix-icon {
+    margin-right: var(--spacer-2);
+  }
+
   &__icon {
     width: 0px;
-    transition: width 0.2s ease-in-out;
+    margin-left: var(--spacer-0);
+    transition: width 0.2s ease-in-out, margin 0.2s ease-in-out;
     overflow: hidden;
 
     &--active {
+      margin-left: var(--spacer-2);
       width: 16px;
     }
   }
