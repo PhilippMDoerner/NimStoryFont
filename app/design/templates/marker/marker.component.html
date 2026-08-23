@@ -21,22 +21,11 @@
       "
       (deleteConfirmed)="markerDelete.emit(marker())"
     />
-    @if (canUpdate()) {
-      <div class="marker__edit-container">
-        <a
-          [routerLink]="updateUrl()"
-          btn
-          [icon]="'pencil'"
-          [kind]="'SECONDARY'"
-          aria-label="Edit Marker"
-        >
-        </a>
-      </div>
-    }
 
     <div class="row marker__heading heading">
       <h1 class="col-12 heading__main">
-        Marker on {{ marker().map_details?.name }}
+        Marker on
+        <a [routerLink]="mapUrl()"> {{ marker().map_details?.name }} </a>
       </h1>
 
       <h3 class="col-12 heading__subheading">Properties</h3>
@@ -69,18 +58,14 @@
       <strong class="col-6 col-sm-3">Icon: </strong>
 
       <span class="col-6 col-sm-5">
-        @let icon = marker().icon;
+        @let icon = marker().icon ?? marker().type_details?.icon;
+        @let hasCustomIcon = !!marker().icon;
         @if (icon) {
           {{ icon }}
           ( <app-icon [icon]="icon"></app-icon> )
-        } @else {
-          {{ marker().type_details?.icon }}
-          (
-          <app-icon
-            [icon]="$safeNavigationMigration(marker().type_details?.icon)!"
-          ></app-icon>
-          )
-          <span class="hint"> (from marker type) </span>
+          @if (!hasCustomIcon) {
+            <span class="hint"> (from marker type) </span>
+          }
         }
       </span>
     </div>
@@ -91,11 +76,13 @@
       <strong class="col-6 col-sm-3">Color: </strong>
 
       <span class="col-sm-5 col-6">
-        @if (marker().color) {
-          {{ marker().color }}
-        } @else {
-          {{ marker().type_details?.color }}
-          <span class="hint"> (from marker type) </span>
+        @let color = marker().color ?? marker().type_details?.color;
+        @let hasCustomColor = !!marker().color;
+        @if (color) {
+          {{ color }}
+          @if (!hasCustomColor) {
+            <span class="hint"> (from marker type) </span>
+          }
         }
       </span>
     </div>

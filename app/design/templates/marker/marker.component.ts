@@ -46,6 +46,15 @@ export class MarkerComponent {
       campaign: campaign_details.name,
     });
   });
+  readonly mapUrl = computed(() => {
+    const { map_details, campaign_details } = this.marker();
+    if (!map_details?.name) return undefined;
+
+    return this.routingService.getRoutePath('map', {
+      name: map_details?.name,
+      campaign: campaign_details.name,
+    });
+  });
   readonly updateUrl = computed(() => {
     const { campaign_details, location_details, map_details } = this.marker();
 

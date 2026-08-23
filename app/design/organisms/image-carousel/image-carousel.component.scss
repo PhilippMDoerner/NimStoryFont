@@ -24,13 +24,18 @@
   position: absolute;
   background: var(--wiki-bg-transparent);
   text-align: center;
-  bottom: 20%;
+  bottom: 50%;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate(-50%, 50%);
   padding: var(--spacer-3) var(--spacer-4);
   display: flex;
   flex-direction: column;
   gap: var(--spacer-2);
+  width: 100%;
+
+  @include screen.media-breakpoint-up(md) {
+    width: unset;
+  }
 
   p {
     margin: 0;
