@@ -33,6 +33,12 @@
   }
 }
 
+.modal-header {
+  &__close {
+    --box-shadow: none;
+  }
+}
+
 .body {
   &__buttons {
     margin-top: var(--spacer-3);

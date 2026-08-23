@@ -119,3 +119,9 @@
     width: 100%;
   }
 }
+
+.modal-header {
+  &__close {
+    --box-shadow: none;
+  }
+}

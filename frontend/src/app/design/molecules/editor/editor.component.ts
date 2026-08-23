@@ -2,6 +2,7 @@ import { NgTemplateOutlet } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   DestroyRef,
   inject,
   Injector,
@@ -29,6 +30,7 @@ import {
   tap,
   timer,
 } from 'rxjs';
+import { htmlToText } from '../../../../utils/DOM';
 import { HotkeyDirective } from '../../../_directives/hotkey.directive';
 import { ElementKind } from '../../atoms/_models/button';
 import { AlertComponent } from '../../atoms/alert/alert.component';
@@ -82,6 +84,9 @@ export class EditorComponent {
   readonly autosave = output<string>();
   readonly cancelled = output<void>();
 
+  protected readonly isEmpty = computed(
+    () => htmlToText(this.text()).trim().length === 0,
+  );
   protected readonly editorValue = linkedSignal(() => this.text());
   protected readonly saveState = toSignal(this.getAutoSaveState());
 

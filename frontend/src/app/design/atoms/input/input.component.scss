@@ -3,6 +3,7 @@
   background-color: inherit;
   --radius: var(--bs-border-radius);
   border-radius: var(--bs-border-radius);
+  box-shadow: var(--box-shadow);
 
   &:focus-within,
   &.active {

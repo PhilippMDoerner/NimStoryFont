@@ -16,6 +16,8 @@ input[type="search"]::-webkit-search-results-decoration {
 }
 
 .search {
+  box-shadow: var(--box-shadow);
+
   &__form {
     flex: 1;
   }
@@ -54,6 +56,7 @@ input[type="search"]::-webkit-search-results-decoration {
     width: 100%;
     color: var(--bs-white);
     border-radius: var(--bs-border-radius);
+    --box-shadow: none;
 
     &--disabled {
       cursor: not-allowed;
@@ -64,6 +67,8 @@ input[type="search"]::-webkit-search-results-decoration {
     border-top-left-radius: 0px;
     border-bottom-left-radius: 0px;
     padding: var(--spacer-3);
+    border-width: 0px 0px 0px 2px;
+    border-left-color: var(--bs-border-color);
 
     &--disabled {
       cursor: not-allowed;

@@ -1,5 +1,6 @@
 :host {
   border: var(--bs-border-style) var(--bs-border-width) var(--bs-border-color);
+  box-shadow: var(--box-shadow);
 
   &:has(.card__button:focus-visible) {
     outline: var(--focus-outline);
