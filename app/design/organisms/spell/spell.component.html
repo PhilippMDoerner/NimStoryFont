@@ -18,6 +18,7 @@
     </div>
     @if (state() !== "CREATE" && contextMenuItems().length > 0) {
       <app-context-menu
+        class="card__context-menu"
         [menuItems]="contextMenuItems()"
         [menuButtonIcon]="'ellipsis-vertical'"
         [menuButtonKind]="'LIGHT-OUTLINE'"

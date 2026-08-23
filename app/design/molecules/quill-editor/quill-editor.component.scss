@@ -1,8 +1,7 @@
 :host {
   display: block;
-  --bg-color: var(--editor-bg-color, #222f3e);
-  background-color: var(--bg-color);
   margin-bottom: 10rem;
+  --bg-color: var(--editor-bg-color, #222f3e);
   --toolbar-color: white;
   --quill-active-color: var(--bs-link-hover-color);
 
@@ -15,6 +14,7 @@
 }
 
 .editor-wrapper {
+  background-color: var(--bg-color);
   border-radius: var(--bs-border-radius);
   border: var(--border-width, 1px) solid var(--editor-border-color, #161f29);
 }
@@ -28,7 +28,7 @@
     border: none;
     position: relative; /* needed for z-index to take effect */
     z-index: 1;
-    box-shadow: 0 6px 10px -4px rgba(0, 0, 0, 0.6);
+    box-shadow: var(--box-shadow);
 
     .ql-stroke {
       stroke: var(--toolbar-color);

@@ -22,6 +22,7 @@
   --wiki-bg-transparent: rgba(27, 31, 34, 0.93);
   --wiki-bg-solid: rgb(27, 31, 34);
   --focus-outline: solid 3px var(--bs-link-hover-color);
+  --box-shadow: 0 6px 10px -4px rgba(0, 0, 0, 0.6);
 
   @each $index, $value in $spacers {
     --spacer-#{$index}: #{$value};

@@ -17,3 +17,9 @@ let nextId = 0;
 export function componentId(): string {
   return `app-${nextId++}`;
 }
+
+const parser = new DOMParser();
+export function htmlToText(text: string): string {
+  if (!text) return '';
+  return parser.parseFromString(text, 'text/html').body.textContent;
+}

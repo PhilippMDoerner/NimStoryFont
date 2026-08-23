@@ -97,7 +97,7 @@
 </ng-template>
 
 <ng-template #textBody>
-  <app-html-text [text]="text() || placeholder()" />
+  <app-html-text [text]="!isEmpty() ? text() : placeholder()" />
 </ng-template>
 
 <ng-template #editorBottom>

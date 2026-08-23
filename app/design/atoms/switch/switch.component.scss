@@ -10,6 +10,7 @@
   width: var(--switch-width);
   margin-top: unset;
   margin-right: var(--spacer-2);
+  box-shadow: var(--box-shadow);
 
   &:focus-visible {
     outline: var(--focus-outline);

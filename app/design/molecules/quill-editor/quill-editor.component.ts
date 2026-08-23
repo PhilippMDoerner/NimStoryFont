@@ -269,7 +269,7 @@ export class QuillEditorComponent {
       const selection = q.getSelection();
       const previouslyFocused = document.activeElement as HTMLElement | null;
 
-      q.clipboard.dangerouslyPasteHTML(this.value(), 'silent');
+      q.clipboard.dangerouslyPasteHTML(this.value() ?? '', 'silent');
       if (selection) {
         const cursorPosition = Math.min(selection.index, q.getLength() - 1);
 
