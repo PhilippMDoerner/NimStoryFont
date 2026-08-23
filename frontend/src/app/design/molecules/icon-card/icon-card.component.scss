@@ -28,6 +28,8 @@
     font-weight: bold;
     text-align: center;
     background-color: var(--bs-dark);
+    border: var(--bs-border-width) solid var(--bs-border-color);
+    box-shadow: 0 6px 10px -4px rgba(0, 0, 0, 0.6);
   }
 
   &-icon-top {
