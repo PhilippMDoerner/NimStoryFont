@@ -16,8 +16,6 @@ input[type="search"]::-webkit-search-results-decoration {
 }
 
 .search {
-  box-shadow: var(--box-shadow);
-
   &__form {
     flex: 1;
   }
