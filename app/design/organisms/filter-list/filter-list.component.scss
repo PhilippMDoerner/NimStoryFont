@@ -19,6 +19,7 @@
     padding: 0;
     gap: var(--spacer-2);
     margin-bottom: var(--spacer-4);
+    box-shadow: var(--box-shadow);
 
     &:has(:focus-visible),
     &--active {
@@ -30,6 +31,7 @@
     border-radius: var(--bs-border-radius);
     border: none;
     color: var(--bs-white);
+    box-shadow: none;
 
     width: 100%;
   }
@@ -39,6 +41,7 @@
     padding: var(--spacer-3);
     border-top-left-radius: 0;
     border-bottom-left-radius: 0;
+    box-shadow: none;
   }
 }
 

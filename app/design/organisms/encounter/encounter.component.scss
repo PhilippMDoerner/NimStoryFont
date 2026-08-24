@@ -46,6 +46,10 @@
     --confirmation-bg-color: var(--bs-dark);
   }
 
+  &__context-menu {
+    --btn-box-shadow: none;
+  }
+
   &__edit-button {
     align-self: center;
   }
