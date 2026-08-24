@@ -1,6 +1,7 @@
 :host {
   border-radius: var(--bs-border-radius);
   border: var(--bs-border-style) var(--bs-border-width) var(--bs-border-color);
+  box-shadow: var(--box-shadow);
 }
 
 .badge-button {

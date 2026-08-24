@@ -20,6 +20,7 @@
     <span class="card__right-container">
       @if (cardState() !== "CREATE" && contextMenuItems().length > 0) {
         <app-context-menu
+          class="card__context-menu"
           [menuItems]="contextMenuItems()"
           [menuButtonKind]="'LIGHT-OUTLINE'"
           [menuButtonIcon]="'ellipsis-vertical'"

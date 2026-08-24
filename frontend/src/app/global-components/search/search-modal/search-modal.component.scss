@@ -41,6 +41,7 @@
 .search-results {
   &__heading {
     text-align: center;
+    border-bottom: var(--bs-border-width) solid var(--bs-border-color);
   }
 
   &__list {
@@ -49,6 +50,7 @@
     gap: var(--spacer-2);
     overflow-y: scroll;
     height: 400px;
+    padding: unset;
 
     &--hidden {
       display: none;
@@ -64,6 +66,7 @@
     display: flex;
     align-items: center;
     position: relative;
+    box-shadow: var(--box-shadow);
 
     &:has(:hover),
     &:has(:focus),
@@ -79,6 +82,7 @@
     border-left-style: solid;
     border-radius: var(--bs-border-radius);
     position: static;
+    box-shadow: none;
   }
 
   &__search-result-icon {
