@@ -1,11 +1,10 @@
 :host {
-  border-radius: var(--bs-border-radius);
+  border-radius: var(--bs-border-radius-xl);
   border: var(--bs-border-style) var(--bs-border-width) var(--bs-border-color);
   box-shadow: var(--box-shadow);
 }
 
 .badge-button {
-  border-radius: var(--bs-border-radius);
   display: flex;
   text-decoration: none;
 
@@ -17,6 +16,7 @@
 }
 
 .badge {
+  border-radius: var(--bs-border-radius-xl);
   overflow: hidden;
   text-overflow: ellipsis;
 }

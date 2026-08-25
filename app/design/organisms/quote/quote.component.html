@@ -1,7 +1,7 @@
 @if (!isLoadingQuote()) {
   <section class="field">
     @let quoteVal = quote();
-    @if(hasQuote()){
+    @if (hasQuote()) {
       @if (quoteVal) {
         <div class="field__quote quote" [attr.aria-label]="quoteLabel()">
           <figure class="m-0">
@@ -43,8 +43,9 @@
           </div>
         </div>
       }
-      @if(showQuoteControls()){
+      @if (showQuoteControls()) {
         <app-context-menu
+          class="field__context-menu"
           [menuItems]="shownQuoteControlls()"
           [menuButtonKind]="'LIGHT-OUTLINE'"
           [menuButtonIcon]="'ellipsis-vertical'"
@@ -53,7 +54,7 @@
           (actionTriggered)="onContextMenuAction($event)"
         />
       }
-    } @else if(!hasQuote() && canCreate()){
+    } @else if (!hasQuote() && canCreate()) {
       <button
         btn
         class="field__control"
@@ -63,7 +64,6 @@
         (clicked)="quoteCreate.emit()"
       ></button>
     }
-
   </section>
 }
 

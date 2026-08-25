@@ -14,6 +14,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   border: var(--bs-border-style) var(--bs-border-width) var(--bs-border-color);
+  border-radius: var(--bs-border-radius-xl);
 
   &:focus-visible,
   &:hover {
