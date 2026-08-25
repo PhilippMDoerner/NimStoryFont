@@ -7,8 +7,7 @@
 
   &:focus-within {
     .editor-wrapper {
-      border-color: var(--editor-focus-border-color, var(--quill-active-color));
-      border-width: var(--editor-focus-border-width, 3px);
+      outline: var(--focus-outline);
     }
   }
 }
