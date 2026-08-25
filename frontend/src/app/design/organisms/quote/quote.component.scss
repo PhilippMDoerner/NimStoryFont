@@ -17,6 +17,10 @@
   &__quote {
     width: 100%;
   }
+
+  &__context-menu {
+    --btn-box-shadow: none;
+  }
 }
 .quote {
   border-left: solid 4px var(--bs-white);

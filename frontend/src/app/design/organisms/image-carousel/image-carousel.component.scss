@@ -2,9 +2,11 @@
 
 .carousel {
   --card-padding: 0;
+
   &__actions {
     display: flex;
     justify-content: end;
+    --btn-box-shadow: none;
   }
 }
 
