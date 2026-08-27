@@ -1,13 +1,6 @@
 .display-form {
   cursor: pointer;
   display: flex;
-
-  &:focus,
-  &:has(:focus-visible),
-  &:focus-visible,
-  &:hover {
-    outline: var(--focus-outline);
-  }
 }
 
 .form {
