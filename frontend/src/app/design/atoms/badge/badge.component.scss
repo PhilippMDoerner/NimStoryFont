@@ -8,10 +8,15 @@
   display: flex;
   text-decoration: none;
 
-  &:focus-visible {
-    outline: var(--focus-outline);
-    color: inherit;
-    outline-offset: -2px;
+  &:focus-visible,
+  &:hover {
+    outline: none;
+
+    .badge {
+      outline: var(--focus-outline);
+      color: inherit;
+      outline-offset: -2px;
+    }
   }
 }
 
