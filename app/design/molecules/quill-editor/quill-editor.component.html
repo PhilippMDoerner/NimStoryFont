@@ -1,4 +1,8 @@
-<div class="editor-wrapper">
+<div
+  class="editor-wrapper"
+  (focusin)="emitFocusEvent()"
+  (focusout)="emitBlurEvent()"
+>
   <!-- Custom toolbar: Quill's snow theme scans this container for ql-* classes and applies functionality based on that -->
   <div ngToolbar #toolbar class="ql-toolbar custom-toolbar">
     <span class="ql-formats">

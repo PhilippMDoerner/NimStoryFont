@@ -8,7 +8,9 @@
   </label>
 
   <app-quill-editor
-    [id]="field.id ?? ''"
+    class="mb-0"
+    [id]="to['name']"
+    [labelId]="''"
     [attr.name]="to['name']"
     #textEditorElement
     [formControl]="formControl"
