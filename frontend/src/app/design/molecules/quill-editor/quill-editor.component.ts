@@ -14,16 +14,18 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
-  DestroyRef,
   effect,
   ElementRef,
+  forwardRef,
   inject,
   input,
+  model,
   output,
   signal,
   viewChild,
 } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
+import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { NgbTooltip } from '@ng-bootstrap/ng-bootstrap';
 import Quill, { Range } from 'quill';
 import TableUp from 'quill-table-up';
@@ -58,11 +60,18 @@ type QuillEvent = (typeof E)['events'][keyof (typeof E)['events']];
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     [HOTKEY_IGNORE_ATTR]: '',
-    '(click)': 'logFormat()',
   },
+  providers: [
+    {
+      provide: NG_VALUE_ACCESSOR,
+      useExisting: forwardRef(() => QuillEditorComponent),
+      multi: true,
+    },
+  ],
 })
-export class QuillEditorComponent {
-  private readonly destroyRef = inject(DestroyRef);
+export class QuillEditorComponent implements ControlValueAccessor {
+  private readonly hostElement =
+    inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
   protected readonly FONT_STYLE_LABEL_MAP: Record<string, string> & {
     normal: string;
   } = {
@@ -81,19 +90,25 @@ export class QuillEditorComponent {
   private readonly toolbar =
     viewChild.required<ElementRef<HTMLElement>>('toolbar');
 
-  readonly value = input.required<string>();
+  readonly value = model<string>();
   readonly id = input.required<string>();
   readonly labelId = input.required<string>();
   readonly describedById = input<string>();
   readonly readOnly = input<boolean>(false);
 
   public readonly inputChanged = output<string>();
+  public readonly blurred = output<void>();
+  public readonly focused = output<void>();
 
   private readonly compoId = componentId();
   protected readonly toolbarId = `${this.compoId}-toolbar`;
   protected readonly headingLabelId = `${this.compoId}-heading-select-label`;
   private readonly currentSelection = signal<Range | null>(null);
   protected readonly headerPopupOpen = signal<boolean>(false);
+  private readonly onTouch = signal<(() => void) | undefined>(undefined);
+  private readonly onChange = signal<((value: string) => void) | undefined>(
+    undefined,
+  );
 
   private readonly quillConfig$ = toObservable(this.toolbar).pipe(
     filter((el) => el?.nativeElement != null),
@@ -141,10 +156,6 @@ export class QuillEditorComponent {
     })),
   ];
 
-  logFormat() {
-    console.log(this.quill()?.getFormat());
-  }
-
   constructor() {
     this.setupQuillEventListeners();
     this.setupForwardValueToEditorOnChangeAndMaintainCursorPosition();
@@ -156,6 +167,18 @@ export class QuillEditorComponent {
     // this.quill$
     //   .pipe(takeOnceOrUntilDestroyed(this.destroyRef))
     //   .subscribe((q) => q.focus());
+  }
+
+  writeValue(obj: any): void {
+    this.value.set(String(obj));
+  }
+
+  registerOnChange(fn: any): void {
+    this.onChange.set(fn);
+  }
+
+  registerOnTouched(fn: any): void {
+    this.onTouch.set(fn);
   }
 
   protected createTable(rows: number, cols: number) {
@@ -226,6 +249,22 @@ export class QuillEditorComponent {
     q.history.redo();
   }
 
+  protected emitFocusEvent() {
+    const isFocusingInEditor = this.hostElement.contains(
+      document.activeElement,
+    );
+    if (!isFocusingInEditor) return;
+    this.focused.emit();
+  }
+
+  protected emitBlurEvent() {
+    const isFocusingOutOfEditor = !this.hostElement.contains(
+      document.activeElement,
+    );
+    if (!isFocusingOutOfEditor) return;
+    this.blurred.emit();
+  }
+
   private setupQuillEventListeners() {
     effect(() => {
       const q = this.quill();
@@ -258,6 +297,7 @@ export class QuillEditorComponent {
 
   private emitValue(quill: Quill) {
     const newValue = quill.root.innerHTML ?? '';
+    this.onChange()?.(newValue);
     this.inputChanged.emit(newValue);
   }
 
